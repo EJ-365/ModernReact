@@ -1,3 +1,3 @@
-const num = [2, 3, 5, 7, 11];
-let sortNum = num.sort()
-console.log(sortNum);
+const num = [5, 6, 5, 7, 11];
+numSort.sort((a,b) => a-b)
+console.log(numSort)
