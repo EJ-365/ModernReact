@@ -1,3 +1,3 @@
-const num = [5, 6, 5, 7, 11];
-num[0] = 2;
-console.log(num[0])
+const num = [5, 6, 8, 7, 12];
+num.splice(1,3,13);
+console.log(num);
