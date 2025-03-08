@@ -1,5 +1,5 @@
 const fruits = ['apple','pineapple','kiwi','strawberry','orange','mango']
-console.log(fruits);
+// manipulate it with any array method of your choice
 
 const num = [1,2,4,6,8];
 let result = num.indexOf(4);
