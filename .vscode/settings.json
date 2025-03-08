@@ -4,5 +4,6 @@
         "fufu",
         "Whataburger"
     ],
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "gitdoc.enabled": false
 }
