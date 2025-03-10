@@ -18,7 +18,7 @@ let backPack = {
         screenSize: 14.0
     },
     display: function(){
-        this.color = "yellow"
-        console.log("That's i have in my backpack");
+        this.color = "black and blue"
+        console.log("My backpack is " + this.color + " ");
     }
 }
