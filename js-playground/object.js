@@ -13,4 +13,5 @@ demo.innerHTML = `
     <p>Name: ${myInfo.name}</p>
     <p>Age: ${myInfo.age}</p>
     <p>Fav food: ${myInfo.favFood}</p>
+     <p>quote: ${myInfo.quote}</p>
 `;
