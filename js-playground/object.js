@@ -26,3 +26,5 @@ let backPack = {
    console.log(`This backpack ${hasLaptop} my laptop`)
 }
 }
+
+backPack.display();
