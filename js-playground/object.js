@@ -9,5 +9,6 @@ let backPack = {
     },
     message: function(){
         console.log("This is my backpack");
-    }
+    },
+    isHeavy: false,
 }
