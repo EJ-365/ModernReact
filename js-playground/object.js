@@ -9,6 +9,8 @@ const myInfo = {
 }
 
 let demo = document.getElementById('demo');
-demo.innerHTML = "<br>" + myInfo.name + "</br>";
-demo.innerHTML += "<br>" + myInfo.age + "</br>";
-demo.innerHTML += `<br> ${myInfo.favSport} </br>`;
+demo.innerHTML = `
+    <p>Name: ${myInfo.name}</p>
+    <p>Age: ${myInfo.age}</p>
+    <p>Fav food: ${myInfo.favFood}</p>
+`;
