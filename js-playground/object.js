@@ -4,7 +4,7 @@ const myInfo = {
     favFood: 'fufu',
     favSport: 'soccer',
     quote: function(){
-        document.write("It's what it's")   
+       return "It's what it's"   
      },
 }
 
