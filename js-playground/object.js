@@ -15,5 +15,9 @@ let backPack = {
     laptop: {
         color: 'silver',
         model: 'dell-Inspiron',
+        screenSize: 14.0
+    },
+    display: function(){
+        console.log("That's i have in my backpack");
     }
 }
