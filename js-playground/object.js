@@ -27,4 +27,13 @@ let backPack = {
 }
 }
 
-backPack.display();
+// backPack.display();
+// console.log(backPack.laptop.screenSize);
+console.log(backPack.color);
+
+/* we use this keyword inside an object to:
+Reference the current object's properties and methods
+Modify the object's own properties
+Access values from nested objects within the current object
+Create dynamic interactions between different properties of the same object
+*/
