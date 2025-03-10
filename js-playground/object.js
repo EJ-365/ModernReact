@@ -11,4 +11,9 @@ let backPack = {
         console.log("This is my backpack");
     },
     isHeavy: false,
+    containMyLaptop: true,
+    laptop: {
+        color: 'silver',
+        model: 'dell-Inspiron',
+    }
 }
