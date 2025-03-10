@@ -5,7 +5,9 @@ let backPack = {
     book: {
         color: 'blue',
         numOfPages: 80,
-        subject: 'math'
+        subject: 'calculus'
     },
-    
+    message: function(){
+        console.log("This is my backpack");
+    }
 }
