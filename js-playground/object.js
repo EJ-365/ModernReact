@@ -20,7 +20,7 @@ let backPack = {
     display: function(){
         this.color = "black and blue"
       console.log(`My backpack is ${this.color} and has ${this.numOFZip} zippers`)
-   console.log(`It contains a ${this.laptop.model} laptop`)
+   console.log(`contains ${this.laptop.model} laptop`)
    let hasLaptop = this.containMyLaptop 
    ? "it contains" : "it doesn't contains it"
    console.log(`This backpack ${hasLaptop} my laptop`)
