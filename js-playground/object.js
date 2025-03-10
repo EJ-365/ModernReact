@@ -10,5 +10,5 @@ const myInfo = {
 
 let demo = document.getElementById('demo');
 demo.innerHTML = "<br>" + myInfo.name + "</br>";
-demo.innerHTML = "<br>" + myInfo.age + "</br>"
-demo.innerHTML = `<br> ${myInfo.favSport} </br>` 
+demo.innerHTML += "<br>" + myInfo.age + "</br>";
+demo.innerHTML += `<br> ${myInfo.favSport} </br>`;
