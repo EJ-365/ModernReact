@@ -32,3 +32,13 @@ const myInfo = {
 // };
 
 // console.log(user.name);
+
+const dog = {
+  name: "Cooper",
+  age: 3,
+  bark: function () {
+    console.log("Woof woof");
+  },
+};
+
+console.log(Object.keys(dog));
