@@ -12,6 +12,10 @@ let fruits = ["mango", "apple", "pawpaw", "orange"];
 
 // fruits.forEach((item) => console.log(item));
 
-const food = ["fufu", "rice", "eba", "noodle"];
-let result = food.splice(0, 1, "beans");
-console.log(food);
+const food = ["fufu", "rice", "eba", "noodle", "pasta"];
+let result = food.splice(2, 1);
+
+let demo = document.querySelector(".demo");
+demo.innerHTML = `
+Arrays: ${food + " "}
+`;
