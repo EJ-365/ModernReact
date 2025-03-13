@@ -33,12 +33,28 @@ const myInfo = {
 
 // console.log(user.name);
 
-const dog = {
-  name: "Cooper",
-  age: 3,
-  bark: function () {
-    console.log("Woof woof");
-  },
-};
+// const dog = {
+//   name: "Cooper",
+//   age: 3,
+//   bark: function () {
+//     console.log("Woof woof");
+//   },
+// };
 
-console.log(Object.keys(dog));
+// use the new keyword
+
+function UserInfo(name, age, occupation) {
+  this.name = name;
+  this.age = age;
+  this.occupation = occupation;
+}
+
+const user1 = new UserInfo("EJ Gabriel", 22, "Student");
+const user2 = new UserInfo("Sam Tommy", 22, "Student");
+
+let demo = document.querySelector("#demo");
+demo.innerHTML = `
+<p> Name: ${user1.name} </p>
+<p> Age: ${user1.age} </p>
+<p> Occupation: ${user1.occupation} </p>
+`;
