@@ -1,11 +1,5 @@
 {
-    "cSpell.words": [
-        "Ejay",
-        "Ejeme",
-        "fufu",
-        "Inspiron",
-        "Whataburger"
-    ],
-    "git.ignoreLimitWarning": true,
-    "gitdoc.enabled": false
+  "cSpell.words": ["Ejay", "Ejeme", "fufu", "Inspiron", "nums", "Whataburger"],
+  "git.ignoreLimitWarning": true,
+  "gitdoc.enabled": false
 }
