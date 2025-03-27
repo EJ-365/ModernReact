@@ -6,7 +6,7 @@ CPI =  CP1-2021 - CPI-2020/ CPI-2020
 
 /*get price year and previous price year and subtract them
 cpi hold the result from curr and prev years, multiply by 100 */
-// Thank you.
+
 
  const getCPI = (currentPriceYear, previousPriceYear) => {
     return `Your CPI is: ${((currentPriceYear - previousPriceYear) / previousPriceYear * 100).toFixed(1)}%`;
