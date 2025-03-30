@@ -1,6 +1,10 @@
 $primary-color: green;
 $secondary-color: red;
+$text-color: orange;
 
 body{
     background-color: $primary-color;
+}
+h2{
+    color:$text-color
 }
