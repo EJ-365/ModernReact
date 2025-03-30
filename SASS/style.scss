@@ -1,10 +1,33 @@
-$primary-color: green;
-$secondary-color: red;
-$text-color: orange;
+$listItemColor: orange;
+$link-color : green;
+nav{
+    ul{
+        margin: 0;
+        padding: 0;
+        list-style: none;
 
-body{
-    background-color: $primary-color;
-}
-h2{
-    color:$text-color
+        li{
+            display: inline-block;
+            color:$listItemColor;
+            font: {
+                family: Helvetica, sans-serif;
+                size: 18px;
+                weight: bold
+
+            }
+            
+            text: {
+                align: center;
+                transform: lowercase;
+                overflow: hidden;
+            }
+        }
+    }
+    
+    a {
+        display: block;
+        padding: 6px 12px;
+        text-decoration: none;
+        color: $link-color;
+    }
 }
