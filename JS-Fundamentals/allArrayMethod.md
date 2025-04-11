@@ -429,5 +429,4 @@ console.log(fruits.lastIndexOf('banana')); // 3
 
 // Find with starting index (searches backward)
 console.log(fruits.lastIndexOf('banana', 2)); // 1
-
 ```
