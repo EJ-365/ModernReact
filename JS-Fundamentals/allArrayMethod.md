@@ -372,7 +372,7 @@ console.log(reversed); // ['cherry', 'banana', 'apple']
 
 ### `Array.from()`
 
-**Definition:** Creates a new Array instance from an array-like or iterable object.
+**Definition:** Creates a new Array instance from an array-like or inerrable object.
 **Returns:** New array
 **Examples:**
 
@@ -429,4 +429,5 @@ console.log(fruits.lastIndexOf('banana')); // 3
 
 // Find with starting index (searches backward)
 console.log(fruits.lastIndexOf('banana', 2)); // 1
+
 ```
