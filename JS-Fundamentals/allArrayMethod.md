@@ -3,9 +3,11 @@
 ## Transformation Methods
 
 ### `map()`
+
 **Definition:** Creates a new array with the results of calling a provided function on every element.
 **Returns:** New array
 **Examples:**
+
 ```javascript
 // Double each number
 const numbers = [1, 2, 3, 4];
@@ -19,9 +21,11 @@ console.log(names); // ['EJ', 'Scott']
 ```
 
 ### `filter()`
+
 **Definition:** Creates a new array with elements that pass the test implemented by the provided function.
 **Returns:** New array
 **Examples:**
+
 ```javascript
 // Get even numbers
 const numbers = [1, 2, 3, 4, 5];
@@ -38,9 +42,11 @@ console.log(highVotes); // [{username: 'EJ', text: 'Hello', vote: 100000}]
 ```
 
 ### `slice()`
+
 **Definition:** Returns a shallow copy of a portion of an array into a new array.
 **Returns:** New array
 **Examples:**
+
 ```javascript
 // Get portion of array
 const fruits = ['apple', 'banana', 'cherry', 'date'];
@@ -54,9 +60,11 @@ console.log(copy); // [1, 2, 3]
 ```
 
 ### `concat()`
+
 **Definition:** Merges two or more arrays without changing the existing arrays.
 **Returns:** New array
 **Examples:**
+
 ```javascript
 // Combine arrays
 const arr1 = [1, 2];
@@ -73,9 +81,11 @@ console.log(withMore); // [1, 2, 3, 4, 5, 6, 7]
 ## Reduction Methods
 
 ### `reduce()`
+
 **Definition:** Executes a reducer function on each element, resulting in a single output value.
 **Returns:** Single value (any type)
 **Examples:**
+
 ```javascript
 // Sum array
 const numbers = [1, 2, 3, 4, 5];
@@ -92,9 +102,11 @@ console.log(count); // {apple: 3, banana: 1, cherry: 1}
 ```
 
 ### `find()`
+
 **Definition:** Returns the first element that satisfies the provided testing function.
 **Returns:** Element or undefined
 **Examples:**
+
 ```javascript
 // Find first even number
 const numbers = [1, 3, 5, 8, 9];
@@ -108,9 +120,11 @@ console.log(scott); // {name: 'Scott'}
 ```
 
 ### `findIndex()`
+
 **Definition:** Returns the index of the first element that satisfies the provided testing function.
 **Returns:** Index (number) or -1
 **Examples:**
+
 ```javascript
 // Find index of first even number
 const numbers = [1, 3, 5, 8, 9];
@@ -124,9 +138,11 @@ console.log(scottIndex); // 1
 ```
 
 ### `join()`
+
 **Definition:** Creates and returns a new string by concatenating all elements with a separator.
 **Returns:** String
 **Examples:**
+
 ```javascript
 // Join with comma
 const fruits = ['apple', 'banana', 'cherry'];
@@ -142,9 +158,11 @@ console.log(sentence); // 'JavaScript is fun'
 ## Testing Methods
 
 ### `some()`
+
 **Definition:** Tests whether at least one element passes the test implemented by the provided function.
 **Returns:** Boolean
 **Examples:**
+
 ```javascript
 // Check for even numbers
 const numbers = [1, 2, 3, 4, 5];
@@ -158,9 +176,11 @@ console.log(containsCherry); // true
 ```
 
 ### `every()`
+
 **Definition:** Tests whether all elements pass the test implemented by the provided function.
 **Returns:** Boolean
 **Examples:**
+
 ```javascript
 // Check if all numbers are even
 const numbers = [2, 4, 6, 8];
@@ -174,9 +194,11 @@ console.log(allContainA); // true
 ```
 
 ### `includes()`
+
 **Definition:** Determines whether an array includes a certain value.
 **Returns:** Boolean
 **Examples:**
+
 ```javascript
 // Check if array contains value
 const numbers = [1, 2, 3, 4];
@@ -190,9 +212,11 @@ console.log(letters.includes('b', 2)); // false
 ## Iteration Methods
 
 ### `forEach()`
+
 **Definition:** Executes a provided function once for each array element.
 **Returns:** undefined
 **Examples:**
+
 ```javascript
 // Log each element
 const fruits = ['apple', 'banana', 'cherry'];
@@ -209,9 +233,11 @@ console.log(doubled); // [2, 4, 6]
 ## Mutation Methods (Modify Original Array)
 
 ### `push()`
+
 **Definition:** Adds one or more elements to the end of an array.
 **Returns:** New length of the array
 **Examples:**
+
 ```javascript
 // Add elements to end
 const fruits = ['apple', 'banana'];
@@ -226,9 +252,11 @@ console.log(numbers); // [1, 2, 3, 4]
 ```
 
 ### `pop()`
+
 **Definition:** Removes the last element from an array.
 **Returns:** The removed element
 **Examples:**
+
 ```javascript
 // Remove last element
 const fruits = ['apple', 'banana', 'cherry'];
@@ -245,9 +273,11 @@ while(stack.length > 0) {
 ```
 
 ### `shift()`
+
 **Definition:** Removes the first element from an array.
 **Returns:** The removed element
 **Examples:**
+
 ```javascript
 // Remove first element
 const fruits = ['apple', 'banana', 'cherry'];
@@ -264,9 +294,11 @@ while(queue.length > 0) {
 ```
 
 ### `unshift()`
+
 **Definition:** Adds one or more elements to the beginning of an array.
 **Returns:** New length of the array
 **Examples:**
+
 ```javascript
 // Add elements to beginning
 const fruits = ['banana', 'cherry'];
@@ -281,9 +313,11 @@ console.log(numbers); // [1, 2, 3, 4]
 ```
 
 ### `splice()`
+
 **Definition:** Changes array contents by removing/replacing elements.
 **Returns:** Array of removed elements
 **Examples:**
+
 ```javascript
 // Remove elements
 const fruits = ['apple', 'banana', 'cherry', 'date'];
@@ -298,9 +332,11 @@ console.log(numbers); // [1, 'a', 'b', 4]
 ```
 
 ### `sort()`
+
 **Definition:** Sorts the elements of an array in place.
 **Returns:** The sorted array (reference to original)
 **Examples:**
+
 ```javascript
 // Sort strings
 const fruits = ['cherry', 'apple', 'banana'];
@@ -314,9 +350,11 @@ console.log(numbers); // [1, 5, 7, 8, 10]
 ```
 
 ### `reverse()`
+
 **Definition:** Reverses the order of elements in an array in place.
 **Returns:** The reversed array (reference to original)
 **Examples:**
+
 ```javascript
 // Reverse array
 const numbers = [1, 2, 3, 4, 5];
@@ -333,9 +371,11 @@ console.log(reversed); // ['cherry', 'banana', 'apple']
 ## Other Utility Methods
 
 ### `Array.from()`
+
 **Definition:** Creates a new Array instance from an array-like or iterable object.
 **Returns:** New array
 **Examples:**
+
 ```javascript
 // Create array from string
 const array = Array.from('hello');
@@ -347,9 +387,11 @@ console.log(mapped); // [2, 4, 6]
 ```
 
 ### `Array.isArray()`
+
 **Definition:** Determines whether the passed value is an Array.
 **Returns:** Boolean
 **Examples:**
+
 ```javascript
 // Check if array
 console.log(Array.isArray([1, 2, 3])); // true
@@ -360,9 +402,11 @@ console.log(Array.isArray({length: 5})); // false
 ```
 
 ### `indexOf()`
+
 **Definition:** Returns the first index at which a given element can be found.
 **Returns:** Index (number) or -1
 **Examples:**
+
 ```javascript
 // Find index of element
 const fruits = ['apple', 'banana', 'cherry', 'banana'];
@@ -373,9 +417,11 @@ console.log(fruits.indexOf('banana', 2)); // 3
 ```
 
 ### `lastIndexOf()`
+
 **Definition:** Returns the last index at which a given element can be found.
 **Returns:** Index (number) or -1
 **Examples:**
+
 ```javascript
 // Find last index of element
 const fruits = ['apple', 'banana', 'cherry', 'banana'];
