@@ -1,4 +1,5 @@
-/* date and time in javascript */
+/* Testing Git detection */
+/* date and time in javascript */ 
 // date object in js
 // const date = new Date();
 // console.log(date);
