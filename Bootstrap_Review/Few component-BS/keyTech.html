@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeyTech</title>
+    <!--bootstraps links-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous">
+        </script>
+
+    <!--css style-->
+    <link rel="stylesheet" href="keyTech.css">
+</head>
+
+<body>
+    <!--navbar start here-->
+    <nav class="navbar navbar-expand-md navbar-dark sticky-top" style="background-color:#400183;">
+        <div class="container-fluid">
+            <a href="#" class="navbar-brand">
+                <img src="keyTech Images/keyTech-logo.png" style="width: 50px; height: 50px; border-radius: 50%;">
+                <strong class="mx-2 text-uppercase fw-bold">keyTech </strong>
+            </a>
+            <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#myNavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="myNavbar">
+                <ul class="navbar-nav">
+                    <li class="nav-items">
+                        <a href="#" class="nav-link active"> Home </a>
+                    </li>
+                    <li class="nav-items">
+                        <a href="#" class="nav-link"> Courses </a>
+                    </li>
+                    <li class="nav-items">
+                        <a href="#" class="nav-link"> About </a>
+                    </li>
+                    <li class="nav-items">
+                        <a href="#" class="nav-link"> Contact </a>
+                    </li>
+                    <li class="nav-items">
+                        <a href="#" class="nav-link"> Blog </a>
+                    </li>
+                    <li class="nav-items">
+                        <a href="#" class="nav-link"> Community </a>
+                    </li>
+                    <li class="nav-items dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"> Help </a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-item"><a href="#" class="active text-dark text-decoration-none"> FAQ
+                                </a></li>
+                            <li class="dropdown-item"><a href="#" class="active text-dark text-decoration-none"> contact
+                                </a></li>
+                            <li class="dropdown-item"><a href="#" class="active text-dark text-decoration-none">
+                                    billings </a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <!--form for navbar-->
+                <form class="d-flex ms-auto">
+                    <label for="navbar-form" class="visually-hidden">nabar-label</label>
+                    <input type="search" class="form-control me-2" id="navbar-form" placeholder="search...">
+                    <button type="submit" class="btn text-white" style="background-color: #ED01FA;"> Search </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    <!--navbar ends-->
+
+
+    <!--landing page begins-->
+    <div
+        class="container-fluid vh-100 d-flex align-items-center justify-content-center position-relative text-center text-white">
+        <div class="position-absolute w-100 h-100 start-0 top-0 bg-image"
+            style="background-size: cover; background-position: center;">
+            <img src="keyTech Images/marvin-meyer-SYTO3xs06fU-unsplash (1).jpg" class="w-100 h-100" style="object-fit: cover;">
+        </div>
+        <div class="position-relative">
+            <h2 class="display-1">Transform Your Future with In-Demand Skills</h2>
+            <p class="lead fs-5"> Join millions of learners mastering tech, business, and creative skills from industry
+                experts. From coding to digital marketing, data science to software design - gain the skills that drive
+                today's digital economy, all at your own pace with personalized learning paths. </p>
+            <a href="#" class="btn btn-lg mt-3 text-white lmb" style="background-color:#ED01FA">Learn More</a>
+        </div>
+    </div>
+
+    <!--call to action/jumbotron-->
+    <div class="container-fluid p-5 mt-5 rounded ">
+        <div class="text-center mb-5">
+            <h2 class="display-4 fw-bold  jumbotron-title" style="color: #400183;">Why Choose KeyTech</h2>
+            <div class="d-flex justify-content-center">
+                <div class="border-bottom border-3 w-25" style="border-color: #ED01FA !important;"></div>
+            </div>
+            <p class="fs-4 mt-3" style="color: #400183;">Learn. Innovate. Succeed</p>
+        </div>
+        <!--card goes here; just for eye catch-->
+        <div class="container mt-3 p-4">
+            <div class="card-group">
+                <div class="row row-cols-1 row-cols-md-3 row-cols-lg-3 g-2">
+                    <div class="col">
+                        <div class="card h-100 w-100">
+                            <img src="keyTech Images/icon1.png" class="card-img-top mx-auto d-block mt-5"
+                                style="width: 80px; height: 80px;">
+                            <div class="card-body">
+                                <h4 class="card-title mt-3"> Expert-Led Courses </h4>
+                                <p class="card-text"> Learn from industry veterans and thought leaders who bring
+                                    real-world experience to every lesson. Our instructors from top tech companies
+                                    design practical, up-to-date curriculum that combines theoretical knowledge with
+                                    hands-on projects. </p>
+                                <a href="#" class="btn text-white card-link" style="background-color: #ED01FA;"> View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col">
+                        <div class="card h-100 w-100">
+                            <img src="keyTech Images/icon2.png" class="card-img-top mx-auto d-block mt-5"
+                                style="width: 80px; height: 80px;">
+                            <div class="card-body">
+                                <h4 class="card-title"> Industry-Recognized Certificates </h4>
+                                <p class="card-text">Earn credentials that matter in today's job market. Our
+                                    certificates are recognized by leading employers and showcase your expertise in
+                                    cutting-edge technologies and business practices. Add them directly to your LinkedIn
+                                    profile. </p>
+                                <a href="#" class="btn text-white card-link" style="background-color: #ED01FA;"> View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col">
+                        <div class="card h-100 w-100">
+                            <img src="keyTech Images/icon3.png" class="card-img-top mx-auto d-block mt-5"
+                                style="width: 80px; height: 80px;">
+                            <div class="card-body">
+                                <h4 class="card-title"> Learn at Your Own Pace </h4>
+                                <p class="card-text"> Life is busy - that's why our platform adapts to your schedule.
+                                    Access course content 24/7, set your own learning schedule, and progress through
+                                    materials at a pace that works for you. No deadlines, no pressure </p>
+                                <a href="#" class="btn text-white card-link" style="background-color: #ED01FA;"> View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--featured courses section-->
+    <div class="container-fluid p-5">
+        <div class="text-center mb-5">
+            <h2 class="display-4 fw-bold" style="color: #400183;">Featured Courses</h2>
+            <div class="d-flex justify-content-center">
+                <div class="border-bottom border-3 w-25" style="border-color: #ED01FA !important;"></div>
+            </div>
+            <p class="fs-4 mt-3" style="color: #400183;">Discover Our Most Popular Learning Paths</p>
+        </div>
+    </div>
+    <!--featured courses with carousel-->
+    <div class="carousel slide my-5" id="featured" data-bs-ride="carousel">
+        <!--skip the carousel indicator-->
+
+        <div class="carousel-inner">
+            <!--for html-->
+            <div class="carousel-item active text-center">
+                <img src="keyTech Images/htm-img.png" class="img-fluid d-block mx-auto" style="width: auto;">
+                <h4 class="mt-3  display-6"> The Complete 2024 HTML Mastery </h4>
+                <p class="m-3 px-5 lead">Master HTML from scratch with our comprehensive course designed for beginners
+                    and intermediate developers. Learn modern web development practices, semantic markup, and responsive
+                    design principles to build professional websites that meet industry standards. Get hands-on
+                    experience with real-world projects while learning best practices for structuring web content and
+                    creating accessible, SEO-friendly websites that stand out.</p>
+                <a href="#" class="btn text-white" style="background-color: #ED01FA;"> Get Started </a>
+            </div>
+
+            <!--for css-->
+            <div class="carousel-item text-center">
+                <div class="d-flex justify-content-center py-3 mx-auto position-absolute">
+                    <h5 class="new badge px-4 m-3"
+                        style="background-color: #400183; font-size: 16px; border-radius: 50%;"> New </h5>
+                </div>
+                <img src="keyTech Images/css-img.png" class="img-fluid d-block mx-auto" style="width: auto;">
+                <h4 class=" mt-3 display-6"> The Ultimate 2025 CSS Mastery </h4>
+                <p class="m-3 px-5 lead">Master CSS styling with our comprehensive in-depth course designed for both
+                    beginners and intermediate developers. Learn modern layout techniques, animations, flexbox, grid,
+                    and responsive design to create beautiful and dynamic web interfaces that work across all devices.
+                    Dive deep into advanced CSS concepts, master professional styling practices, and gain hands-on
+                    experience building real-world projects that will take your web development skills to the next
+                    level.</p>
+                <a href="#" class="btn text-white" style="background-color: #ED01FA;"> Get Started </a>
+            </div>
+
+            <!--for javasript-->
+            <div class="carousel-item text-center">
+                <img src="keyTech Images/js-img.png" class="img-fluid d-block mx-auto" style="width: auto;">
+                <h4 class="display-6 mt-3"> JavaScript from Zero to Mastery </h4>
+                <p class="m-3 px-5 lead">Unlock the power of JavaScript with our comprehensive course that takes you
+                    from absolute beginner to professional developer. Learn essential concepts, modern ES6+ features,
+                    DOM manipulation, asynchronous programming, and popular frameworks while building real-world
+                    projects that showcase your skills. Master JavaScript fundamentals and advanced topics through
+                    hands-on exercises, interactive coding challenges, and industry-relevant examples that prepare you
+                    for a successful career in web development.</p>
+                <a href="#" class="btn text-white" style="background-color: #ED01FA;"> Get Started </a>
+            </div>
+
+            <!--for React-->
+            <div class="carousel-item text-center">
+                <img src="keyTech Images/react-img.png" class="img-fluid d-block mx-auto" style="width: auto;">
+                <h4 class="display-6 mt-3"> React your way 2025 course </h4>
+                <p class="m-3 px-5 lead">Master React.js development with our comprehensive course designed for modern
+                    web developers. Learn component-based architecture, state management with hooks, Redux integration,
+                    and build dynamic single-page applications that scale. Dive deep into React's ecosystem while
+                    creating responsive and interactive user interfaces using industry best practices.</p>
+                <a href="#" class="btn text-white" style="background-color: #ED01FA;"> Get Started </a>
+            </div>
+
+            <!--for vue.js-->
+            <div class="carousel-item text-center">
+                <img src="keyTech Images/vue-img.png" class="img-fluid d-block mx-auto" style="width: auto;">
+                <h4 class="display-6 mt-3"> Intro to Vue.js </h4>
+                <p class="m-3 px-5 lead">Master Vue.js development with our beginner-friendly course designed for
+                    aspiring web developers. Learn the fundamentals of Vue.js including components, directives, and the
+                    Composition API while building modern, reactive web applications that are easy to maintain and
+                    scale.</p>
+            </div>
+        </div>
+
+        <!--carousel controller-->
+        <!--for previous button -->
+        <button type="button" class="carousel-control-prev" data-bs-slide="prev" data-bs-target="#featured">
+            <span class="carousel-control-prev-icon"
+                style="background-color:#400183; border-radius: 50%; font-weight: bold; width: 60px; height: 40px; opacity: 0.8;"></span>
+        </button>
+
+        <!--for the next button-->
+        <button type="button" class="carousel-control-next" data-bs-slide="next" data-bs-target="#featured">
+            <span class="carousel-control-next-icon"
+                style="background-color: #400183; width: 60px; height: 40px; border-radius: 50%; opacity: 0.8; font-weight: bold;"></span>
+        </button>
+    </div>
+
+    <!--Course Categories and Learning Pathways-->
+    <!-- examples: 
+    - Web Development
+    - Frontend Development
+    - Backend Development
+    - Full Stack Development
+    - Mobile App Development
+    - Cloud Computing
+    - DevOps
+    - UI/UX Design
+    - Database Management
+    - Cybersecurity
+-->
+
+
+
+    <div class="container-fluid my-5 mx-3 mt-5 pt-5">
+        <div class="text-center mb-4 ">
+            <h2 class="fw-bold display-4" style="color:#400183;"> Course Categories and Learning Pathways</h2>
+            <div class="d-flex justify-content-center">
+                <div class="border-bottom border-3 w-25" style="border-color: #ED01FA !important;"> </div>
+            </div>
+        </div>
+
+        <!--card group for the learning path-->
+        <div class="card-group my-4">
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-3">
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/web-dev-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Web Development</h3>
+                            <p class="lead">Learn to build responsive and dynamic websites using HTML, CSS, JavaScript
+                                and modern web development frameworks. Master both frontend and backend technologies to
+                                create full-featured web applications.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 2 Months ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/front-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Frontend Development</h3>
+                            <p class="lead">Learn to create beautiful user interfaces and interactive web experiences
+                                using HTML, CSS, and JavaScript. Master popular frontend frameworks like React and
+                                Angular to build modern, responsive websites.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 2 weeks ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/backend-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Backend Development</h3>
+                            <p class="lead">Learn to create server-side applications, handle databases, and build APIs
+                                using technologies like Node.js, Python, or Java. Develop robust backend systems that
+                                power modern web applications.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 3 Months ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/full-stack-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Fullstack Development</h3>
+                            <p class="lead">Learn both frontend and backend development to become a complete web
+                                developer. Master HTML, CSS, JavaScript, databases, APIs, and server-side programming to
+                                build end-to-end web applications from scratch.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 3 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/mobile-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Mobile Development</h3>
+                            <p class="lead">Learn to build native and cross-platform mobile applications for iOS and
+                                Android devices. Master mobile UI/UX, app development frameworks like React Native or
+                                Flutter, and integrate device features to create powerful mobile experiences.</p> <a
+                                href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 7 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/cloud-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Cloud Development</h3>
+                            <p class="lead">Learn to build and deploy applications in cloud environments using platforms
+                                like AWS, Azure, or Google Cloud. Master cloud architecture, serverless computing,
+                                containerization, and DevOps practices to create scalable and resilient cloud solutions.
+                            </p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 9 Months ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/devop-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">DevOps </h3>
+                            <p class="lead">Master cloud infrastructure, deployment pipelines, and automation tools.
+                                Learn containerization with Docker, orchestration with Kubernetes, CI/CD practices,
+                                monitoring, and infrastructure as code to streamline software delivery and operations.
+                            </p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 9 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/database-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Database Development </h3>
+                            <p class="lead">Master database design, implementation, and management. Learn SQL and NoSQL
+                                databases, data modeling, query optimization, database security, and data integration
+                                techniques to build robust and scalable data-driven applications.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 12 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/ui-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">UI/UX Design </h3>
+                            <p class="lead">Master the art of creating intuitive and visually appealing user interfaces.
+                                Learn user research, wireframing, prototyping, visual design principles, usability
+                                testing, and interaction design to create engaging digital experiences that delight
+                                users and meet business goals.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 5 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/cyber-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Cybersecurity </h3>
+                            <p class="lead">Master the fundamentals of cybersecurity and protect digital assets. Learn
+                                network security, ethical hacking, cryptography, threat detection, incident response,
+                                security policies, risk management, and compliance frameworks to safeguard organizations
+                                against cyber threats and data breaches.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 2 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/ai-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">AI Development</h3>
+                            <p class="lead">Master artificial intelligence and machine learning technologies. Learn
+                                neural networks, deep learning, natural language processing, computer vision,
+                                reinforcement learning, and AI frameworks to build intelligent systems and applications
+                                that solve complex problems.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 1 day ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="card w-100 h-100">
+                        <img src="keyTech Images/cs-img.png" class=" d-block mx-auto mt-5">
+                        <div class="card-body text-center">
+                            <h3 class="my-3">Computer Science Fundamentals</h3>
+                            <p class="lead">Master core computer science concepts and principles. Learn algorithms, data
+                                structures, programming paradigms, computer architecture, operating systems, and
+                                software engineering practices to build a strong foundation for advanced computing
+                                topics.</p>
+                            <a href="#" class="btn text-white d-block fw-bold"
+                                style="background-color: #ED01FA; font-size: 20px;"> Enroll </a>
+                        </div>
+                        <div class="card-footer">
+                            <div class="text-center">
+                                <small class="text-muted p-3"> Last updated: 3 days ago </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--accordion and footer tbd-->
+
+
+    <!--2025 greerings-->
+    <div class="container-fluid py-5"
+        style="background-image: url('fw-3.jpg'); background-size: cover; background-position: center; min-height: 500px;">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 text-white">
+                    <h1 class="display-2 fw-bold mb-4">Welcome to 2025</h1>
+                    <p class="lead fs-3 mb-4">Proudly Presented to You by <strong
+                            style="font-size: 30px; font-weight: bold;">Ejeme.E</strong></p>
+                    <button class="btn btn-light btn-lg px-5 fw-bold">Explore More</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--accordion-->
+
+    <!--FAQ Questions and Answers:
+1. What programming languages do you teach?
+   - We teach Python, JavaScript, Java, C++, and Ruby with hands-on projects and exercises
+
+2. Are the courses suitable for beginners?
+   - Yes, our courses are designed for all skill levels, from complete beginners to advanced developers
+
+3. Do you provide certification upon completion?
+   - Yes, you receive an industry-recognized certificate after successfully completing each course
+
+4. What is the duration of each course?
+   - Courses typically range from 8-12 weeks, with flexible scheduling options
+
+5. Is there job placement assistance?
+   - Yes, we offer career guidance, resume reviews, and connections with hiring partners-->
+
+    <div class="container my-5">
+        <h1 class="display-4 fw-bold" style="color: #400183;"> FAQ </h1>
+        <div class="accordion my-5" style="font-size: 20px;">
+            <div class="card">
+                <div class="card-header" style="background-color: #ED01FA;">
+                    <a href="#faq" class="btn text-white fw-bold" data-bs-toggle="collapse"> What programming languages
+                        do you teach? </a>
+                </div>
+                <div class="collapse show" id="faq" data-bs-parent="accordion">
+                    <div class="card-body">
+                        <p class="card-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Minima quaerat
+                            corrupti mollitia, similique autem amet asperiores possimus ipsam optio beatae nesciunt
+                            dolores tenetur maxime soluta earum hic recusandae repellendus facilis.</p>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card">
+                <div class="card-header" style="background-color: #ED01FA;">
+                    <a href="#faq2" class="btn text-white fw-bold" data-bs-toggle="collapse"> Are the courses suitable
+                        for beginners? </a>
+                </div>
+                <div class="collapse" id="faq2" data-bs-parent="accordion">
+                    <div class="card-body">
+                        <p class="card-text"> Yes, our courses are designed for all skill levels, from complete
+                            beginners to advanced developers </p>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="card">
+                <div class="card-header" style="background-color: #ED01FA;">
+                    <a href="#faq3" class="btn text-white fw-bold" data-bs-toggle="collapse"> Do you provide
+                        certification upon completion? </a>
+                </div>
+                <div class="collapse" id="faq3" data-bs-parent="accordion">
+                    <div class="card-body">
+                        <p class="card-text"> Yes, you receive an industry-recognized certificate after successfully
+                            completing each course
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <div class="card">
+                <div class="card-header" style="background-color: #ED01FA;">
+                    <a href="#faq4" class="btn text-white fw-bold" data-bs-toggle="collapse">What is the duration of
+                        each course?</a>
+                </div>
+                <div class="collapse" id="faq4" data-bs-parent="accordion">
+                    <div class="card-body">
+                        <p class="card-text"> Courses typically range from 8-12 weeks, with flexible scheduling options
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card">
+                <div class="card-header" style="background-color: #ED01FA;">
+                    <a href="#faq5" class="btn text-white fw-bold" data-bs-toggle="collapse"> Is there job placement
+                        assistance?</a>
+                </div>
+                <div class="collapse" id="faq5" data-bs-parent="accordion">
+                    <div class="card-body">
+                        <p class="card-text">Yes, we offer career guidance, resume reviews, and connections with hiring
+                            partners</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--footer section-->
+    <footer class="text-lg-start text-white text-center" style="background-color: #400183;">
+        <!--socla media icon's section-->
+        <section class="d-flex justify-content-between p-4" style="background-color: #400183;">
+
+            <!--left side-->
+            <div class="me-5">
+                <span> Get connected wth us on social media </span>
+            </div>
+            <!--right side: the icons-->
+            <div>
+                <a href="#" class="me-4 text-white"><i class="bi bi-facebook"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-twitter-x"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-google"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-linkedin"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-instagram"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-github"></i></a>
+            </div>
+        </section>
+
+
+        <!-- Section: Links  -->
+        <section class="">
+            <div class="text-center text-md-start mt-5 container">
+
+                <!--grid row-->
+                <div class="row mt-3">
+
+                    <!-- Grid column -->
+                    <div class="col-md-3 col-lg-3 col-xl-3 mx-auto mb-4">
+                        <!-- Content -->
+                        <h6 class="fw-bold text-uppercase" style="font-size: 25px;"> keytech</h6>
+                        <hr class="mb-4 mt-0 mx-auto d-inline-block"
+                            style="width: 60px; background-color: #7c4dff; height: 2px;">
+                        <div class="my-2">
+                            <img src="keyTech Images/keyTech-logo.png" class="img-fluid"
+                                style="width: 100px; height: 100px; border-radius: 50%;">
+                        </div>
+                        <p class="text-wrap">KeyTech is a leading technology education company dedicated to empowering
+                            individuals with cutting-edge skills in programming, cybersecurity, and digital innovation.
+                            Our expert-led courses and hands-on training programs prepare students for successful
+                            careers in the tech industry. With a focus on practical learning and industry-relevant
+                            curriculum, we help bridge the gap between education and employment in the rapidly evolving
+                            technology sector.</p>
+                    </div>
+
+                    <!--another grid column: note grid column means how it will looks like +++ -->
+                    <div class="col-md-3 col-lg-3 col-xl-3 mx-auto mb-4">
+                        <h6 class="text-uppercase fw-bold" style="font-size: 20px;"> Courses </h6>
+                        <hr class="mx-auto d-inline-block mb-4 mt-0"
+                            style="width: 60px; height: 2px; background-color:#7c4dff;">
+                        <p><a href="#" class="text-white text-decoration-none"> JavaScript </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> CSS </a></p>
+                        <p><a href="#" class="text-white text-decoration-none">Cybersecurity</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> Database management </a></p>
+                    </div>
+
+                    <!--another column-->
+                    <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+                        <h4 class="text-white fw-bold text-uppercase" style="font-size: 20px;"> Useful links </h4>
+                        <hr class="d-inline-block mx-auto mt-0"
+                            style="background-color: #7c4dff; width: 60px; height: 2px;">
+                        <p><a href="#" class="text-white text-decoration-none"> Learn coding </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> W3Schools </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> MDNDOCS </a></p>
+                        <p><a href="#" class="text-white text-decoration-none">Indeed jobs</a></p>
+                    </div>
+
+                    <!--another column lastly-->
+                    <div class="col-md-4 col-lg-3 col-xl-3 mb-4 mx-auto">
+                        <h6 class="fw-bold text-uppercase" style="font-size: 20px;"> Contact </h6>
+                        <form class="d-flex ms-auto my-3">
+                            <label for="subscribe" class="visually-hidden"> N/A </label>
+                            <input type="email" class="form-control me-2" required id="subscribe"
+                                placeholder="our newsletter">
+                            <button type="submit" class="btn text-white" style="background-color: #ED01FA;"> subscribe
+                            </button>
+                        </form>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-house-fill"></i> Texas,
+                                TX 10012, US</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-envelope-fill"></i>
+                                info@example.com</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-telephone-fill"></i> +1
+                                746-003-3330</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-printer-fill"></i> +1
+                                346-003-3330</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!--copyright div-->
+        <div class="text-center" style="background-color: rgba(90, 87, 87, 0.2);">
+            © 2025 Copyright:
+            <a href="#" class="text-white">KeyTech.com</a>
+        </div>
+    </footer>
+
+        <!--keyTech external Script-->
+    <script src="keyTech.js"></script>
+</body>
+
+</html>

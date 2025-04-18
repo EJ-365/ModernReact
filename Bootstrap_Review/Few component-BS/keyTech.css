@@ -1,0 +1,15 @@
+.bg-image {
+  filter: brightness(50%);
+}
+
+/* Jumbotron title i.e why choose keytech */
+.jumbotron-title:hover {
+  text-decoration: underline;
+  text-decoration-color: #400183;
+}
+
+/* new tag for css */
+.new {
+  position: relative;
+  left: 40em;
+}

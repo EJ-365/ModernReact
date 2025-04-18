@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap Buttons</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  </head>
+  <body>
+    <div class="container mt-5">
+     <button type="button" title="button" class="btn btn-primary"> Primary Button </button>
+     <button type="button" title="button" class="btn btn-secondary"> Secondary Button </button>
+     <button type="button" title="button" class="btn btn-success"> Success </button>
+     <!--button class .btn btn-primary  can be use with <a> tag
+        and also <input> tag 
+        you can put any colors you like for the button-->
+        <a href="#" class="btn btn-warning"> achor tag button </a>
+    </div>
+
+    <!--button outlines-->
+    <div class="container mt-3">
+        <h2> Button outlines </h2>
+        <button type="button" class="btn btn-outline-success"> B outline </button>
+        <button type="button" class="btn btn-outline-info"> B outline </button>
+        <!--you can put many colors you like such as warning, secondary, link, light , danger etc-->
+    </div>
+<!--button sizes -->
+
+<div class="container mt-3">
+    <h2> Button sizes </h2>
+    <button type="button" class="btn btn-danger btn-sm"> Small button </button>
+    <button type="button" class="btn btn-secondary btn-md"> Medium Button </button>
+    <button type="button" class="btn btn-dark btn-lg"> Large Button </button>
+<!--simply use the modifier class btn-lg, btn-sm, btn-md:  ec-->
+</div>
+
+<div class="container mt-4 d-grid gap-3">
+    <h3> Block Level Button(takes up the full width) </h3>
+<button type="button" class="btn btn-success btn-block disabled"> Login </button>
+<button type="button" class="btn btn-success btn-block active"> Login </button>
+<button type="button" class="btn btn-success btn-block"> Login </button>
+<button type="button" class="btn btn-primary btn-block"> Sign up </button>
+<!--block level has this modifier class => .btn-block and
+the nested(wrapping div) div has this class => .d-grid (display- grid)
+
+you can make a button active and disabled by add the .active class and .disabled class -->
+</div>
+
+<div class="container my-4"> <!--my-4 => means margin top and button-->
+    <h3> Spinner button </h3>
+    <button type="button" class="btn btn-secondary">   <!--you can put the .disabled class or the attribute-->
+        <span class="spinner-border spinner-border-sm"></span> Loading...   <!--optional you don't have to put the text-->
+    </button>
+    <!--another spinner type-->
+    <button type="button" class="btn btn-warning">
+        <span class="spinner-grow spinner-grow-sm"></span> Loading... 
+    </button>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  </body>
+</html>

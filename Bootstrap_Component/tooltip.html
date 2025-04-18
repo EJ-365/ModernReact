@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bootstrap 5.3 tooltip</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1> Bootstrap 5.3! tool tip</h1>
+      <button type="button" class="btn btn-success" data-bs-toggle="tooltip" title="Ejeme"> EJ </button>
+
+      <!--tooltip placement like left,right,button and top-->
+      <div class="mt-5">
+      <a href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="move to the top"> Top</a>
+      <a href="#" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Text at the bottom"> Bottom </a>
+      <a href="#" data-bs-toggle="tooltip" data-bs-placement="right" title="Text at the right"> Right </a>
+      <a href="#" data-bs-toggle="tooltip" data-bs-placement="left" title="Text at the lef"> Left </a>
+      </div>
+    </div>
+
+    <!--popovers-->
+    <div class="container mt-5">
+        <button type="button" class="btn btn-primary" data-bs-toggle="popover" title="Popover Header" data-bs-content="body of popover"> popover </button>
+    </div> <!--requires javascript to work-->
+
+    <!--toast-->
+
+    <div class="mt-5 container">
+        <div class="toast show">
+            <div class="toast-header">
+                Toast Header
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                Lorem ipsum dolor, sit amet consectetur adipisicing elit. Vitae quaerat, deserunt aliquam animi nemo ab minus dolorum quae cumque quia non dignissimos iure obcaecati. Hic excepturi aliquid quae ullam consequatur.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+  </body>
+</html>

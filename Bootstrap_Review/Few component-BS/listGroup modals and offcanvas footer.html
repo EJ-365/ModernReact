@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List group modals and offcanvas </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!--bootstrap icon-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+
+<body>
+    <div class="container my-3">
+        <!--list group start here-->
+        <!-- 
+            Other list group classes include:
+            - list-group-numbered: Creates numbered list items
+            - list-group-horizontal: Makes list items display horizontally
+            - list-group-item-{color}: Changes item color (primary, secondary, success, danger, warning, info, light, dark)
+            - list-group-item-action: Makes items interactive/hoverable
+            - list-group border classes: list-group-flush removes borders and rounded corners
+        -->
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item active d-flex justify-content-between align-items-center"> Rice <span
+                    class="badge bg-danger rounded-pill"> 3 </span></li>
+            <li class="list-group-item"> Beans </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center"> Egusi <span
+                    class="badge bg-success rounded-pill">10</span></li>
+            <li class="list-group-item"> Spaghetti </li>
+            <li class="list-group-item disabled"> Yam </li>
+        </ul>
+
+        <!--list group hoverable or interactive-->
+        <h3> List group hoverable </h3>
+        <ul class="list-group list-group-flush list-group-numbered">
+            <a href="#" class=" list-group-item list-group-item-action active"> Morninig </a>
+            <a href="#" class="list-group-item list-group-item-action"> Afternoon </a>
+            <a href="#" class="list-group-item list-group-item-action"> Evening </a>
+            <a href="#" class="list-group-item list-group-item-action list-group-item-danger"> Night </a>
+        </ul>
+
+        <!-- modals start here-->
+        <h2 class="mt-4"> Modal start here </h2>
+        <div class="modal fade" id="modalDemo">
+            <div class="modal-dialog modal-dialog-md modal-dialog-scrollable modal-center">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title"> Keep Learning </h4>
+                        <!--button to close the button-->
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p> Lorem ipsum dolor sit amet consectetur adipisicing elit. Provident libero praesentium iure,
+                            veniam, facilis sed dolores fugiat illum consectetur nisi natus odit soluta doloremque
+                            numquam hic quisquam eveniet? Possimus, eveniet?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary"> Okay </button>
+                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"> Close </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--activating the modal-->
+        <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalDemo"> Message
+        </button>
+
+        <!--offcanvas: it's like a modal it just pop up left,right top and bottom like a drawer-->
+        <h3 class="mt-5"> Off-canvas start here </h3>
+        <div class="offcanvas offcanvas-start" id="offcan">
+            <div class="offcanvas-header">
+                <h1 class="offcanvas-title"> Keep Learning... </h1>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body">
+                <p> Lorem ipsum dolor sit, amet consectetur adipisicing elit. Perferendis voluptatibus omnis, unde
+                    corporis nam necessitatibus veritatis, architecto error eius cumque maxime sit quia nemo cupiditate
+                    officia accusantium voluptates ducimus in!</p>
+                <p> Lorem ipsum dolor sit, amet consectetur adipisicing elit. Est sunt tempore, harum provident magni
+                    veritatis ullam aut obcaecati alias expedita accusantium, eligendi sequi soluta nihil. Dignissimos,
+                    porro omnis. Inventore, error!</p>
+            </div>
+        </div>
+
+        <!--activate offcanvas-->
+        <button type="button" class="btn btn-success" data-bs-toggle="offcanvas" data-bs-target="#offcan"> Open me
+        </button>
+    </div>
+
+
+    <!--footer review-->
+    <footer class="text-lg-start text-white text-center bg-dark">
+        <!--socla media icon's section-->
+        <section class="d-flex justify-content-between p-4 bg-dark">
+
+            <!--left side-->
+            <div class="me-5">
+                <span> Get connected wth us on social media </span>
+            </div>
+            <!--right side: the icons-->
+            <div>
+                <a href="#" class="me-4 text-white"><i class="bi bi-facebook"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-twitter-x"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-google"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-linkedin"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-instagram"></i></a>
+                <a href="#" class="me-4 text-white"><i class="bi bi-github"></i></a>
+            </div>
+        </section>
+
+
+        <!-- Section: Links  -->
+        <section class="">
+            <div class="text-center text-md-start mt-5 container">
+
+                <!--grid row-->
+                <div class="row mt-3">
+
+                    <!-- Grid column -->
+                    <div class="col-md-3 col-lg-4 col-xl-3 mx-auto mb-4">
+                        <!-- Content -->
+                        <h6 class="fw-bold text-uppercase"> Company name </h6>
+                        <hr class="mb-4 mt-0 mx-auto d-inline-block"
+                            style="width: 60px; background-color: #7c4dff; height: 2px;">
+                        <p> Lorem ipsum dolor sit, amet consectetur adipisicing elit. Voluptate, autem! Neque corrupti
+                            expedita obcaecati doloribus doloremque fuga modi explicabo sunt voluptatum iure, voluptas
+                            animi soluta quaerat! Animi impedit iste exercitationem.</p>
+                    </div>
+
+                    <!--another grid column: note grid column means how it will looks like +++ -->
+                    <div class="col-md-3 col-lg-3 col-xl-3 mx-auto mb-4">
+                        <h6 class="text-uppercase fw-bold"> Product 1 </h6>
+                        <hr class="mx-auto d-inline-block mb-4 mt-0"
+                            style="width: 60px; height: 2px; background-color:#7c4dff;">
+                        <p><a href="#" class="text-white text-decoration-none"> Item name </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> Item name </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> Item name </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> Item name </a></p>
+                    </div>
+
+                    <!--another column-->
+                    <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+                        <h4 class="text-white fw-bold text-uppercase"> Useful links </h4>
+                        <hr class="d-inline-block mx-auto mt-0"
+                            style="background-color: #7c4dff; width: 60px; height: 2px;">
+                        <p><a href="#" class="text-white text-decoration-none"> anything you like </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> affliate </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> account </a></p>
+                        <p><a href="#" class="text-white text-decoration-none"> volunteer </a></p>
+                    </div>
+
+                    <!--another column lastly-->
+                    <div class="col-md-4 col-lg-3 col-xl-3 mb-4 mx-auto">
+                        <h6 class="fw-bold text-uppercase"> Contact </h6>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-house-fill"></i> Texas,
+                                TX 10012, US</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-envelope-fill"></i>
+                                info@example.com</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-telephone-fill"></i> +1
+                                746-003-3330</a></p>
+                        <p><a href="#" class="text-white text-decoration-none"><i class="bi bi-printer-fill"></i> +1
+                                346-003-3330</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!--copyright div-->
+        <div class="text-center" style="background-color: rgba(90, 87, 87, 0.2);">
+            © 2024 Copyright:
+            <a href="#" class="text-white">companydotcom </a>
+        </div>
+    </footer>
+</body>
+
+</html>
+
+
+<!--
+<!--
+This code snippet includes the implementation of a modal, an offcanvas, and a footer.
+
+Modal:
+- A modal is a dialog box/popup window that is displayed on top of the current page.
+- It is used to display content or prompt the user for input without navigating away from the current page.
+- Typically includes a header, body, and footer.
+- Can be triggered by a button or link and closed by clicking a close button or outside the modal.
+
+Offcanvas:
+- An offcanvas component is a hidden sidebar that slides into view from the side of the screen.
+- It is used to display additional content or navigation options without taking up space on the main page.
+- Can be triggered by a button or link and closed by clicking a close button or outside the offcanvas area.
+
+Footer:
+- The footer is a section at the bottom of the page.
+- It typically contains information such as copyright notices, links to privacy policies, and contact information.
+- It can also include navigation links, social media icons, and other relevant information.
+
+Note:
+- Ensure that the modal and offcanvas components are accessible by providing appropriate ARIA attributes.
+- Use appropriate classes and IDs to style and control the behavior of these components.
+- Consider the user experience on different devices and screen sizes when implementing these components.
+-->

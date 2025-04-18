@@ -1,0 +1,66 @@
+<!Doctype html>
+<html lang="en">
+    <head>
+        <title> Navbar </title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+   <!--bootstrap links-->
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+</head>
+<body>
+
+   <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+    <div class="container-fluid">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a href="#" class="nav-link active"> Home </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"> Service</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link disabled"> Profile </a>
+            </li>
+        </ul>
+    </div>
+   </nav>
+
+   <!--Brand/Logo-->
+  
+
+<nav class="navbar navbar-expand-sm navbar-dark bg-primary">
+    <div class="container-fluid">
+        <span class="navbar-text"> Sample Text </span>
+    </div>
+</nav>
+
+<!--collapsible navbar-->
+<nav class="navbar navbar-expand-sm navbar-dark bg-success">
+    <div class="container-fluid">
+        <a href="#" class="navbar-brand"> Logo </a>
+    <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a href="#" class="nav-link"> Home </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"> Service </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"> Contact </a>
+            </li>
+        </ul>
+        <form class="d-flex ms-auto">
+            <label for="search-input" class="visually-hidden">Search</label>
+            <input type="text" id="search-input" class="form-control me-2" placeholder="Text">
+            <button type="submit" class="btn btn-dark"> Search </button>
+        </form>
+    </div>
+    </div>
+</nav>
+</body>
+</html>
