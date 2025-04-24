@@ -6,6 +6,7 @@ and loop through them using for loop and then apply a background color to them.
 //     liItems[i].style.background = 'orange';
 // }
 
+
 /* traversing the dom: moving around the element*/
 const parentEl = document.querySelector('.parent');
 const childTwo = document.querySelector('.child-2');
