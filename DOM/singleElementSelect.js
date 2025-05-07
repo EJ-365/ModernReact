@@ -45,12 +45,27 @@ selecting the parent class and the child again
 
 const parentEl = document.querySelector('.parent');
 const text = document.querySelector('.child-2');
+text.remove();
+
+/* use remove(); method to remove an element completely from the dom; */
+
 
 // creating the new element
-const newEl = document.createElement('div');
-newEl.classList.add('child'); // added a class to the newly created div
-const newText = document.createTextNode('This is a new text');
-newEl.appendChild(newText);
-parentEl.appendChild(newEl);
 
-parentEl.insertBefore(newEl, text);
+// const newEl = document.createElement('div');
+// newEl.classList.add('child');
+// newEl.textContent = "Created with JS";
+// // parentEl.appendChild(newEl);
+// parentEl.insertBefore(newEl, text,);
+
+
+
+
+
+// const newEl = document.createElement('div');
+// newEl.classList.add('child'); // added a class to the newly created div
+// const newText = document.createTextNode('This is a new text');
+// newEl.appendChild(newText);
+// parentEl.appendChild(newEl);
+
+// parentEl.insertBefore(newEl, text);
