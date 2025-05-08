@@ -112,3 +112,8 @@ btn.addEventListener('click', function() {
    h2.textContent = 'Text changed';
    h2.style.backgroundColor = "darkorange"
 })
+
+
+/**************************************************************** */
+
+// Hoisting: tbd
