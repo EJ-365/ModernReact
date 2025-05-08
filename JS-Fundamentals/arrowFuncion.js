@@ -39,11 +39,11 @@ callback: is the function you want to execute
 delay: is the time in millisecond before the callback function is executed
 */
 
-// console.log("Hello EJ hold on for a sec"); // execute first
-// setTimeout(() => {
-//   console.log("Ok let's continue");
-// }, 3000); // execute later
-// console.log("Thanks for waiting"); // execute second
+console.log("Hello EJ hold on for a sec"); // execute first
+setTimeout(() => {
+  console.log("Ok let's continue");
+}, 3000); // execute later
+console.log("Thanks for waiting"); // execute second
 
 /* setInterval: setInterval(callback, delay): Repeatedly executes a 
 provided callback function at a fixed time interval

@@ -1,9 +1,16 @@
-/*  uncomment the code if you wanna see something or checkout things ctrl+/
+/**************************************************************** */
 
-select all the .li-item inside the ul
-and loop through them using for loop and then apply a background color to them.
+/* 
+DOM Transversal (Meaning how we move from parent to child and child to parent element 
+in manipulating them
+uncomment the code if you wanna see something or checkout things ctrl+/
  */
-// const liItems = document.querySelectorAll('.li-item');
+
+/* select all the .li-item inside the ul
+and loop through them using for loop and then apply a background color to them. 
+*/
+
+// const liItems = document.querySelectorAll('.li-item'); // querySelectorAll target all element with that class
 // for (let i = 0; i < liItems.length; i++) {
 //     liItems[i].style.background = 'orange';
 // }
@@ -12,19 +19,25 @@ and loop through them using for loop and then apply a background color to them.
 /* traversing the dom: moving around the element
 uncomment the code to read them if you wanna check something
 */
+
 // const parentEl = document.querySelector('.parent');
 // const childTwo = document.querySelector('.child-2');
 
-// value = parentEl.children; // return the children div without text or comment
-// value = parentEl.children[1]; // return the child element from the parent 
-// value = parentEl.lastElementChild; // do exactly what the name is 
 
+/* parent to child */
+// value = parentEl.children; // return all the children div without text or comment
+// value = parentEl.children[1]; // return the second child element from the parent 
+// value = parentEl.lastElementChild; // do exactly what the name is return the last element child
+
+
+/* child to parent and their siblings */
 // value = childTwo.parentElement; // return the parent element of that child
 // value = childTwo.nextElementSibling; // return the next element after the current element
 // value = childTwo.previousElementSibling; // return the previous element before the current element
-// // console.log(value); // only execute the last value 'the previous element something'
+ // console.log(value); // only execute the last value 'the previous element something'
 
-/* Traversing the DOM Summary:
+
+/* Traversing the DOM Summary and recap:
    - `parentEl.children`: Returns all child elements of the `.parent` element (ignores text and comments).
    - `parentEl.childNodes`: Returns all child nodes of `.parent` (includes elements, text, and comments).
    - `parentEl.children[1]`: Accesses the second child element of `.parent`.
@@ -39,33 +52,63 @@ uncomment the code to read them if you wanna check something
 
 
 
+/**************************************************************** */
 /* creating element
-selecting the parent class and the child again 
+selecting the parent class and the child-2 for manipulation 
 */
 
 const parentEl = document.querySelector('.parent');
 const text = document.querySelector('.child-2');
 text.remove();
 
-/* use remove(); method to remove an element completely from the dom; */
-
+// use remove(); method to remove an element completely from the dom; 
 
 // creating the new element
-
 // const newEl = document.createElement('div');
 // newEl.classList.add('child');
 // newEl.textContent = "Created with JS";
-// // parentEl.appendChild(newEl);
-// parentEl.insertBefore(newEl, text,);
-
-
-
-
-
-// const newEl = document.createElement('div');
-// newEl.classList.add('child'); // added a class to the newly created div
-// const newText = document.createTextNode('This is a new text');
-// newEl.appendChild(newText);
+// const newText = document.createTextNode('This is a new text'); // same thing as textContent =""
 // parentEl.appendChild(newEl);
+// parentEl.insertBefore(newEl, text,); 
+// parentEl.appendChild(newEl); // appends it as the last element
+// parentEl.insertBefore(newEl, text); // This inserts the new element before the element referenced by "text"
+// so both of them works fine depending on your preference 
 
-// parentEl.insertBefore(newEl, text);
+
+/* 
+   Note: When inserting a new element, you have two options:
+
+   1. Use parentEl.appendChild(newEl); 
+      - This appends the new element as the last child of parentEl.
+   
+   2. Use parentEl.insertBefore(newEl, text); 
+      - This inserts the new element before the element referenced by "text".
+
+*/
+
+
+
+
+/**************************************************************** */
+
+/* Event listeners start here 
+
+Event listener listen for an events like click, keyboard, form etc
+and then call a function AKA callback to perform the operation here is the example below
+*/
+const h2 = document.querySelector('h2');
+const btn = document.querySelector('.btn');
+
+// const myFunc = () => {
+//    h2.textContent = "Text Changed";
+//    h2.style.backgroundColor = "darkorange"
+// }
+
+/* the arrow function above do exactly the same thing as the anonymous function below 
+inside the .addEventListener(); function just makes it easy to write it,  on one spot
+without having to create external function */
+
+btn.addEventListener('click', function() {
+   h2.textContent = 'Text changed';
+   h2.style.backgroundColor = "darkorange"
+})
