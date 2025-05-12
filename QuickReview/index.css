@@ -1,0 +1,21 @@
+.parent {
+width: 500px;
+height: 450px;
+border: 2px dotted black;
+position: relative;
+}
+
+.child{
+    background-color: green;
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+}
+
+#child-1{
+    background-color: orange;
+position:relative;
+top:40%;
+left:45%;
+bottom: 50%;
+}
