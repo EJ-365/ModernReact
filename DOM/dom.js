@@ -15,7 +15,6 @@ and loop through them using for loop and then apply a background color to them.
 //     liItems[i].style.background = 'orange';
 // }
 
-
 /* traversing the dom: moving around the element
 uncomment the code to read them if you wanna check something
 */
@@ -23,19 +22,16 @@ uncomment the code to read them if you wanna check something
 // const parentEl = document.querySelector('.parent');
 // const childTwo = document.querySelector('.child-2');
 
-
 /* parent to child */
 // value = parentEl.children; // return all the children div without text or comment
-// value = parentEl.children[1]; // return the second child element from the parent 
+// value = parentEl.children[1]; // return the second child element from the parent
 // value = parentEl.lastElementChild; // do exactly what the name is return the last element child
-
 
 /* child to parent and their siblings */
 // value = childTwo.parentElement; // return the parent element of that child
 // value = childTwo.nextElementSibling; // return the next element after the current element
 // value = childTwo.previousElementSibling; // return the previous element before the current element
- // console.log(value); // only execute the last value 'the previous element something'
-
+// console.log(value); // only execute the last value 'the previous element something'
 
 /* Traversing the DOM Summary and recap:
    - `parentEl.children`: Returns all child elements of the `.parent` element (ignores text and comments).
@@ -50,18 +46,16 @@ uncomment the code to read them if you wanna check something
    - `childTwo.previousSibling`: Returns the previous sibling node before `.child-2` (can include text or comments).
 */
 
-
-
 /**************************************************************** */
 /* creating element
 selecting the parent class and the child-2 for manipulation 
 */
 
-const parentEl = document.querySelector('.parent');
-const text = document.querySelector('.child-2');
+const parentEl = document.querySelector(".parent");
+const text = document.querySelector(".child-2");
 text.remove();
 
-// use remove(); method to remove an element completely from the dom; 
+// use remove(); method to remove an element completely from the dom;
 
 // creating the new element
 // const newEl = document.createElement('div');
@@ -69,11 +63,10 @@ text.remove();
 // newEl.textContent = "Created with JS";
 // const newText = document.createTextNode('This is a new text'); // same thing as textContent =""
 // parentEl.appendChild(newEl);
-// parentEl.insertBefore(newEl, text,); 
+// parentEl.insertBefore(newEl, text,);
 // parentEl.appendChild(newEl); // appends it as the last element
 // parentEl.insertBefore(newEl, text); // This inserts the new element before the element referenced by "text"
-// so both of them works fine depending on your preference 
-
+// so both of them works fine depending on your preference
 
 /* 
    Note: When inserting a new element, you have two options:
@@ -86,9 +79,6 @@ text.remove();
 
 */
 
-
-
-
 /**************************************************************** */
 
 /* Event listeners start here 
@@ -96,8 +86,8 @@ text.remove();
 Event listener listen for an events like click, keyboard, form etc
 and then call a function AKA callback to perform the operation here is the example below
 */
-const h2 = document.querySelector('h2');
-const btn = document.querySelector('.btn');
+const h2 = document.querySelector("h2");
+const btn = document.querySelector(".btn");
 
 // const myFunc = () => {
 //    h2.textContent = "Text Changed";
@@ -108,12 +98,34 @@ const btn = document.querySelector('.btn');
 inside the .addEventListener(); function just makes it easy to write it,  on one spot
 without having to create external function */
 
-btn.addEventListener('click', function() {
-   h2.textContent = 'Text changed';
-   h2.style.backgroundColor = "darkorange"
-})
-
+btn.addEventListener("click", function () {
+  h2.textContent = "Text changed";
+  h2.style.backgroundColor = "darkorange";
+});
 
 /**************************************************************** */
 
-// Hoisting: tbd tmr
+/* Hoisting is a JavaScript mechanism where variable and function declarations are moved to the top of 
+their containing scope during compilation. This means that function declarations can be invoked
+ before they appear in the code, while variables declared with var are hoisted and initialized as undefined.
+   Note that let and const are also hoisted, but they are not initialized, leading to a ReferenceError 
+   if accessed before their declaration.
+
+   Example:
+   Function hoisting example:
+   hoistedFunction(); // This works because the function is hoisted.
+
+   function hoistedFunction() {
+         console.log("This function has been hoisted!");
+   }
+
+   Variable hoisting example:
+   console.log(hoistedVar); // Outputs: undefined because var declarations are hoisted.
+   var hoistedVar = 5;
+   
+   let and const hoisting example:
+   console.log(notHoisted); // Uncommenting this line would throw a ReferenceError.
+   let notHoisted = 10;
+*/
+
+// The end of this DOM intro; note this is the into only; check the next file called form.js
