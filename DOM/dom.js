@@ -128,4 +128,4 @@ their containing scope during compilation. This means that function declarations
    let notHoisted = 10;
 */
 
-// The end of this DOM intro; note this is the into only; check the next file called form.js
+// The end of this DOM intro; note this is the into only; check the next file called formEvents.js
