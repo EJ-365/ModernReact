@@ -14,10 +14,6 @@ a div is being clicked; like a ripple effect it bubbles up to the root */
 //     console.log("button clicked");
 // })
 
-
-
-
-
 /*************************************************************************************** */
 /*  event delegation
 instead of adding events listener to individual child or div's we can use event delegation
@@ -27,8 +23,8 @@ that manipulate the the child element, here's the example below
 **Note the class is not in order( btn => means button 1, btn-1 means button 2 etc)
 */
 
-const text = document.querySelector('.text');
-const content = document.querySelector('.content');
+const text = document.querySelector(".text");
+const content = document.querySelector(".content");
 // const btn = document.querySelector('.btn');
 // const btn1 = document.querySelector('.btn-1');
 // const btn2 = document.querySelector('.btn-2');
@@ -45,16 +41,18 @@ const content = document.querySelector('.content');
 // })
 
 // with event delegation; we can add event to only the parent container which is 'content'
-content.addEventListener('click', function(e){
-    if(e.target.classList.contains('btn')){
-       text.textContent= 'Button 1 was clicked'
-    }
+content.addEventListener("click", function (e) {
+  if (e.target.classList.contains("btn")) {
+    text.textContent = "Button 1 was clicked";
+  }
 
-     if(e.target.classList.contains('btn-1')){
-       text.textContent= 'Button 2 was clicked'
-    }
+  if (e.target.classList.contains("btn-1")) {
+    text.textContent = "Button 2 was clicked";
+  }
 
-     if(e.target.classList.contains('btn-2')){
-       text.textContent= 'Button 3 was clicked'
-    }
+  if (e.target.classList.contains("btn-2")) {
+    text.textContent = "Button 3 was clicked";
+  }
 });
+
+/* up nex:  counter app project next in the project folder */
