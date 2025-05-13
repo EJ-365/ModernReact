@@ -14,3 +14,5 @@ function submitForm(e) {
     console.log(passwordVal);
 }
     /*  e.target indicate or target the element in which it was fired (which is the form.add...) */
+ 
+    /* up nex:  counter app project next in the project folder */
