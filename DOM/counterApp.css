@@ -1,0 +1,90 @@
+/* css reset start */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+/* css reset ends */
+
+/* main parent */
+.container {
+  background-color: greenyellow;
+  max-width: auto;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  text-align: center;
+}
+/* parent class that content the text and other div's */
+.content-div {
+  background-color: orange;
+  width: 500px;
+  padding: 4em;
+  border-radius: 2em;
+}
+
+/* applying style to all the div's inside the content div and the h1 */
+.content-div > div,
+h1 {
+  margin-bottom: 1em;
+}
+
+/* the one that do the actual counting that's the one that start with 0 */
+.counter {
+  font-size: 5em;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: inline-block;
+  width: 2em;
+  margin-bottom: 0.5em;
+}
+
+/* styling the buttons */
+
+.button-container {
+  padding: 20px 20px;
+  margin: none;
+}
+
+.btn {
+  margin: 3px 0;
+  text-align: center;
+  font-size: 20px;
+  padding: 0.3em;
+  border-radius: 9px;
+  outline: none;
+  border: none;
+  cursor: pointer;
+}
+i {
+  font-size: 1em;
+  text-align: center;
+  margin: 3px;
+}
+
+/* individual button styling */
+
+.subtract {
+  background-color: red;
+  padding: 10px;
+}
+
+.reset {
+  background-color: lightgray;
+  padding: 10px;
+}
+
+.add {
+  background-color: green;
+  padding: 10;
+}
+
+/* ends here */
