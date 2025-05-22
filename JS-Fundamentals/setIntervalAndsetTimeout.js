@@ -9,3 +9,8 @@ function displayTime() {
 }
 
 const showTime = setInterval(displayTime, 1000)
+
+/* important method .toLocaleTimeString() give us the time like this 11:03 AM
+.toLocaleString() gives us the date in this format 5/22/2025 , 11:04 AM
+.toLocaleDateString() gives us the date in this format 5/22/2025
+ */
