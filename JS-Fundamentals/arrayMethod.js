@@ -1,26 +1,44 @@
-const fruits = ['apple','pineapple','kiwi','strawberry','orange','mango']
-// manipulate it with any array method of your choice
+// const days = ['Mon', 'Tue', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'];
+// days.forEach(function(day, index){
+// console.log(`Day ${index + 1} = ${day}`);
+// })
 
-const num = [1,2,4,6,8];
-let result = num.indexOf(4);
+// Map(); method with arrow function
+// const numbers = [1,2,3,4,5];
+// const print = numbers.map(x => x * 2);
+// console.log(print);
+
+// without arrow method
+const numbers = [1,2,3,4,5];
+const print = numbers.map(function(num){
+    return num * 2;
+});
+// console.log(print);
+
+// filter array method;
+/* return an array of those element that passes the test */
+// const ages = [16,18,14,34,33,12]
+// const ageCheck = ages.filter(x => x >= 18);
+// console.log(ageCheck);
+
+const ages = [16,18,14,34,33,12];
+const result = ages.filter(function(age){
+    return age >= 18;
+})
+
+console.log(result);
+
+// boh of them is the samething just that one is arrow function
+
+
+
+
+
+
+
+
+
+
+// const num = [1,2,4,6,8];
+// let result = num.indexOf(4);
 // console.log(result);  // 2;  search for the index 4 and return the position where 4 is
-
-
-
-/* preview: */
-// function economics(name){
-//     if(name === "Ejeme"){
-//         for (let i = 1; i <= 20; i++){
-//             console.log("Please try and finish the chapter 7 for macro econ");
-//         }
-//     }
-//     else {
-//         console.log('glad you finished it')
-//     }
-// }
-// function display(){
-//     let  myName = 'Ejay Gabriel'
-//     let result = economics(myName);
-// }
-
-// display();
