@@ -25,7 +25,7 @@ function Person(firstName, lastName, age){
     }
 }
 
-// creating an instane
+// creating an instance
 const ejay = new Person('Ejay', 'Gabriel', 22);
 const recovery = new Person('Recovery', 'Martin', 24);
 console.log(ejay);
