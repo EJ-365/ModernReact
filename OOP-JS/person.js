@@ -1,5 +1,5 @@
 // Object Literals
-// This keyword
+// This keyword; refers to the specific variable that's been call like pointing at someone directly
 /*  object constructor: constuctor allows you to create multiple instances of an object 
 instead of creating them one by one like the traditional way */
 const person = {
