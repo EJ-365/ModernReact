@@ -22,6 +22,7 @@ object */
 // create another object
  /* ".call" call the Person object above to inherit(take) the property of
  Person which is first and last name; remember to add 'this' keyword first follow by comma*/
+
 function User(firstName, lastName, username, password){
  // inheriting the properties/attributes
 Person.call(this, firstName, lastName); 
@@ -32,7 +33,8 @@ this.password = password;
 // inheriting the Person object prototype (use object.create() to inherit the prototype)
 User.prototype = Object.create(Person.prototype)
 const user1 = new User('John', 'Doe', 'johnDoe', 'John123');
-console.log(user1.greet());
+// console.log(user1.greet());
+console.log(user1);
 
 
 /* Recap:
