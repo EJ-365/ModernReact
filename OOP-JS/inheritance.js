@@ -45,5 +45,5 @@ Person.call(this, property name)
 to inherit a prototype from another object into a new object 
 use: User.prototype = Object.create(Person.prototype)
 
-* Notice that the 'Object.create()' the O is capitalize *
+* Notice that the 'Object.create()' the O is capitalize; check the other branch for more info
 */
