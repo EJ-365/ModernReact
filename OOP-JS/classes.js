@@ -15,8 +15,12 @@ class Person{
     greet(){
         return `Hello, my name is ${this.firstName} ${this.lastName}`;
     }
+
+    static hello(){
+        return `Hello ${firstName}`;
+    }
 }
 
 const p1 = new Person('Ejay', 'Gabriel', 22);
 const p2 = new Person('Bri', 'Ejay', 18);
-console.log(p2.greet());
+console.log(Person.hello());
