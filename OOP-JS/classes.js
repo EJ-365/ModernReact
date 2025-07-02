@@ -22,5 +22,5 @@ class Person{
 }
 
 const p1 = new Person('Ejay', 'Gabriel', 22);
-const p2 = new Person('Bri', 'Ejay', 18);
+const p2 = new Person('Sam', 'Davison', 18);
 console.log(Person.hello());
