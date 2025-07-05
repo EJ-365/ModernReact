@@ -4,7 +4,7 @@
 
 but why use it?
 1. basically it protect important data. (prevent direct changes to important values)
-2. Makes code cleaner (organizes data and method inside the clas)
+2. Makes code cleaner (organizes data and method inside the class)
 3. Improves security (Ensures that only specific data can modify or access data)
 
 Example a BankAccount class that has a private property called #balance 
