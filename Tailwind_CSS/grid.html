@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid in tailwindcss</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<!--uncomment to see the  code  not at once select the one you wish to see-->
+<body class="p-0  bg-gray-100">
+
+    <!--tailwind component exampple including grid and flexbox -->
+    <!-- <div class="grid grid-cols-2 gap-4 container columns-xs">
+        <div class="bg-red-200 p-4"> Item 1 </div>
+        <div class="bg-blue-200 p-4"> Item 2 </div>
+        <div class="bg-green-200 p-4"> Item 3</div>
+        <div class="bg-yellow-200 p-4"> Item 4 </div>
+    </div> -->
+
+    <!--centering content-->
+    <!-- <div class="mt-24 flex justify-center items-center h-screen">
+        <div class="text-center"> I'm Centered </div>
+    </div> -->
+
+
+    <!--practice 
+    responsive card layout-->
+
+    <!-- <div  class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <div class="bg-slate-100 p-4 rounded shadow ">
+            <h2 class="text-xl font-semibold mb-2"> Card 1 </h2>
+            <p> some text goes in here </p>
+            <div class="mt-5 text-white">
+                <button type="button" class="p-2 bg-blue-700  text-center w-full rounded-md hover:bg-blue-800 text-lg font-bold"> Click </button>
+            </div>
+        </div>
+
+        <div class="bg-slate-100 p-4 rounded shadow text-dark">
+            <h2 class="text-xl font-semibold mb-2"> Card 2 </h2>
+            <p> some text goes in here </p>
+            <div class="mt-5 text-white">
+                <button type="button" class="p-2 bg-green-600  text-center w-full rounded-md  hover:bg-green-800 text-lg font-bold"> Click </button>
+            </div> 
+        </div> 
+
+        <div class="bg-slate-100 p-4 rounded shadow text-dark">
+            <h2 class="text-xl font-semibold mb-3"> Card 3 </h2>
+            <p> some text goes in here </p>
+             <div class="mt-5 text-white">
+                <button type="button" class="p-2 bg-red-500  text-center w-full rounded-md hover:bg-red-600 text-lg font-bold"> Click </button>
+            </div> 
+        </div>
+    </div> -->
+
+
+    <!--button styling-->
+    <!-- <button type="button" class="bg-blue-600 rounded font-bold text-white py-2 hover:bg-slate-300 px-4 disabled:opacity-50 cursor-not-allowed">
+        Click Me
+    </button> -->
+
+
+    <!--card styling-->
+    <!-- <div class="container max-w-sm rounded bg-purple-400 text-white shadow-lg p-6 overflow-hidden">
+        <h2 class="text-xl font-semibold mb-2"> Card Title </h2>
+       <p class="text-gray-700"> This is a simple card </p>
+    </div>  -->
+
+
+
+    <!--input and form element-->
+
+ <!-- <input type="text" placeholder="Enter your name" class="border border-gray-300
+ rounded px-4 py-2  w-full focus: outline-none focus: ring-2  focus:ring-blue-500"> -->
+
+
+ <!--select dropdown-->
+
+ <!-- <select class="border border-gray-300 py-2 px-4 rounded  ">
+    <option> Option 1 </option>
+    <option> Option 2 </option>
+ </select> -->
+
+ <!--checkbox-->
+ <!-- <label class=" inline-flex items-center">
+    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+    <span class="ml-2"> Remember Me </span>
+ </label> -->
+
+
+ <!--badges-->
+ <!-- <span class="inline-block bg-green-100 text-green-800 text-sm px-2 py-1 rounded-full">
+    New
+ </span> -->
+
+
+ <!--navbar-->
+ <nav class="bg-gray-800 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center ">
+        <div class="font-bold text-xl">My Site</div>
+            <div class="space-x-4 hidden md:flex">
+                <a href="#" class="hover:underline">Home</a>
+                <a href="#" class="hover:underline">About</a>
+                 <a href="#" class="hover:underline">Contact</a>
+                </div>
+            </div>
+        </nav>
+
+        <!--profile card-->
+
+        <div class=" text-gray-800 mt-36 max-w-sm mx-auto bg-white rounded-lg shadow-lg overflow-hidden mb-5">
+            <img src="Images/profile-photo-icon-design-in-fil.png" alt="profilePic" class="  object-cover w-60 mx-auto">
+        <div class="p-6"> 
+            <h2 class="text-2xl font-bold"> Ejay Gabriel </h2>
+            <p  class="text-gray-600 mt-2"> Frontend Developer | Tech Enthusiast </p>
+        <button type="button" class="bg-blue-500 w-full rounded mt-4 px-4 py-2 hover:bg-blue-700 text-white
+        font-bold text-xl"> Follow
+        </button>
+        </div>
+        </div>
+</body>
+</html> 

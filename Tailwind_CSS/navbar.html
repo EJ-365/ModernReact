@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Navbar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <form class="mt-5 container mx-auto w-full p-6">
+        <input type="text" placeholder="Enter text" class="w-full px-4 py-3 focus:ring-5 ring-blue-800 rounded-lg  border-2 focus:border-blue-500 outline-none">
+    </form>
+
+    <!-- <span class="px-2.5 py-0.5 rounded-full  border border-green-500 text-sm whitespace-nowrap text-green-800">New </span> -->
+     <span class="inline-flex items-center justify-center bg-purple-100 px-2.5 py-0.5 rounded-full text-purple-700 ml-5">
+        <p class="text-sm whitespace-nowrap"> open</p>
+     <button type="button" class="ms-1.5 -me-1 inline-block rounded-full bg-purple-200 p-0.5 text-purple-700 transition hover:bg-purple-300">
+        <span class="sr-only"> Remove badge </span>
+<svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      class="size-3"
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+     </button>
+    </span>
+
+    <span class="bg-red-100 px-2.5 py-0.5 rounded-full ml-3 inline-flex justify-center items-center text-red-700">
+        <p class="text-sm whitespace-nowrap">Close</p>
+        <button type="button" class="bg-red-200 rounded-full inline-block ms-1.5 -me-1 p-0.5 transition hover:bg-red-300 text-red-700">
+       <span class="sr-only"> remove badge </span>
+            <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke-width="1.5"
+      stroke="currentColor"
+      class="size-3"
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+        </button>
+    </span>
+</body>
+</html> 
