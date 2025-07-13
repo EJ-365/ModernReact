@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banking website</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="bg-slate-950 text-white tracking-wider">
+  <!--navbar session-->
+  <header>
+    <nav class="container mx-auto flex justify-between items-center p-8">
+        <div class="text-orange-600 font-bold py-5 text-3xl px-8">
+            <a href="#home">
+                <span>Vertex</span>Bank
+                 </a>
+        </div>
+
+        <div>
+            <ul class="hidden lg:flex items-center space-x-6 px-5 py-4">
+                <li><a href="#home" class=" hover:text-orange-400 ease-in duration-200"> Home </a></li>
+                 <li><a href="#features"  class=" hover:text-orange-400 ease-in duration-200"> Features </a></li>
+                  <li><a href="#testimonial"  class=" hover:text-orange-400 ease-in duration-200"> Testimonial </a></li>
+                 <li><a href="#pricing"  class=" hover:text-orange-400 ease-in duration-200"> Pricing </a></li>
+                 <li><a href="#blog"  class=" hover:text-orange-400 ease-in duration-200"> Blog </a></li>
+                  <li><a href="#contact"  class=" hover:text-orange-400 ease-in duration-200"> Contact </a></li>
+           
+                   <li><button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
+                    hover:opacity-80 ease-in duration-200"> Free Trial</button></li>
+                </ul> 
+        </div>
+
+        <!--mobile screen-->
+        <!--hide the hamburger icon on large screen, anything less i.e smaller screens it shows up -->
+        <div id="hamburger" class="lg:hidden z-50 cursor-pointer"> 
+            <i class="fa-solid fa-bars"></i> 
+        </div>
+
+        <!--nav links for mobile display-->
+        <div id="menu" class="hidden bg-slate-950 h-screen absolute inset-0">
+            <ul class="h-full grid place-items-center py-20">
+                 <li><a id="hLink" href="#home" class=" hover:text-orange-400 ease-in duration-200"> Home </a></li>
+                 <li><a id="hLink" href="#features"  class=" hover:text-orange-400 ease-in duration-200"> Features </a></li>
+                  <li><a id="hLink" href="#testimonial"  class=" hover:text-orange-400 ease-in duration-200"> Testimonial </a></li>
+                 <li><a id="hLink" href="#pricing"  class=" hover:text-orange-400 ease-in duration-200"> Pricing </a></li>
+                 <li><a id="hLink" href="#blog"  class=" hover:text-orange-400 ease-in duration-200"> Blog </a></li>
+                  <li><a id="hLink" href="#contact"  class=" hover:text-orange-400 ease-in duration-200"> Contact </a></li>
+           
+                   <li><button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
+                    hover:opacity-80 ease-in duration-200"> Free Trial</button></li>
+            </ul>
+        </div>
+    </nav>
+  </header>
+
+  
+    <!--script for dropping down-->
+    <script>
+        const hamburger = document.querySelector('#hamburger');
+          const menu = document.querySelector('#menu');
+          const hLink = document.querySelector('#hLink');
+           const faSolid = document.querySelector('.fa-solid');
+
+           // add event listener to the hamburger icon
+           hamburger.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+            faSolid.classList.toggle('fa-xmark')
+           })
+
+           hLink.forEach(link => {
+            link.addEventListener('click', () => {
+                  menu.classList.toggle('hidden');
+            faSolid.classList.toggle('fa-xmark')
+            });
+           })
+        </script>
+</body>
+</html>
