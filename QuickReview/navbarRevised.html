@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navbar Review</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+</head>
+<body class="bg-purple-900 text-white tracking-wide">
+    <header>
+        <nav class="flex justify-between items-center container mx-auto p-8">
+            <!--logo session div-->
+            <div class="text-sky-300 font-bold text-3xl py-3 px-8"> 
+                <a href="#home"> 
+                    <span> Logo</span>Design
+                </a>
+            </div>
+
+            <!--nav links div-->
+            <div>
+                <ul class="hidden lg:flex items-center space-x-7 px-5 py-3">
+                    <li><a href="#home" class="hover:text-teal-300 ease-in duration-200"> Home </a></li>
+                    <li><a href="#about" class="hover:text-teal-300 ease-in duration-200"> About </a></li>
+                    <li><a href="#service" class="hover:text-teal-300 ease-in duration-200"> Service </a></li>
+                    <li><a href="#contact" class="hover:text-teal-300 ease-in duration-200"> Contact </a></li>
+                    <li><a href="#blog" class="hover:text-teal-300 ease-in duration-200"> Blog </a></li> 
+
+                    <li><button class="bg-slate-950 py-2 px-4 rounded-lg font-bold capitalize
+                        hover:opacity-80 transition ease-in duration-200"> register </button></li>
+                </ul>
+            </div>
+
+            <!--Mobile responsiveness-->
+            <div id="hamburger" class="lg:hidden z-50 cursor-pointer">
+                <i class="fa-solid fa-bars"></i>
+            </div>
+
+            <!--another div for nav links to dropdown to-->
+            <div id="menu" class="hidden  h-screen bg-purple-900 absolute">
+                <ul class="grid items-center place-items-center h-5/6">
+                    <li><a  id="hLink" href="#home" class="hover:text-teal-400 ease-in duration-200">Home</a></li>
+                 <li><a id="hLink"  href="#about" class="hover:text-teal-400 ease-in duration-200">About</a></li>
+               <li><a id="hLink" href="#service" class="hover:text-teal-400 ease-in duration-200">service</a></li>
+               <li><a id="hLink" href="#contact" class="hover:text-teal-400 ease-in duration-200">Contact</a></li>
+             <li><a id="hLink" href="#blog" class="hover:text-teal-400 ease-in duration-200">Blog</a></li>
+             <li><button class="bg-slate-950 py-2 px-4 rounded-lg font-bold capitalize
+                        hover:opacity-80 transition ease-in duration-200"> register </button></li>
+            </ul>
+            </div>
+            
+        </nav>
+    </header>
+
+    <!--script for hamburger toggling-->
+    <script>
+        const hamburger = document.querySelector("#hamburger");
+          const menu = document.querySelector("#menu");
+            const HLink = document.querySelector("#HLink");
+              const faSolid = document.querySelector(".fa-solid");
+
+              // add event listener to the hamburger div icon 
+              hamburger.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+                faSolid.classList.toggle('fa-xmark');
+              })
+
+              HLink.forEach(link => {
+                link.addEventListener('click', () => {
+                   menu.classList.toggle('hidden');
+                faSolid.classList.toggle('fa-xmark'); 
+                })
+              });
+        </script>
+</body>
+</html>
