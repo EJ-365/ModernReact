@@ -8,70 +8,95 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
 </head>
-<body class="bg-purple-900 text-white tracking-wide">
+<body class="bg-slate-950  text-white tracking-wide">
     <header>
-        <nav class="flex justify-between items-center container mx-auto p-8">
-            <!--logo session div-->
-            <div class="text-sky-300 font-bold text-3xl py-3 px-8"> 
-                <a href="#home"> 
-                    <span> Logo</span>Design
-                </a>
+        <nav class="flex justify-between items-center w-full container mx-auto px-4 py-6">
+            <div class="text-3xl font-bold capitalize px-4 py-4">
+              <a href="#">
+                <img src="images/logo.png" alt="Logo" class=" h-48 w-auto md:h-56">
+                <span class="sr-only"> Logo image </span>
+              </a> 
             </div>
 
-            <!--nav links div-->
             <div>
-                <ul class="hidden lg:flex items-center space-x-7 px-5 py-3">
-                    <li><a href="#home" class="hover:text-teal-300 ease-in duration-200"> Home </a></li>
-                    <li><a href="#about" class="hover:text-teal-300 ease-in duration-200"> About </a></li>
-                    <li><a href="#service" class="hover:text-teal-300 ease-in duration-200"> Service </a></li>
-                    <li><a href="#contact" class="hover:text-teal-300 ease-in duration-200"> Contact </a></li>
-                    <li><a href="#blog" class="hover:text-teal-300 ease-in duration-200"> Blog </a></li> 
-
-                    <li><button class="bg-slate-950 py-2 px-4 rounded-lg font-bold capitalize
-                        hover:opacity-80 transition ease-in duration-200"> register </button></li>
+                <ul class="hidden md:flex items-center space-x-6 mx-auto px-5 py-4">
+                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-950 px-3 py-2 rounded-full"> Home </a></li>
+                     <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-950 px-3 py-2 rounded-full"> About </a></li>
+                      <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-950 px-3 py-2 rounded-full"> Service </a></li>
+                       <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-950 px-3 py-2 rounded-full"> Contact  </a></li>
+                        <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-950 px-3 py-2 rounded-full"> pricing </a></li>
+                         <li><button class="bg-green-950 px-6 py-2 rounded 
+                            hover:opacity-80 transition ease-in duration-200"> Register </button></li>
                 </ul>
             </div>
 
-            <!--Mobile responsiveness-->
-            <div id="hamburger" class="lg:hidden z-50 cursor-pointer">
+            <div id="hamburger" class="md:hidden z-50 cursor-pointer">
                 <i class="fa-solid fa-bars"></i>
             </div>
 
-            <!--another div for nav links to dropdown to-->
-            <div id="menu" class="hidden  h-screen bg-purple-900 absolute">
-                <ul class="grid items-center place-items-center h-5/6">
-                    <li><a  id="hLink" href="#home" class="hover:text-teal-400 ease-in duration-200">Home</a></li>
-                 <li><a id="hLink"  href="#about" class="hover:text-teal-400 ease-in duration-200">About</a></li>
-               <li><a id="hLink" href="#service" class="hover:text-teal-400 ease-in duration-200">service</a></li>
-               <li><a id="hLink" href="#contact" class="hover:text-teal-400 ease-in duration-200">Contact</a></li>
-             <li><a id="hLink" href="#blog" class="hover:text-teal-400 ease-in duration-200">Blog</a></li>
-             <li><button class="bg-slate-950 py-2 px-4 rounded-lg font-bold capitalize
-                        hover:opacity-80 transition ease-in duration-200"> register </button></li>
-            </ul>
+
+            <div id="menu" class="h-screen hidden absolute inset-0">
+                <ul class="grid items-center place-items-center h-full py-20">
+                    <li><a id="hLink" href="#"> Home </a></li>
+                     <li><a href="#"> About </a></li>
+                      <li><a href="#"> Service </a></li>
+                       <li><a href="#"> Contact  </a></li>
+                        <li><a href="#"> pricing </a></li>
+                         <li><button class="bg-slate-950 px-6 py-2 rounded 
+                            hover:opacity-80 transition ease-in duration-200"> Register </button></li>
+                </ul>
             </div>
-            
         </nav>
     </header>
 
-    <!--script for hamburger toggling-->
     <script>
-        const hamburger = document.querySelector("#hamburger");
-          const menu = document.querySelector("#menu");
-            const HLink = document.querySelector("#HLink");
-              const faSolid = document.querySelector(".fa-solid");
+        const hamburger = document.querySelector("#hamburger")
+            const menu = document.querySelector("#menu")
+                const faSolid = document.querySelector(".fa-solid")
+                    const hLink = document.querySelector("#hLink")
 
-              // add event listener to the hamburger div icon 
-              hamburger.addEventListener('click', () => {
-                menu.classList.toggle('hidden');
-                faSolid.classList.toggle('fa-xmark');
-              })
+                    hamburger.addEventListener('click', () => {
+                        menu.classList.toggle('hidden');
+                        faSolid.classList.toggle('fa-xmark');
+                    })
 
-              HLink.forEach(link => {
-                link.addEventListener('click', () => {
-                   menu.classList.toggle('hidden');
-                faSolid.classList.toggle('fa-xmark'); 
-                })
-              });
+                    hLink.forEach(link => {
+                        menu.classList.toggle('hidden');
+                        faSolid.classList.toggle('fa-xmark');
+                    })
         </script>
+
+
+<!--cta-->
+<main class="relative h-screen w-full flex items-center justify-center pl-20 pr-16 container mx-auto box-border
+my-32 md:my-16"> 
+<!--blurry background-->
+<div class="w-96 h-96 bg-gradient-to-l from-slate-800 to-green-800 absolute top-0 -left-5 -z-10 blur-3xl rounded-full 
+opacity-30 overflow-hidden"></div>
+
+<div class="w-96 h-96 bg-gradient-to-l from-purple-800 to-green-800 absolute -bottom-44 right-5 -z-10 blur-3xl rounded-full 
+opacity-30 overflow-hidden"></div>
+
+    <section class="flex flex-col justify-between items-center z-20 md:flex-row ">
+        <div class="text-center md:my-48 md:text-left md:w-1/2">
+            <h2 class="font-medium text-3xl md:text-5xl md:font-bold mb-6 leading-snug"> Save Our Planet Together </h2>
+            <p class="leading-relaxed text-xl">
+             Our planet faces climate change. Join our movement to create sustainable solutions. Reduce waste, support clean energy, and protect Earth for future generations.
+ 
+            </p>
+             <div class="uppercase mt-10">
+            <a href="#" class="bg-green-950 opacity-95 px-10  py-3 rounded font-thin md:font-bold hover:opacity-80">join now</a>
+        </div>
+        </div>
+
+        <!--for the image div-->
+        <div class="md:w-1/2 mt-46 md:mt-0">
+            <img src="images/ctaCover.png" alt="image of earth" class="mt-10">
+            <span class="sr-only"> Image of earth with a plant on top and a hand on it </span>
+        </div>
+        
+    </section>
+</main>
 </body>
 </html>
+ 
