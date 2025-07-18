@@ -1,109 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Banking website</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
+
 <body class="bg-slate-950 text-white tracking-wider">
-  <!--navbar session-->
-  <header>
-    <nav class="container mx-auto flex justify-between items-center p-8">
-        <div class="text-orange-600 font-bold py-5 text-3xl px-8">
-            <a href="#home">
-                <span>Vertex</span>Bank
-                 </a>
-        </div>
+    <!--navbar session-->
+    <header>
+        <nav class="container mx-auto flex justify-between items-center p-8">
+            <div class="text-orange-500 font-bold py-5 text-3xl px-8">
+                <a href="#home">
+                    <span>Vertex</span>Bank
+                </a>
+            </div>
 
-        <div>
-            <ul class="hidden lg:flex items-center space-x-6 px-5 py-4">
-                <li><a href="#home" class=" hover:text-orange-400 ease-in duration-200"> Home </a></li>
-                 <li><a href="#features"  class=" hover:text-orange-400 ease-in duration-200"> Features </a></li>
-                  <li><a href="#testimonial"  class=" hover:text-orange-400 ease-in duration-200"> Testimonial </a></li>
-                 <li><a href="#pricing"  class=" hover:text-orange-400 ease-in duration-200"> Pricing </a></li>
-                 <li><a href="#blog"  class=" hover:text-orange-400 ease-in duration-200"> Blog </a></li>
-                  <li><a href="#contact"  class=" hover:text-orange-400 ease-in duration-200"> Contact </a></li>
-           
-                   <li><button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
+            <div>
+                <ul class="hidden lg:flex items-center space-x-6 px-5 py-4">
+                    <li><a href="#home" class=" hover:text-orange-400 ease-in duration-200"> Home </a></li>
+                    <li><a href="#features" class=" hover:text-orange-400 ease-in duration-200"> Features </a></li>
+                    <li><a href="#testimonial" class=" hover:text-orange-400 ease-in duration-200"> Testimonial </a>
+                    </li>
+                    <li><a href="#pricing" class=" hover:text-orange-400 ease-in duration-200"> Pricing </a></li>
+                    <li><a href="#blog" class=" hover:text-orange-400 ease-in duration-200"> Blog </a></li>
+                    <li><a href="#contact" class=" hover:text-orange-400 ease-in duration-200"> Contact </a></li>
+
+                    <li><button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
                     hover:opacity-80 ease-in duration-200"> Free Trial</button></li>
-                </ul> 
-        </div>
+                </ul>
+            </div>
 
-        <!--mobile screen-->
-        <!--hide the hamburger icon on large screen, anything less i.e smaller screens it shows up -->
-        <div id="hamburger" class="lg:hidden z-50 cursor-pointer"> 
-            <i class="fa-solid fa-bars"></i> 
-        </div>
+            <!--mobile screen-->
+            <!--hide the hamburger icon on large screen, anything less i.e smaller screens it shows up -->
+            <div id="hamburger" class="lg:hidden z-50 cursor-pointer">
+                <i class="fa-solid fa-bars"></i>
+            </div>
 
-        <!--nav links for mobile display-->
-        <div id="menu" class="hidden bg-slate-950 h-screen absolute inset-0">
-            <ul class="h-full grid place-items-center py-20">
-                 <li><a id="hLink" href="#home" class=" hover:text-orange-400 ease-in duration-200"> Home </a></li>
-                 <li><a id="hLink" href="#features"  class=" hover:text-orange-400 ease-in duration-200"> Features </a></li>
-                  <li><a id="hLink" href="#testimonial"  class=" hover:text-orange-400 ease-in duration-200"> Testimonial </a></li>
-                 <li><a id="hLink" href="#pricing"  class=" hover:text-orange-400 ease-in duration-200"> Pricing </a></li>
-                 <li><a id="hLink" href="#blog"  class=" hover:text-orange-400 ease-in duration-200"> Blog </a></li>
-                  <li><a id="hLink" href="#contact"  class=" hover:text-orange-400 ease-in duration-200"> Contact </a></li>
-           
-                   <li><button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
+            <!--nav links for mobile display-->
+            <div id="menu" class="hidden bg-slate-950 h-screen absolute inset-0">
+                <ul class="h-full grid place-items-center py-20">
+                    <li><a id="hLink" href="#home" class=" hover:text-orange-400 ease-in duration-200"> Home </a></li>
+                    <li><a id="hLink" href="#features" class=" hover:text-orange-400 ease-in duration-200"> Features
+                        </a></li>
+                    <li><a id="hLink" href="#testimonial" class=" hover:text-orange-400 ease-in duration-200">
+                            Testimonial </a></li>
+                    <li><a id="hLink" href="#pricing" class=" hover:text-orange-400 ease-in duration-200"> Pricing </a>
+                    </li>
+                    <li><a id="hLink" href="#blog" class=" hover:text-orange-400 ease-in duration-200"> Blog </a></li>
+                    <li><a id="hLink" href="#contact" class=" hover:text-orange-400 ease-in duration-200"> Contact </a>
+                    </li>
+
+                    <li><button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
                     hover:opacity-80 ease-in duration-200"> Free Trial</button></li>
-            </ul>
-        </div>
-    </nav>
-  </header>
+                </ul>
+            </div>
+        </nav>
+    </header>
 
-  
+
     <!--script for dropping down-->
     <script>
         const hamburger = document.querySelector('#hamburger');
-          const menu = document.querySelector('#menu');
-          const hLink = document.querySelector('#hLink');
-           const faSolid = document.querySelector('.fa-solid');
+        const menu = document.querySelector('#menu');
+        const hLink = document.querySelector('#hLink');
+        const faSolid = document.querySelector('.fa-solid');
 
-           // add event listener to the hamburger icon
-           hamburger.addEventListener('click', () => {
+        // add event listener to the hamburger icon
+        hamburger.addEventListener('click', () => {
             menu.classList.toggle('hidden');
             faSolid.classList.toggle('fa-xmark')
-           })
+        })
 
-           hLink.forEach(link => {
+        hLink.forEach(link => {
             link.addEventListener('click', () => {
-                  menu.classList.toggle('hidden');
-            faSolid.classList.toggle('fa-xmark')
+                menu.classList.toggle('hidden');
+                faSolid.classList.toggle('fa-xmark')
             });
-           })
-        </script>
+        })
+    </script>
 
-        <!--home CTA-->
-        <main>
-            <section id="home" class="relative">
-                <!--blurry background-->
-                <div class="w-80 h-80 bg-purple-700 absolute top-0 -left-5 -z-10 blur-2xl
+    <!--home CTA-->
+    <main>
+        <section id="home" class="relative">
+            <!--blurry background-->
+            <div class="w-80 h-80 bg-purple-700 absolute top-0 -left-5 -z-10 blur-2xl
                 opacity-30 overflow-hidden rounded-full"></div>
 
-                 <div class="w-80 h-80 bg-orange-800 absolute bottom-10 right-0 -z-10 blur-2xl
+            <div class="w-80 h-80 bg-orange-800 absolute bottom-10 right-0 -z-10 blur-2xl
                 opacity-30 overflow-hidden rounded-full"></div>
-             <!--blurry background ends here-->
+            <!--blurry background ends here-->
 
-                <div class="container mx-auto py-20 px-36">
-                    <div class="flex flex-col items-center z-20 md:flex-row ">
-                        <div class="text-center mb-12 md:text-left  md:w-1/2 md:pr-10">
-                            <h1 class="text-3xl md:text-4xl font-bold leading-snug mb-4"> Awesome App for your Financial. </h1>
-                            <p class="leading-relaxed mb-10">This should be used to tell a story and let your users know a little
-                                 more about app and it's use, How can benefit them.
-                            </p>
-                            <button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
+            <div class="container mx-auto py-20 px-36">
+                <div class="flex flex-col items-center z-20 md:flex-row ">
+                    <div class="text-center mb-12 md:text-left  md:w-1/2 md:pr-10">
+                        <h1 class="text-3xl md:text-4xl font-bold leading-snug mb-4"> Awesome App for your Financial.
+                        </h1>
+                        <p class="leading-relaxed mb-10">This should be used to tell a story and let your users know a
+                            little
+                            more about app and it's use, How can benefit them.
+                        </p>
+                        <button class="bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
                     hover:opacity-80 ease-in duration-200"> Download App</button>
-                        </div>
+                    </div>
 
-                        <div class="md:w-1/2">
-                            <img src="Images/hero1.png.png" alt="hero image">
-                        </div>
+                    <div class="md:w-1/2">
+                        <img src="Images/hero1.png.png" alt="hero image">
                     </div>
                 </div>
-            </section>
-        </main>
+            </div>
+        </section>
+
+
+
+        <!--features section-->
+
+        <section id="features" class="bg-slate-950">
+            <div class="container py-20">
+                <div class="text-center m-auto mb-20 md:w-1/2">
+                    <h4 class="text-orange-500 font-bold mb-4"> Our Features </h4>
+                    <h1 class="capitalize text-3xl md:text-4xl font-bold leading-snug"> Easy to manage your all all
+                        payments by our app </h1>
+                </div>
+
+
+                <!--card sections-->
+                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-12 lg:gap-8 px-4 sm:px-6 lg:px-8">
+
+                    <!--card 1-->
+                    <div class="border-2 border-solid border-gray-600 text-center py-20 px-5 rounded-2xl
+                        cursor-pointer hover:bg-slate-900 hover:opacity-65 ease-in duration-200">
+
+                        <div class="bg-orange-500 inline-block rounded-2xl py-5 px-6"> 
+                            <i class="fa-solid fa-calendar-days text-4xl"></i>
+                        </div>
+
+                        <h3 class="text-xl font-bold py-4 "> Expense </h3>
+                        <p class="leading-relaxed">we use an application designed a testing gnose to keep away</p>
+                    </div>
+
+
+                        <!--card 2-->
+                    <div class=" bg-slate-900  border-2 border-solid border-gray-600 text-center py-20 px-5 rounded-2xl
+                        cursor-pointer hover:bg-slate-900 hover:opacity-65 ease-in duration-200">
+
+                        <div class="bg-orange-500 inline-block rounded-2xl py-5 px-6"> 
+                            <i class="fa-solid fa-chart-column text-4xl"></i>
+                        </div>
+
+                        <h3 class="text-xl font-bold py-4 "> Finance Snapshot </h3>
+                        <p class="leading-relaxed">we use an application designed a testing gnose to keep away</p>
+                    </div>
+
+
+                        <!--card 3-->
+                    <div class="border-2 border-solid border-gray-600 text-center py-20 px-5 rounded-2xl
+                        cursor-pointer hover:bg-slate-900 hover:opacity-65 ease-in duration-200">
+
+                        <div class="bg-orange-500 inline-block rounded-2xl py-5 px-6"> 
+                            <i class="fa-solid fa-phone text-4xl"></i>
+                        </div>
+
+                        <h3 class="text-xl font-bold py-4 "> Support 24/24 </h3>
+                        <p class="leading-relaxed">we use an application designed a testing gnose to keep away</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
 </body>
+
 </html>
