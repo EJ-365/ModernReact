@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
 </head>
-<body class="bg-slate-950  text-white tracking-wide">
+<body class="bg-slate-950  text-white tracking-wide ">
     <header>
-        <nav class="flex justify-between items-center w-full container mx-auto px-4 py-6">
+        <nav class="flex justify-between items-center w-full container mx-auto px-4">
             <div class="text-3xl font-bold capitalize px-4 py-4">
               <a href="#">
                 <img src="images/logo.png" alt="Logo" class=" h-48 w-auto md:h-56">
@@ -35,14 +35,14 @@
             </div>
 
 
-            <div id="menu" class="h-screen hidden absolute inset-0">
+            <div id="menu" class="h-screen hidden inset-0 fixed top-0 left-0 z-40 bg-slate-950">
                 <ul class="grid items-center place-items-center h-full py-20">
                     <li><a id="hLink" href="#"> Home </a></li>
                      <li><a href="#"> About </a></li>
                       <li><a href="#"> Service </a></li>
                        <li><a href="#"> Contact  </a></li>
                         <li><a href="#"> pricing </a></li>
-                         <li><button class="bg-slate-950 px-6 py-2 rounded 
+                         <li><button class="bg-green-950 px-6 py-2 rounded 
                             hover:opacity-80 transition ease-in duration-200"> Register </button></li>
                 </ul>
             </div>
@@ -68,8 +68,8 @@
 
 
 <!--cta-->
-<main class="relative h-screen w-full pl-20 pr-16 container mx-auto box-border
-my-32 md:my-16"> 
+<main class="relative  w-full pl-20 pr-16 container mx-auto box-border
+my-26"> 
 <!--blurry background-->
 <div class="w-96 h-96 bg-gradient-to-l from-slate-800 to-green-800 absolute top-0 -left-5 -z-10 blur-3xl rounded-full 
 opacity-30 overflow-hidden"></div>
@@ -79,7 +79,7 @@ opacity-30 overflow-hidden"></div>
 
     <section class="flex flex-col justify-between items-center z-20 md:flex-row ">
         <div class="text-center md:my-48 md:text-left md:w-1/2">
-            <h2 class="font-medium text-3xl md:text-5xl md:font-bold mb-6 leading-snug"> Save Our Planet Together </h2>
+            <h2 class="font-medium text-3xl md:text-5xl md:font-bold mb-6 leading-snug"> Save Our <span class="text-green-800"> Planet </span> Together </h2>
             <p class="leading-relaxed text-xl">
              Our planet faces climate change. Join our movement to create sustainable solutions. Reduce waste, support clean energy, and protect Earth for future generations.
  
@@ -90,11 +90,15 @@ opacity-30 overflow-hidden"></div>
         </div>
 
         <!--for the image div-->
-        <div class="md:w-1/2 mt-46 md:mt-0">
-            <img src="images/ctaCover.png" alt="image of earth" class="mt-10">
+        <div class="md:w-1/2 mt-0 md:mt-0">
+            <img src="images/ctaCover.png" alt="image of earth" class="mt-6">
             <span class="sr-only"> Image of earth with a plant on top and a hand on it </span>
         </div>
-        
+    </section>
+
+
+    <!--features section-->
+    <section>
     </section>
 </main>
 </body>
