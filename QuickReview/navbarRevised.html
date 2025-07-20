@@ -13,7 +13,7 @@
         <nav class="flex justify-between items-center w-full container mx-auto px-4">
             <div class="text-3xl font-bold capitalize px-4 py-4">
               <a href="#">
-                <img src="images/logo.png" alt="Logo" class=" h-48 w-auto md:h-56">
+                <img src="images/logo.png" alt="Logo" class=" w-auto h-32 md:h-32">
                 <span class="sr-only"> Logo image </span>
               </a> 
             </div>
@@ -37,11 +37,11 @@
 
             <div id="menu" class="h-screen hidden inset-0 fixed top-0 left-0 z-40 bg-slate-950">
                 <ul class="grid items-center place-items-center h-full py-20">
-                    <li><a id="hLink" href="#"> Home </a></li>
-                     <li><a href="#"> About </a></li>
-                      <li><a href="#"> Service </a></li>
-                       <li><a href="#"> Contact  </a></li>
-                        <li><a href="#"> pricing </a></li>
+                    <li><a class="hLink" href="#"> Home </a></li>
+                     <li><a class="hLink" href="#"> About </a></li>
+                      <li><a class="hLink" href="#"> Service </a></li>
+                       <li><a class="hLink" href="#"> Contact  </a></li>
+                        <li><a class="hLink" href="#"> pricing </a></li>
                          <li><button class="bg-green-950 px-6 py-2 rounded 
                             hover:opacity-80 transition ease-in duration-200"> Register </button></li>
                 </ul>
@@ -50,25 +50,27 @@
     </header>
 
     <script>
-        const hamburger = document.querySelector("#hamburger")
-            const menu = document.querySelector("#menu")
-                const faSolid = document.querySelector(".fa-solid")
-                    const hLink = document.querySelector("#hLink")
+        const hamburger = document.querySelector("#hamburger");
+        const menu = document.querySelector("#menu");
+        const faSolid = document.querySelector(".fa-solid");
+        const hLinks = document.querySelectorAll(".hLink");
 
-                    hamburger.addEventListener('click', () => {
-                        menu.classList.toggle('hidden');
-                        faSolid.classList.toggle('fa-xmark');
-                    })
+        hamburger.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+            faSolid.classList.toggle('fa-xmark');
+        });
 
-                    hLink.forEach(link => {
-                        menu.classList.toggle('hidden');
-                        faSolid.classList.toggle('fa-xmark');
-                    })
-        </script>
+        hLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+                faSolid.classList.toggle('fa-xmark');
+            });
+        });
+    </script>
 
 
 <!--cta-->
-<main class="relative  w-full pl-20 pr-16 container mx-auto box-border
+<main class="relative container mx-auto box-border
 my-26"> 
 <!--blurry background-->
 <div class="w-96 h-96 bg-gradient-to-l from-slate-800 to-green-800 absolute top-0 -left-5 -z-10 blur-3xl rounded-full 
@@ -78,7 +80,7 @@ opacity-30 overflow-hidden"></div>
 opacity-30 overflow-hidden"></div>
 
     <section class="flex flex-col justify-between items-center z-20 md:flex-row ">
-        <div class="text-center md:my-48 md:text-left md:w-1/2">
+        <div class="text-center md:my-48 md:text-left md:w-1/2 px-20">
             <h2 class="font-medium text-3xl md:text-5xl md:font-bold mb-6 leading-snug"> Save Our <span class="text-green-800"> Planet </span> Together </h2>
             <p class="leading-relaxed text-xl">
              Our planet faces climate change. Join our movement to create sustainable solutions. Reduce waste, support clean energy, and protect Earth for future generations.
@@ -99,6 +101,51 @@ opacity-30 overflow-hidden"></div>
 
     <!--features section-->
     <section>
+        <div class="text-center m-auto container px-6 md:w-1/2">
+            <h4 class="text-lg font-bold text-green-800 my-3"> Our Features </h4>
+            <h1 class="font-bold text-4xl text-center capitalize leading-snug">Sustainable Solutions for a Better Tomorrow</h1>
+        </div>
+
+        <!--card section-->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 sm:px-6 lg:px-10 my-20 text-center">
+           
+        <!--card one-->
+        <div class="border-2 border-solid border-green-950 px-5 py-20 rounded-2xl 
+            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
+            
+                <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
+                <i class="fa-solid fa-seedling"></i>
+             </div>
+
+             <h3 class="font-bold my-3 px-4 text-xl pt-3"> Eco-Friendly Solutions</h3>
+             <p class="leading-relaxed text-lg">Our tools help you measure and reduce your environmental footprint. </p>
+            </div>
+
+            <!--card two-->
+        <div class=" border-2 border-solid border-green-700 px-5 py-20 rounded-2xl bg-slate-900
+            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
+            
+                <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
+                <i class="fa-solid fa-sun"></i>
+             </div>
+
+             <h3 class="font-bold my-3 px-4 text-xl pt-3">  Sustainable Practices</h3>
+             <p class="leading-relaxed text-lg"> Embed eco-conscious habits into your daily workflow for long-term, sustainable results. </p>
+            </div>
+            
+
+            <!--card three-->
+        <div class="border-2 border-solid border-green-950 px-5 py-20 rounded-2xl 
+            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
+            
+                <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
+                <i class="fa-solid  fab fa-envira"></i>
+             </div>
+
+             <h3 class="font-bold my-3 px-4 text-xl pt-3"> Green Solutions</h3>
+             <p class="leading-relaxed text-lg">Use actionable data to make targeted, high-impact environmental changes.</p>
+            </div>
+        </div>
     </section>
 </main>
 </body>
