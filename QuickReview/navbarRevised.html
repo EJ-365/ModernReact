@@ -1,31 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Navbar Review</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
 </head>
+
 <body class="bg-slate-950  text-white tracking-wide ">
     <header>
         <nav class="flex justify-center items-center w-full container mx-auto px-4">
             <div class="text-3xl font-bold capitalize px-4 py-4 mr-20">
-              <a href="#">
-                <img src="images/logo.png" alt="Logo" class=" w-auto h-32 md:h-32">
-                <span class="sr-only"> Logo image </span>
-              </a> 
+                <a href="#">
+                    <img src="images/logo.png" alt="Logo" class=" w-auto h-32 md:h-32">
+                    <span class="sr-only"> Logo image </span>
+                </a>
             </div>
 
             <div>
                 <ul class="hidden md:flex items-center space-x-2 mx-auto px-5">
-                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> Home </a></li>
-                     <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> About </a></li>
-                      <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> Service </a></li>
-                       <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> Contact  </a></li>
-                        <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> pricing </a></li>
-                         <li><button class="bg-green-950 px-6 py-2 rounded 
+                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> Home
+                        </a></li>
+                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> About
+                        </a></li>
+                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> Service
+                        </a></li>
+                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> Contact
+                        </a></li>
+                    <li><a href="#" class="hover:opacity-80 ease-in hover:bg-green-800 px-3 py-2 rounded-full"> pricing
+                        </a></li>
+                    <li><button class="bg-green-950 px-6 py-2 rounded 
                             hover:opacity-80 transition ease-in duration-200"> Register </button></li>
                 </ul>
             </div>
@@ -38,11 +47,11 @@
             <div id="menu" class="h-screen hidden inset-0 fixed top-0 left-0 z-40 bg-slate-950">
                 <ul class="grid items-center place-items-center h-full py-20">
                     <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> Home </a></li>
-                     <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> About </a></li>
-                      <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> Service </a></li>
-                       <li><a class="hLink " href="#"> Contact  </a></li>
-                        <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> pricing </a></li>
-                         <li><button class="bg-green-950 px-6 py-2 rounded 
+                    <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> About </a></li>
+                    <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> Service </a></li>
+                    <li><a class="hLink " href="#"> Contact </a></li>
+                    <li><a class="hLink hover:opacity-80 ease-in hover:underline" href="#"> pricing </a></li>
+                    <li><button class="bg-green-950 px-6 py-2 rounded 
                             hover:opacity-80 transition ease-in duration-200"> Register </button></li>
                 </ul>
             </div>
@@ -69,90 +78,135 @@
     </script>
 
 
-<!--cta-->
-<main class="relative container mx-auto box-border
-my-26"> 
-<!--blurry background-->
-<div class="w-96 h-96 bg-gradient-to-l from-slate-800 to-green-800 absolute top-0 -left-5 -z-10 blur-3xl rounded-full 
+    <!--cta-->
+    <main class="container mx-auto box-border my-26">
+        <section class="relative flex flex-col justify-between items-center z-20 md:flex-row ">
+            <!--blurry background-->
+            <div class="w-80 h-80 bg-gradient-to-l from-slate-400 to-green-800 absolute top-0 -left-5 -z-10 blur-3xl rounded-full 
 opacity-30 overflow-hidden"></div>
 
-<div class="w-96 h-96 bg-gradient-to-l from-purple-800 to-green-800 absolute -bottom-44 right-5 -z-10 blur-3xl rounded-full 
+            <div class="w-80 h-80 bg-gradient-to-l from-purple-800 to-green-800 absolute bottom-10 right-0 -z-10 blur-3xl rounded-full 
 opacity-30 overflow-hidden"></div>
 
-    <section class="flex flex-col justify-between items-center z-20 md:flex-row ">
-        <div class="text-center md:my-48 md:text-left md:w-1/2 px-20">
-            <h2 class="font-medium text-3xl md:text-5xl md:font-bold mb-6 leading-snug"> Save Our <span class="text-green-800"> Planet </span> Together </h2>
-            <p class="leading-relaxed text-xl">
-             Our planet faces climate change. Join our movement to create sustainable solutions. 
-             Reduce waste, support clean energy, and protect Earth for future generations.
-            </p>
-             <div class="uppercase mt-10">
-            <a href="#" class="bg-green-950 opacity-95 px-10  py-3 rounded font-thin md:font-bold hover:opacity-80">join now</a>
-        </div>
-        </div>
-
-        <!--for the image div-->
-        <div class="md:w-1/2 mt-0 md:mt-0">
-            <img src="images/ctaCover.png" alt="image of earth" class="mt-6">
-            <span class="sr-only"> Image of earth with a plant on top and a hand on it </span>
-        </div>
-    </section>
-
-
-    <!--features section-->
-    <section>
-        <div class="text-center m-auto container px-6 md:w-1/2">
-            <h4 class="text-lg font-bold text-green-800 my-3"> Our Features </h4>
-            <h1 class="font-bold text-4xl text-center capitalize leading-snug">Sustainable Solutions for a Better Tomorrow</h1>
-        </div>
-
-        <!--card section-->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 sm:px-6 lg:px-10 my-20 text-center">
-           
-        <!--card one-->
-        <div class="border-2 border-solid border-green-950 px-5 py-20 rounded-2xl 
-            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
-            
-                <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
-                <i class="fa-solid fa-seedling"></i>
-             </div>
-
-             <h3 class="font-bold my-3 px-4 text-xl pt-3"> Eco-Friendly Solutions</h3>
-             <p class="leading-relaxed text-lg">Our tools help you measure and reduce your environmental footprint. </p>
+            <div class="text-center md:my-48 md:text-left md:w-1/2 px-20">
+                <h2 class="font-medium text-3xl md:text-5xl md:font-bold mb-6 leading-snug"> Save Our <span
+                        class="text-green-700"> Planet </span> Together </h2>
+                <p class="leading-relaxed text-xl">
+                    Our planet faces climate change. Join our movement to create sustainable solutions.
+                    Reduce waste, support clean energy, and protect Earth for future generations.
+                </p>
+                <div class="uppercase mt-10">
+                    <a href="#"
+                        class="bg-green-950 opacity-95 px-10  py-3 rounded font-thin md:font-bold hover:opacity-80">join
+                        now</a>
+                </div>
             </div>
 
-            <!--card two-->
-        <div class=" border-2 border-solid border-green-700 px-5 py-20 rounded-2xl bg-slate-900
-            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
-            
-                <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
-                <i class="fa-solid fa-sun"></i>
-             </div>
-
-             <h3 class="font-bold my-3 px-4 text-xl pt-3">  Sustainable Practices</h3>
-             <p class="leading-relaxed text-lg"> Embed eco-conscious habits into your daily workflow for long-term, sustainable results. </p>
+            <!--for the image div-->
+            <div class="md:w-1/2 mt-0 md:mt-0">
+                <img src="images/ctaCover.png" alt="image of earth" class="mt-6">
+                <span class="sr-only"> Image of earth with a plant on top and a hand on it </span>
             </div>
-            
+        </section>
 
-            <!--card three-->
-        <div class="border-2 border-solid border-green-950 px-5 py-20 rounded-2xl 
-            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
-            
-                <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
-                <i class="fa-solid  fab fa-envira"></i>
-             </div>
 
-             <h3 class="font-bold my-3 px-4 text-xl pt-3"> Green Solutions</h3>
-             <p class="leading-relaxed text-lg">Use actionable data to make targeted, high-impact environmental changes.</p>
+        <!--features section-->
+        <section>
+            <div class="text-center mx-auto container px-6 md:w-1/2">
+                <h4 class="font-bold text-green-800 my-3 text-xl"> Our Features </h4>
+                <h1 class="font-bold text-4xl text-center capitalize leading-snug">Sustainable Solutions for a Better
+                    Tomorrow</h1>
             </div>
-        </div>
-    </section>
 
-    <!--UP NEXT SAVING MONEY SESSTION-->
-    <section>
-        
-    </section>
-</main>
+            <!--card section-->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4 sm:px-6 lg:px-10 my-20 text-center">
+
+                <!--card one-->
+                <div class="border-2 border-solid border-green-950 px-5 py-20 rounded-2xl 
+            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
+
+                    <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
+                        <i class="fa-solid fa-seedling"></i>
+                    </div>
+
+                    <h3 class="font-bold my-3 px-4 text-xl pt-3"> Eco-Friendly Solutions</h3>
+                    <p class="leading-relaxed text-lg">Our tools help you measure and reduce your environmental
+                        footprint. </p>
+                </div>
+
+                <!--card two-->
+                <div class=" border-2 border-solid border-green-700 px-5 py-20 rounded-2xl bg-slate-900
+            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
+
+                    <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
+                        <i class="fa-solid fa-sun"></i>
+                    </div>
+
+                    <h3 class="font-bold my-3 px-4 text-xl pt-3"> Sustainable Practices</h3>
+                    <p class="leading-relaxed text-lg"> Embed eco-conscious habits into your daily workflow for
+                        long-term, sustainable results. </p>
+                </div>
+
+
+                <!--card three-->
+                <div class="border-2 border-solid border-green-950 px-5 py-20 rounded-2xl 
+            hover:bg-slate-900  hover:opacity-80 ease-in duration-200 hover:cursor-pointer hover:scale-105">
+
+                    <div class="text-3xl rounded-lg py-5 px-6 bg-green-950 inline-block ">
+                        <i class="fa-solid  fab fa-envira"></i>
+                    </div>
+
+                    <h3 class="font-bold my-3 px-4 text-xl pt-3"> Green Solutions</h3>
+                    <p class="leading-relaxed text-lg">Use actionable data to make targeted, high-impact environmental
+                        changes.</p>
+                </div>
+            </div>
+        </section>
+
+        <!--UP NEXT SAVING EARTH SESSION-->
+        <section id="saving-earth">
+            <div class="container mx-auto relative py-20">
+                <!--blurry effect-->
+                <div class="w-80 h-80  bg-gradient-to-l from-slate-400 to-green-800 absolute top-0 -left-5 -z-10 blur-3xl rounded-full
+            opacity-30 overflow-hidden"></div>
+                <div class="w-80 h-80 bg-gradient-to-l from-purple-800 to-green-800 absolute bottom-10 right-0 -z-10 blur-3xl rounded-full
+             opacity-30 overflow-hidden"></div>
+
+                <div class="flex flex-col items-center justify-between md:flex-row">
+                    <!--image content-->
+                    <div class="md:w-1/2 mb-12">
+                        <img src="images/saveOurPlanet.png" alt="a boy holding the planet earth" class="w-auto h-auto">
+                    </div>
+
+                    <!--text content-->
+                    <div class="text-center md:text-start px-16 md:w-1/2 container mx-auto">
+                        <h4 class="text-green-800 font-bold mb-4 text-xl">Saving Earth</h4>
+                        <h1 class="font-medium text-3xl md:font-bold  md:text-5xl leading-snug mb-4">Guardians of
+                            Tomorrow</h1>
+                        <p class="leading-relaxed  text-xl mb-10">Our planet faces unprecedented challenges, but hope
+                            grows in the actions we take today.
+                            From innovative conservation technologies to simple daily choices, we all have the power to
+                            protect
+                            our home for future generations. Join the movement to preserve biodiversity, combat climate
+                            change, and create a
+                            sustainable world where both people and nature thrive. <br>
+                        </p>
+
+                        <p class="leading-relaxed text-xl mb-10 hidden md:block"> Every small step matters. Together, we can restore
+                            balance to our ecosystems, reduce our carbon footprint, and build resilient communities
+                            prepared for environmental challenges ahead. The time for action is now—our collective
+                            efforts will determine Earth's future.</p>
+                        <a href="#"
+                            class="bg-green-950 opacity-95 px-10 py-3 rounded font-thin md:font-bold uppercase hover:opacity-80 duration-200 ease-in">Read
+                            more</a>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!--UP NEXT: how it works-->
+    </main>
 </body>
+
 </html>
- 
