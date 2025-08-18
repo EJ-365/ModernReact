@@ -19,7 +19,7 @@ class Person{
 class User extends Person{
     constructor(firstName,lastName, userName, password){
         super(firstName, lastName) // inheriting the Person class constructor parameters
-        this.age = "N/A"
+        this.age = "N/A";
         this.userName = userName;
         this.password = password;
 
