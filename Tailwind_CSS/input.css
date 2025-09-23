@@ -1,8 +1,1 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* .btn{
-    @apply bg-orange-500 px-9 py-3 rounded-md font-bold capitalize
-                    hover:opacity-80 ease-in duration-200;
-    } */
+@import "tailwindcss";
