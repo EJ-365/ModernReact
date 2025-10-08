@@ -1,4 +1,4 @@
-/* create a json file inside the index.jspn  containing 
+/* create a json file inside the index.js containing 
 containing id, name, and email. put them in an array of object
  */
 const users = document.getElementById("users");
