@@ -1,0 +1,26 @@
+.user{
+   width: 90%;
+   margin:1rem;
+   border: 1px solid;
+   padding: 5px;
+}
+
+.user > * {
+    margin: 5px 0;
+}
+
+.btn{
+    padding: 7px;
+    cursor: pointer;
+}
+
+/* created with JS using innerHTML */
+ul{
+    list-style: circle;
+    padding-left: 1.5rem;
+}
+
+ul li {
+    font-size: 1.4rem;
+    padding: 5px, 0;
+}

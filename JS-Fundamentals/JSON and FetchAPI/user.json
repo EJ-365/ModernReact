@@ -1,0 +1,89 @@
+[
+    {
+        "id": 1,
+        "name": "John Doe",
+        "email": "jd123@gmail.com",
+        "gender": "Male"
+    },
+
+    {
+        "id": 2,
+        "name": "Jane Moss",
+        "email": "jm153@gmail.com",
+        "gender": "Female"
+    },
+
+    {
+        "id": 3,
+        "name": "Mike MWilliam",
+        "email": "mikeW365@gmail.com",
+        "gender": "Male"
+    
+    },
+
+    {
+        "id": 4,
+        "name": "Feliz Mckenzie",
+        "email": "fm4889@gmail.com",
+        "gender": "Male"
+    },
+
+    {
+        "id": 5,
+        "name": "Aaron Scott",
+        "email": "as1738@gmail.com",
+        "gender": "Male"
+    },
+
+    {
+        "id": 6,
+        "name": "Maleek Scott",
+        "email": "ms1339@gmail.com",
+        "gender": "Male"
+    },
+
+    {
+        "id": 7,
+        "name": "Mark Philip",
+        "email": "mp1938@gmail.com",
+        "gender": "Male"
+    },
+
+
+    {
+        "id": 8,
+        "name": "John Paul",
+        "email": "as1738@gmail.com",
+        "gender": "Male"
+    },
+
+
+      {
+        "id": 9,
+        "name": "Evelyn Martha",
+        "email": "em5900@gmail.com",
+        "gender": "Male"
+    },
+
+    {
+        "id": 10,
+        "name": "Mary John",
+        "email": "as1738@gmail.com",
+        "gender": "Male"
+    },
+
+    {
+        "id": 11,
+        "name": "Teejay Prince",
+        "email": "ej678@gmail.com",
+        "gender": "Female"
+    },
+
+    
+    {
+        "id": 12,
+        "name": "Ejay Scott",
+        "email": "es36501@gmail.com",
+        "gender": "Male"
+    }
+]
