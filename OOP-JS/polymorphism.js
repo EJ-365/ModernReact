@@ -18,7 +18,7 @@ class Circle extends Shape{
   }
   
   calculateArea(){ // same method in parent class, we overrode it
-    return (Math.PI * this.radius * this.radius); // pir^2 area..cir
+    return (Math.PI * this.radius * this.radius).toFixed(2); // pir^2 area..cir
   }
 }
 
