@@ -1,0 +1,25 @@
+@import "tailwindcss";
+body {
+    background: linear-gradient(#14151c, #123238);
+}
+
+.glass-effect {
+    background-color: rgba(255, 255, 255, 0.15);
+    /* White with 15% opacity */
+    backdrop-filter: blur(10px);
+    /* Blurs content behind it */
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    /* Subtle border */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    /* Optional shadow */
+}
+
+.anton-regular {
+    font-family: "Anton", sans-serif;
+    font-weight: bolder;
+}
+
+.roboto-regular {
+    font-family: "Roboto", sans-serif;
+    font-weight: 400;
+}
