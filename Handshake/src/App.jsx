@@ -289,6 +289,7 @@ function Body() {
 
 
 // Footer Component
+// Footer Component
 function Footer() {
   return (
     <footer className="text-white bg-[#052326] rounded-t-3xl">
@@ -394,8 +395,7 @@ function Footer() {
             <li className="mb-2">
               <a href="#" className="hover:text-[#aeff00]">
                 Blog
-              </a
->
+              </a>
             </li>
             <li className="mb-2">
               <a href="#" className="hover:text-[#aeff00]">
@@ -440,8 +440,7 @@ function Footer() {
                 Help center
               </a>
             </li>
-          </ul
->
+          </ul>
 
           <ul className="text-sm">
             <li className="mb-2">
@@ -486,24 +485,24 @@ function Footer() {
       <div className="flex flex-col md:flex-row items-center md:justify-between mt-8 md:mt-16 px-4 md:px-0">
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-2 mx-auto md:mx-10 mb-8 md:mb-10">
           <img
-            src="/assets/app-store-download-badge_svgstack_com_70131765494567.svg"
+            src={import.meta.env.BASE_URL + "assets/app-store-download-badge_svgstack_com_70131765494567.svg"}
             alt="App Store"
             className="w-32"
           />
 
           <img
-            src="/assets/Google_Play_Store_badge_EN.svg"
+            src={import.meta.env.BASE_URL + "assets/Google_Play_Store_badge_EN.svg"}
             alt="Google Play"
             className="w-32"
           />
         </div>
 
         <div className="flex justify-center items-center space-x-4 md:space-x-8 px-4 md:px-10 mx-auto md:ml-24 cursor-pointer mb-8 md:mb-0">
-          <img src="/assets/tiktok.png" className="w-6" />
-          <img src="/assets/instagram.png" className="w-6" />
-          <img src="/assets/X-logo.png" className="w-6" />
-          <img src="/assets/facebook-seeklogo.png" className="w-6" />
-          <img src="/assets/linkedin-seeklogo.png" className="w-6" />
+          <img src={import.meta.env.BASE_URL + "assets/tiktok.png"} className="w-6" />
+          <img src={import.meta.env.BASE_URL + "assets/instagram.png"} className="w-6" />
+          <img src={import.meta.env.BASE_URL + "assets/X-logo.png"} className="w-6" />
+          <img src={import.meta.env.BASE_URL + "assets/facebook-seeklogo.png"} className="w-6" />
+          <img src={import.meta.env.BASE_URL + "assets/linkedin-seeklogo.png"} className="w-6" />
         </div>
 
         <div className="mx-auto md:ml-40 text-center md:text-right mb-10 md:mb-0">
