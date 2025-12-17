@@ -1,0 +1,37 @@
+export const data = [{
+        id: "1",
+        countryName: "Japan",
+        googleMapLink: "https://www.google.com/maps/search/Mount+Fuji",
+        place: "Mount Fuji",
+        date: "12 Jan, 2021 - 24 Jan, 2021",
+        content: "Mount Fuji is the tallest mountain in Japan, standing at 3,776 meters (12,380 feet). Mount Fuji is the single most popular tourist site in Japan, for both Japanese and foreign tourists. We hiked part of the trail and the views were...",
+        image: "https://images.unsplash.com/photo-1588168802753-e468a0936c2d?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    },
+    {
+        id: "2",
+        countryName: "Australia",
+        googleMapLink: "https://www.google.com/maps/search/Sydney+Opera+House",
+        place: "Sydney Opera House",
+        date: "27 May, 2021 - 8 Jun, 2021",
+        content: "The Sydney Opera House is a multi-venue performing arts centre in Sydney. Located on the banks of the Sydney Harbour, it is often regarded as one of the 20th century's most famous and distinctive buildings. The architectural curves...",
+        image: "https://images.unsplash.com/photo-1616128618694-96e9e896ecb7?q=80&w=1290&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    },
+    {
+        id: "3",
+        countryName: "Norway",
+        googleMapLink: "https://www.google.com/maps/search/Geirangerfjord",
+        place: "Geirangerfjord",
+        date: "01 Oct, 2021 - 18 Nov, 2021",
+        content: "The Geiranger Fjord is a fjord in the Sunnmore region of More og Romsdal county, Norway. It is located entirely in the Stranda Municipality. The silence and scale of nature here is humbling. We took a ferry ride to see the Seven Sisters...",
+        image: "https://images.unsplash.com/photo-1721463890748-87863c8f37a7?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    },
+    {
+        id: "4",
+        countryName: "Italy",
+        googleMapLink: "https://www.google.com/maps/search/Cinque+Terre",
+        place: "Cinque Terre",
+        date: "10 Jun, 2022 - 15 Jun, 2022",
+        content: "A string of centuries-old seaside villages on the rugged Italian Riviera coastline. In each of the 5 towns, colorful houses and vineyards cling to steep terraces, harbors are filled with fishing boats and trattorias turn out seafood specialties...",
+        image: "https://images.unsplash.com/photo-1616234643798-12dc87da67b4?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Q2lucXVlJTIwVGVycmV8ZW58MHx8MHx8fDA%3D",
+    }
+]
