@@ -1,14 +1,14 @@
 import { useState } from "react";
 import "./index.css";
 export default function App() {
-  const ingredients = ["Chicken", "Oregano", "Tomatoes"];
-  const[ingredient, setIngredient] = useState([]); 
+  const ingredient = []; // populated ingredients ["Chicken", "Oregano", "Tomatoes"];
+  const [ingredients, setIngredients] = useState(ingredient); // shared states for the components
 
   return (
     <div>
       <Header />
-      <Form ingredients={ingredients} />
-      <Ingredient />
+      <Form ingredients={ingredients} setIngredients={setIngredients} />
+      <Ingredient ingredients={ingredients} />
     </div>
   );
 }
@@ -26,17 +26,28 @@ function Header() {
 }
 
 // form component
-function Form({ ingredients }) {
+function Form({ setIngredients }) {
+  const [newIngredientName, setNewIngredientName] = useState(""); // personal state for this component
+
   // handleSubmit function
   function handleSubmit(e) {
     console.log("form submitted");
-    e.preventDefault();// prevent it from auto submit
+    e.preventDefault(); // prevent it from auto submit
 
-    const formData = new FormData(e.currentTarget);
-    const newIngredient = formData.get("ingredient");
+    if (!newIngredientName.trim()) return; // prevent having empty ingredients
 
-    ingredients.push(newIngredient);
-    console.log(ingredients);
+    setIngredients((currentIngredients) => [
+      ...currentIngredients,
+      newIngredientName.trim(),
+    ]);
+
+    setNewIngredientName(""); // clear the input field after submitting it.
+
+    // const formData = new FormData(e.currentTarget);
+    // const newIngredient = formData.get("ingredient");
+
+    // ingredients.push(newIngredient);
+    // console.log(ingredients);
   }
 
   return (
@@ -50,6 +61,8 @@ function Form({ ingredients }) {
         <div className="md:mx-10 mx-auto md:my-0 my-10  ">
           <input
             type="text"
+            value={newIngredientName}
+            onChange={(e) => setNewIngredientName(e.target.value)}
             aria-label="Add ingredient"
             placeholder="e.g. oregano"
             name="ingredient"
@@ -69,7 +82,7 @@ function Form({ ingredients }) {
   );
 }
 
-function Ingredient() {
+function Ingredient({ ingredients }) {
   return (
     <section className="flex flex-col md:mr-80 justify-evenly items-center">
       <div>
@@ -77,15 +90,27 @@ function Ingredient() {
           Ingredients on hand:
         </h2>
       </div>
-
       <ul className="leading-loose my-10 md:text-2xl text-lg text-start md:ml-4 items-center list-disc md:pl-10 pl-5">
-        <li>Smoked paprika</li>
-        <li>Maple syrup</li>
-        <li>Fresh ginger root</li>
-        <li>Balsamic vinegar</li>
-        <li>Sun-dried tomatoes</li>
-        <li>Whole grain mustard</li>
+        {ingredients.map((ingredients, index) => {
+          return <li key={index}>{ingredients}</li>;
+        })}
       </ul>
+
+      {/* Ready for recipe div */}
+
+      {ingredients.length > 3 && (
+        <div className="bg-zinc-300 p-6 rounded-md md:ml-72">
+          <h3 className="text-2xl font-semibold">Ready for a recipe?</h3>
+          <div className="flex items-center justify-between">
+            <p className="text-md text-zinc-700 my-4 md:m-auto">
+              Generate a recipe from your list of ingredients
+            </p>
+            <button className="cursor-pointer px-3 py-1 text-white bg-rose-900 rounded-md ml-10">
+              Get a recipe
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
