@@ -176,7 +176,7 @@ function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient }) {
       {/* Ready for recipe div */}
 
       {ingredients.length >= 3 && (
-        <div className="bg-zinc-800 p-6 rounded-lg md:ml-72">
+        <div className="bg-zinc-800 p-6 rounded-lg md:ml-72 my-10">
           <div className="flex items-center justify-between">
             <p className="text-md text-zinc-200 my-4 md:m-auto">
               Generate a recipe from your list of ingredients
