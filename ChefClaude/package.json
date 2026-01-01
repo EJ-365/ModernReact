@@ -10,9 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
+    "@huggingface/inference": "^4.13.5",
     "@tailwindcss/vite": "^4.1.18",
+    "html-react-parser": "^5.2.11",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
     "tailwindcss": "^4.1.18"
   },
   "devDependencies": {
