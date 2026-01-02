@@ -4,7 +4,7 @@ export default function Footer({isDarkMode}) {
         className={`mt-48 py-10 px-6 text-center border-t ${
           isDarkMode
             ? "bg-zinc-900 border-zinc-800 text-zinc-400"
-            : "bg-zinc-50 border-zinc-200 text-zinc-600"
+            : "bg-[#ddbea8] border-zinc-200 text-zinc-800"
         }`}
       >
         <div className="max-w-4xl mx-auto flex flex-col items-center gap-3">

@@ -26,7 +26,7 @@ export default function App() {
   return (
     <div
       className={`my-0 ${
-        isDarkMode ? "bg-zinc-900  text-zinc-400" : "bg-white text-zinc-700"
+        isDarkMode ? "bg-zinc-900  text-zinc-400" : "bg-[#ddbea8] text-zinc-700"
       }  min-h-screen  `}
     >
       <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />{" "}
@@ -52,7 +52,7 @@ export default function App() {
       ) : (
         recipe && <GetRecipe recipe={recipe} isDarkMode={isDarkMode} />
       )}
-      <Footer isDarkMode={isDarkMode}/>
+      <Footer isDarkMode={isDarkMode} />
     </div>
   );
 }
@@ -157,16 +157,16 @@ function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient }) {
       <ul className="leading-loose my-10 md:text-2xl text-lg text-start md:ml-4 items-center list-disc md:pl-10 pl-5">
         {ingredients.map((item, index) => {
           return (
-            <li
-              key={index}
-              className="flex items-center justify-between w-full gap-4 md:font-bold md:text-xl font-semibold"
-            >
-              {item}
-              <i
-                onClick={() => removeIngredient(index)}
-                className="text-lg text-white cursor-pointer hover:text-slate-200 font-normal capitalize bg-red-600 hover:bg-red-800 px-3 py-3  rounded-full bx bx-trash-x md:text-2xl my-2 ml-auto"
-              ></i>
-            </li>
+              <li
+                key={index}
+                className="flex items-center justify-between w-full gap-4 md:font-bold md:text-xl font-semibold"
+              >
+                {item}
+                <i
+                  onClick={() => removeIngredient(index)}
+                  className="text-lg text-white cursor-pointer hover:text-slate-200 font-normal capitalize bg-red-600 hover:bg-red-800 px-3 py-3  rounded-full bx bx-trash-x md:text-2xl my-2 ml-auto"
+                ></i>
+              </li>
           );
         })}
       </ul>
