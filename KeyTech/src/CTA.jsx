@@ -1,5 +1,6 @@
 export default function CTA() {
-  return (
+    return (
+      <>
     <main className="bg-zinc-950 text-zinc-400 flex sm:justify-center items-center  md:flex-row flex-col justify-center">
       <div className="p-10 text-start md:w-1/2 md:ml-20">
         <p className="my-4 bg-orange-950 text-[#dd6713] rounded-full md:px-5  px-10 py-0.5 items-center md:max-w-1/2 md:w-52  border-[1.5px] border-yellow-900 uppercase md:font-semibold text-xs w-60 whitespace-normal">
@@ -66,7 +67,25 @@ export default function CTA() {
           className="object-cover w-full h-auto rounded-lg md:m-0 my-3"
           src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         />
-      </div>
-    </main>
+          </div>
+            </main>
+            <Partnership/>
+            </>
   );
+}
+
+function Partnership() {
+    const partner = ["Google", "Amazon", "Meta", "Netflix", "Saleforce"];
+    return (
+        <ul className="text-white md:mt-28 flex md:justify-between md:flex-row flex-col justify-center bg-zinc-950 space-x-4 p-2 border border-zinc-800 border-x-0 items-center">
+            <p className="text-center my-6 text-zinc-400"><i className="bx bx-business text-2xl mx-1.5 text-center items-center "></i> Trusted by leading tech firms</p>
+           <div className="flex items-center flex-col">
+            <li>
+                {partner.map(item => (
+                    <a className="md:mx-4 mx-1 md:text-lg text-zinc-500 md:font-bold uppercase" href="#">{ item}</a>
+                ))}
+                </li>
+                </div>
+        </ul>
+    )
 }
