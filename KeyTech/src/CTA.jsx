@@ -1,16 +1,16 @@
 export default function CTA() {
     return (
       <>
-    <main className="bg-zinc-950 text-zinc-400 flex sm:justify-center items-center  md:flex-row flex-col justify-center">
+    <main className="bg-zinc-950 text-zinc-300 flex sm:justify-center items-center  md:flex-row flex-col justify-center">
       <div className="p-10 text-start md:w-1/2 md:ml-20">
-        <p className="my-4 bg-orange-950 text-[#dd6713] rounded-full md:px-5  px-10 py-0.5 items-center md:max-w-1/2 md:w-52  border-[1.5px] border-yellow-900 uppercase md:font-semibold text-xs w-60 whitespace-normal">
+        <p className="my-4 bg-orange-950 text-[#dd6713] rounded-full md:px-5  px-10 py-0.5 items-center md:max-w-1/2 md:w-52  border-[1.5px] border-yellow-900 uppercase md:font-semibold text-xs w-60 md:whitespace-normal whitespace-nowrap">
           <i className="bx bx-bolt md:text-center items-center"></i> Future-Ready Learning
         </p>
         <h1 className="md:text-7xl  text-4xl font-bold leading-tight">
           Unlock Your <br />
           <span className="text-[#dd6713]">Potential</span>
         </h1>
-        <p className="my-2 md:text-xl text-lg leading-loose">
+        <p className="my-2 md:text-xl text-lg leading-loose text-zinc-300">
           Join KeyTech today. Master tech, business, and creative <br />
           skills with our immersive, expert-led learning platform <br />
           tailored for your growth.
