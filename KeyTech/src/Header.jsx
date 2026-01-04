@@ -59,7 +59,7 @@ export default function Header() {
           <SearchIcon width="50" height="30" />
           <a
             href="#"
-            className="bg-[#dd6713] md:px-4 md:py-2 px-3 py-1 font-semibold rounded-full mx-3 whitespace-nowrap"
+            className="bg-[#dd6713] md:px-4 md:py-2 px-3 py-1 md:font-semibold rounded-full mx-3 whitespace-nowrap"
           >
             Get Started
           </a>
