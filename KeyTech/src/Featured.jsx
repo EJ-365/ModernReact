@@ -25,7 +25,7 @@ export default function Featured() {
 function FeaturedCards({ cards }) {
   return (
     // Changed w-92 to w-full max-w-sm so it fits the grid
-    <div className="border border-zinc-700 w-full max-w-sm p-6 rounded-2xl shadow-lg bg-zinc-800 opacity-65 md:mx-2 mt-5 cursor-pointer hover:opacity-90 hover:scale-[1.02] transition-all duration-300 ">
+    <div className="border border-zinc-700 w-full max-w-sm p-6 rounded-2xl shadow-lg bg-zinc-800 brightness-90 md:mx-2 mt-5 cursor-pointer hover:opacity-90 hover:scale-[1.02] transition-all duration-300 ">
       <div>
         {/* Changed w-64 to w-full and added h-48 object-cover to keep it consistent */}
         <img

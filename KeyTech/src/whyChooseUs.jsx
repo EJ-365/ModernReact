@@ -15,26 +15,26 @@ export default function WhyChooseUs() {
 
         {/*Card session */}
         <div className="flex md:gap-7 my-10  items-center md:justify-center md:flex-row flex-col gap-5 p-10 ">
-          <div className="p-10 border-[1.5px] border-zinc-700 bg-zinc-800 opacity-65 rounded-2xl hover:opacity-75 hover:cursor-pointer md:w-96 w-auto">
+          <div className="p-10 border-[1.5px] border-zinc-700 bg-zinc-800 brightness-90 rounded-2xl hover:opacity-75 hover:cursor-pointer md:w-96 w-auto">
             <div>
               <i>
                 <GraduationCap className="w-10 h-10 bg-orange-900 rounded-full px-2 py-2 opacity-80" />
               </i>
             </div>
             <p className="font-semibold text-2xl mt-3">Expert-Led Courses</p>
-            <p className="text-zinc-400 my-3">
+            <p className="text-zinc-400 my-3 line-clamp-2 leading-relaxed">
               Learn directly from industry experts with <br /> real-world
               experience at top tech <br /> companies. No fluff, just skills.
             </p>
           </div>
 
-          <div className="p-10 border-[1.5px] border-zinc-700 bg-zinc-800 opacity-65 rounded-2xl hover:opacity-75 hover:cursor-pointer md:w-96 w-auto">
+          <div className="p-10 border-[1.5px] border-zinc-700 bg-zinc-800 brightness-90 rounded-2xl hover:opacity-75 hover:cursor-pointer md:w-96 w-auto">
             <div>
               <i>
                 <AwardStarOutlineRounded className="w-10 h-10 bg-orange-900 rounded-full px-2 py-2 opacity-80" />
               </i>
             </div>
-            <p className="font-semibold text-2xl mt-3">
+            <p className="font-semibold text-2xl mt-3 line-clamp-2 leading-relaxed">
               Recognized Certificates
             </p>
             <p className="text-zinc-400 my-3">
@@ -43,13 +43,15 @@ export default function WhyChooseUs() {
             </p>
           </div>
 
-          <div className="p-10 border-[1.5px] border-zinc-700 bg-zinc-800 opacity-65 rounded-2xl hover:opacity-75 hover:cursor-pointer md:w-96 w-auto">
+          <div className="p-10 border-[1.5px] border-zinc-700 bg-zinc-800 brightness-90 rounded-2xl hover:opacity-75 hover:cursor-pointer md:w-96 w-auto">
             <div>
               <i>
                 <Time className="w-10 h-10 bg-orange-900 rounded-full px-2 py-2 opacity-80" />
               </i>
             </div>
-            <p className="font-semibold text-2xl mt-3">Self-Paced Learning</p>
+            <p className="font-semibold text-2xl mt-3 line-clamp-2 leading-relaxed">
+              Self-Paced Learning
+            </p>
             <p className="text-zinc-400 my-3">
               Learn at your own speed with lifetime <br /> access to course
               materials and updates. Fit <br /> earning into your life.

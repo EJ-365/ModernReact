@@ -19,7 +19,7 @@ function Cards({ cards }) {
     <div className="text-white border px-12 py-4 my-4 md:w-auto rounded-3xl md:mx-2 bg-zinc-800 brightness-75 border-zinc-700 cursor-pointer hover:brightness-90 hover:scale-[1.02] transition-all duration-300 ">
       <i className={`${cards.icon} text-4xl text-[#dd6713] my-2`}></i>
       <h4 className="font-bold text-lg">{cards.title}</h4>
-      <p className="text-sm text-zinc-500 my-2">{cards.description}</p>
+      <p className="text-sm text-zinc-300 my-2 leading-relaxed line-clamp-2">{cards.description}</p>
     </div>
   );
 }

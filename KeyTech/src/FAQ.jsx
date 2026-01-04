@@ -8,7 +8,7 @@ export default function FAQ() {
       <h1 className="text-center text-3xl font-bold my-20">
         Frequently Asked Question
       </h1>
-      <div className="flex justify-center items-center flex-col p-3 mb-56">
+      <div className="flex justify-center items-center flex-col p-3 md:mb-56 mb-20">
         {faqData.map((faq) => (
           <FaQDiv
             key={faq.id}
