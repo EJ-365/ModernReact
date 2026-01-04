@@ -3,6 +3,7 @@ import CTA from "./CTA";
 import WhyChooseUs from "./whyChooseUs";
 import Featured from "./Featured";
 import BrowseByCategory from "./BrowseCategory";
+import FAQ from "./FAQ";
 function App() {
   return (
     <>
@@ -10,7 +11,8 @@ function App() {
       <CTA />
       <WhyChooseUs />
       <Featured />
-      <BrowseByCategory/>
+      <BrowseByCategory />
+      <FAQ/>
     </>
   );
 }

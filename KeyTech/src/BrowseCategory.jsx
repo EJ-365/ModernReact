@@ -7,7 +7,7 @@ export default function BrowseByCategory() {
       </h2>
       <div className="lg:flex items-center lg:justify-start lg:flex-wrap lg:flex-row md:grid md:grid-cols-2 my-10 md:ml-36  ">
         {browseCategoryData.map((item) => (
-          <Cards cards={item} />
+          <Cards key={item.id} cards={item} />
         ))}
       </div>
     </section>
