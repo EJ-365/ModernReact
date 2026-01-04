@@ -4,6 +4,7 @@ import WhyChooseUs from "./whyChooseUs";
 import Featured from "./Featured";
 import BrowseByCategory from "./BrowseCategory";
 import FAQ from "./FAQ";
+import Footer from "./Footer";
 function App() {
   return (
     <>
@@ -12,7 +13,8 @@ function App() {
       <WhyChooseUs />
       <Featured />
       <BrowseByCategory />
-      <FAQ/>
+      <FAQ />
+      <Footer/>
     </>
   );
 }

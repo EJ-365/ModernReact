@@ -1,16 +1,44 @@
-# React + Vite
+KeyTech - Learning Platform Landing Page
+KeyTech is a modern, responsive landing page I built for an online learning platform. It’s designed to look professional while helping users easily find courses and learn about the platform's benefits.
+🚀 Features
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Responsive Design: The site works perfectly on desktop, tablets, and mobile phones.
+Interactive FAQ: A custom accordion where only one question stays open at a time to keep things tidy.
+Smooth Animations: Used Tailwind CSS to create smooth transitions for opening menus and FAQ answers.
+Hero Section: Includes social proof showing 12K+ students and clear buttons to start learning.
+Trust Bar: Displays partnerships with top tech companies like Google, Amazon, and Meta.
+Course Grid: A clean layout showing featured courses with ratings, images, and instructor details.
+Newsletter Signup: A functional-looking footer with a subscription form and organized links.
 
-Currently, two official plugins are available:
+🛠️ Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+React: For building the UI with reusable components.
+Tailwind CSS: For styling and making sure the layout is responsive.
+Boxicons: For all the icons used throughout the site.
+JavaScript (ES6+): For the logic behind the FAQ and mobile menu.
 
-## React Compiler
+📁 Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Header.jsx: Navigation bar with a mobile hamburger menu.
+CTA.jsx: The main hero section and industry partnership bar.
+WhyChooseUs.jsx: Cards explaining why students should pick KeyTech.
+Featured.jsx: A section displaying the top-rated courses.
+BrowseCategory.jsx: Grid layout for different course categories.
+FAQ.jsx: Interactive frequently asked questions section.
+Footer.jsx: Bottom navigation, social icons, and email subscription.
 
-## Expanding the ESLint configuration
+⚙️ Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Clone the project
+Install dependencies:
+npm install
+
+
+Run the app:
+npm run dev
+
+
+
+👤 Author
+Ejay Gabriel
+Frontend Developer & Student
