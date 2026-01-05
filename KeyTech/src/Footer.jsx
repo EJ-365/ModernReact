@@ -154,7 +154,7 @@ export default function Footer() {
 
       <div className="text-zinc-600 flex md:flex-row md:justify-between my-10 border-t border-zinc-800 flex-col">
         <p className="md:my-8 mx-3 md:text-start text-center">
-          @ {new Date().getFullYear()} KeyTech Inc. All right reserved
+          @ {new Date().getFullYear()} KeyTech Inc. All right reserved.
         </p>
         <div className="md:my-8 my-2">
           <ul className="flex items-center justify-center space-x-3 mx-10">

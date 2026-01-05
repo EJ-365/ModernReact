@@ -5,8 +5,8 @@ export default function FAQ() {
   // handle click function for the accordion
   return (
     <section className="text-white border-b border-zinc-800  mb-10">
-      <h1 className="text-center text-3xl font-bold my-20">
-        Frequently Asked Question
+      <h1 className="text-center text-3xl font-bold my-20 p-4 leading-snug">
+        Frequently Asked Questions.
       </h1>
       <div className="flex justify-center items-center flex-col p-3 md:mb-56 mb-20">
         {faqData.map((faq) => (

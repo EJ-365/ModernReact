@@ -6,7 +6,7 @@ export default function Featured() {
       <div className="text-white flex md:flex-row items-center md:justify-between md:mx-auto p-10 flex-col my-3 ">
         <p className="text-2xl font-bold">Featured Courses</p>
         <a href="#" className="text-[#dd6713] capitalize text-sm md:text-lg ">
-          View all coures {"->"}
+          View all courses {"->"}
         </a>
       </div>
 
