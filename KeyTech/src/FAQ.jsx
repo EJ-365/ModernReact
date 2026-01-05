@@ -2,7 +2,6 @@ import { useState } from "react";
 import faqData from "./faqData";
 export default function FAQ() {
   const [isOpenId, setIsOpenId] = useState(null);
-  // handle click function for the accordion
   return (
     <section className="text-white border-b border-zinc-800  mb-10">
       <h1 className="text-center text-3xl font-bold my-20 p-4 leading-snug">
