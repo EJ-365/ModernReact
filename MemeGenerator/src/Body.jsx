@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Body() {
   const [meme, setMeme] = useState({
@@ -7,13 +7,21 @@ export default function Body() {
     imageUrl:
       "https://images.unsplash.com/photo-1579600161224-cac5a2971069?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   });
+  const [allMemes, setAllMemes] = useState([]);
+  useEffect(() => {
+    fetch("https://api.imgflip.com/get_memes")
+      .then((res) => res.json())
+      .then((data) => setAllMemes(data));
+  }, []);
+
 
   // handle change function
-  function handleChange(event) {
-    const { value, name } = event.currentTarget;
-    setMeme((prevMeme) => ({ ...prevMeme, [name]: value }));
-    // console.log(value);
-  }
+  // function handleChange(event) {
+  //   const { value, name } = event.currentTarget;
+  //   setMeme((prevMeme) => ({ ...prevMeme, [name]: value }));
+  //   // console.log(value);
+  // }
+  
   return (
     <main className="my-20">
       <form>
@@ -29,8 +37,8 @@ export default function Body() {
               id="top"
               placeholder="One does not simply"
               name="topText"
-              onChange={handleChange}
-              value={meme.topText}
+              // onChange={handleChange}
+              // value={meme.topText}
             />
           </div>
 
@@ -46,8 +54,8 @@ export default function Body() {
               id="top"
               placeholder="Walk into Mordor"
               name="bottomText"
-              onChange={handleChange}
-              value={meme.bottomText}
+              // onChange={handleChange}
+              // value={meme.bottomText}
             />
           </div>
         </div>
