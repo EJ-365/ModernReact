@@ -5,6 +5,7 @@ export default function Body() {
     bottomText: "Walk into Mordor",
     imageUrl: "https://i.imgflip.com/1bij.jpg",
   });
+  
   const [allMemes, setAllMemes] = useState([]);
 
   useEffect(() => {
