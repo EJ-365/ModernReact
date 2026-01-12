@@ -1,3 +1,5 @@
+<!-- @type=presentation -->
+<!-- @bganimation="net" -->
 # Advice Generator
 
 A modern, responsive React application that fetches and displays random advice quotes using the [Advice Slip API](https://api.adviceslip.com/). Features a beautiful UI with dark/light theme toggle and smooth animations.
