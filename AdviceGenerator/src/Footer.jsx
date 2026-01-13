@@ -1,6 +1,6 @@
 export const Footer = ({toggle}) => {
     return (
-        <footer className={`text-center ${toggle && 'bg-purple-300'}  p-10 px-20 text-purple-600 bg-purple-200`}>
+        <footer className={`text-center ${toggle && 'bg-purple-300'}  p-10 px-20 text-purple-600 bg-purple-200 border-t`}>
             <p>
                 <span>All right reserved &copy; {new Date().getFullYear()}</span>
             </p>
