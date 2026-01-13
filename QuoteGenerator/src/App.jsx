@@ -1,7 +1,10 @@
+import Header from "./Header";
 function App() {
   return (
-    <h1 className="text-red-500"> Hello user </h1>
+    <>
+      <Header />
+    </>
   )
 }
 
-export default App;
+export default App; 
