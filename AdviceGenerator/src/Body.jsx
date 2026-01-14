@@ -48,8 +48,8 @@ export default function Body({ toggle }) {
 
           {/* small dot in the middle */}
           <div className="items-center flex justify-center mb-6 ">
-            <div className="w-1 h-1 rounded-full bg-linear-to-r from-purple-400 to-purple-200 shadow-xs inset-shadow-2xs"></div>
-            <div className="w-1 h-1 rounded-full bg-linear-to-t from-purple-200 to-purple-300 shadow-xs inset-shadow-2xs mx-1.5"></div>
+            <div className={`w-1 h-1 rounded-full bg-linear-to-r from-purple-400 to-purple-200 shadow-xs inset-shadow-2xs ${toggle && "from-purple-700 to-pink-400"}`}></div>
+            <div className={`w-1 h-1 rounded-full bg-linear-to-t from-purple-200 to-purple-300 shadow-xs inset-shadow-2xs mx-1.5 ${toggle && "from-purple-700 to-pink-400"}`}></div>
           </div>
 
           {/* button div's */}
