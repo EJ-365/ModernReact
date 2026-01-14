@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 const Body = () => {
+    const [quotes, setQuotes] = useState({});
     return (
         <main className="flex items-center justify-center flex-col h-screen w-full bg-orange-50">
             <div className="h-1/2 w-120 shadow-xl drop-shadow-[0_-4px_6px_rgba(0,0,0,0.1)]  align-middle  text-center p-10 flex items-center justify-center flex-col rounded-3xl  ">
