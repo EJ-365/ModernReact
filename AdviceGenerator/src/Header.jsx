@@ -2,7 +2,7 @@ export default function Header({toggle, setToggle}){
      // dark theme toggle
 
     return (
-        <header className={`bg-purple-50 ${toggle && "bg-slate-950 text-white"} shadow-md px-10 py-4 text-black`}>
+        <header className={`bg-purple-50 ${toggle && "bg-purple-300 text-black"} shadow-md px-10 py-4 text-black`}>
             <nav className="flex items-center justify-between">
               {/* logo */}
                 <div>
