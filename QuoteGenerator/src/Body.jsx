@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const Body = () => {
+const Body = ({toggle}) => {
     const [quote, setQuote] = useState({
         id: 1,
         quote: "Live is short live it well",
@@ -32,23 +32,23 @@ const Body = () => {
     }, []);
 
     return (
-        <main className="flex items-center justify-center flex-col h-screen w-full bg-orange-50">
-            <div className="h-1/2 md:w-120 w-96 shadow-2xl drop-shadow-[0_-4px_6px_rgba(0,0,0,0.1)]  align-middle  text-center p-10 flex items-center justify-center flex-col rounded-3xl  ">
+        <main className={`flex items-center justify-center flex-col h-screen w-full bg-orange-50 ${toggle && "bg-slate-950 "} `}>
+            <div className={`h-1/2 md:w-120 w-96 shadow-2xl drop-shadow-[0_-4px_6px_rgba(0,0,0,0.1)]  align-middle  text-center p-10 flex items-center justify-center flex-col rounded-3xl ${toggle && "border"} `}>
                 <div className="text-center">
-                    <p className="text-md text-orange-500 font-semibold">
+                    <p className={`text-md ${toggle ? "text-white" : "text-orange-500 "}font-semibold`}>
                         Quote #{quote.id}
                     </p>
                 </div>
 
                 <div>
                     <blockquote className="">
-                        <h1 className="md:text-3xl text-xl md:font-black font-bold text-orange-800 my-7 -tracking-normal leading-snug text-wrap">
+                        <h1 className={`md:text-3xl text-xl md:font-black font-bold ${toggle ? "text-white" : "text-orange-800 "} my-7 -tracking-normal leading-snug text-wrap`}>
                             "{quote.quote}"
                         </h1>
-                        <h3 className="md:font-bold text-xl text-center text-black">
+                        <h3 className={`md:font-bold text-xl text-center ${toggle ? "text-white" : "text-orange-500 "} `}>
                             Author:
                         </h3>
-                        <cite className="font-semibold italic text-md text-black">
+                        <cite className={`font-semibold italic text-md ${toggle ? "text-white" : "text-orange-500 "}`}>
                             —{quote.author}
                         </cite>
                     </blockquote>
