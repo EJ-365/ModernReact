@@ -32,20 +32,17 @@ const Body = ({ toggle }) => {
 
   return (
     <main
-      className={`flex-1 flex items-center justify-center min-h-screen w-full ${
-        toggle ? "bg-slate-950" : "bg-linear-to-br from-purple-50 to-indigo-100"
-      }`}
+      className={`flex-1 flex items-center justify-center min-h-screen w-full ${toggle ? "bg-slate-950" : "bg-linear-to-br from-purple-50 to-indigo-100"
+        }`}
     >
       <div
-        className={`bg-white p-12 rounded-[3rem] shadow-2xl shadow-purple-200 w-full max-w-xl ${
-          toggle && "bg-slate-800 border border-slate-700"
-        }`}
+        className={`bg-white p-12 rounded-[3rem] shadow-2xl shadow-purple-200 w-full max-w-xl ${toggle && "bg-slate-800 border border-slate-700"
+          }`}
       >
         <div className="text-center mb-4">
           <p
-            className={`text-md ${
-              toggle ? "text-purple-600" : "text-purple-600"
-            } font-semibold`}
+            className={`text-md ${toggle ? "text-purple-600" : "text-purple-600"
+              } font-semibold`}
           >
             Quote #{quote.id}
           </p>
@@ -59,9 +56,8 @@ const Body = ({ toggle }) => {
               "{quote.quote}"
             </h1>
             <cite
-              className={`text-purple-600 italic text-right font-semibold block ${
-                toggle && "text-purple-400"
-              }`}
+              className={`text-purple-600 italic text-right font-semibold block ${toggle && "text-purple-400"
+                }`}
             >
               —{quote.author}
             </cite>
@@ -70,11 +66,10 @@ const Body = ({ toggle }) => {
 
         <div className="mt-10">
           <button
-            className={`px-8 py-3 rounded-full font-bold transition-transform hover:scale-105 ${
-              toggle
-                ? "bg-purple-700 hover:bg-purple-600"
-                : "bg-purple-600 hover:bg-purple-700"
-            } text-white`}
+            className={`px-8 py-3 rounded-full font-bold transition-transform hover:scale-105 cursor-pointer${toggle
+              ? "bg-purple-700 hover:bg-purple-600"
+              : "bg-purple-600 hover:bg-purple-700"
+              } text-white`}
             onClick={handleQuote}
           >
             Next Quote 🎲
