@@ -66,10 +66,10 @@ const Body = ({ toggle }) => {
 
         <div className="mt-10">
           <button
-            className={`px-8 py-3 rounded-full font-bold transition-transform hover:scale-105 cursor-pointer${toggle
-              ? "bg-purple-700 hover:bg-purple-600"
-              : "bg-purple-600 hover:bg-purple-700"
-              } text-white`}
+            className={`px-8 py-3 rounded-full font-bold transition-transform hover:scale-105 cursor-pointer 
+              bg-purple-700 hover:bg-purple-600
+           
+               text-white`}
             onClick={handleQuote}
           >
             Next Quote 🎲
