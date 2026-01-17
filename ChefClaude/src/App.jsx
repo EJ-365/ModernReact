@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import "./index.css";
 import Footer from "./footer.jsx";
 import loadingGif from "./assets/loading-gif.gif";
 import { getRecipeFromLlama } from "./ai.js";
-import ReactMarkdown from "react-markdown";
+
+// Dynamically import ReactMarkdown to code-split
+const ReactMarkdown = lazy(() => import("react-markdown"));
 export default function App() {
   const ingredient = []; // populated ingredients ["Chicken", "Oregano", "Tomatoes, pepper"];
   const [ingredients, setIngredients] = useState(ingredient); // shared states for the components
@@ -226,7 +228,9 @@ function GetRecipe({ recipe, isDarkMode }) {
           Chef Claude Recommends:
         </h2>
       )}
-      <ReactMarkdown>{recipe}</ReactMarkdown>
+      <Suspense fallback={<div className="text-center py-4">Loading recipe...</div>}>
+        <ReactMarkdown>{recipe}</ReactMarkdown>
+      </Suspense>
     </div>
   );
 }
