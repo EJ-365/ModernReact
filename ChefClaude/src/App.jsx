@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./index.css";
 import Footer from "./footer.jsx";
 import loadingGif from "./assets/loading-gif.gif";
@@ -10,6 +10,19 @@ export default function App() {
   const [recipe, setRecipe] = useState(""); // state that holds the actual returned recipe from an api
   const [loading, setLoading] = useState(false); // when the ai is getting the recipe
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const recipeSection = useRef(null); // useRef() hook is use to manipulate the dom without re-render it returns an object with a current value property to use useRef use the ref attribute, to the div you wanna assign to
+
+  useEffect(() => {
+    if (recipe && !loading) {
+      setTimeout(() => {
+        if (recipeSection.current) {
+          recipeSection.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100)
+    }
+  }, [recipe, loading])
+
 
   // function to toggle light and dark theme
   function toggleTheme() {
@@ -25,9 +38,8 @@ export default function App() {
   }
   return (
     <div
-      className={`my-0 ${
-        isDarkMode ? "bg-zinc-900  text-zinc-400" : "bg-[#ddbea8] text-zinc-700"
-      }  min-h-screen  `}
+      className={`my-0 ${isDarkMode ? "bg-zinc-900  text-zinc-400" : "bg-[#ddbea8] text-zinc-700"
+        }  min-h-screen  `}
     >
       <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />{" "}
       {/* Header component*/}
@@ -37,6 +49,7 @@ export default function App() {
         setRecipe={setRecipe}
         setLoading={setLoading}
         removeIngredient={removeIngredient}
+        recipeSection={recipeSection}
       />
       {loading ? (
         <div className="flex justify-center items-center md:flex-row flex-col my-10">
@@ -70,9 +83,8 @@ function Header({ isDarkMode, toggleTheme }) {
       <div className="flex-1 flex justify-end">
         <i
           onClick={toggleTheme}
-          className={`cursor-pointer text-3xl ${
-            isDarkMode ? "bx bx-sun" : "bx bx-moon"
-          }`}
+          className={`cursor-pointer text-3xl ${isDarkMode ? "bx bx-sun" : "bx bx-moon"
+            }`}
           title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
         ></i>
       </div>
@@ -98,6 +110,7 @@ function Form({ setIngredients }) {
 
     setNewIngredientName(""); // clear the input field after submitting it.
   }
+
 
   return (
     <main>
@@ -132,7 +145,7 @@ function Form({ setIngredients }) {
 }
 
 // ingredient component
-function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient }) {
+function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient, recipeSection }) {
   // get recipe function to get the recipe from the api
   async function getRecipe() {
     setLoading(true); // shows the spinner loading when ai is thinking..
@@ -157,16 +170,16 @@ function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient }) {
       <ul className="leading-loose my-10 md:text-2xl text-lg text-start md:ml-4 items-center list-disc md:pl-10 pl-5">
         {ingredients.map((item, index) => {
           return (
-              <li
-                key={index}
-                className="flex items-center justify-between w-full gap-4 md:font-bold md:text-xl font-semibold"
-              >
-                {item}
-                <i
-                  onClick={() => removeIngredient(index)}
-                  className="text-lg text-white cursor-pointer hover:text-slate-200 font-normal capitalize bg-red-600 hover:bg-red-800 px-3 py-3  rounded-full bx bx-trash-x md:text-2xl my-2 ml-auto"
-                ></i>
-              </li>
+            <li
+              key={index}
+              className="flex items-center justify-between w-full gap-4 md:font-bold md:text-xl font-semibold"
+            >
+              {item}
+              <i
+                onClick={() => removeIngredient(index)}
+                className="text-lg text-white cursor-pointer hover:text-slate-200 font-normal capitalize bg-red-600 hover:bg-red-800 px-3 py-3  rounded-full bx bx-trash-x md:text-2xl my-2 ml-auto"
+              ></i>
+            </li>
           );
         })}
       </ul>
@@ -177,7 +190,8 @@ function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient }) {
 
       {ingredients.length >= 3 && (
         <div className="bg-zinc-800 p-6 rounded-lg md:ml-72 my-10">
-          <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semi-bold text-white">Ready for a recipe?</h2>
+          <div className="flex items-center justify-between" ref={recipeSection}>
             <p className="text-md text-zinc-200 my-4 md:m-auto">
               Generate a recipe from your list of ingredients
             </p>
@@ -198,18 +212,16 @@ function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient }) {
 function GetRecipe({ recipe, isDarkMode }) {
   return (
     <div
-      className={`md:ml-96 recipe-section ${
-        isDarkMode
-          ? "bg-zinc-900  text-zinc-100"
-          : "bg-zinc-100 text-zinc-900 shadow-inner"
-      }`}
+      className={`md:ml-96 recipe-section ${isDarkMode
+        ? "bg-zinc-900  text-zinc-100"
+        : "bg-zinc-100 text-zinc-900 shadow-inner"
+        }`}
       aria-live="polite"
     >
       {recipe && (
         <h2
-          className={`text-2xl font-bold mb-4 ${
-            isDarkMode ? "text-red-400" : "text-red-600"
-          }`}
+          className={`text-2xl font-bold mb-4 ${isDarkMode ? "text-red-400" : "text-red-600"
+            }`}
         >
           Chef Claude Recommends:
         </h2>
