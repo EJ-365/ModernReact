@@ -1,0 +1,20 @@
+[
+  {
+    "key": "z",
+    "command": "-undo",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "y",
+    "command": "-redo",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "ctrl+z",
+    "command": "undo"
+  },
+  {
+    "key": "ctrl+y",
+    "command": "redo"
+  }
+]
