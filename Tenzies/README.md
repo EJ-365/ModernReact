@@ -1,16 +1,82 @@
-# React + Vite
+# Tenzies Game
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A fun and interactive dice game built with React and Vite. Roll the dice until all 10 dice show the same value!
 
-Currently, two official plugins are available:
+## 🎲 How to Play
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. **Roll the dice** - Click the "Roll" button to generate new random values for all unheld dice
+2. **Hold dice** - Click on any die to freeze it at its current value (held dice turn green)
+3. **Win the game** - Keep rolling and holding until all 10 dice show the same number
+4. **Celebrate** - When you win, confetti appears! Click "New Game" to play again
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Interactive dice rolling with visual feedback
+- Hold/freeze mechanism to lock dice values
+- Win detection with confetti celebration
+- Responsive design that works on mobile and desktop
+- Modern UI with Tailwind CSS styling
+- Smooth animations and transitions
 
-## Expanding the ESLint configuration
+## 🛠️ Technologies Used
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **React 19** - UI library
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling
+- **nanoid** - Unique ID generation for dice
+- **react-confetti** - Celebration animation
+
+## 📦 Installation
+
+1. Navigate to the project directory:
+```bash
+cd Tenzies
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+## 🚀 Running the Project
+
+Start the development server:
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173` (or the port shown in your terminal).
+
+## 🏗️ Build for Production
+
+Create a production build:
+```bash
+npm run build
+```
+
+Preview the production build:
+```bash
+npm run preview
+```
+
+## 📁 Project Structure
+
+```
+Tenzies/
+├── src/
+│   ├── App.jsx          # Main game logic and state management
+│   ├── Die.jsx          # Individual die component
+│   ├── main.jsx         # React entry point
+│   └── index.css        # Global styles
+├── package.json
+└── README.md
+```
+
+## 🎮 Game Logic
+
+- Each die has a `value` (1-6), `isHeld` status, and unique `id`
+- Rolling only affects dice that aren't held
+- The game is won when all dice are held AND all have the same value
+- Clicking a die toggles its held status
+
+Enjoy playing Tenzies! 🎉
