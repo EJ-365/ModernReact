@@ -1,7 +1,7 @@
 import updateData from "./updateData";
 export default function Update() {
   return (
-    <section className="w-full bg-[#ffffff] px-20 py-10 shadow-2xs border-t border-b border-[#d3d3d3] flex items-center md:justify-start justify-evenly mx-auto container">
+    <section className="w-full bg-[#ffffff] px-20 py-10 shadow-2xs border-t border-b border-[#d3d3d3] flex items-center md:justify-start justify-center md:mx-auto md:container">
       <Alert />
     </section>
   );
@@ -9,7 +9,7 @@ export default function Update() {
 
 function Alert() {
   return (
-    <div className="ml-16">
+    <div className="md:ml-16">
       {updateData.map((item) => (
         <div key={item.id} className="mb-4">
           <h2 className="text-2xl font-bold mb-3">{item.title}</h2>
