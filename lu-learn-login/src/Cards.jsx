@@ -41,7 +41,7 @@ export default function Cards() {
         {/* Card 2 */}
         <div className="flex items-center justify-center flex-col bg-[#ffffff] w-full max-w-[400px] md:w-96 pb-8 pt-2 h-auto md:h-80 rounded shadow-sm">
           <div className="flex text-[#c20d0f] pt-8">
-            <img src={hourClcok} className="w-10 h-10 mx-4" />
+            <img src={playButton} className="w-10 h-10 mx-4" />
             <div className="w-3/4">
               <a
                 href=""
@@ -63,7 +63,7 @@ export default function Cards() {
         {/* Card 3 */}
         <div className="flex items-center justify-center flex-col bg-[#ffffff] w-full max-w-[400px] md:w-96 pb-8 pt-2 h-auto md:h-80 rounded shadow-sm">
           <div className="flex text-[#c20d0f] pt-8">
-            <img src={hourClcok} className="w-10 h-10 mx-4" />
+            <img src={checkMark} className="w-10 h-10 mx-4" />
             <div className="w-3/4">
               <a
                 href=""
