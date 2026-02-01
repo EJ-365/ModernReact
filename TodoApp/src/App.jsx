@@ -4,11 +4,19 @@ import { useState } from "react";
 
 function App() {
   // todos state:
-  const[todos, setTodos] = useState([
-  { id: 1, title: "Finish project proposal", completed: false },
-  { id: 2, title: "Schedule team meeting", completed: false },
-  { id: 3, title: "Buy groceries", completed: true },
-]);
+  const [todos, setTodos] = useState([
+    { id: 1, title: "Finish project proposal", completed: false },
+    { id: 2, title: "Schedule team meeting", completed: false },
+    { id: 3, title: "Buy groceries", completed: true },
+  ]);
+
+  // handle add to do
+  function handleAddTodo(title) {
+    setTodos((prevTodos) => [
+      ...prevTodos,
+      { id: Date.now(), title, completed: false },
+    ]);
+  }
 
   return (
     <main className="w-full h-screen  flex items-center justify-center bg-gray-100">
@@ -44,7 +52,7 @@ function App() {
         </div>
 
         {/*form component */}
-        <AddTodoForm />
+        <AddTodoForm onAddTodo={handleAddTodo} />
 
         {/*Todo List UI */}
         <TodoList todos={todos} />

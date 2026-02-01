@@ -1,7 +1,15 @@
-export default function AddTodoForm() {
+import { useState } from "react";
+
+export default function AddTodoForm({ onAddTodo }) {
+  const [title, setTitle] = useState("");
   // handle submit function
   function handleSubmit(e) {
     e.preventDefault();
+    if (!title.trim()) return;
+    
+    onAddTodo(title.trim());
+    console.log("Submitted title:", title);
+    setTitle("");
   }
 
   return (
@@ -12,6 +20,8 @@ export default function AddTodoForm() {
           type="text"
           className=" w-96 border p-2 rounded-lg border-gray-400 shadow-xs placeholder:px-2  placeholder:text-slate-400 focus:outline-0 focus:border-gray-700 focus:ring-1 focus:ring-indigo-200"
           placeholder="Add a new todo..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
         />
       </div>
 
