@@ -1,16 +1,48 @@
-# React + Vite
+# My Todo App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive Todo Application built with **React** and **Tailwind CSS**.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Add Todos**: Quickly add new tasks to your list.
+- **Filter Tasks**: View All, Active, or Completed tasks.
+- **Mark as Complete**: Toggle tasks as done or active.
+- **Delete Tasks**: Remove tasks you no longer need.
+- **Clear Completed**: One-click button to remove all finished tasks.
+- **Responsive Design**: Works seamlessly on desktop and mobile devices.
+- **Task Counter**: Real-time count of active items left.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React**: Frontend library for building the user interface.
+- **Tailwind CSS**: Utility-first CSS framework for styling.
+- **Vite**: Next Generation Frontend Tooling.
+- **Boxicons**: For beautiful icons.
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1.  **Install dependencies:**
+
+    ```bash
+    npm install
+    ```
+
+2.  **Run the development server:**
+
+    ```bash
+    npm run dev
+    ```
+
+3.  Open your browser to the local server address (usually `http://localhost:5173`).
+
+## Project Structure
+
+- `src/App.jsx`: Main application component having the core logic and state.
+- `src/AddTodoForm.jsx`: Component for adding new tasks.
+- `src/TodoList.jsx`: Displays the list of todo items.
+- `src/TodoItem.jsx`: Individual todo item component.
+- `src/Footer.jsx`: Footer component with credits.
+
+---
+
+Designed & Built by **Eebud**
