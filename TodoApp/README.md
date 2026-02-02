@@ -45,4 +45,4 @@ A modern, responsive Todo Application built with **React** and **Tailwind CSS**.
 
 ---
 
-Designed & Built by **Eebud**
+Designed & Built by **Ejay Gabriel**
