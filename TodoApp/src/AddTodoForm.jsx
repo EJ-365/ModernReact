@@ -8,7 +8,6 @@ export default function AddTodoForm({ onAddTodo }) {
     if (!title.trim()) return;
 
     onAddTodo(title.trim());
-    console.log("Submitted title:", title);
     setTitle(""); // clear after submitted
   }
 
