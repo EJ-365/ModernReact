@@ -15,7 +15,7 @@ export default function Header() {
           </span>
         </div>
 
-        {/* Form Component */}
+        {/* SearchForm Component */}
         <SearchForm />
 
         {/* Nav Links */}

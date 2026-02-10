@@ -1,8 +1,10 @@
-import Header from "./Header"
-export default function App(){
+import Header from "./Header";
+import SideBar from "./SideBar";
+export default function App() {
   return (
     <div className="">
-    <Header/>
+      <Header />
+      <SideBar />
     </div>
-  )
+  );
 }
