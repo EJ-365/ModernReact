@@ -1,5 +1,5 @@
-import sampleData from "./sideBarData";
-export default function SideBar() {
+import SideBarContent from "./SideBarContent";
+export default function SideBar({ sampleData }) {
   return (
     <div className="flex h-screen w-full bg-gray-100">
       <aside className="w-80 bg-white border-r border-gray-200 overflow-y-auto p-4">
@@ -8,7 +8,7 @@ export default function SideBar() {
         <div className="space-y-4">
           {
             sampleData.map(item => (
-              <div className="bg-white border-2 rounded-2xl cursor-pointer p-4 hover:bg-purple-100 border-purple-800">
+              <div className="bg-white border-2 rounded-2xl cursor-pointer p-4 hover:bg-purple-100 border-purple-800" key={item.id}>
                 {/*image and header/name */}
                 <div className="flex items-center justify-between">
                   <div className="mr-5 w-auto">
@@ -30,9 +30,8 @@ export default function SideBar() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto p-8">
-        <h1>Recipe details</h1>
-      </main>
+      <SideBarContent firstRecipeName={sampleData[1].name} />
+
     </div>
   );
 }
