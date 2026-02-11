@@ -1,1 +1,8 @@
 @import "tailwindcss";
+@theme {
+    /* This creates a new 'tablet' utility: tablet:block */
+    --breakpoint-tablet: 1023px;
+    
+    /* OR override an existing one (e.g., changing 'lg' to 1023px) */
+    --breakpoint-lg: 1023px;
+  }
