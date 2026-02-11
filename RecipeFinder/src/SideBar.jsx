@@ -3,7 +3,7 @@ export default function SideBar({ sampleData }) {
   return (
     <div className="flex h-screen w-full bg-gray-100">
       <aside className="w-80 bg-white border-r border-gray-200 overflow-y-auto p-4">
-        <h2 className="text-[#9dabbe] uppercase font-semibold my-4">Discovered</h2>
+        <h2 className="text-[#9dabbe] uppercase font-semibold my-4">Discover</h2>
         {/*Recipes div */}
         <div className="space-y-4">
           {
