@@ -9,11 +9,11 @@ export default function Instructions() {
             <div className="mx-4 text-wrap p-4">
                 <div className="flex space-x-4">
                     <p className="bg-purple-700  px-3 py-1 text-center rounded-full text-white">1</p>
-                    <h3 className="font-semibold text-lg">Prepare the base</h3>
+                    <h3 className="font-semibold text-lg">Sauté the mushrooms</h3>
                 </div>
 
                 <div className="flex flex-col md:w-1/2 w-full items-center justify-center text-left ml-12 text-gray-700">
-                    <small className="">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ullam ad minima fugiat fugit, molestiae id, quaerat in ratione ipsa doloremque eius quo obcaecati reprehenderit alias non magni est. Voluptas, molestias?</small>
+                    <small className="">Heat olive oil and butter in a large pan over medium heat. Add the sliced wild mushrooms and cook until golden brown, about 6–8 minutes. Season with salt and pepper, then set aside.</small>
                 </div>
 
             </div>
@@ -23,11 +23,11 @@ export default function Instructions() {
             <div className="mx-4 text-wrap p-4">
                 <div className="flex space-x-4">
                     <p className="bg-purple-700  px-3 py-1 text-center rounded-full text-white">2</p>
-                    <h3 className="font-semibold text-lg">Prepare the base</h3>
+                    <h3 className="font-semibold text-lg">Toast the rice</h3>
                 </div>
 
                 <div className="flex flex-col md:w-1/2 w-full items-center justify-center text-left ml-12 text-gray-700">
-                    <small className="">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ullam ad minima fugiat fugit, molestiae id, quaerat in ratione ipsa doloremque eius quo obcaecati reprehenderit alias non magni est. Voluptas, molestias?</small>
+                    <small className="">In the same pan, add the arborio rice and toast for 1–2 minutes until lightly golden. Pour in the white wine and stir until absorbed.</small>
                 </div>
 
             </div>
@@ -37,11 +37,11 @@ export default function Instructions() {
             <div className="mx-4 text-wrap  p-4">
                 <div className="flex space-x-4">
                     <p className="bg-purple-700  px-3 py-1 text-center rounded-full text-white">3</p>
-                    <h3 className="font-semibold text-lg">Prepare the base</h3>
+                    <h3 className="font-semibold text-lg">Add broth gradually</h3>
                 </div>
 
                 <div className="flex flex-col md:w-1/2 w-full items-center justify-center text-left ml-12 text-gray-700">
-                    <small className="">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ullam ad minima fugiat fugit, molestiae id, quaerat in ratione ipsa doloremque eius quo obcaecati reprehenderit alias non magni est. Voluptas, molestias?</small>
+                    <small className="">Add the warm vegetable broth one ladle at a time, stirring constantly until each addition is absorbed. Repeat until the rice is creamy and al dente, about 18–20 minutes.</small>
                 </div>
 
             </div>
@@ -52,11 +52,11 @@ export default function Instructions() {
             <div className="mx-4 text-wrap  p-4">
                 <div className="flex space-x-4">
                     <p className="bg-purple-700  px-3 py-1 text-center rounded-full text-white">4</p>
-                    <h3 className="font-semibold text-lg">Prepare the base</h3>
+                    <h3 className="font-semibold text-lg">Finish and serve</h3>
                 </div>
 
                 <div className="flex flex-col md:w-1/2 w-full items-center justify-center text-left ml-12 text-gray-700">
-                    <small className="">Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ullam ad minima fugiat fugit, molestiae id, quaerat in ratione ipsa doloremque eius quo obcaecati reprehenderit alias non magni est. Voluptas, molestias?</small>
+                    <small className="">Stir in the sautéed mushrooms, parmesan cheese, and a knob of butter. Season with salt and pepper to taste. Let rest for 1 minute, then serve immediately.</small>
                 </div>
             </div>
 
