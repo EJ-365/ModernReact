@@ -1,6 +1,7 @@
 import SideBarContent from "./SideBarContent";
 
-export default function SideBar({ sampleData, isOpen, onClose }) {
+export default function SideBar({ sampleData, isOpen, onClose, selectedRecipe, setSelectedId, selectedId }) {
+  
   return (
     <div className="flex h-screen w-full bg-gray-100">
       <>
@@ -26,23 +27,23 @@ export default function SideBar({ sampleData, isOpen, onClose }) {
           <div className="space-y-4">
             {sampleData.map((item) => (
               <div 
-                className="bg-white border-2 rounded-2xl cursor-pointer p-4 hover:bg-purple-100 border-purple-800" 
-                key={item.id}
+                className={`bg-white border-2 rounded-2xl cursor-pointer p-4 hover:bg-purple-100 border-purple-800 ${selectedId === item.idMeal ? "border-purple-800 bg-purple-50" : "border-transparent"}`} 
+                key={item.idMeal} onClick={() => setSelectedId(item.idMeal)}
               >
                 {/*image and header/name */}
                 <div className="flex items-center justify-between">
                   <div className="mr-5 w-auto">
-                    <img src={item.img} className="w-28 rounded-2xl" alt={item.name} />
+                    <img src={item.strMealThumb} className="w-28 rounded-2xl" alt={item.strMeal} />
                   </div>
-                  <h2 className="capitalize font-semibold">{item.name}</h2>
+                  <h2 className="capitalize font-semibold">{item.strMeal}</h2>
                 </div>
 
                 {/* time and tag */}
                 <div className="flex items-center justify-center capitalize ml-10 my-2">
                   <p className="mx-4 text-sm font-semibold bg-slate-200 py-1 px-2 rounded hover:text-purple-800 border border-gray-200">
-                    {item.tag}
+                    {item.strCategory }
                   </p>
-                  <p className="text-sm text-gray-500">{item.time} mins</p>
+                  <p className="text-sm text-gray-500">{item.cookingTime} mins</p>
                 </div>
               </div>
             ))}
@@ -51,7 +52,7 @@ export default function SideBar({ sampleData, isOpen, onClose }) {
       </>
 
       {/* Main content */}
-      <SideBarContent firstRecipeName={sampleData[1].name} />
+      <SideBarContent recipe={selectedRecipe} />
     </div>
   );
 }

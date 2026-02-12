@@ -2,12 +2,13 @@ import { Heart, Share2 } from "lucide-react";
 import Quickfacts from "./QuickFacts";
 import Ingredients from "./Ingredients";
 import Instructions from "./Instructions";
-export default function SideBarContent({ firstRecipeName }) {
+export default function SideBarContent({ recipe }) {
+
     return (
         <main className="flex-1 overflow-auto p-8 bg-white ">
             {/*image */}
             <div className="relative">
-                <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=1327&auto=format&fit=crop&ixlib=rb-4.0.3 " className="w-full h-96 object-cover object-center block" alt={firstRecipeName} />
+                <img src={recipe?.strMealThumb} className="w-full h-96 object-cover object-center block" alt={recipe?.strMeal} />
 
                 {/*text overlay */}
                 <div className="absolute bottom-10 p-10">
@@ -17,10 +18,9 @@ export default function SideBarContent({ firstRecipeName }) {
                         <button className="uppercase px-6 py-1 text-xs rounded-full bg-[#393a3a] border border-gray-500 text-white">Vegtarian</button>
                     </div>
 
-                    <h2 className="text-white md:font-bold font-black md:text-5xl text-2xl text-nowrap text-left capitalize md:my-4">{firstRecipeName}</h2>
+                    <h2 className="text-purple-950 opacity-80 md:font-bold font-black md:text-5xl text-2xl text-nowrap text-left capitalize md:my-4">{recipe?.strMeal}</h2>
                     <div className="md:flex items-center md:justify-between justify-center ">
-                        <p className="text-slate-200 md:text-lg text-xs">A classic Italian comfort dish made with aborio rice, assorted wild mushrooms,
-                            and a touch of white wine and parmesan.
+                        <p className="text-gray-900 font-semibold md:text-lg text-xs">A classic {recipe?.strCategory} dish from {recipe?.strArea} cuisine.
                         </p>
 
                         {/* heart and share icon */}
@@ -33,14 +33,14 @@ export default function SideBarContent({ firstRecipeName }) {
                 </div>
             </div>
             {/*Quick facts information */}
-            <Quickfacts />
+            <Quickfacts recipe={recipe} />
 
             {/*Ingredients and instructions */}
             <div className="h-screen w-full bg-gray-100 md:flex">
-               <Ingredients/>
+                <Ingredients  recipe={recipe}/>
 
                 {/*Instructions */}
-                <Instructions/>
+                <Instructions recipe ={recipe} />
             </div>
         </main>
     )

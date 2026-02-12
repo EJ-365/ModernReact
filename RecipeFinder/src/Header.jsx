@@ -1,7 +1,7 @@
 import { Utensils, Bell, UserRound } from "lucide-react";
 import SearchForm from "./SearchForm";
 
-export default function Header({onMenuClick}) {
+export default function Header({onMenuClick, query, setQuery, handleSubmit}) {
   return (
     <header className="bg-[#fdfdfe] border-b border-gray-200 shadow-sm">
       <nav className="flex items-center justify-between px-4 md:px-10 py-3">
@@ -17,7 +17,7 @@ export default function Header({onMenuClick}) {
         </div>
 
         {/* SearchForm Component */}
-        <SearchForm />
+        <SearchForm query={query} setQuery={setQuery} handleSubmit={handleSubmit}/>
 
         {/* Nav Links */}
         <div className="flex items-center gap-2 sm:gap-4 shrink">
