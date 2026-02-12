@@ -27,7 +27,7 @@ export default function SideBar({ sampleData, isOpen, onClose, selectedRecipe, s
           <div className="space-y-4">
             {sampleData.map((item) => (
               <div 
-                className={`bg-white border-2 rounded-2xl cursor-pointer p-4 hover:bg-purple-100 border-purple-800 ${selectedId === item.idMeal ? "border-purple-800 bg-purple-50" : "border-transparent"}`} 
+                className={`border bg-slate-100 rounded-2xl cursor-pointer p-4 hover:bg-purple-100 transition ease-in-out duration-300  ${selectedId === item.idMeal ? "border-purple-800 border-2" : "border-transparent"} `} 
                 key={item.idMeal} onClick={() => setSelectedId(item.idMeal)}
               >
                 {/*image and header/name */}
