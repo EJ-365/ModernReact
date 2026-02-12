@@ -7,7 +7,7 @@ export default function Header({onMenuClick}) {
       <nav className="flex items-center justify-between px-4 md:px-10 py-3">
         {/* Logo Area */}
         <div className="flex items-center shrink">
-        <button className="tablet:hidden" onClick={onMenuClick}><i class="bx bx-menu mx-3  md:text-2xl bg-gray-200 p-2 rounded-lg cursor-pointer" /></button>
+        <button className="tablet:hidden" onClick={onMenuClick}><i class="bx bx-menu mx-3 md:text-2xl bg-gray-200 p-2 rounded-lg cursor-pointer" /></button>
           <div className="bg-[#7f13ec] p-2 rounded-lg flex items-center justify-center">
             <Utensils size={20} color="white" />
           </div>
