@@ -32,7 +32,7 @@ export default function SideBar({ sampleData, isOpen, onClose, selectedRecipe, s
               >
                 {/*image and header/name */}
                 <div className="flex items-center justify-between">
-                  <div className="mr-5 w-auto">
+                  <div className="mr-10 w-auto">
                     <img src={item.strMealThumb} className="w-28 rounded-2xl" alt={item.strMeal} />
                   </div>
                   <h2 className="capitalize font-semibold">{item.strMeal}</h2>
