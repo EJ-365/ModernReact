@@ -12,7 +12,7 @@ export default function Instructions({ recipe }) {
             <div className="space-y-6">
                 {steps.map((step, index) => (
                     <div key={index} className="flex gap-4">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <p className="bg-purple-700 w-8 h-8 flex items-center justify-center rounded-full text-white font-bold text-sm">
                                 {index + 1}
                             </p>

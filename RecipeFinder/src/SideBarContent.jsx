@@ -15,7 +15,7 @@ export default function SideBarContent({ recipe }) {
                 />
 
                 {/* text overlay */}
-                <div className="absolute bottom-0 left-0 p-4 md:p-10 w-full bg-gradient-to-t from-black/60 to-transparent rounded-b-2xl">
+                <div className="absolute bottom-0 left-0 p-4 md:p-10 w-full bg-linear-to-t from-black/60 to-transparent rounded-b-2xl">
                     {/* labelling */}
                     <div className="flex items-center justify-start gap-3 my-4">
                         <button className="uppercase px-4 py-1 text-[10px] md:text-xs border border-gray-500 rounded-full bg-purple-700 text-white">
