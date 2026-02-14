@@ -1,12 +1,12 @@
-export default function Instructions({ recipe }) {
-    const steps = recipe?.strInstructions 
-        ? recipe.strInstructions.split('\r\n').filter(step => step.trim().length > 0) 
+export default function Instructions({ recipe, toggle }) {
+    const steps = recipe?.strInstructions
+        ? recipe.strInstructions.split('\r\n').filter(step => step.trim().length > 0)
         : [];
 
     return (
-        <section className="flex-1 bg-white p-4 md:p-8">
+        <section className={`flex-1 p-4 md:p-8 transition-colors ${toggle ? "bg-gray-900 text-white" : "bg-white text-gray-900"}`}>
             <div className="mb-8">
-                <h1 className="font-bold text-2xl text-gray-800">Cooking Instructions</h1>
+                <h1 className={`font-bold text-2xl ${toggle ? "text-white" : "text-gray-800"}`}>Cooking Instructions</h1>
             </div>
 
             <div className="space-y-6">
@@ -18,8 +18,8 @@ export default function Instructions({ recipe }) {
                             </p>
                         </div>
                         <div className="flex flex-col">
-                            <h3 className="font-bold text-gray-900 mb-1">Step {index + 1}</h3>
-                            <p className="text-sm text-gray-600 leading-relaxed">{step}</p>
+                            <h3 className={`font-bold mb-1 ${toggle ? "text-white" : "text-gray-900"}`}>Step {index + 1}</h3>
+                            <p className={`text-sm leading-relaxed ${toggle ? "text-gray-300" : "text-gray-600"}`}>{step}</p>
                         </div>
                     </div>
                 ))}
@@ -27,12 +27,12 @@ export default function Instructions({ recipe }) {
 
             {recipe?.strYoutube && (
                 <div className="mt-12">
-                    <h2 className="font-bold text-xl mb-6">Video Tutorial</h2>
+                    <h2 className={`font-bold text-xl mb-6 ${toggle ? "text-white" : "text-gray-900"}`}>Video Tutorial</h2>
                     <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg">
-                        <iframe 
+                        <iframe
                             className="w-full h-full"
-                            src={recipe.strYoutube.replace("watch?v=", "embed/")} 
-                            title="YouTube video player" 
+                            src={recipe.strYoutube.replace("watch?v=", "embed/")}
+                            title="YouTube video player"
                             allowFullScreen
                         ></iframe>
                     </div>

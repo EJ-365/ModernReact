@@ -10,6 +10,12 @@ export default function App() {
   // state for toggling sidebar 
   const [isOpen, setIsOpen] = useState(false);
 
+  // state for light/day
+  const [toggle, setToggle] = useState(false);
+  function handleToggle() {
+    setToggle(prev => !prev);
+  }
+
   // state for tracking the input
   const [query, setQuery] = useState("Pizza");
   const [food, setFood] = useState([]);
@@ -44,9 +50,9 @@ export default function App() {
 
   return (
     <div className="">
-      <Header onMenuClick={() => setIsOpen(!isOpen)} query={query} setQuery={setQuery} handleSubmit={handleSubmit} />
-      <SideBar sampleData={food} isOpen={isOpen} onClose={() => setIsOpen(false)} selectedId={selectedId} setSelectedId={setSelectedId} selectedRecipe={selectedRecipe}/>
-      <Footer />
+      <Header onMenuClick={() => setIsOpen(!isOpen)} query={query} setQuery={setQuery} handleSubmit={handleSubmit} toggle={toggle} setToggle={handleToggle} />
+      <SideBar sampleData={food} isOpen={isOpen} onClose={() => setIsOpen(false)} selectedId={selectedId} setSelectedId={setSelectedId} selectedRecipe={selectedRecipe} toggle={toggle} />
+      <Footer toggle={toggle} />
     </div>
   );
 }
