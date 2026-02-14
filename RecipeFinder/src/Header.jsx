@@ -1,4 +1,4 @@
-import { Utensils, Bell, UserRound } from "lucide-react";
+import { Utensils, Bell, Moon } from "lucide-react";
 import SearchForm from "./SearchForm";
 
 export default function Header({onMenuClick, query, setQuery, handleSubmit}) {
@@ -25,7 +25,7 @@ export default function Header({onMenuClick, query, setQuery, handleSubmit}) {
             <Bell size={22} className="text-gray-600" />
           </button>
           <div className="bg-gray-800 p-2 rounded-full hover:bg-gray-700 cursor-pointer transition-colors">
-            <UserRound size={20} color="lightgray" />
+            <Moon size={20} color="lightgray" />
           </div>
         </div>
       </nav>
