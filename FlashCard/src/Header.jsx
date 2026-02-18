@@ -1,32 +1,19 @@
-import React, { useState } from "react";
-
-export default function Header() {
-  const [select, setSelect] = useState("math");
-
+export default function Header({toggle, setToggle, select, setSelect, amount, setAmount}) {
   return (
-    <header className="bg-white shadow-md pb-2">
-      <nav className={`py-3 mx-4 flex items-center justify-between`}>
+    <header className={`${toggle ? "bg-zinc-900" : "bg-white"} shadow-md pb-2 w-full md:p-0 `}>
+      <nav className={`py-3 md:mx-4 flex items-center md:justify-between flex-col md:flex-row justify-center md:m-auto sm:mx-1`}>
         {/* logo */}
-        <div className="flex items-center justify-start">
-          <i class="bx bx-card-view-small p-2 w-1/2 h-1/2 mr-2 text-2xl rounded-2xl text-white bg-purple-700" />
-          <span className="text-xl font-bold">FlashQuiz</span>
+        <div className="flex items-center justify-start mb-4">
+          <i className="bx bx-card-view-small p-2 w-1/2 h-1/2 mr-2 md:text-2xl rounded-2xl text-white bg-purple-700" />
+          <span className={`${toggle ? "text-white" : "text-black"} md:text-xl font-bold`}>FlashQuiz</span>
         </div>
 
         {/* links */}
-
-        <div className={`flex flex-col justify-center items-center`}>
-          {/* title: category, amount  */}
-          <div
-            className={`uppercase text-gray-400 text-xs flex items-center justify-between w-60 mr-60 text-center ml-10 mb-1.5`}
-          >
-            <p className="text-center font-semibold">Category</p>
-            <p className="text-center font-semibold">Amount</p>
-          </div>
-
+        <div className={`flex flex-col w-full md:w-auto px-6 `}>
           {/* form selection*/}
-          <form action="" className={`text-sm flex  gap-4 w-full`}>
+          <form action="" className={`text-sm flex gap-4 md:w-auto w-full flex-col md:flex-row`}>
             <select
-              className={`px-2 py-1 w-auto bg-gray-100 rounded-xl border outline-none m-0 ring`}
+              className={`md:px-2 md:py-1 md:w-auto py-1.5 bg-gray-100 rounded-md border outline-none m-0 ring cursor-pointer w-full`}
               value={select}
               onChange={(event) => setSelect(event.target.value)}
             >
@@ -35,15 +22,27 @@ export default function Header() {
               <option value="general knowlege">General Knowlege</option>
             </select>
 
-            <div className="flex">
+            <div className="flex w-full">
               <input
                 type="text"
-                className={`border ring rounded-md text-start px-4 py-1 w-auto outline-none bg-gray-100 focus:ring focus:ring-purple-700`}
-                value={10}
+                className={`border ring rounded-md text-start md:px-4 p-1 md:w-auto w-full outline-none bg-gray-100 focus:ring focus:ring-purple-700`}
+                value={amount}
+                onChange={(event) => setAmount(Number(event.target.value))}
+                placeholder="10"
               />
-              <button className="px-8 mx-2 py-2 border bx  hover:bg-purple-800 duration-300 ease-in-out transition cursor-pointer bg-purple-600 rounded-lg text-white">
-                Generate <i class="bx bx-bolt text-xl align-middle " />
+              <button className="md:px-8 px-2 md:mx-2 ml-2 md:py-2 py-1 border md:font-bold hover:bg-purple-800 duration-300 ease-in-out transition cursor-pointer bg-purple-600 rounded-lg text-white flex items-center">
+                Generate 
+                <i className="bxf bx-bolt hidden md:inline-block ml-1 text-lg"></i>
               </button>
+              
+              {/* light and dark mode */}
+              <div className="ml-2">
+                <i 
+                  className={`bxf ${toggle ? "bx-sun" : "bx-moon"} align-middle text-xl p-2 bg-gray-200 hover:bg-gray-300 rounded-full cursor-pointer`} 
+                  onClick={() => setToggle(!toggle)} 
+                  title={toggle ? "Switch light mode" : "Switch dark mode"}
+                />
+              </div>
             </div>
           </form>
         </div>
