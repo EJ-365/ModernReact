@@ -1,8 +1,8 @@
 import React from 'react'
 
-export default function Cards({item}) {
+export default function Cards({item, toggle}) {
   return (
-    <div className='md:w-90 w-full min-h-[350px] flex flex-col  shadow rounded-md p-10 mb-4'>
+    <div className={` ${toggle && "bg-white/80"} md:w-90 w-full min-h-[350px] flex flex-col  shadow-md rounded-md p-10 mb-4`}>
         <h2 className='text-lg font-semibold'>{item.question}</h2>
         {/* <p>{item.answer}</p> */}
         <ul>
