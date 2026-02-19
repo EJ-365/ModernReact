@@ -1,4 +1,4 @@
-export default function Header({toggle, setToggle, select, setSelect, amount, setAmount}) {
+export default function Header({toggle, setToggle, select, setSelect, amount, setAmount, handleGenerate}) {
   return (
     <header className={`${toggle ? "bg-slate-900 border-b-2" : "bg-white"} shadow-md pb-2 w-full md:p-0 `}>
       <nav className={`py-3 md:mx-4 flex items-center md:justify-between flex-col md:flex-row justify-center md:m-auto sm:mx-1`}>
@@ -18,15 +18,29 @@ export default function Header({toggle, setToggle, select, setSelect, amount, se
           </div>
 
           {/* form selection*/}
-          <form action="" className={`text-sm flex gap-4 md:w-auto w-full flex-col md:flex-row`}>
+          <form action="" className={`text-sm flex gap-4 md:w-auto w-full flex-col md:flex-row`} onSubmit={handleGenerate}>
             <select
               className={`border md:px-2 md:py-1 md:w-auto py-1.5 bg-gray-100 rounded-md ${toggle ? "border-white": "border-black"} outline-none m-0 ring cursor-pointer w-full`}
               value={select}
               onChange={(event) => setSelect(event.target.value)}
             >
-              <option value="science">Science</option>
-              <option value="math">Math</option>
-              <option value="general knowlege">General Knowlege</option>
+              <option value="General Knowledge">General Knowledge</option>
+              <option value="Science & Nature">Science & Nature</option>
+              <option value="Computers">Computers</option>
+              <option value="Math">Math</option>
+              <option value="Gadgets">Gadgets</option>
+              <option value="Mythology">Mythology</option>
+              <option value="Music">Music</option>
+              <option value="Film">Film</option>
+              <option value="TV">TV</option>
+              <option value="Art">Art</option>
+              <option value="Politics">Politics</option>
+              <option value="Celebrities">Celebrities</option>
+              <option value="Vehicles">Vehicles</option>
+              <option value="Sports">Sports</option>
+              <option value="Geography">Geography</option>
+              <option value="History">History</option>
+              <option value="Animals">Animals</option>
             </select>
 
             <div className="flex w-full">
