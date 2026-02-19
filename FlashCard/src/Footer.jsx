@@ -10,7 +10,7 @@ export default function Footer({ toggle }) {
       <div className="container mx-auto px-4">
         <p className="font-semibold text-purple-600 mb-1">FlashQuiz</p>
         <p>
-          Built with React + Vite · Powered by{" "}
+          Built with React + Vite · by Ejay. Powered by{" "}
           <a
             href="https://opentdb.com/"
             target="_blank"
