@@ -12,7 +12,7 @@ export const playersData = [
         name: "Cristiano Ronaldo",
         position: "Forward",
         number: "#7",
-        photo: "https://i.pinimg.com/736x/69/f2/a1/69f2a1780bb7920ebb2848ae23da924a.jpg"
+        photo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSGn3P57OEBPNKcBKUo9God-YsaM6a5Kw-LTw&s"
     },
 
     {
@@ -44,7 +44,7 @@ export const playersData = [
         name: "Mohamed Salah",
         position: "Forward",
         number: "#11",
-        photo: "https://upload.wikimedia.org/wikipedia/commons/4/4a/Mohamed_Salah_2018.jpg"
+        photo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ9wGQV0uU2JXTqztsC_g8fz9_cfLXquCMU2A&s"
     },
 
     {
@@ -52,7 +52,7 @@ export const playersData = [
         name: "Harry Kane",
         position: "Forward",
         number: "#9",
-        photo: "https://i.pinimg.com/736x/32/43/3d/32433dade363bf766c66aeff2f34efbc.jpg"
+        photo: "https://img.uefa.com/imgml/TP/players/17/2026/324x324/250016833.jpg"
     },
 
     {
@@ -61,6 +61,62 @@ export const playersData = [
         position: "Forward",
         number: "#9",
         photo: "https://img.uefa.com/imgml/TP/players/17/2026/324x324/250002096.jpg"
+    },
+
+    {
+        id: "benzema",
+        name: "Karim Benzema",
+        position: "Forward",
+        number: "#9",
+        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/karimbenzema-4-390x450.png"
+    },
+
+    {
+        id: "viniciusjr",
+        name: "Vinicius Jr.",
+        position: "Forward",
+        number: "#7",
+        photo: "https://www.footyrenders.com/render/vinicius-junior-11-390x359.png"
+    },
+
+    {
+        id: "son",
+        name: "Son Heung-min",
+        position: "Forward",
+        number: "#7",
+        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/son-heung-min-37-390x492.png"
+    },
+
+    {
+        id: "saka",
+        name: "Bukayo Saka",
+        position: "Forward",
+        number: "#7",
+        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/bukayo-saka-7-390x379.png"
+    },
+
+    {
+        id: "lautaro",
+        name: "Lautaro Martinez",
+        position: "Forward",
+        number: "#10",
+        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/lautaro-martinez-38-359x540.png"
+    },
+
+    {
+        id: "darwin",
+        name: "Darwin Nunez",
+        position: "Forward",
+        number: "#9",
+        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/darwin-nunez-2-295x540.png"
+    },
+
+    {
+        id: "osimhen",
+        name: "Victor Osimhen",
+        position: "Forward",
+        number: "#9",
+        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/victor-osimhen-11-390x301.png"
     }
   ];
   
