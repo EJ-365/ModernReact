@@ -68,7 +68,7 @@ export const playersData = [
         name: "Karim Benzema",
         position: "Forward",
         number: "#9",
-        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/karimbenzema-4-390x450.png"
+        photo: "https://www.fifarosters.com/assets/players/fifa20/faces/165153.png"
     },
 
     {
@@ -76,7 +76,7 @@ export const playersData = [
         name: "Vinicius Jr.",
         position: "Forward",
         number: "#7",
-        photo: "https://www.footyrenders.com/render/vinicius-junior-11-390x359.png"
+        photo: "https://b.fssta.com/uploads/application/soccer/headshots/53004.png"
     },
 
     {
@@ -100,7 +100,7 @@ export const playersData = [
         name: "Lautaro Martinez",
         position: "Forward",
         number: "#10",
-        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/lautaro-martinez-38-359x540.png"
+        photo: "https://b.fssta.com/uploads/application/soccer/headshots/39831.png"
     },
 
     {
@@ -108,7 +108,7 @@ export const playersData = [
         name: "Darwin Nunez",
         position: "Forward",
         number: "#9",
-        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/darwin-nunez-2-295x540.png"
+        photo: "https://cdn-img.zerozero.pt/img/planteis/new/14/75/8721475_darwin_nunez_20251211021518.jpg"
     },
 
     {
@@ -116,7 +116,15 @@ export const playersData = [
         name: "Victor Osimhen",
         position: "Forward",
         number: "#9",
-        photo: "https://images.weserv.nl/?url=www.footyrenders.com/render/victor-osimhen-11-390x301.png"
+        photo: "https://img.uefa.com/imgml/TP/players/1/2026/324x324/250132987.jpg"
+    },
+
+    {
+        id: "neymar",
+        name: "Neymar Jr.",
+        position: "Forward",
+        number: "#10",
+        photo: "https://i.pinimg.com/736x/e9/11/5a/e9115a133e8b8b08b8ac441fca0e1162.jpg"
     }
   ];
   

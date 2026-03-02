@@ -1,3 +1,4 @@
+import { Link, Outlet } from "react-router-dom";
 import Navbar from "../Components/Navbar";
 import { playersData } from "../playersData";
 export default function Players() {
@@ -24,9 +25,13 @@ export default function Players() {
         </form>
       </div>
 
+      <div className="mt-10">
+        <Outlet />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-[repeat(2,240px)] xl:grid-cols-[repeat(4,240px)] justify-center justify-items-center md:justify-items-stretch gap-x-6 gap-y-6 my-10">
         {playersData.map((players) => (
-          <div className="p-4 bg-white shadow-sm hover:shadow-md transition-shadow text-center border border-purple-100 rounded-xl w-full max-w-[240px] md:max-w-none md:w-60 cursor-pointer" key={players.id}>
+          <Link className="p-4 bg-white shadow-sm hover:shadow-md transition-shadow text-center border border-purple-100 rounded-xl w-full max-w-[240px] md:max-w-none md:w-60 cursor-pointer" key={players.id} to={`/players/${players.id}`}>
             <div className="relative inline-block mb-4">
               <span className="absolute z-40 -top-2 -left-2 bg-[#7f13ec] text-white w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm shadow-lg border-2 border-white">
                 {players.number}
@@ -35,7 +40,7 @@ export default function Players() {
             </div>
             <h4 className="font-bold text-lg mb-2">{players.name}</h4>
             <p className="text-purple-800 font-semibold px-3 py-1 rounded-2xl bg-purple-100 w-fit mx-auto text-center uppercase tracking-wider text-sm">{players.position}</p>
-          </div>
+          </Link>
         ))}
       </div>
     </section>
