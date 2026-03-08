@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="border-t bg-[rgb(247,246,248)] px-10 py-16 border-slate-200 text-slate-700">
+    <footer className="border-t bg-[rgb(247,246,248)] px-10 py-16 border-slate-200 text-slate-700 w-full">
       <div className="flex items-center justify-evenly">
         <span>Privacy Policy</span>
         <span>Terms of Service</span>

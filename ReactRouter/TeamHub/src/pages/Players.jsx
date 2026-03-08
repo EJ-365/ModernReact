@@ -1,5 +1,4 @@
 import {Link, Outlet} from "react-router-dom";
-import Navbar from "../Components/Navbar";
 import {playersData} from "../playersData";
 export default function Players() {
     return (
@@ -23,7 +22,7 @@ export default function Players() {
 
             <div className="mt-10"></div>
 
-            <div className="grid grid-cols-1 md:grid-cols-[repeat(2,240px)] xl:grid-cols-[repeat(4,240px)] justify-center justify-items-center md:justify-items-stretch gap-x-6 gap-y-6 my-10">
+            <div className="grid grid-cols-1 md:grid-cols-[repeat(2,240px)] xl:grid-cols-[repeat(4,240px)] justify-center justify-items-center md:justify-items-stretch gap-x-6 gap-y-6 my-10 bg-gray-100">
                 {
                 playersData.map((players) => (
                     <Link className="p-4 bg-white shadow-sm hover:shadow-md transition-shadow text-center border border-purple-100 rounded-xl w-full max-w-[240px] md:max-w-none md:w-60 cursor-pointer"
