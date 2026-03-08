@@ -39,8 +39,8 @@ export default function Home() {
       </div>
 
       {/* Team Highlights */}
-      <div className="mb-0 mt-20 py-10 bg-white shadow-xs">
-        <div className="lg:px-100  px-20 pt-20 w-full">
+      <div className="mb-0 mt-20 py-10 bg-white shadow-xs w-full">
+        <div className="lg:px-100  px-20 pt-20">
           <h1 className="md:font-bold font-semibold md:text-3xl text-2xl my-4 text-center md:text-left">
             Team Highlights
           </h1>
@@ -50,7 +50,7 @@ export default function Home() {
         </div>
 
         {/* Team Highlights cards */}
-        <div className="my-10 flex items-center justify-center xl:flex-row flex-col gap-5 md:p-auto p-10">
+        <div className="my-10 flex items-center justify-center xl:flex-row flex-col gap-5 md:p-auto p-10 ">
             {/* card 1 */}
           <div className="bg-purple-100/50 px-8 pb-7 pt-4 rounded-2xl xl:w-90 w-full">
             <i className="bxf bx-bar-chart-big text-xl bg-purple-200/55 p-3 rounded-md mt-3"/>
