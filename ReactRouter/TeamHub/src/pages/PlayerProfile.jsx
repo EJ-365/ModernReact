@@ -74,7 +74,7 @@ function Profile() {
       <section className="lg:flex overflow-y-auto transition-colors min-h-screen bg-gray-100 ">
         {/* left side */}
         <div className="lg:flex-1 lg:p-auto p-4 bg-gray-100 ">
-          <div className="bg-linear-to-r from-[#530263] via-[#490986] to-[#3c066f] md:pl-10 pl-4 md:pr-0 pr-4 lg:h-120 md:h-180 md:pt-15 pt-10 rounded-2xl shadow-lg shadow-purple-400 w-full lg:w-7xl">
+          <div className="bg-linear-to-r from-[#530263] via-[#490986] to-[#3c066f] md:pl-10 pl-4 md:pr-0 pr-4 lg:h-120 md:h-180 h-180 md:pt-15 pt-10 rounded-2xl shadow-lg shadow-purple-400 w-full lg:w-7xl">
             <div className="flex items-center justify-center md:justify-start md:space-x-6 space-x-0 md:mx-10 mx-0 flex-col md:flex-row gap-4 md:gap-0">
               {/* for the image */}
               <div className="relative">
