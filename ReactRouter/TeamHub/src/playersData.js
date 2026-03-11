@@ -132,6 +132,28 @@ export const playersData = [
   },
 
   {
+    id: "rashford",
+    name: "Marcus Rashford",
+    position: "Forward",
+    number: "10",
+    isActive: true,
+    photo: "https://www.fifarosters.com/assets/players/fifa20/faces/231677.png",
+    age: 28,
+    nationality: "England",
+    countryCode: "GB",
+    goals: 16,
+    assists: 9,
+    matches: 33,
+    rating: 7.9,
+    dateJoined: "2016-02-25",
+    preferredFoot: "Right",
+    weight: "70 kg",
+    agent: "DN May Sports",
+    height: "180 cm",
+    contractExpires: "2028-06-30",
+  },
+
+  {
     id: "kane",
     name: "Harry Kane",
     position: "Forward",
