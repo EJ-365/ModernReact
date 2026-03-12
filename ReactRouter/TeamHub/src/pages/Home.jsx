@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Home() {
   return (
     <main className="">
@@ -28,7 +30,7 @@ export default function Home() {
         <div>
           <div className="flex items-center justify-evenly space-x-8">
             <button className=" text-white px-6 py-2 rounded-md bg-[#FF9800] font-semibold shadow-lg cursor-pointer">
-              View players
+             <Link to="/players"> View players</Link>
             </button>
             <button className="cursor-pointer bg-white border border-black/10 px-6 py-2 rounded-md font-bold shadow-xs">
               {" "}

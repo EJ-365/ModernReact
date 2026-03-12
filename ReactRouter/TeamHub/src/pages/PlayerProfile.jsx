@@ -1,12 +1,13 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { playersData } from "../playersData";
+import ErrorCode from "./ErrorCode";
 
 function Profile() {
   const navigate = useNavigate();
 
   const { id } = useParams();
   const players = playersData.find((p) => p.id === id);
-  if (!players) return <h1>Couldn't find the player</h1>;
+  if (!players) return <ErrorCode/>;
 
   // rediret back to players page
 
@@ -277,10 +278,10 @@ function Profile() {
                 the final third.
               </p>
               <div className="flex space-x-6 my-3">
-                <p className="capitalize text-green-700/80 border-green-500/60 px-2 rounded-sm py-1 border bg-white/30 font-semibold shadow-xs ">
+                <p className="capitalize text-green-700/80 border-green-500/60 px-2 rounded-sm py-1 border bg-white font-semibold shadow-xs ">
                   High impact
                 </p>
-                <p className="capitalize text-green-700/80 border-green-500/60 px-2 py-1 border rounded-sm bg-white/30 shadow-xs font-semibold">
+                <p className="capitalize text-green-700/80 border-green-500/60 px-2 py-1 border rounded-sm bg-white shadow-xs font-semibold">
                   playmaker
                 </p>
               </div>
