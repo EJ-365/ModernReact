@@ -227,7 +227,7 @@ function About() {
         </div>
 
         {/* CTA: ready to be part of the theme */}
-        <div className="bg-violet-200 text-center my-24 lg:w-250 mx-auto p-8 rounded-xl shadow-xs">
+        <div className="bg-violet-200 dark:bg-slate-900 text-center my-24 lg:w-250 mx-auto p-8 rounded-xl shadow-xs">
           <h2 className="font-bold lg:text-3xl text-xl my-3">Ready to be part of the team?</h2>
           <p className="text-wrap lg:w-1/2 text-center lg:mx-auto text-zinc-900 dark:text-slate-200 font-normal">
             Whether you are looking to join a competitive squad or just starting
@@ -238,7 +238,7 @@ function About() {
               Join team hub{" "}
               <i className="bx bx-arrow-right text-lg font-light align-middle text-white" />
             </button>
-            <button className="font-bold bg-white dark:bg-slate-900 dark:text-slate-100 shadow-sm  capitalize lg:px-10 px-6 cursor-pointer py-2 rounded-md text-sm lg:text-normal text-nowrap lg:text-wrap">
+            <button className="font-bold bg-white dark:text-slate-900 shadow-sm  capitalize lg:px-10 px-6 cursor-pointer py-2 rounded-md text-sm lg:text-normal text-nowrap lg:text-wrap">
               contact us{" "}
             </button>
           </div>
