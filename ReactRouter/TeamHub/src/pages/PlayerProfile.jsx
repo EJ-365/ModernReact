@@ -43,13 +43,13 @@ function Profile() {
   const playersHeightInFeet = Math.floor(playersHeightNumber * 100) / 100;
 
   return (
-    <div className="bg-gray-100 min-h-screen w-full pl-4 md:pl-6 lg:pl-8 pr-0">
+    <div className="bg-gray-100 dark:bg-slate-950 min-h-screen w-full pl-4 md:pl-6 lg:pl-8 pr-0">
       {" "}
       {/* player name and back to player button */}
       <div className="p-4  flex flex-wrap items-center justify-between">
         <div>
           {/* file path rerouting */}
-          <div className="flex items-start justify-start font-semibold text-purple-800">
+          <div className="flex items-start justify-start font-semibold text-violet-800">
             <span className="">
               {" "}
               <i className="bxf bx-group items-center align-middle text-xl mx-2" />
@@ -72,10 +72,10 @@ function Profile() {
         </button>
       </div>
       {/* Players individual cards and perfomance history start here */}
-      <section className="lg:flex overflow-y-auto transition-colors min-h-screen bg-gray-100 ">
+      <section className="lg:flex overflow-y-auto transition-colors min-h-screen bg-gray-100 dark:bg-slate-950 ">
         {/* left side */}
-        <div className="lg:flex-1 lg:p-auto p-4 bg-gray-100 ">
-          <div className="bg-linear-to-r from-[#530263] via-[#490986] to-[#3c066f] md:pl-10 pl-4 md:pr-0 pr-4 lg:h-120 md:h-180 h-180 md:pt-15 pt-10 rounded-2xl shadow-lg shadow-purple-400 w-full lg:w-7xl">
+        <div className="lg:flex-1 lg:p-auto p-4 bg-gray-100 dark:bg-slate-950 ">
+          <div className="bg-linear-to-r from-violet-950 via-violet-800 to-violet-900 md:pl-10 pl-4 md:pr-0 pr-4 lg:h-120 md:h-180 h-180 md:pt-15 pt-10 rounded-2xl shadow-lg shadow-violet-400 w-full lg:w-7xl">
             <div className="flex items-center justify-center md:justify-start md:space-x-6 space-x-0 md:mx-10 mx-0 flex-col md:flex-row gap-4 md:gap-0">
               {/* for the image */}
               <div className="relative">
@@ -188,7 +188,7 @@ function Profile() {
           </div>
 
           {/*contract and person detail */}
-          <div className="my-12 bg-white shadow-sm p-6 md:p-8 rounded-xl w-full">
+          <div className="my-12 bg-white dark:bg-slate-900 dark:border dark:border-white/10 shadow-sm p-6 md:p-8 rounded-xl w-full">
             <h2 className="font-bold capitalize text-2xl text-wrap md:text-start text-center">
               <i class="bxf bx-dots-vertical-rounded-circle align-middle mx-2 text-3xl text-violet-800 " />
               Contract & personal details
@@ -197,8 +197,8 @@ function Profile() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 ml-0 my-8">
               {/* grid div 1 */}
               <div className="flex justify-center flex-col w-full">
-                <div className="flex justify-between items-center border-b border-gray-200">
-                  <span className="text-gray-700 capitalize md:font-semibold my-3">
+                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10">
+                  <span className="text-gray-700 dark:text-slate-300 capitalize md:font-semibold my-3">
                     Date Join
                   </span>
                   <span className="font-semibold capitalize">
@@ -206,8 +206,8 @@ function Profile() {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-gray-200">
-                  <span className="text-gray-700 capitalize md:font-semibold my-3">
+                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10">
+                  <span className="text-gray-700 dark:text-slate-300 capitalize md:font-semibold my-3">
                     preferred foot
                   </span>
                   <span className="capitalize font-semibold">
@@ -215,8 +215,8 @@ function Profile() {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-gray-200">
-                  <span className="text-gray-700 capitalize md:font-semibold my-3">
+                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10">
+                  <span className="text-gray-700 dark:text-slate-300 capitalize md:font-semibold my-3">
                     weight
                   </span>
                   <span className="font-semibold lowercase">
@@ -228,8 +228,8 @@ function Profile() {
 
               {/* grid div 2 */}
               <div className="flex justify-center flex-col w-full">
-                <div className="flex justify-between items-center border-b border-gray-200">
-                  <span className="text-gray-700 capitalize md:font-semibold my-3">
+                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10">
+                  <span className="text-gray-700 dark:text-slate-300 capitalize md:font-semibold my-3">
                     contract expires
                   </span>
                   <span className="font-semibold capitalize">
@@ -237,8 +237,8 @@ function Profile() {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-gray-200">
-                  <span className="text-gray-700 capitalize md:font-semibold my-3">
+                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10">
+                  <span className="text-gray-700 dark:text-slate-300 capitalize md:font-semibold my-3">
                     Height
                   </span>
                   <span className="font-semibold  lowercase">
@@ -246,8 +246,8 @@ function Profile() {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center border-b border-gray-200">
-                  <span className="text-gray-700 capitalize md:font-semibold my-3">
+                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10">
+                  <span className="text-gray-700 dark:text-slate-300 capitalize md:font-semibold my-3">
                     agent
                   </span>
                   <span className="font-semibold capitalize">
@@ -260,7 +260,7 @@ function Profile() {
         </div>
 
         {/* right side */}
-        <aside className="lg:w-120 w-full bg-white lg:p-10 p-4 h-230 shadow-sm rounded-xl lg:mt-0 mt-6">
+        <aside className="lg:w-120 w-full bg-white dark:bg-slate-900 dark:border dark:border-white/10 lg:p-10 p-4 h-230 shadow-sm rounded-xl lg:mt-0 mt-6">
           {/* main div start here */}
           <div>
             <h1 className="font-bold capitalize text-[20px]">
@@ -272,16 +272,16 @@ function Profile() {
                 <i class="bx bx-chart-trend mx-2 align-middle text-2xl text-green-800 " />
                 season summary
               </p>
-              <p className="text-[16px] leading-normal text-wrap text-zinc-900/85 font-semibold">
+              <p className="text-[16px] leading-normal text-wrap text-zinc-900/85 dark:text-slate-200 font-semibold">
                 {players.name.split(" ")[0]} shows strong left-wing dominance
                 during transitions, frequently creating overload situations in
                 the final third.
               </p>
               <div className="flex space-x-6 my-3">
-                <p className="capitalize text-green-700/80 border-green-500/60 px-2 rounded-sm py-1 border bg-white font-semibold shadow-xs ">
+                <p className="capitalize text-green-700/80 border-green-500/60 px-2 rounded-sm py-1 border bg-white dark:bg-slate-900 font-semibold shadow-xs ">
                   High impact
                 </p>
-                <p className="capitalize text-green-700/80 border-green-500/60 px-2 py-1 border rounded-sm bg-white shadow-xs font-semibold">
+                <p className="capitalize text-green-700/80 border-green-500/60 px-2 py-1 border rounded-sm bg-white dark:bg-slate-900 shadow-xs font-semibold">
                   playmaker
                 </p>
               </div>
@@ -293,7 +293,7 @@ function Profile() {
                 {" "}
                 recent matches
               </h1>
-              <button className="capitalize text-purple-800 font-normal cursor-pointer">
+              <button className="capitalize text-violet-800 font-normal cursor-pointer">
                 view all
               </button>
             </div>
@@ -301,7 +301,7 @@ function Profile() {
             {/* match details */}
             <div className="flex flex-col items-start justify-center my-4">
               {/* individual match info */}
-              <div className="flex space-x-20 justify-between w-full bg-gray-100 pt-4 pb-2 px-6 rounded-md my-4">
+              <div className="flex space-x-20 justify-between w-full bg-gray-100 dark:bg-slate-950 pt-4 pb-2 px-6 rounded-md my-4">
                 <div className="flex flex-col justify-start items-start">
                   <div className="flex items-start gap-3">
                     <div className="bg-green-700 w-2 h-12 rounded-sm" />
@@ -319,7 +319,7 @@ function Profile() {
               </div>
 
               {/* vs. arsenal */}
-              <div className="flex space-x-20 justify-between w-full bg-gray-100 pt-4 pb-2 px-6 rounded-md">
+              <div className="flex space-x-20 justify-between w-full bg-gray-100 dark:bg-slate-950 pt-4 pb-2 px-6 rounded-md">
                 <div className="flex flex-col justify-start items-start">
                   <div className="flex items-start gap-3">
                     <div className="bg-amber-600 w-2 h-12 rounded-sm" />
@@ -339,7 +339,7 @@ function Profile() {
               </div>
 
               {/* vs. Liverpool */}
-              <div className="flex space-x-20 justify-between w-full bg-gray-100 pt-4 pb-2 px-6 rounded-md my-4">
+              <div className="flex space-x-20 justify-between w-full bg-gray-100 dark:bg-slate-950 pt-4 pb-2 px-6 rounded-md my-4">
                 <div className="flex flex-col justify-start items-start">
                   <div className="flex items-start gap-3">
                     <div className="bg-green-700 w-2 h-12 rounded-sm" />

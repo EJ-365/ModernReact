@@ -6,14 +6,14 @@ export default function Players() {
             <div className="flex flex-col sm:flex-row items-center justify-evenly gap-4">
                 <div>
                     <h1 className="capitalize text-4xl sm:text-5xl font-bold mb-3">our players</h1>
-                    <p className="text-slate-700">
+                    <p className="text-slate-700 dark:text-slate-300">
                         Meet the squad and explore their stats.
                     </p>
                 </div>
 
                 <form className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <input type="text" className="border border-slate-300 px-2 py-1 rounded-md" placeholder="Search by name"/>
-                    <select className="px-12 py-1 border border-slate-300 rounded-md text-left sm:mx-3">
+                    <input type="text" className="border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-2 py-1 rounded-md" placeholder="Search by name"/>
+                    <select className="px-12 py-1 border border-slate-300 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-md text-left sm:mx-3">
                         <option value="forward">Forward</option>
                         <option value="midfielder">Midfielder</option>
                     </select>
@@ -22,10 +22,10 @@ export default function Players() {
 
             <div className="mt-10"></div>
 
-            <div className="grid grid-cols-1 md:grid-cols-[repeat(2,240px)] xl:grid-cols-[repeat(4,240px)] justify-center justify-items-center md:justify-items-stretch gap-x-6 gap-y-6 my-10 bg-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-[repeat(2,240px)] xl:grid-cols-[repeat(4,240px)] justify-center justify-items-center md:justify-items-stretch gap-x-6 gap-y-6 my-10 bg-gray-100 dark:bg-slate-950">
                 {
                 playersData.map((players) => (
-                    <Link className="p-4 bg-white shadow-sm hover:shadow-md transition-shadow text-center border border-purple-100 rounded-xl w-full max-w-[240px] md:max-w-none md:w-60 cursor-pointer"
+                    <Link className="p-4 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-shadow text-center border border-violet-100 dark:border-white/10 rounded-xl w-full max-w-[240px] md:max-w-none md:w-60 cursor-pointer"
                         key={
                             players.id
                         }
@@ -35,7 +35,7 @@ export default function Players() {
                             }`
                     }>
                         <div className="relative inline-block mb-4">
-                            <span className="absolute z-40 -top-2 -left-2 bg-[#7f13ec] text-white w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm shadow-lg border-2 border-white">
+                            <span className="absolute z-40 -top-2 -left-2 bg-violet-600 text-white w-10 h-10 flex items-center justify-center rounded-full font-bold text-sm shadow-lg border-2 border-white">
                                 {
                                 players.number
                             } </span>
@@ -51,7 +51,7 @@ export default function Players() {
                             {
                             players.name
                         }</h4>
-                        <p className="text-purple-800 font-semibold px-3 py-1 rounded-2xl bg-purple-100 w-fit mx-auto text-center uppercase tracking-wider text-sm">
+                        <p className="text-violet-800 dark:text-violet-200 font-semibold px-3 py-1 rounded-2xl bg-violet-100 dark:bg-violet-900/25 w-fit mx-auto text-center uppercase tracking-wider text-sm">
                             {
                             players.position
                         }</p>
