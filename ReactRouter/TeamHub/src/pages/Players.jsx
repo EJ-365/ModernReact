@@ -52,6 +52,7 @@ export default function Players() {
             <option value="forward">Forward</option>
             <option value="midfielder">Midfielder</option>
             <option value="goalkeeper">GoalKeeper</option>
+            <option value="defender">Defender</option>
           </select>
         </form>
       </div>
