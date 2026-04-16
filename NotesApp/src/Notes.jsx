@@ -6,7 +6,7 @@ const Notes = () => {
   const [titleInput, setTitleInput] = useState("");
   const [desc, setDesc] = useState("");
   const [prioritySelect, setPrioritySelect] = useState("medium");
-  const [categorySelect, setCategorySelect] = useState("");
+  const [categorySelect, setCategorySelect] = useState("choose");
 
   const [notes, setNotes] = useState(() => {
     const saved = localStorage.getItem("MyNote");
