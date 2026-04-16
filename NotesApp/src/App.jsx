@@ -1,6 +1,12 @@
+import Notes from "./Notes";
+import Header from "./Header";
+
 function App(){
   return (
-    <h2 className="text-red-500">Hello Note</h2>
+    <>
+   <Header/>
+   <Notes/>
+    </>
   )
 }
 export default App;
