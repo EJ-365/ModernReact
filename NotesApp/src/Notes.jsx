@@ -86,22 +86,10 @@ const Notes = () => {
 
   // random color for border color
   const randomColor = () => {
-    const colors = [
-      "red",
-      "blue",
-      "orange",
-      "purple",
-      "green",
-      "yellow",
-      "pink",
-      "indigo",
-      "teal",
-      "cyan",
-      "lime",
-      "emerald",
-    ];
-    const rand = Math.floor(Math.random() * colors.length);
-    return colors[rand];
+    const colors = ["red", "orange", "green"];
+    if (prioritySelect === "high") return colors[0];
+    if (prioritySelect === "medium") return colors[1];
+    if (prioritySelect === "low") return colors[2];
   };
 
   // useEffect for local storage
