@@ -7,6 +7,7 @@ const Notes = () => {
   const [desc, setDesc] = useState("");
   const [prioritySelect, setPrioritySelect] = useState("medium");
   const [categorySelect, setCategorySelect] = useState("choose");
+  const [emptyInput, setEmptyInput] = useState(false);
 
   const [notes, setNotes] = useState(() => {
     const saved = localStorage.getItem("MyNote");
@@ -31,12 +32,20 @@ const Notes = () => {
 
   // handle title input
   const handleTitle = (e) => {
-    setTitleInput(e.target.value);
+    const value = e.target.value;
+    setTitleInput(value);
+    if (value.trim() !== "") {
+      setEmptyInput(false);
+    }
   };
 
   // handle description input
   const handleDesc = (e) => {
-    setDesc(e.target.value);
+    const value = e.target.value;
+    setDesc(value);
+    if (value.trim() !== "") {
+      setEmptyInput(false);
+    }
   };
 
   // handle priority select
@@ -49,11 +58,34 @@ const Notes = () => {
     if (e.target.value === "choose") return;
     setCategorySelect(e.target.value);
   };
+  // time and date
+  const timeAndDate = () => {
+    const date =
+      new Date().toLocaleDateString("en-US", {
+        day: "numeric",
+        year: "numeric",
+        month: "short",
+        weekday: "short",
+      }) +
+      " @ " + 
+      new Date().toLocaleTimeString();
+    return date;
+  };
 
   // handle add note button: add the notes to the list
   const handleAddNote = (e) => {
     e.preventDefault();
-    if (!desc.trim() || !titleInput.trim()) return;
+    if (titleInput.trim() === "") {
+      setEmptyInput(true);
+      return;
+    }
+    setEmptyInput(false);
+
+    if (desc.trim() === "") {
+      setEmptyInput(true);
+      return;
+    }
+
     setNotes((prev) => [
       ...prev,
       {
@@ -64,6 +96,7 @@ const Notes = () => {
         desc,
         done: false,
         color: randomColor(),
+        time: timeAndDate(),
       },
     ]);
     setTitleInput("");
@@ -84,7 +117,7 @@ const Notes = () => {
     );
   };
 
-  // random color for border color
+  // random color based on the selected category for the border color
   const randomColor = () => {
     const colors = ["red", "orange", "green"];
     if (prioritySelect === "high") return colors[0];
@@ -113,6 +146,7 @@ const Notes = () => {
       {/* displaying add new note form here */}
       {showAddNewNote && (
         <NotesForm
+          emptyInput={emptyInput}
           titleInput={titleInput}
           handleTitle={handleTitle}
           desc={desc}
@@ -133,7 +167,17 @@ const Notes = () => {
             className={`border-t-6 border-t-gray-50/50 pr-10 pl-8 py-3 w-120 rounded-xl shadow-lg border-l-4 mb-2 ${note.done ? "bg-gray-200" : ""}`}
             style={{ borderLeftColor: note.color }}
           >
-            <h2 className="capitalize font-bold text-xl">{note.title}</h2>
+            <div className="justify-between flex items-center">
+              <div>
+                <h2 className="capitalize font-bold text-xl">{note.title}</h2>
+              </div>
+              <div>
+                <small className="text-xs italic text-gray-400">
+                  {note.time}
+                </small>
+              </div>
+            </div>
+
             <p className="text-gray-700 font-bold capitalize">
               Category: <span className="font-normal">{note.category}</span>
             </p>
