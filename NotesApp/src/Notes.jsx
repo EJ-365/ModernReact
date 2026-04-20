@@ -188,7 +188,7 @@ const Notes = () => {
             <div className="mt-3 flex items-center justify-between gap-2">
               <button
                 onClick={() => handleDelete(note.id)}
-                className="text-red-500 font-semibold hover:bg-red-100 pr-3 pl-2 rounded-md py-1 cursor-pointer"
+                className={` ${note.done ? "hover:bg-black/70 bg-gray-200" : "hover:bg-red-700/80 hover:text-white"} text-red-500 font-semibold border-[1.5px]  pr-3 pl-2 rounded-md py-1 cursor-pointer`}
               >
                 🗑️Delete
               </button>
