@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import NotesForm from "./NoteForm";
 
 const Notes = () => {
@@ -10,14 +10,14 @@ const Notes = () => {
   const [emptyInput, setEmptyInput] = useState(false);
   // adding useReducer() hook to support the handle function
 
-  const [notes, setNotes] = useState(() => {
+  const [notes, dispatch] = useReducer(reducer, [], () => {
     const saved = localStorage.getItem("MyNote");
     return saved
       ? JSON.parse(saved)
       : [
           {
             id: 1,
-            title: "Learn react",
+            title: "Learn React JS",
             priority: "high",
             category: "personal",
             desc: "this is a sample note",
@@ -60,7 +60,7 @@ const Notes = () => {
     setCategorySelect(e.target.value);
   };
   // time and date
-  const timeAndDate = () => {
+ function timeAndDate() {
     const date =
       new Date().toLocaleDateString("en-US", {
         day: "numeric",
@@ -68,12 +68,12 @@ const Notes = () => {
         month: "short",
         weekday: "short",
       }) +
-      " @ " + 
+      " @ " +
       new Date().toLocaleTimeString();
     return date;
   };
 
-  // handle add note button: add the notes to the list
+  // handle add note button: add the notes to the list; dispatch will be here
   const handleAddNote = (e) => {
     e.preventDefault();
     if (titleInput.trim() === "") {
@@ -87,40 +87,35 @@ const Notes = () => {
       return;
     }
     setEmptyInput(false);
-
-    setNotes((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        title: titleInput,
-        priority: prioritySelect,
-        category: categorySelect,
-        desc,
-        done: false,
-        color: randomColor(),
-        time: timeAndDate(),
-      },
-    ]);
-    setTitleInput("");
-    setDesc("");
+    dispatch({type: "ADD", title: titleInput})
   };
 
-  // handle Delete notes
-  const handleDelete = (id) => {
-    setNotes((prev) => prev.filter((note) => note.id !== id));
-  };
-
-  // handle toggle function
-  const handleToggle = (id) => {
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.id === id ? { ...note, done: !note.done } : note,
-      ),
-    );
-  };
+  // reducer function:
+  function reducer(state, action) {
+    switch (action.type) {
+      case "ADD":
+        return [
+          ...state,
+          {
+            id: crypto.randomUUID(),
+            title: titleInput,
+            priority: prioritySelect,
+            category: categorySelect,
+            desc,
+            done: false,
+            color: randomColor(),
+            time: timeAndDate(),
+          },
+        ];
+        case "DELETE": 
+        return state.filter(note => note.id !== action.id);
+        case "TOGGLE": 
+        return state.map(note => note.id === action.id ? {...note, done: !note.done} : note)
+    }
+  }
 
   // random color based on the selected category for the border color
-  const randomColor = () => {
+  function randomColor(){
     const colors = ["red", "orange", "green"];
     if (prioritySelect === "high") return colors[0];
     if (prioritySelect === "medium") return colors[1];
@@ -132,6 +127,7 @@ const Notes = () => {
     localStorage.setItem("MyNote", JSON.stringify(notes));
   }, [notes]);
 
+  // const handleAddNote = () => dispatch({type: "ADD", title: titleInput})
   /*******************UI START ********************* */
   return (
     <main>
@@ -158,6 +154,7 @@ const Notes = () => {
           categorySelect={categorySelect}
           handleCategorySelect={handleCategorySelect}
           handleAddNote={handleAddNote}
+         
         />
       )}
 
@@ -189,7 +186,7 @@ const Notes = () => {
             <p className="my-3">{note.desc}</p>
             <div className="mt-3 flex items-center justify-between gap-2">
               <button
-                onClick={() => handleDelete(note.id)}
+                onClick={() => dispatch({type: "DELETE", id: note.id})}
                 className={` ${note.done ? "hover:bg-black/70 bg-gray-200" : "hover:bg-red-700/80 hover:text-white"} text-red-500 font-semibold border-[1.5px]  pr-3 pl-2 rounded-md py-1 cursor-pointer`}
               >
                 🗑️Delete
@@ -198,7 +195,7 @@ const Notes = () => {
               <div className="">
                 <input
                   checked={note.done}
-                  onChange={() => handleToggle(note.id)}
+                  onChange={() => dispatch({type: "TOGGLE", id: note.id})}
                   type="checkbox"
                   className="w-4 h-4 cursor-pointer align-middle"
                 />{" "}
