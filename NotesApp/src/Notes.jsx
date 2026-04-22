@@ -6,8 +6,9 @@ const Notes = () => {
   const [titleInput, setTitleInput] = useState("");
   const [desc, setDesc] = useState("");
   const [prioritySelect, setPrioritySelect] = useState("medium");
-  const [categorySelect, setCategorySelect] = useState("choose");
+  const [categorySelect, setCategorySelect] = useState("N/A");
   const [emptyInput, setEmptyInput] = useState(false);
+  // adding useReducer() hook to support the handle function
 
   const [notes, setNotes] = useState(() => {
     const saved = localStorage.getItem("MyNote");
@@ -48,7 +49,7 @@ const Notes = () => {
     }
   };
 
-  // handle priority select
+  // handle priority select input
   const handlePrioritySelect = (e) => {
     setPrioritySelect(e.target.value);
   };
@@ -85,6 +86,7 @@ const Notes = () => {
       setEmptyInput(true);
       return;
     }
+    setEmptyInput(false);
 
     setNotes((prev) => [
       ...prev,

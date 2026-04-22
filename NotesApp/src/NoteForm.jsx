@@ -19,7 +19,7 @@ const NotesForm = ({
       {/* title input */}
       <div className="flex md:flex-col gap-2 md:ml-0 ml-40">
         <label htmlFor="title" className="text-sm font-medium">
-          Title <span  className="text-red-500 text-lg">*</span>
+          Title <span  className="text-red-400 text-xs italic font-medium">*  required</span>
         </label>
         <input
           value={titleInput}
@@ -27,6 +27,7 @@ const NotesForm = ({
           placeholder="Enter note title...."
           id="title"
           name="title"
+          required
           type="text"
           className={` outline-1 focus:ring-2 focus:ring-purple-800 outline-gray-500 ${emptyInput && " text-gray-700  focus:ring-red-500 border-red-500 border-2 outline-none"} rounded border px-3 py-1 w-full`}
         />
@@ -72,7 +73,7 @@ const NotesForm = ({
             value="choose"
             className=" bg-zinc-600 text-gray-400 italic text-sm"
           >
-            _______Choose a category_________ 👇🏽
+            __________Choose a category_________ 
           </option>
           <option value="work" className=" bg-zinc-600 text-white">
             Work 📂
@@ -83,6 +84,7 @@ const NotesForm = ({
           <option value="ideas" className=" bg-zinc-600 text-white">
             Ideas 💡
           </option>
+          <option value="other" className="bg-zinc-600 text-white">Other 🙂</option>
         </select>
       </div>
 
@@ -90,7 +92,7 @@ const NotesForm = ({
       <div className="col-span-3 flex justify-center">
         <div className="w-full max-w-md flex md:flex-col gap-2 md:ml-0 ml-40">
           <label htmlFor="description" className="text-sm font-medium">
-            Description <span  className="text-red-500 text-lg">*</span>
+            Description <span  className="text-red-500 text-xs italic font-medium">* required</span>
           </label>
           <textarea
             required
