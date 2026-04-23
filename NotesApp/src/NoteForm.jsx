@@ -19,7 +19,7 @@ const NotesForm = ({
       {/* title input */}
       <div className="flex md:flex-col gap-2 md:ml-0 ml-40">
         <label htmlFor="title" className="text-sm font-medium">
-          Title <span  className="text-red-400 text-xs italic font-medium">*  required</span>
+          Title <span  className="text-red-400 text-xs italic font-medium">*</span>
         </label>
         <input
           value={titleInput}
@@ -31,6 +31,7 @@ const NotesForm = ({
           type="text"
           className={` outline-1 focus:ring-2 focus:ring-purple-800 outline-gray-500 ${emptyInput && " text-gray-700  focus:ring-red-500 border-red-500 border-2 outline-none"} rounded border px-3 py-1 w-full`}
         />
+        {emptyInput ? <span className="text-xs text-red-600 font- mt-0">Please enter a title and description</span> : null}
       </div>
 
       {/* priority select */}
@@ -92,7 +93,7 @@ const NotesForm = ({
       <div className="col-span-3 flex justify-center">
         <div className="w-full max-w-md flex md:flex-col gap-2 md:ml-0 ml-40">
           <label htmlFor="description" className="text-sm font-medium">
-            Description <span  className="text-red-500 text-xs italic font-medium">* required</span>
+            Description <span  className="text-red-500 text-xs italic font-medium">*</span>
           </label>
           <textarea
             required
@@ -103,6 +104,7 @@ const NotesForm = ({
             className={`border rounded px-3 py-1 w-full outline-1 focus:ring-2 focus:ring-purple-800 outline-gray-500 ${emptyInput && " text-gray-700  focus:ring-red-500 border-red-500 border-2 outline-none"} `}
             placeholder="Type something..."
           />
+           {emptyInput ? <span className="text-xs text-red-600 font- mt-0">Please enter a title and description</span> : null}
         </div>
       </div>
       {/* add note button */}
