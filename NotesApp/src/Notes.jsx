@@ -1,6 +1,32 @@
 import { useEffect, useReducer, useState } from "react";
 import NotesForm from "./NoteForm";
 
+  // reducer function:
+function reducer(state, action) {
+  switch (action.type) {
+    case "ADD":
+      return [
+        ...state,
+        {
+          id: crypto.randomUUID(),
+          title: action.title,
+          priority: action.priority,
+          category: action.category,
+          desc: action.desc,
+          done: false,
+          color: action.color,
+          time: action.time,
+        },
+      ];
+    case "DELETE":
+      return state.filter((note) => note.id !== action.id);
+    case "TOGGLE":
+      return state.map((note) =>
+        note.id === action.id ? { ...note, done: !note.done } : note,
+      );
+  }
+}
+
 const Notes = () => {
   const [showAddNewNote, setShowAddNewNote] = useState(false);
   const [titleInput, setTitleInput] = useState("");
@@ -87,32 +113,16 @@ const Notes = () => {
       return;
     }
     setEmptyInput(false);
-    dispatch({type: "ADD", title: titleInput})
+    dispatch({
+      type: "ADD",
+      title: titleInput,
+      priority: prioritySelect,
+      category: categorySelect,
+      desc,
+      color: randomColor(),
+      time: timeAndDate(),
+    });
   };
-
-  // reducer function:
-  function reducer(state, action) {
-    switch (action.type) {
-      case "ADD":
-        return [
-          ...state,
-          {
-            id: crypto.randomUUID(),
-            title: titleInput,
-            priority: prioritySelect,
-            category: categorySelect,
-            desc,
-            done: false,
-            color: randomColor(),
-            time: timeAndDate(),
-          },
-        ];
-        case "DELETE": 
-        return state.filter(note => note.id !== action.id);
-        case "TOGGLE": 
-        return state.map(note => note.id === action.id ? {...note, done: !note.done} : note)
-    }
-  }
 
   // random color based on the selected category for the border color
   function randomColor(){
@@ -121,6 +131,7 @@ const Notes = () => {
     if (prioritySelect === "medium") return colors[1];
     if (prioritySelect === "low") return colors[2];
   };
+
 
   // useEffect for local storage
   useEffect(() => {
