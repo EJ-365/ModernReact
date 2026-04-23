@@ -1,16 +1,82 @@
-# React + Vite
+# Notes App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A simple and responsive notes application built with React, Vite, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Add notes with a title, description, priority, and category
+- Toggle note status as done/undone
+- Delete notes
+- Auto-save notes to browser `localStorage`
+- Priority-based visual border colors for quick scanning
+- Timestamp each created note
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19
+- Vite
+- Tailwind CSS 4
+- ESLint
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js (LTS recommended)
+- npm
+
+### Installation
+
+```bash
+npm install
+```
+
+### Run in Development
+
+```bash
+npm run dev
+```
+
+Then open the local URL shown in your terminal (usually `http://localhost:5173`).
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+### Lint
+
+```bash
+npm run lint
+```
+
+## Project Structure
+
+```text
+src/
+  App.jsx
+  Header.jsx
+  Notes.jsx
+  NoteForm.jsx
+  AddNoteBtn.jsx
+  main.jsx
+  index.css
+```
+
+## Data Persistence
+
+Notes are stored in browser `localStorage` under the key `MyNote`.
+
+## Future Improvements
+
+- Edit existing notes
+- Search and filter notes
+- Sort by date/priority/category
+- Optional backend sync and user accounts
