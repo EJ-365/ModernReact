@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from "react";
 import NotesForm from "./NoteForm";
 
-  // reducer function:
+// reducer function:
 function reducer(state, action) {
   switch (action.type) {
     case "ADD":
@@ -27,6 +27,22 @@ function reducer(state, action) {
   }
 }
 
+// filter state object
+const initialFilter = { filter: "all" };
+
+function filterReducer(state, action) {
+  switch (action.type) {
+    case "ALL":
+      return { ...state, filter: "all" };
+    case "ACTIVE":
+      return { ...state, filter: "active" };
+    case "COMPLETED":
+      return { ...state, filter: "completed" };
+    default:
+      state;
+  }
+}
+
 const Notes = () => {
   const [showAddNewNote, setShowAddNewNote] = useState(false);
   const [titleInput, setTitleInput] = useState("");
@@ -35,7 +51,10 @@ const Notes = () => {
   const [categorySelect, setCategorySelect] = useState("N/A");
   const [emptyInput, setEmptyInput] = useState(false);
   // adding useReducer() hook to support the handle function
-
+  const [filterState, filterDispatch] = useReducer(
+    filterReducer,
+    initialFilter,
+  );
   const [notes, dispatch] = useReducer(reducer, [], () => {
     const saved = localStorage.getItem("MyNote");
     return saved
@@ -50,6 +69,13 @@ const Notes = () => {
             done: false,
           },
         ];
+  });
+
+  // filtered logic implementation
+  const filterNotes = notes.filter((note) => {
+      if (filterState.filter === "completed") return note.done;
+      if (filterState.filter === "active") return !note.done;
+      return true;
   });
 
   // handle add new note button
@@ -86,7 +112,7 @@ const Notes = () => {
     setCategorySelect(e.target.value);
   };
   // time and date
- function timeAndDate() {
+  function timeAndDate() {
     const date =
       new Date().toLocaleDateString("en-US", {
         day: "numeric",
@@ -97,7 +123,7 @@ const Notes = () => {
       " @ " +
       new Date().toLocaleTimeString();
     return date;
-  };
+  }
 
   // handle add note button: add the notes to the list; dispatch will be here
   const handleAddNote = (e) => {
@@ -112,7 +138,6 @@ const Notes = () => {
       setEmptyInput(true);
       return;
     }
-    setEmptyInput(false);
     dispatch({
       type: "ADD",
       title: titleInput,
@@ -122,16 +147,20 @@ const Notes = () => {
       color: randomColor(),
       time: timeAndDate(),
     });
+    setTitleInput("");
+    setDesc("");
+    setPrioritySelect("medium");
+    setCategorySelect("N/A");
+    setEmptyInput(false);
   };
 
   // random color based on the selected category for the border color
-  function randomColor(){
+  function randomColor() {
     const colors = ["red", "orange", "green"];
     if (prioritySelect === "high") return colors[0];
     if (prioritySelect === "medium") return colors[1];
     if (prioritySelect === "low") return colors[2];
-  };
-
+  }
 
   // useEffect for local storage
   useEffect(() => {
@@ -151,6 +180,39 @@ const Notes = () => {
           {showAddNewNote ? "Hide Form ✖️" : " Add New Note ➕"}
         </button>
       </div>
+      {/* filtered note section */}
+      <div className="flex items-center space-x-6 justify-center my-8">
+        <button
+          onClick={() =>
+            filterDispatch({
+              type: "ALL",
+            })
+          }
+          className=" capitalize font-bold px-8 bg-purple-200 shadow-sm cursor-pointer hover:bg-purple-300 duration-300 transition-all rounded-md py-1"
+        >
+          All
+        </button>
+        <button
+          onClick={() =>
+            filterDispatch({
+              type: "COMPLETED",
+            })
+          }
+          className="capitalize font-bold text-green-800  px-8 bg-purple-200 shadow-sm cursor-pointer hover:bg-purple-300 duration-300 transition-all rounded-md py-1"
+        >
+          Completed
+        </button>
+        <button
+          onClick={() =>
+            filterDispatch({
+              type: "ACTIVE",
+            })
+          }
+          className="capitalize font-bold text-red-600 px-8 bg-purple-200 shadow-sm cursor-pointer hover:bg-purple-300 duration-300 transition-all rounded-md py-1"
+        >
+          active
+        </button>
+      </div>
 
       {/* displaying add new note form here */}
       {showAddNewNote && (
@@ -165,13 +227,12 @@ const Notes = () => {
           categorySelect={categorySelect}
           handleCategorySelect={handleCategorySelect}
           handleAddNote={handleAddNote}
-         
         />
       )}
 
       {/* Notes item: to be display in the list */}
       <ul className="mx-auto my-8 flex flex-row flex-wrap items-center justify-center gap-4">
-        {notes.map((note) => (
+        {filterNotes.map((note) => (
           <li
             key={note.id}
             className={`border-t-6 border-t-gray-50/50 pr-10 pl-8 py-3 w-120 rounded-xl shadow-lg border-l-4 mb-2 ${note.done ? "bg-gray-200" : ""}`}
@@ -197,7 +258,7 @@ const Notes = () => {
             <p className="my-3">{note.desc}</p>
             <div className="mt-3 flex items-center justify-between gap-2">
               <button
-                onClick={() => dispatch({type: "DELETE", id: note.id})}
+                onClick={() => dispatch({ type: "DELETE", id: note.id })}
                 className={` ${note.done ? "hover:bg-black/70 bg-gray-200" : "hover:bg-red-700/80 hover:text-white"} text-red-500 font-semibold border-[1.5px]  pr-3 pl-2 rounded-md py-1 cursor-pointer`}
               >
                 🗑️Delete
@@ -206,7 +267,7 @@ const Notes = () => {
               <div className="">
                 <input
                   checked={note.done}
-                  onChange={() => dispatch({type: "TOGGLE", id: note.id})}
+                  onChange={() => dispatch({ type: "TOGGLE", id: note.id })}
                   type="checkbox"
                   className="w-4 h-4 cursor-pointer align-middle"
                 />{" "}
