@@ -288,6 +288,17 @@ const Notes = () => {
           </p>
         </div>
       )}
+
+      {filterState.filter !== "all" && filterNotes.length === 0 && (
+        <div>
+          <p className="text-center mt-40 mb-3 italic text-amber-600 font-semibold">
+           {filterState.filter === "completed" ? "No completed notes" : "No active notes"}
+          </p>
+          <p className="text-center italic text-amber-600 font-semibold text-6xl">
+            💤
+          </p>
+        </div>
+      )}
     </main>
   );
 };
