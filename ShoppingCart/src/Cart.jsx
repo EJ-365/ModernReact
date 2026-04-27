@@ -9,10 +9,10 @@ function SideBar({ products, dispatch }) {
       {products.length === 0 && (
         <p className="text-center my-30">Cart is Empty</p>
       )}
-      {products.map((product, index) => (
+      {products.map((product) => (
         <>
           {/* shopping cart items */}
-          <div className="flex flex-col" key={index}>
+          <div className="flex flex-col" key={product.id}>
             {/* shopping cart items */}{" "}
             <div className="flex items-center justify-evenly w-full mt-4">
               {" "}
@@ -32,21 +32,21 @@ function SideBar({ products, dispatch }) {
                   {product.title}
                 </h3>{" "}
                 <small className="text-gray-500 font-medium my-0">
-                  ${product.price.toFixed(2)}
+                  ${(product.price * product.quantity || 1).toFixed(2)}
                 </small>{" "}
               </div>{" "}
               <div>
                 {" "}
                 <div className="bg-gray-50 pr-2 border-gray-300 shadow-sm border rounded-sm text-center flex items-center justify-center">
                   {" "}
-                  <button className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4">
+                  <button onClick={() => dispatch({type: "DECREMENT_PRICE", id:product.id })} className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4">
                     {" "}
                     -{" "}
                   </button>{" "}
                   <span className="bg-gray-50  px-2 py-0 rounded-sm text-sm ">
-                    1
+                    {product.quantity}
                   </span>{" "}
-                  <button className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4">
+                  <button onClick={() => dispatch({type: "INCREMENT_PRICE", id:product.id })} className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4">
                     {" "}
                     +{" "}
                   </button>{" "}
@@ -67,7 +67,15 @@ function SideBar({ products, dispatch }) {
 
           <div className="w-full h-[0.5px] bg-gray-300 mt-2 rounded-sm shadow-2xl" />
 
-          <div className="flex-col flex">
+          
+        </>
+      ))}
+    </aside>
+  );
+}
+export default SideBar;
+
+{/* <div className="flex-col flex">
             <div className="flex items-center justify-between my-4">
               <div className="font-medium text-gray-500 text-sm">Subtotal</div>
               <small className="font-medium text-gray-700">$56.00</small>
@@ -88,10 +96,4 @@ function SideBar({ products, dispatch }) {
             <div className="text-center text-xs font-medium text-zinc-400 mt-3">
               <p>Free shipping on orders over $100</p>
             </div>
-          </div>
-        </>
-      ))}
-    </aside>
-  );
-}
-export default SideBar;
+          </div> */}
