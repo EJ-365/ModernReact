@@ -1,27 +1,30 @@
 import bag from "./assets/bag.png";
 import cup from "./assets/cup.png";
-import watch from "./assets/watch.png";
+import watch from "./assets/watch.jpeg";
 import waterBottle from "./assets/water_bottle.png";
 
 const productsData = [
   {
+    id:0,
     image: bag,
-    name: "Canvas Tote Bag",
+    title: "Canvas Tote Bag",
     price: 24.0,
   },
-  {
+  {id:1,
     image: waterBottle,
-    name: "Glass Water Bottle",
+    title: "Glass Water Bottle",
     price:  32.00,
   },
   {
+    id:2,
     image: watch,
-    name: "Minimalist Watch",
+    title: "Minimalist Watch",
     price: 120.00,
   },
   {
+    id:3,
     image: cup,
-    name: "Ceramic Coffee Mug",
+    title: "Ceramic Coffee Mug",
     price: 18.00,
   },
 ];
