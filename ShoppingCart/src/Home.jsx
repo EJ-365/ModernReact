@@ -26,6 +26,12 @@ const productReducer = (state, action) => {
 };
 function Home() {
   const [products, dispatch] = useReducer(productReducer, []);
+  
+  // getting the total price
+  const getTotal = () => {
+   const totalPrice = products.reduce((total, product) => total + (product.price * product.quantity || 1), 0);
+   return totalPrice;
+  }
   return (
     <main>
       <Navbar />
@@ -38,7 +44,7 @@ function Home() {
             <Cards productsData={productsData} dispatch={dispatch} />
           </div>
         </div>
-        <SideBar products={products} dispatch={dispatch} />
+        <SideBar products={products} dispatch={dispatch} getTotal={getTotal} />
       </section>
     </main>
   );

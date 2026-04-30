@@ -1,6 +1,6 @@
-function SideBar({ products, dispatch }) {
+function SideBar({ products, getTotal, dispatch }) {
   return (
-    <aside className="border border-gray-300 w-79 h-auto py-2 px-4 rounded shadow-sm bg-[#F0F1F3]">
+    <aside className={`border border-gray-300 w-79 py-2 px-4 rounded shadow-sm bg-[#F0F1F3] ${products.length == 3 ? "h-130" : products.length >= 4 ? "max-240 h-auto" : "h-109"}`}>
       <div className=" p-3">
         <p className="font-bold capitalize text-zinc-800">Shopping cart</p>
         <div className="w-full h-[0.5px] bg-gray-300 mt-2 rounded-sm shadow-2xl" />
@@ -39,14 +39,24 @@ function SideBar({ products, dispatch }) {
                 {" "}
                 <div className="bg-gray-50 pr-2 border-gray-300 shadow-sm border rounded-sm text-center flex items-center justify-center">
                   {" "}
-                  <button onClick={() => dispatch({type: "DECREMENT_PRICE", id:product.id })} className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4">
+                  <button
+                    onClick={() =>
+                      dispatch({ type: "DECREMENT_PRICE", id: product.id })
+                    }
+                    className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4"
+                  >
                     {" "}
                     -{" "}
                   </button>{" "}
                   <span className="bg-gray-50  px-2 py-0 rounded-sm text-sm ">
                     {product.quantity}
                   </span>{" "}
-                  <button onClick={() => dispatch({type: "INCREMENT_PRICE", id:product.id })} className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4">
+                  <button
+                    onClick={() =>
+                      dispatch({ type: "INCREMENT_PRICE", id: product.id })
+                    }
+                    className="bg-gray-50  px-2 py-0 text-gray-400 font-medium cursor-pointer w-4"
+                  >
                     {" "}
                     +{" "}
                   </button>{" "}
@@ -66,34 +76,31 @@ function SideBar({ products, dispatch }) {
           </div>
 
           <div className="w-full h-[0.5px] bg-gray-300 mt-2 rounded-sm shadow-2xl" />
-
-          
         </>
       ))}
+      {products.length >= 1 && (
+        <section className="my-4">
+          <div className="flex items-center space-x-8 justify-between">
+            <span className="font-medium text-gray-500">Subtotal</span>
+            <span className="font-medium text-gray-500">${getTotal()}</span>
+          </div>
+
+          <div className="flex items-center space-x-8 justify-between ">
+            <span className="font-bold text-xl">Total</span>
+            <div className="my-0 relative ">
+              <span className="font-bold text-xl">${getTotal()}</span>
+              <div className="w-full h-[2px] bg-black absolute top-5  mt-2 rounded-sm shadow-2xl" />
+            </div>
+          </div>
+          <div className="mt-8 text-center">
+            <button className="border py-3 px-4 w-full rounded-md bg-black text-sm  cursor-pointer hover:scale-101 duration-300 hover:bg-black/90 transition-all text-zinc-300">
+              Proceed to Checkout
+            </button>
+            <p className="text-sm text-zinc-500 my-2 font-medium">Free shipping on orders over $100</p>
+          </div>
+        </section>
+      )}
     </aside>
   );
 }
 export default SideBar;
-
-{/* <div className="flex-col flex">
-            <div className="flex items-center justify-between my-4">
-              <div className="font-medium text-gray-500 text-sm">Subtotal</div>
-              <small className="font-medium text-gray-700">$56.00</small>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="font-black  text-zinc-800 text-sm">Total</div>
-              <small className="font-black text-slate-950 underline decoration-2 text-sm">
-                $56.00
-              </small>
-            </div>
-
-            <div className="flex items-center justify-center mt-5 text-white ">
-              <button className="border px-4 w-full rounded-md bg-black text-xs py-3 cursor-pointer hover:scale-101 duration-300 hover:bg-black/90 transition-all text-zinc-300 ">
-                Proceed to Checkout
-              </button>
-            </div>
-            <div className="text-center text-xs font-medium text-zinc-400 mt-3">
-              <p>Free shipping on orders over $100</p>
-            </div>
-          </div> */}
