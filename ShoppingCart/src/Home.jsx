@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { act, useReducer } from "react";
 import productsData from "./products";
 import Cards from "./Cards";
 import SideBar from "./Cart";
@@ -8,7 +8,13 @@ import Navbar from "./Navbar";
 const productReducer = (state, action) => {
   switch (action.type) {
     case "ADD_ITEM":
-      return [...state, action.product];
+      const exists = state.find(p => p.id === action.product.id);
+      if (exists) {
+        return state.map(p =>
+          p.id === action.product.id ? { ...p, quantity: p.quantity + 1 } : p
+        );
+      }
+      return [...state, { ...action.product, quantity: 1 }];
     case "DELETE_ITEM":
       return state.filter((product) => product.id !== action.id);
       case "INCREMENT_PRICE": 
@@ -29,7 +35,7 @@ function Home() {
   
   // getting the total price
   const getTotal = () => {
-   const totalPrice = products.reduce((total, product) => total + (product.price * product.quantity || 1), 0);
+   const totalPrice = products.reduce((total, product) => total + product.price * (product.quantity || 1), 0);
    return totalPrice;
   }
   return (
