@@ -1,4 +1,7 @@
-export default function Cards({ productsData, dispatch }) {
+import { CartContext } from "./CartContext";
+import { useContext } from "react";
+export default function Cards({productsData}) {
+  const{dispatch} = useContext(CartContext);
   return (
     <>
       {productsData.map((product) => (

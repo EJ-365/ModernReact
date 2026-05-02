@@ -1,4 +1,7 @@
-function SideBar({ products, getTotal, dispatch }) {
+import { useContext } from "react";
+import { CartContext } from "./CartContext";
+function SideBar() {
+  const {products, dispatch, getTotal} = useContext(CartContext);
   return (
     <aside
       className={`border border-gray-300 w-79 py-2 px-4 rounded shadow-sm bg-[#F0F1F3] ${products.length >= 4 ? "h-160" : products.length === 3 ? "h-140" : "h-109"}`}

@@ -1,4 +1,5 @@
 import { useReducer } from "react";
+import { CartContext } from "./CartContext";
 import productsData from "./products";
 import Cards from "./Cards";
 import SideBar from "./Cart";
@@ -39,6 +40,7 @@ function Home() {
    return totalPrice;
   }
   return (
+    <CartContext.Provider value={{products,dispatch, getTotal}}>
     <main>
       <Navbar />
       <section className="flex-1 flex justify-center p-10">
@@ -47,12 +49,13 @@ function Home() {
 
           <div className="max-w-xl   mx-4 flex flex-wrap justify-evenly items-center gap-6 md:grid md:grid-cols-2 mr-10 p-4">
             {/* individual cards component goes here */}
-            <Cards productsData={productsData} dispatch={dispatch} />
+            <Cards productsData={productsData} />
           </div>
         </div>
-        <SideBar products={products} dispatch={dispatch} getTotal={getTotal} />
+        <SideBar />
       </section>
     </main>
+    </CartContext.Provider>
   );
 }
 
