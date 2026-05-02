@@ -1,4 +1,4 @@
-import { act, useReducer } from "react";
+import { useReducer } from "react";
 import productsData from "./products";
 import Cards from "./Cards";
 import SideBar from "./Cart";
