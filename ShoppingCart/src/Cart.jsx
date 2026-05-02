@@ -1,6 +1,8 @@
 function SideBar({ products, getTotal, dispatch }) {
   return (
-    <aside className={`border border-gray-300 w-79 py-2 px-4 rounded shadow-sm bg-[#F0F1F3] ${products.length == 3 ? "h-130" : products.length >= 4 ? "max-240 h-auto" : "h-109"}`}>
+    <aside
+      className={`border border-gray-300 w-79 py-2 px-4 rounded shadow-sm bg-[#F0F1F3] ${products.length >= 4 ? "h-160" : products.length === 3 ? "h-140" : "h-109"}`}
+    >
       <div className=" p-3">
         <p className="font-bold capitalize text-zinc-800">Shopping cart</p>
         <div className="w-full h-[0.5px] bg-gray-300 mt-2 rounded-sm shadow-2xl" />
@@ -96,7 +98,9 @@ function SideBar({ products, getTotal, dispatch }) {
             <button className="border py-3 px-4 w-full rounded-md bg-black text-sm  cursor-pointer hover:scale-101 duration-300 hover:bg-black/90 transition-all text-zinc-300">
               Proceed to Checkout
             </button>
-            <p className="text-sm text-zinc-500 my-2 font-medium">Free shipping on orders over $100</p>
+            <p className="text-sm text-zinc-500 my-2 font-medium">
+              Free shipping on orders over $100
+            </p>
           </div>
         </section>
       )}
