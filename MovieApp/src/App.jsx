@@ -21,9 +21,9 @@ function App() {
   return (
     <>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
-        <div className="flex">
+        <div className="flex flex-col md:flex-row min-h-screen">
           <Navbar />
-          <main className="flex-1">
+          <main className="flex-1 overflow-auto min-w-0">
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/home" element={<Home />} />
