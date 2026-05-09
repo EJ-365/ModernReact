@@ -1,5 +1,9 @@
+import FeaturedMovie from "../Components/FeaturedMovie";
+
 export default function Home() {
   return (
-    <div>Home Component</div>
+    <main>
+      <FeaturedMovie/>
+    </main>
   )
 }
