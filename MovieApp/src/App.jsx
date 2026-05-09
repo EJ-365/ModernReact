@@ -3,6 +3,9 @@ import { Routes, Route } from "react-router-dom";
 import { ThemeContext } from "./Contexts/ThemeContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
+import Movies from "./Pages/Movies";
+import Shows from "./Pages/Shows";
+import Library from "./Pages/Library";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -27,6 +30,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/movies" element={<Movies />} />
+              <Route path="/shows" element={<Shows />} />
+              <Route path="/library" element={<Library />} />
             </Routes>
           </main>
         </div>
