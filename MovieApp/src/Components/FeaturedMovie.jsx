@@ -1,49 +1,54 @@
-import featuredMovieImage from "../assets/featuredMovieSample.jpg"
+import featuredMovieImage from "../assets/featuredMovieSample.jpg";
 function FeaturedMovie() {
   return (
-    <section className="container mx-auto text-left md:w-3/4 my-14 relative w-100 ">
-    <div style={{backgroundImage: `url(${featuredMovieImage})`}} className="bg-cover bg-center h-auto md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-20 bg-blend-multiply inset-0 object-cover relative rounded-3xl">
-       <div className="bg-black/60 absolute inset-0 rounded-3xl"/>
-      {/* genre tags */}
-      <div className="md:space-x-2 space-x-4 text-center md:m-0 mx-auto flex z-10 flex-wrap space-y-2">
-        <span className="border border-[#483784] md:px-4 px-3 text-nowrap  py-1 bg-violet-950/30 rounded-2xl  text-violet-200/80 text-xs font-semibold">
-          Sci-Fi
-        </span>
-        <span className="border border-[#483784] md:px-4 px-3 py-1 bg-violet-950/30 rounded-2xl text-violet-200/80 text-xs font-medium">
-          Action
-        </span>
-        <span className="border border-[#483784] md:px-4 px-3 py-1 bg-violet-950/30 rounded-2xl text-violet-200/80 text-sm font-medium">
-          Thriller
-        </span>
-      </div>
+    <section className="container mx-auto text-left md:w-3/4 my-8 relative w-100 bg-[#483784] rounded-3xl  outline-none shadow-2xl   ">
+      <div
+        style={{ backgroundImage: `url(${featuredMovieImage})` }}
+        className="bg-cover bg-center h-auto md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-8  inset-0 object-cover relative rounded-3xl shadow-3xl  "
+      >
+        <div className="bg-linear-to-r from-[#08070f] border-none via-black/70 to-black/40 absolute inset-0 rounded-3xl" />
+        {/* genre tags */}
+        <div className="md:space-x-2 space-x-4 text-center md:m-0 mx-auto flex z-10 flex-wrap space-y-2">
+          <span className="border border-[#483784] md:px-4 px-3 text-nowrap  py-1 bg-violet-950/30 rounded-2xl  text-violet-200/80 text-xs font-semibold">
+            Sci-Fi
+          </span>
+          <span className="border border-[#483784] md:px-4 px-3 py-1 bg-violet-950/30 rounded-2xl text-violet-200/80 text-xs font-medium">
+            Action
+          </span>
+          <span className="border border-[#483784] md:px-4 px-3 h-7 py-1  bg-violet-950/30 rounded-2xl text-violet-200/80 text-xs font-medium ">
+            Thriller
+          </span>
+        </div>
 
-      {/* feature title */}
-      <div className="z-10">
-        <h2 className="font-bold md:text-[43px] text-3xl text-white/80 ">
-          Neon Horizon
-        </h2>
-      </div>
-      {/* featured movie; description */}
-      <div className="flex flex-col flex-wrap text-wrap break-all z-10">
-        <p className="text-zinc-100/90 my-3">
-          In a cyberpunk future, a rogue detective uncovers a conspiracy <br/> that
-          threatens the very fabric of reality. <br/> As the lines between human and
-          machine blur, he must decide who to trust.
-        </p>
-      </div>
+        {/* feature title */}
+        <div className="z-10">
+          <h2 className="font-bold md:text-[43px] text-3xl text-white ">
+            Neon Horizon
+          </h2>
+        </div>
+        {/* featured movie; description */}
+        <div className="flex flex-col flex-wrap text-wrap break-all z-10">
+          <p className="text-zinc-100/90 my-3">
+            In a cyberpunk future, a rogue detective uncovers a conspiracy that{" "}
+            <br />
+            threatens the very fabric of reality. As the lines between human and{" "}
+            <br />
+            machine blur, he must decide who to trust.
+          </p>
+        </div>
 
-      {/* buttons */}
-      <div className="space-x-3 my-5 z-10 text-center md:text-left">
-        <button className="border p-2 bg-[#8b5cf6] text-white font-semibold rounded-xl px-6 border-none capitalize cursor-pointer hover:scale-104 shadow-lg shadow-purple-400/70 duration-200 transition-all hover:bg-[#734dce] mb-6 md:mb-0">
-          <i className="bxf bx-play text-2xl align-middle text-white" />
-          Watch now
-        </button>
-        <button className="border border-gray-200/30 p-2 bg-[#1a1a20] text-white/90 font-semibold rounded-xl px-6  capitalize cursor-pointer hover:scale-104 shadow-lg shadow-gray-800 duration-200 transition-all hover:bg-[#131316]">
-          <i className=" mr-2 bx bx-alert-octagon text-2xl align-middle" />
-          More info
-        </button>
+        {/* buttons */}
+        <div className="space-x-3 my-5 z-10 text-center md:text-left">
+          <button className="border py-2.5 bg-[#8b5cf6] text-white font-semibold rounded-xl px-8 border-none capitalize cursor-pointer hover:scale-104 hover:shadow-lg shadow-purple-400/70 duration-200 transition-all hover:bg-[#734dce] mb-6 md:mb-0">
+            <i className="bxf bx-play text-2xl align-middle text-white" />
+            Watch now
+          </button>
+          <button className="border border-gray-200/10 py-2.5 bg-[#1a1a20] text-white/90 font-semibold rounded-xl px-6  capitalize cursor-pointer hover:scale-104 hover:shadow-lg shadow-gray-800 duration-200 transition-all hover:bg-[#131316]">
+            <i className=" mr-2 bx bx-alert-octagon text-2xl align-middle" />
+            More info
+          </button>
+        </div>
       </div>
-    </div>
     </section>
   );
 }
