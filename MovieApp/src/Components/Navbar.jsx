@@ -6,7 +6,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <>
+    <div className="flex shrink-0 flex-col self-stretch">
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-50 dark:bg-[#2c2c4e] bg-white border-b border-black/10 dark:border-white/10">
         <div className="flex items-center justify-between px-4 py-3">
@@ -46,7 +46,7 @@ export default function Navbar() {
       {/* Sidebar (desktop always visible, mobile drawer) */}
       <header
         className={`dark:bg-[#2c2c4e] text-white p-4 border-r-2 border-black/10 dark:border-white/10
-          w-60 h-screen max-h-screen hidden md:block`}
+          hidden md:flex md:flex-col w-60 shrink-0 flex-1 min-h-0`}
       >
         <nav className="flex items-left justify-start flex-col h-full">
           <div className="mb-14">
@@ -214,6 +214,6 @@ export default function Navbar() {
           </nav>
         </aside>
       </div>
-    </>
+    </div>
   );
 }

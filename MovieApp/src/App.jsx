@@ -3,8 +3,8 @@ import { Routes, Route } from "react-router-dom";
 import { ThemeContext } from "./Contexts/ThemeContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
-import trendingMovies from "./data/trendingMovies";
-import { TrendingMoviesContext } from "./contexts/TrendingMovies";
+import trendingMovies from "./data/trendingMovies"; // actual movies data
+import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
