@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import FeaturedMovie from "../Components/FeaturedMovie";
-import { TrendingMoviesContext } from "../contexts/TrendingMovies";
+import { TrendingMoviesContext } from "../Contexts/TrendingMovies";
 
 export default function Home() {
   const { trendingMovies } = useContext(TrendingMoviesContext);
