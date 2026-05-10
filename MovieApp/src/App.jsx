@@ -4,7 +4,7 @@ import { ThemeContext } from "./Contexts/ThemeContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
 import trendingMovies from "./data/trendingMovies";
-import { TrendingMoviesContext } from "./contexts/TrendingMovies";
+import { TrendingMoviesContext } from "./Contexts/TrendingMovies";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
