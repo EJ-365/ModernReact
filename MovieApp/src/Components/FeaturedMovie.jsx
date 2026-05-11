@@ -1,9 +1,17 @@
-import featuredMovieImage from "../assets/featuredMovieSample.jpg";
+import { useContext } from "react";
+// import featuredMovieImage from "../assets/featuredMovieSample.jpg";
+import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
 function FeaturedMovie() {
+  const { featuredMovie } = useContext(FeaturedMovieContext);
+  if (!featuredMovie)
+    return <div className="h-[500px] bg-gray-900 animate-pulse rounded-3xl" />;
+
+  const backgroundUrl = `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`;
+
   return (
     <section className="container mx-auto text-left md:w-3/4 my-8 relative w-100 bg-[#483784] rounded-3xl  outline-none shadow-2xl   ">
       <div
-        style={{ backgroundImage: `url(${featuredMovieImage})` }}
+        style={{ backgroundImage: `url(${backgroundUrl})` }}
         className="bg-cover bg-center h-auto md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-8  inset-0 object-cover relative rounded-3xl shadow-3xl  "
       >
         <div className="bg-linear-to-r from-[#08070f] border-none via-black/70 to-black/40 absolute inset-0 rounded-3xl" />
@@ -23,17 +31,13 @@ function FeaturedMovie() {
         {/* feature title */}
         <div className="z-10">
           <h2 className="font-bold md:text-[43px] text-3xl text-white ">
-            Neon Horizon
+            {featuredMovie.title}
           </h2>
         </div>
         {/* featured movie; description */}
         <div className="flex flex-col flex-wrap text-wrap break-all z-10">
-          <p className="text-zinc-100/90 my-3">
-            In a cyberpunk future, a rogue detective uncovers a conspiracy that{" "}
-            <br />
-            threatens the very fabric of reality. As the lines between human and{" "}
-            <br />
-            machine blur, he must decide who to trust.
+          <p className="text-zinc-100/90 my-3 line-clamp-3 overflow-hidden text-wrap flex flex-col">
+            {featuredMovie.overview}
           </p>
         </div>
 

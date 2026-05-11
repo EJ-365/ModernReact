@@ -1,7 +1,7 @@
 import { useContext } from "react"
 import { PopularMoviesContext } from "../Contexts/PopularMoviesContext"
 export default function TrendingMovies(){
-    const {popularMovies} = useContext(PopularMoviesContext)
+    const {topFivePopular} = useContext(PopularMoviesContext)
     return (
         <section>
         <div className="capitalize dark:text-white text-[27px] font-bold flex items-center justify-between px-4 md:mx-56 md:px-0 text-center md:text-left">
@@ -10,14 +10,14 @@ export default function TrendingMovies(){
 
         {/* rendering the trending movies */}
         <div className="flex flex-col items-center gap-4 px-4 mx-0 md:inline-flex md:flex-row md:items-center md:space-x-8 md:mx-52 md:px-0 dark:text-white my-6">
-          {popularMovies.map((popularMovie) => (
+          {topFivePopular.map((popularMovie) => (
             <div
-              key={`${popularMovie.title}-${popularMovie.date}`}
+              key={`${popularMovie.id}`}
               className="cursor-pointer mx-auto md:mx-1 group relative flex w-full max-w-[min(92vw,22rem)] flex-col items-center md:max-w-none md:block md:w-auto md:shrink-0"
             >
               <div className="group/image mb-3 relative w-full shrink-0 md:w-full md:shrink">
                 <img
-                  src={popularMovie.image}
+                  src={`https://image.tmdb.org/t/p/w500${popularMovie.poster_path}`}
                   alt=""
                   className="aspect-2/3 w-full object-cover rounded-xl transition-all duration-200 hover:scale-104 border border-zinc-400/10 md:w-60 relative"
                 />
@@ -36,12 +36,12 @@ export default function TrendingMovies(){
 
               <div className="flex justify-between my-1">
                 <span className="dark:text-zinc-400 font-medium text-sm">
-                  {popularMovie.date}
+                  {popularMovie.release_date}
                 </span>
                 <span className="text-violet-500 text-sm">
                   {" "}
                   <i className="bxf bx-star relative top-0.5 mx-1 text-sm" />
-                  {popularMovie.rating}
+                  {popularMovie.release_date}
                 </span>
               </div>
             </div>

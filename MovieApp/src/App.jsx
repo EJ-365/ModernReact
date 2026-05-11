@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ThemeContext } from "./Contexts/ThemeContext";
+import { FeaturedMovieContext } from "./Contexts/featuredMovieContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
-import trendingMovies from "./data/trendingMovies"; // actual movies data
+// import trendingMovies from "./data/trendingMovies"; // sample trending movies data
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
-import popularMovies from "./data/popularMovies";
+// import popularMovies from "./data/popularMovies";
 import { API_KEY, BASE_URL } from "./api/tmdb";
 import { useMovies } from "./hooks/useMovies"; // custom hook for the movie api
 
@@ -25,6 +26,7 @@ function App() {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
+  // trending movies api calls and endpoints
   const trendingUrl = `${BASE_URL}/trending/movie/day?api_key=${API_KEY}`;
   const trendingMovies = useMovies(trendingUrl);
   const topFiveTrending = trendingMovies.slice(0, 5);
@@ -34,10 +36,28 @@ function App() {
     return { topFiveTrending };
   }, [topFiveTrending]);
 
-  // up next: usememo for popular movies
+
+  // popular movies endpoints and api calls 
+  const popularUrl = `${BASE_URL}/movie/popular?api_key=${API_KEY}`;
+  const popularMovies = useMovies(popularUrl) ;
+  const topFivePopular = popularMovies.slice(0,5);
+  
+  // useMemo for popular movies
   const popularMoviesValue = useMemo(() => {
-    return { popularMovies };
-  }, [popularMovies]);
+    return { topFivePopular };
+  }, [topFivePopular]);
+
+
+  // featured movies endpoints
+  const featuredUrl =  `${BASE_URL}/movie/now_playing?api_key=${API_KEY}`;
+  const featuredMovies = useMovies(featuredUrl);
+
+  const featuredMovie = featuredMovies[0];
+  // feature movie useMemo
+  const featuredMovieValue = useMemo(() => {
+    return {featuredMovie}
+  }, [featuredMovie])
+
 
   return (
     <>
@@ -47,10 +67,12 @@ function App() {
           <main className="flex-1 overflow-auto min-w-0">
             <TrendingMoviesContext.Provider value={trendingMoviesValue}>
               <PopularMoviesContext.Provider value={popularMoviesValue}>
+                <FeaturedMovieContext.Provider value={featuredMovieValue}>
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/home" element={<Home />} />
                 </Routes>
+                </FeaturedMovieContext.Provider>
               </PopularMoviesContext.Provider>
             </TrendingMoviesContext.Provider>
           </main>
