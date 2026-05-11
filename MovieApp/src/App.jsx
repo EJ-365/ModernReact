@@ -5,6 +5,8 @@ import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
 import trendingMovies from "./data/trendingMovies"; // actual movies data
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
+import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
+import popularMovies from "./data/popularMovies";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -27,6 +29,9 @@ function App() {
   }, [trendingMovies]
 )
 
+const popularMoviesValue = useMemo(() => {
+  return {popularMovies}
+}, [popularMovies])
   return (
     <>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
@@ -34,10 +39,12 @@ function App() {
           <Navbar />
           <main className="flex-1 overflow-auto min-w-0">
            <TrendingMoviesContext.Provider value={trendingMoviesValue}>
+            <PopularMoviesContext value={popularMoviesValue}>
            <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/home" element={<Home />} />
             </Routes>
+            </PopularMoviesContext>
            </TrendingMoviesContext.Provider>
           </main>
         </div>

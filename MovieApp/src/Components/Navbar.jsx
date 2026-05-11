@@ -8,7 +8,7 @@ export default function Navbar() {
   return (
     <div className="flex shrink-0 flex-col self-stretch">
       {/* Mobile top bar */}
-      <header className="md:hidden sticky top-0 z-50 dark:bg-[#2c2c4e] bg-white border-b border-black/10 dark:border-white/10">
+      <header className="md:hidden sticky top-0 z-50 bg-white dark:bg-linear-to-r dark:from-[#161528] dark:via-[#12101c] dark:to-[#12101c] border-b border-black/10 dark:border-white/10">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <button
@@ -45,7 +45,7 @@ export default function Navbar() {
 
       {/* Sidebar (desktop always visible, mobile drawer) */}
       <header
-        className={`dark:bg-[#2c2c4e] text-white p-4 border-r-2 border-black/10 dark:border-white/10
+        className={`dark:bg-[#1b1b2e] text-white p-4 border-r-2 border-black/10 dark:border-white/10
           hidden md:flex md:flex-col w-60 shrink-0 flex-1 min-h-0`}
       >
         <nav className="flex items-left justify-start flex-col h-full">
@@ -128,7 +128,7 @@ export default function Navbar() {
           className="fixed inset-0 bg-black/40 z-40"
         />
 
-        <aside className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] dark:bg-[#2c2c4e] bg-white border-r border-black/10 dark:border-white/10 p-4 overflow-auto">
+        <aside className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-white dark:bg-linear-to-r dark:from-[#161528] dark:via-[#12101c] dark:to-[#12101c] border-r border-black/10 dark:border-white/10 p-4 overflow-auto">
           <nav className="flex flex-col">
             <div className="mb-10 flex items-center justify-between">
               <span className="text-[20px] font-bold dark:text-white text-black">

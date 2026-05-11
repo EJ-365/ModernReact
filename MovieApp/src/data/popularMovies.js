@@ -23,8 +23,12 @@ const popularMovies = [
         rating: 7.1,
         date: 2018,
     },
-
-
+    {
+        title: "Glass Meridian",
+        image: "https://picsum.photos/seed/glass-meridian/400/600",
+        rating: 7.4,
+        date: 2022,
+    },
 ];
 
 export default popularMovies;
