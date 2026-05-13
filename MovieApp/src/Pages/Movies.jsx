@@ -23,7 +23,7 @@ function Movies({ movies }) {
 
       <div className="flex items-center md:space-x-2 justify-center mb-4 cursor-pointer flex-wrap md:my-0 my-3 space-y-3 space-x-3">
         {genres.map((genre) => (
-          <span className="bg-[#19192d] px-4 py-2 rounded-3xl font-medium capitalize text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
+          <span className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
             {genre}
           </span>
         ))}
@@ -67,6 +67,13 @@ function Movies({ movies }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* see more logic needs to be implemented here or exported*/}
+      <div className="flex items-center justify-center my-20">
+        <button className="capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-7 py-2 rounded-xl font-medium  dark:text-white md:text-[17px] cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300 italic">
+          see more
+        </button>
       </div>
     </section>
   );

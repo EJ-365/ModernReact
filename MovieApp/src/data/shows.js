@@ -1,0 +1,88 @@
+const shows = [
+  {
+    id: 1,
+    title: "Northern Lights",
+    image: "https://picsum.photos/seed/northern-lights/400/600",
+    rating: 8.2,
+    date: 2020,
+  },
+  {
+    id: 2,
+    title: "Harbor Watch",
+    image: "https://picsum.photos/seed/harbor-watch/400/600",
+    rating: 7.7,
+    date: 2021,
+  },
+  {
+    id: 3,
+    title: "Echo Station",
+    image: "https://picsum.photos/seed/echo-station/400/600",
+    rating: 8.5,
+    date: 2019,
+  },
+  {
+    id: 4,
+    title: "Silver Pines",
+    image: "https://picsum.photos/seed/silver-pines/400/600",
+    rating: 7.4,
+    date: 2018,
+  },
+  {
+    id: 5,
+    title: "The Last Signal",
+    image: "https://picsum.photos/seed/last-signal/400/600",
+    rating: 8.0,
+    date: 2023,
+  },
+  {
+    id: 6,
+    title: "City of Ember",
+    image: "https://picsum.photos/seed/city-ember/400/600",
+    rating: 7.1,
+    date: 2017,
+  },
+  {
+    id: 7,
+    title: "Moonlit Roads",
+    image: "https://picsum.photos/seed/moonlit-roads/400/600",
+    rating: 8.3,
+    date: 2022,
+  },
+  {
+    id: 8,
+    title: "Hidden Current",
+    image: "https://picsum.photos/seed/hidden-current/400/600",
+    rating: 7.5,
+    date: 2016,
+  },
+  {
+    id: 9,
+    title: "Westward Dawn",
+    image: "https://picsum.photos/seed/westward-dawn/400/600",
+    rating: 7.9,
+    date: 2024,
+  },
+  {
+    id: 10,
+    title: "Glass Horizon",
+    image: "https://picsum.photos/seed/glass-horizon/400/600",
+    rating: 6.9,
+    date: 2015,
+  },
+  {
+    id: 11,
+    title: "After Midnight",
+    image: "https://picsum.photos/seed/after-midnight/400/600",
+    rating: 7.6,
+    date: 2020,
+  },
+  {
+    id: 12,
+    title: "Velvet Shores",
+    image: "https://picsum.photos/seed/velvet-shores/400/600",
+    rating: 8.1,
+    date: 2021,
+  },
+];
+
+export default shows;

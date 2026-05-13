@@ -5,12 +5,16 @@ import { FeaturedMovieContext } from "./Contexts/featuredMovieContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
 import movies from "./data/movies";
+import shows from "./data/shows";
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
 // import popularMovies from "./data/popularMovies";
 import { API_KEY, BASE_URL } from "./api/tmdb";
 import { useMovies } from "./hooks/useMovies"; // custom hook for the movie api
 import Movies from "./Pages/Movies";
+import Shows from "./Pages/shows";
+import Library from "./Pages/Library";
+import ErrorPage from "./Pages/ErrorPage";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -37,28 +41,25 @@ function App() {
     return { topFiveTrending };
   }, [topFiveTrending]);
 
-
-  // popular movies endpoints and api calls 
+  // popular movies endpoints and api calls
   const popularUrl = `${BASE_URL}/movie/popular?api_key=${API_KEY}`;
-  const popularMovies = useMovies(popularUrl) ;
-  const topFivePopular = popularMovies.slice(0,5);
-  
+  const popularMovies = useMovies(popularUrl);
+  const topFivePopular = popularMovies.slice(0, 5);
+
   // useMemo for popular movies
   const popularMoviesValue = useMemo(() => {
     return { topFivePopular };
   }, [topFivePopular]);
 
-
   // featured movies endpoints
-  const featuredUrl =  `${BASE_URL}/movie/now_playing?api_key=${API_KEY}`;
+  const featuredUrl = `${BASE_URL}/movie/now_playing?api_key=${API_KEY}`;
   const featuredMovies = useMovies(featuredUrl);
 
   const featuredMovie = featuredMovies[0];
   // feature movie useMemo
   const featuredMovieValue = useMemo(() => {
-    return {featuredMovie}
+    return { featuredMovie };
   }, [featuredMovie]);
-
 
   return (
     <>
@@ -69,11 +70,17 @@ function App() {
             <TrendingMoviesContext.Provider value={trendingMoviesValue}>
               <PopularMoviesContext.Provider value={popularMoviesValue}>
                 <FeaturedMovieContext.Provider value={featuredMovieValue}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/home" element={<Home />} />
-                  <Route path="/movies" element={<Movies movies={movies}/>}/>
-                </Routes>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/home" element={<Home />} />
+                    <Route
+                      path="/movies"
+                      element={<Movies movies={movies} />}
+                    />
+                    <Route path="/shows" element={<Shows shows={shows} />} />
+                    <Route path="/library" element={<Library />} />
+                    <Route path="*" element={<ErrorPage />} />
+                  </Routes>
                 </FeaturedMovieContext.Provider>
               </PopularMoviesContext.Provider>
             </TrendingMoviesContext.Provider>
