@@ -4,12 +4,13 @@ import { ThemeContext } from "./Contexts/ThemeContext";
 import { FeaturedMovieContext } from "./Contexts/featuredMovieContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
-// import trendingMovies from "./data/trendingMovies"; // sample trending movies data
+import movies from "./data/movies";
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
 // import popularMovies from "./data/popularMovies";
 import { API_KEY, BASE_URL } from "./api/tmdb";
 import { useMovies } from "./hooks/useMovies"; // custom hook for the movie api
+import Movies from "./Pages/Movies";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -56,7 +57,7 @@ function App() {
   // feature movie useMemo
   const featuredMovieValue = useMemo(() => {
     return {featuredMovie}
-  }, [featuredMovie])
+  }, [featuredMovie]);
 
 
   return (
@@ -71,6 +72,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/home" element={<Home />} />
+                  <Route path="/movies" element={<Movies movies={movies}/>}/>
                 </Routes>
                 </FeaturedMovieContext.Provider>
               </PopularMoviesContext.Provider>

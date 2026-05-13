@@ -30,7 +30,7 @@ export default function TrendingMovies(){
                 <div className="pointer-events-none absolute inset-0 z-10 rounded-3xl bg-linear-to-t from-black/80 via-black/40 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 h-30 top-60 blur-xl" />
               </div>
 
-              <h2 className="dark:text-white font-semibold text-lg group-hover:text-violet-500 transition-colors duration-200">
+              <h2 className="dark:text-white font-semibold text-lg group-hover:text-violet-500 transition-colors duration-200 text-wrap">
                 {trendingNow.title}
               </h2>
 
