@@ -6,7 +6,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex shrink-0 flex-col self-stretch">
+    <div className="flex shrink-0 flex-col self-stretch dark:z-10 z-10">
       {/* Mobile top bar */}
       <header className="md:hidden sticky top-0 z-50 bg-white dark:bg-linear-to-r dark:from-[#161528] dark:via-[#12101c] dark:to-[#12101c] border-b border-black/10 dark:border-white/10">
         <div className="flex items-center justify-between px-4 py-3">
