@@ -1,4 +1,5 @@
 import { useContext } from "react"
+import { Link } from "react-router-dom"
 import { TrendingMoviesContext } from "../Contexts/TrendingMoviesContext"
 export default function TrendingMovies(){
     const { topFiveTrending } = useContext(TrendingMoviesContext)
@@ -11,8 +12,9 @@ export default function TrendingMovies(){
         {/* rendering the trending movies */}
         <div className="flex flex-col items-center gap-4 px-4 mx-0 md:inline-flex md:flex-row md:items-center md:space-x-8 md:mx-52 md:px-0 dark:text-white my-6">
           {topFiveTrending.map((trendingNow) => (
-            <div
+            <Link
               key={`${trendingNow.id}`}
+              to={`/home/${trendingNow.id}`}
               className="cursor-pointer mx-auto md:mx-1 group relative flex w-full max-w-[min(92vw,22rem)] flex-col items-center md:max-w-none md:block md:w-auto md:shrink-0"
             >
               <div className="group/image mb-3 relative w-full shrink-0 md:w-full md:shrink">
@@ -44,7 +46,7 @@ export default function TrendingMovies(){
                   {trendingNow.vote_average}
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

@@ -15,6 +15,7 @@ import Movies from "./Pages/Movies";
 import Shows from "./Pages/shows";
 import Library from "./Pages/Library";
 import ErrorPage from "./Pages/ErrorPage";
+import CardDetails from "./Pages/CardDetails";
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -69,10 +70,13 @@ function App() {
           <main className="flex-1 overflow-auto min-w-0">
             <TrendingMoviesContext.Provider value={trendingMoviesValue}>
               <PopularMoviesContext.Provider value={popularMoviesValue}>
-                <FeaturedMovieContext.Provider value={featuredMovieValue}>
+                <FeaturedMovieContext.Provider
+                  value={{ featuredMovie, topFiveTrending }}
+                >
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/home" element={<Home />} />
+                    <Route path="/home/:cardId" element={<CardDetails />} />
                     <Route
                       path="/movies"
                       element={<Movies movies={movies} />}
