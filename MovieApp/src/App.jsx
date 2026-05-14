@@ -59,8 +59,8 @@ function App() {
   const featuredMovie = featuredMovies[0];
   // feature movie useMemo
   const featuredMovieValue = useMemo(() => {
-    return { featuredMovie };
-  }, [featuredMovie]);
+    return { featuredMovie, topFiveTrending };
+  }, [featuredMovie, topFiveTrending]);
 
   return (
     <>
@@ -70,9 +70,7 @@ function App() {
           <main className="flex-1 overflow-auto min-w-0">
             <TrendingMoviesContext.Provider value={trendingMoviesValue}>
               <PopularMoviesContext.Provider value={popularMoviesValue}>
-                <FeaturedMovieContext.Provider
-                  value={{ featuredMovie, topFiveTrending }}
-                >
+                <FeaturedMovieContext.Provider value={featuredMovieValue}>
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/home" element={<Home />} />
