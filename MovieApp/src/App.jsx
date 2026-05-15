@@ -59,9 +59,9 @@ function App() {
   const featuredMovie = featuredMovies[0];
   // feature movie useMemo
   const featuredMovieValue = useMemo(() => {
-    return { featuredMovie, topFiveTrending };
-  }, [featuredMovie, topFiveTrending]);
-
+    return { featuredMovie, topFiveTrending, topFivePopular };
+  }, [featuredMovie, topFiveTrending, topFivePopular]);
+  
   return (
     <>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>

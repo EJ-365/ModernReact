@@ -1,5 +1,6 @@
 import { useContext } from "react"
 import { PopularMoviesContext } from "../Contexts/PopularMoviesContext"
+import { Link } from "react-router-dom"
 export default function TrendingMovies(){
     const {topFivePopular} = useContext(PopularMoviesContext)
     return (
@@ -11,7 +12,7 @@ export default function TrendingMovies(){
         {/* rendering the trending movies */}
         <div className="flex flex-col items-center gap-4 px-4 mx-0 md:inline-flex md:flex-row md:items-center md:space-x-8 md:mx-52 md:px-0 dark:text-white my-6">
           {topFivePopular.map((popularMovie) => (
-            <div
+            <Link to={`/home/${popularMovie.id}`}
               key={`${popularMovie.id}`}
               className="cursor-pointer mx-auto md:mx-1 group relative flex w-full max-w-[min(92vw,22rem)] flex-col items-center md:max-w-none md:block md:w-auto md:shrink-0"
             >
@@ -41,10 +42,10 @@ export default function TrendingMovies(){
                 <span className="text-violet-500 text-sm">
                   {" "}
                   <i className="bxf bx-star relative top-0.5 mx-1 text-sm" />
-                  {popularMovie.release_date}
+                  {popularMovie.vote_average}
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>

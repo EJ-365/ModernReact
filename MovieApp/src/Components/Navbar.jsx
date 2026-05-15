@@ -25,7 +25,7 @@ export default function Navbar() {
             <span className="text-[20px] font-bold dark:text-white text-black">
               <i className="bx bx-film text-[#8b5cf6] align-middle bottom-1.0 -top-0.5 relative text-2xl" />{" "}
               <NavLink to="/" onClick={() => setMobileOpen(false)}>
-                CineVault
+                MovieFinder
               </NavLink>
             </span>
           </div>
@@ -37,7 +37,7 @@ export default function Navbar() {
             className="p-2 rounded-lg dark:hover:bg-white/10 hover:bg-black/5"
           >
             <i
-              className={`${darkMode ? "bxf bx-moon" : "bxf bx-sun"} text-2xl dark:text-white text-black`}
+              className={`${darkMode ? "bxf bx-sun" : "bxf bx-moon"} text-2xl dark:text-white text-black`}
             />
           </button>
         </div>
@@ -52,12 +52,12 @@ export default function Navbar() {
           <div className="mb-14">
             <span className="text-center text-[20px] font-bold dark:text-white text-black">
               <i className="bx bx-film text-[#8b5cf6] align-middle bottom-1.0 -top-0.5 relative text-2xl" />{" "}
-              <NavLink to="/"> CineVault</NavLink>
+              <NavLink to="/"> MovieFInder</NavLink>
             </span>
 
             <i
               onClick={() => setDarkMode((prev) => !prev)}
-              className={`${darkMode ? "bxf bx-moon" : "bxf bx-sun text-black"} text-2xl ml-10 cursor-pointer`}
+              className={`${darkMode ? "bxf bx-sun" : "bxf bx-moon text-black"} text-xl ml-6 cursor-pointer`}
             />
           </div>
 
@@ -134,7 +134,7 @@ export default function Navbar() {
               <span className="text-[20px] font-bold dark:text-white text-black">
                 <i className="bx bx-film text-[#8b5cf6] align-middle bottom-1.0 -top-0.5 relative text-2xl" />{" "}
                 <NavLink to="/" onClick={() => setMobileOpen(false)}>
-                  CineVault
+                  MovieFInder
                 </NavLink>
               </span>
 
