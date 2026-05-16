@@ -62,7 +62,7 @@ function Shows({ shows }) {
                 <span className="text-violet-500 text-sm">
                   {" "}
                   <i className="bxf bx-star relative top-0.5 mx-1 text-sm" />
-                  {show.rating}
+                  {(show.rating.toFixed(2))}
                 </span>
               </div>
             </div>

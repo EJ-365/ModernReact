@@ -149,13 +149,7 @@ function CardDetails() {
       </div>
 
       {/* cast and crew */}
-      {/* 
-        Possible error: 
-        If movieCredit.credit or movieCredit.credit.cast is undefined/null
-        (like before the data is loaded from an API), 
-        then calling .map will throw a "Cannot read properties of undefined (reading 'map')" error.
-        A safe way is to check if credit/cast exists before mapping.
-      */}
+     
       <div className="dark:text-white font-bold text-3xl mt-40 mb-20 mx-25 md:text-left text-center ">
       <p>Top Cast</p>
 
@@ -177,7 +171,7 @@ function CardDetails() {
               </div>
               <div>
               <p className="text-center font-medium my-2">{actor.name}</p>
-              <p className="italic font-normal text-zinc-400 text-lg">{actor.character}</p>
+              <p className="italic font-normal text-zinc-400 text-[16px]">{actor.character}</p>
               </div>
             </div>
           ))
