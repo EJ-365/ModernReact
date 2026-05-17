@@ -12,7 +12,7 @@ import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
 import { API_KEY, BASE_URL } from "./api/tmdb";
 import { useMovies } from "./hooks/useMovies"; // custom hook for the movie api
 import Movies from "./Pages/Movies";
-import Shows from "./Pages/shows";
+import Shows from "./Pages/Shows";
 import Library from "./Pages/Library";
 import ErrorPage from "./Pages/ErrorPage";
 import CardDetails from "./Pages/CardDetails";
