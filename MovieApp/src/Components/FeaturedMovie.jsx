@@ -2,10 +2,14 @@ import { useContext } from "react";
 // import featuredMovieImage from "../assets/featuredMovieSample.jpg";
 import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
 function FeaturedMovie() {
-  const { featuredMovie } = useContext(FeaturedMovieContext);
+  const { featuredMovie, movieGenres } = useContext(FeaturedMovieContext);
+
   if (!featuredMovie)
     return <div className="h-[500px] bg-gray-900 animate-pulse rounded-3xl" />;
+    // featured movie genre id's 
+  const featuredMovieGenresId = featuredMovie.genre_ids.map(featuredMovieGenreId => featuredMovieGenreId); // resolved [21,28,18...]
 
+const matchedGenres = movieGenres.filter(genre => featuredMovieGenresId.includes(genre.id));
   const backgroundUrl = `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`;
 
   return (
@@ -17,15 +21,13 @@ function FeaturedMovie() {
         <div className="bg-linear-to-r from-[#08070f] border-none via-black/70 to-black/40 absolute inset-0 rounded-3xl" />
         {/* genre tags */}
         <div className="md:space-x-2 space-x-4 text-center md:m-0 mx-auto flex z-10 flex-wrap space-y-2">
-          <span className="border border-[#483784] md:px-4 px-3 text-nowrap  py-1 bg-violet-950/30 rounded-2xl  text-violet-200/80 text-xs font-semibold">
-            Sci-Fi
+        {
+          matchedGenres.map(genre => (
+            <span key={genre.id} className="border border-[#483784] md:px-4 px-3 py-1 bg-violet-950/30 rounded-2xl text-violet-200/80 text-xs font-medium">
+            {genre.name}
           </span>
-          <span className="border border-[#483784] md:px-4 px-3 py-1 bg-violet-950/30 rounded-2xl text-violet-200/80 text-xs font-medium">
-            Action
-          </span>
-          <span className="border border-[#483784] md:px-4 px-3 h-7 py-1  bg-violet-950/30 rounded-2xl text-violet-200/80 text-xs font-medium ">
-            Thriller
-          </span>
+          ))
+        }
         </div>
 
         {/* feature title */}

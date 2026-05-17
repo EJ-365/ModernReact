@@ -42,7 +42,7 @@ export default function TrendingMovies(){
                 <span className="text-violet-500 text-sm">
                   {" "}
                   <i className="bxf bx-star relative top-0.5 mx-1 text-sm" />
-                  {popularMovie.vote_average}
+                  {`${(popularMovie.vote_average).toFixed(2)}`}
                 </span>
               </div>
             </Link>

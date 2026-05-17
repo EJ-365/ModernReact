@@ -19,6 +19,7 @@ import CardDetails from "./Pages/CardDetails";
 import Warning from "./Components/Warning";
 
 function App() {
+  const [movieGenres, setMovieGenres] = useState([]);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") return true;
@@ -53,6 +54,15 @@ function App() {
     return { topFivePopular };
   }, [topFivePopular]);
 
+  // featured movies endpoint for genres
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}`)
+      .then((res) => res.json())
+      .then((data) => setMovieGenres(data.genres))
+      .catch((err) => console.log("Error finding movie genre", err));
+  }, []);
+
   // featured movies endpoints
   const featuredUrl = `${BASE_URL}/movie/now_playing?api_key=${API_KEY}`;
   const featuredMovies = useMovies(featuredUrl);
@@ -60,9 +70,9 @@ function App() {
   const featuredMovie = featuredMovies[0];
   // feature movie useMemo
   const featuredMovieValue = useMemo(() => {
-    return { featuredMovie, topFiveTrending, topFivePopular };
-  }, [featuredMovie, topFiveTrending, topFivePopular]);
-  
+    return { featuredMovie, topFiveTrending, movieGenres };
+  }, [featuredMovie, topFiveTrending, movieGenres]);
+
   return (
     <>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
