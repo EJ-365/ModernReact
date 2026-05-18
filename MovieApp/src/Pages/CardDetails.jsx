@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
 import { API_KEY } from "../api/tmdb";
 function CardDetails() {
-  const { topFiveTrending, topFivePopular } = useContext(FeaturedMovieContext);
+  const { topFiveTrending, topFivePopular, movieGenres } = useContext(FeaturedMovieContext);
   const { cardId } = useParams();
   const navigate = useNavigate();
   const currentMovie =
@@ -35,6 +35,10 @@ function CardDetails() {
   }, [currentMovie?.id]);
 
   if (!currentMovie) return <p>Loading...</p>;
+
+  // movie genre implementation
+  const genreId = currentMovie.genre_ids.map(id=> id); // [10,20,15]
+  const matchedGenres = movieGenres.filter(genre => genreId.includes(genre.id));
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -111,15 +115,13 @@ function CardDetails() {
             </span>
           </div>
           <div className="mb-6 md:space-x-4 space-x-2">
-            <span className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
-              action
+           {
+            matchedGenres.map(genre => (
+              <span key={genre.id} className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
+              {genre.name}
             </span>
-            <span className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
-              crime
-            </span>
-            <span className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
-              comedy
-            </span>
+            ))
+           }
           </div>
 
           {/* button */}

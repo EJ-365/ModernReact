@@ -12,7 +12,7 @@ import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
 import { API_KEY, BASE_URL } from "./api/tmdb";
 import { useMovies } from "./hooks/useMovies"; // custom hook for the movie api
 import Movies from "./Pages/Movies";
-import Shows from "./Pages/shows";
+import Shows from "./Pages/Shows";
 import Library from "./Pages/Library";
 import ErrorPage from "./Pages/ErrorPage";
 import CardDetails from "./Pages/CardDetails";
@@ -54,8 +54,7 @@ function App() {
     return { topFivePopular };
   }, [topFivePopular]);
 
-  // featured movies endpoint for genres
-
+  // featured movies endpoint for featured movies/now playing genres
   useEffect(() => {
     fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}`)
       .then((res) => res.json())
@@ -70,8 +69,8 @@ function App() {
   const featuredMovie = featuredMovies[0];
   // feature movie useMemo
   const featuredMovieValue = useMemo(() => {
-    return { featuredMovie, topFiveTrending, movieGenres };
-  }, [featuredMovie, topFiveTrending, movieGenres]);
+    return { featuredMovie, topFiveTrending, topFivePopular, movieGenres };
+  }, [featuredMovie, topFiveTrending, topFivePopular, movieGenres]);
 
   return (
     <>
