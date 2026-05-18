@@ -1,44 +1,112 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
-import { API_KEY } from "../api/tmdb";
+import { API_KEY, BASE_URL } from "../api/tmdb";
 function CardDetails() {
   const { topFiveTrending, topFivePopular, movieGenres } = useContext(FeaturedMovieContext);
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const currentMovie =
-    topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
-    topFivePopular?.find((movie) => movie.id === Number(cardId));
+  const cardIdNumber = Number(cardId);
+  const contextMovie =
+    topFiveTrending?.find((movie) => movie.id === cardIdNumber) ||
+    topFivePopular?.find((movie) => movie.id === cardIdNumber);
+  const [fetchedMovie, setFetchedMovie] = useState(null);
+  const [movieLoadFailed, setMovieLoadFailed] = useState(false);
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
+  const currentMovie = contextMovie || fetchedMovie;
 
   useEffect(() => {
+    setFetchedMovie(null);
+    setMovieLoadFailed(false);
+
+    if (contextMovie) {
+      return;
+    }
+
+    if (!Number.isFinite(cardIdNumber)) {
+      setMovieLoadFailed(true);
+      return;
+    }
+
+    let isCancelled = false;
+
+    fetch(`${BASE_URL}/movie/${cardIdNumber}?api_key=${API_KEY}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Unable to load movie ${cardIdNumber}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!isCancelled) setFetchedMovie(data);
+      })
+      .catch((err) => {
+        console.log("Error while fetching the movie", err);
+        if (!isCancelled) setMovieLoadFailed(true);
+      })
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [cardIdNumber, contextMovie]);
+
+  useEffect(() => {
+    setRuntime(undefined);
     if (!currentMovie?.id) return;
+    if (typeof currentMovie.runtime === "number") {
+      setRuntime(currentMovie.runtime);
+      return;
+    }
+
+    let isCancelled = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
+      .then((data) => {
+        if (!isCancelled) setRuntime(data.runtime);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
-  }, [currentMovie?.id]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentMovie?.id, currentMovie?.runtime]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
+    setMovieCredit(null);
     if (!currentMovie?.id) return;
+    let isCancelled = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
+      .then((data) => {
+        if (!isCancelled) setMovieCredit(data);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      isCancelled = true;
+    };
   }, [currentMovie?.id]);
 
-  if (!currentMovie) return <p>Loading...</p>;
+  if (!currentMovie) {
+    if (movieLoadFailed) return <p>Movie details could not be loaded.</p>;
+    return <p>Loading...</p>;
+  }
 
   // movie genre implementation
-  const genreId = currentMovie.genre_ids.map(id=> id); // [10,20,15]
-  const matchedGenres = movieGenres.filter(genre => genreId.includes(genre.id));
+  const matchedGenres = Array.isArray(currentMovie.genres)
+    ? currentMovie.genres
+    : (movieGenres ?? []).filter((genre) =>
+        (currentMovie.genre_ids ?? []).includes(genre.id),
+      );
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -53,6 +121,8 @@ function CardDetails() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (typeof runtime !== "number") return "Loading...";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
