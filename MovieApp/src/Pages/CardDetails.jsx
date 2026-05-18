@@ -11,23 +11,24 @@ function CardDetails() {
     topFiveTrending?.find((movie) => movie.id === cardIdNumber) ||
     topFivePopular?.find((movie) => movie.id === cardIdNumber);
   const [fetchedMovie, setFetchedMovie] = useState(null);
-  const [movieLoadFailed, setMovieLoadFailed] = useState(false);
-  const [runtime, setRuntime] = useState();
+  const [failedMovieId, setFailedMovieId] = useState(null);
+  const [fetchedRuntime, setFetchedRuntime] = useState(null);
   const [movieCredit, setMovieCredit] = useState(null);
-  const currentMovie = contextMovie || fetchedMovie;
+  const currentMovie =
+    contextMovie || (fetchedMovie?.id === cardIdNumber ? fetchedMovie : null);
+  const runtime =
+    typeof currentMovie?.runtime === "number"
+      ? currentMovie.runtime
+      : fetchedRuntime?.movieId === currentMovie?.id
+        ? fetchedRuntime.runtime
+        : undefined;
+  const currentMovieCredit =
+    movieCredit?.movieId === currentMovie?.id ? movieCredit.data : null;
+  const movieLoadFailed =
+    !Number.isFinite(cardIdNumber) || failedMovieId === cardIdNumber;
 
   useEffect(() => {
-    setFetchedMovie(null);
-    setMovieLoadFailed(false);
-
-    if (contextMovie) {
-      return;
-    }
-
-    if (!Number.isFinite(cardIdNumber)) {
-      setMovieLoadFailed(true);
-      return;
-    }
+    if (contextMovie || !Number.isFinite(cardIdNumber)) return;
 
     let isCancelled = false;
 
@@ -43,7 +44,7 @@ function CardDetails() {
       })
       .catch((err) => {
         console.log("Error while fetching the movie", err);
-        if (!isCancelled) setMovieLoadFailed(true);
+        if (!isCancelled) setFailedMovieId(cardIdNumber);
       })
 
     return () => {
@@ -52,12 +53,8 @@ function CardDetails() {
   }, [cardIdNumber, contextMovie]);
 
   useEffect(() => {
-    setRuntime(undefined);
     if (!currentMovie?.id) return;
-    if (typeof currentMovie.runtime === "number") {
-      setRuntime(currentMovie.runtime);
-      return;
-    }
+    if (typeof currentMovie.runtime === "number") return;
 
     let isCancelled = false;
 
@@ -66,7 +63,9 @@ function CardDetails() {
     )
       .then((res) => res.json())
       .then((data) => {
-        if (!isCancelled) setRuntime(data.runtime);
+        if (!isCancelled) {
+          setFetchedRuntime({ movieId: currentMovie.id, runtime: data.runtime });
+        }
       })
       .catch((err) => console.log("Error while fetching the data", err));
 
@@ -78,7 +77,6 @@ function CardDetails() {
   // useEffect for the movie credits
 
   useEffect(() => {
-    setMovieCredit(null);
     if (!currentMovie?.id) return;
     let isCancelled = false;
 
@@ -87,7 +85,7 @@ function CardDetails() {
     )
       .then((res) => res.json())
       .then((data) => {
-        if (!isCancelled) setMovieCredit(data);
+        if (!isCancelled) setMovieCredit({ movieId: currentMovie.id, data });
       })
       .catch((err) => console.log("Error while fetching the data", err));
 
@@ -227,8 +225,8 @@ function CardDetails() {
 
       </div>
       <div className="dark:text-white flex flex-wrap space-x-4 px-20">
-        {movieCredit?.cast?.length > 0 ? (
-          movieCredit.cast.map((actor) => (
+        {currentMovieCredit?.cast?.length > 0 ? (
+          currentMovieCredit.cast.map((actor) => (
             <div key={actor.id} className="mx-6 text-center my-2" >
               <div>
                 <img
