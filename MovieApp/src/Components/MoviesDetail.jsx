@@ -10,23 +10,22 @@ function isMovieDetails(data) {
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
-  const [movieCredit, setMovieCredit] = useState(null);
+  const [movieCreditState, setMovieCreditState] = useState({
+    movieId: null,
+    credit: null,
+  });
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [currentMovie, setCurrentMovie] = useState(null);
-  const [loadStatus, setLoadStatus] = useState("loading");
+  const [movieState, setMovieState] = useState({
+    movieId: null,
+    movie: null,
+    status: "loading",
+  });
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
   }
 
   useEffect(() => {
-    setCurrentMovie(null);
-    setRuntime(undefined);
-    setMovieCredit(null);
-    setShowMoreCast(false);
-    setLoadStatus("loading");
-
     const controller = new AbortController();
 
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`, {
@@ -35,22 +34,26 @@ function MoviesDetail() {
       .then((res) => res.json())
       .then((data) => {
         if (!isMovieDetails(data)) {
-          setLoadStatus("not-found");
+          setMovieState({ movieId, movie: null, status: "not-found" });
           return;
         }
 
-        setCurrentMovie(data);
-        setRuntime(data.runtime);
-        setLoadStatus("ready");
+        setMovieState({ movieId, movie: data, status: "ready" });
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
         console.log("Error fetching data", err);
-        setLoadStatus("not-found");
+        setMovieState({ movieId, movie: null, status: "not-found" });
       });
 
     return () => controller.abort();
   }, [movieId]);
+
+  const currentMovie =
+    movieState.movieId === movieId ? movieState.movie : null;
+  const loadStatus =
+    movieState.movieId === movieId ? movieState.status : "loading";
+  const runtime = currentMovie?.runtime;
 
   // useEffect for the movie credits
 
@@ -64,15 +67,23 @@ function MoviesDetail() {
       { signal: controller.signal },
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(Array.isArray(data?.cast) ? data : { cast: [] }))
+      .then((data) =>
+        setMovieCreditState({
+          movieId: currentMovie.id,
+          credit: Array.isArray(data?.cast) ? data : { cast: [] },
+        }),
+      )
       .catch((err) => {
         if (err.name === "AbortError") return;
         console.log("Error while fetching the data", err);
-        setMovieCredit({ cast: [] });
+        setMovieCreditState({ movieId: currentMovie.id, credit: { cast: [] } });
       });
 
     return () => controller.abort();
   }, [currentMovie?.id]);
+
+  const movieCredit =
+    movieCreditState.movieId === currentMovie?.id ? movieCreditState.credit : null;
 
   // redirecting to home chevron icon
   const redirectToHome = () => {

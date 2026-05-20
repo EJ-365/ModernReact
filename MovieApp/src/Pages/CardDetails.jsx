@@ -10,11 +10,16 @@ function isMovieDetails(data) {
 function CardDetails() {
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const [currentMovie, setCurrentMovie] = useState(null);
-  const [runtime, setRuntime] = useState();
-  const [movieCredit, setMovieCredit] = useState(null);
+  const [movieCreditState, setMovieCreditState] = useState({
+    movieId: null,
+    credit: null,
+  });
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [loadStatus, setLoadStatus] = useState("loading");
+  const [movieState, setMovieState] = useState({
+    movieId: null,
+    movie: null,
+    status: "loading",
+  });
 
   // show more cast function
   function showMore() {
@@ -22,12 +27,6 @@ function CardDetails() {
   }
 
   useEffect(() => {
-    setCurrentMovie(null);
-    setRuntime(undefined);
-    setMovieCredit(null);
-    setShowMoreCast(false);
-    setLoadStatus("loading");
-
     const controller = new AbortController();
 
     fetch(`https://api.themoviedb.org/3/movie/${cardId}?api_key=${API_KEY}`, {
@@ -36,22 +35,26 @@ function CardDetails() {
       .then((res) => res.json())
       .then((data) => {
         if (!isMovieDetails(data)) {
-          setLoadStatus("not-found");
+          setMovieState({ movieId: cardId, movie: null, status: "not-found" });
           return;
         }
 
-        setCurrentMovie(data);
-        setRuntime(data.runtime);
-        setLoadStatus("ready");
+        setMovieState({ movieId: cardId, movie: data, status: "ready" });
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
         console.log("Error while fetching the data", err);
-        setLoadStatus("not-found");
+        setMovieState({ movieId: cardId, movie: null, status: "not-found" });
       });
 
     return () => controller.abort();
   }, [cardId]);
+
+  const currentMovie =
+    movieState.movieId === cardId ? movieState.movie : null;
+  const loadStatus =
+    movieState.movieId === cardId ? movieState.status : "loading";
+  const runtime = currentMovie?.runtime;
 
   // useEffect for the movie credits
 
@@ -65,15 +68,23 @@ function CardDetails() {
       { signal: controller.signal },
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(Array.isArray(data?.cast) ? data : { cast: [] }))
+      .then((data) =>
+        setMovieCreditState({
+          movieId: currentMovie.id,
+          credit: Array.isArray(data?.cast) ? data : { cast: [] },
+        }),
+      )
       .catch((err) => {
         if (err.name === "AbortError") return;
         console.log("Error while fetching the data", err);
-        setMovieCredit({ cast: [] });
+        setMovieCreditState({ movieId: currentMovie.id, credit: { cast: [] } });
       });
 
     return () => controller.abort();
   }, [currentMovie?.id]);
+
+  const movieCredit =
+    movieCreditState.movieId === currentMovie?.id ? movieCreditState.credit : null;
 
   if (loadStatus === "loading") return (
     <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
