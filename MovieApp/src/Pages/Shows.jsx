@@ -23,7 +23,7 @@ function Shows({ shows }) {
   
         <div className="flex items-center md:space-x-2 justify-center mb-4 cursor-pointer flex-wrap md:my-0 my-3 space-y-3 space-x-3">
           {genres.map((genre) => (
-            <span className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
+            <span key={genre} className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300">
               {genre}
             </span>
           ))}

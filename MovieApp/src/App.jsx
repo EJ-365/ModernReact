@@ -4,7 +4,6 @@ import { ThemeContext } from "./Contexts/ThemeContext";
 import { FeaturedMovieContext } from "./Contexts/featuredMovieContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
-import movies from "./data/movies";
 import shows from "./data/shows";
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
@@ -17,9 +16,12 @@ import Library from "./Pages/Library";
 import ErrorPage from "./Pages/ErrorPage";
 import CardDetails from "./Pages/CardDetails";
 import Warning from "./Components/Warning";
+import MoviesDetail from "./Components/MoviesDetail";
 
 function App() {
   const [movieGenres, setMovieGenres] = useState([]);
+  const [allMovies, setAllMovies] = useState([]);
+  const[page, setPage] = useState(1);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") return true;
@@ -72,6 +74,28 @@ function App() {
     return { featuredMovie, topFiveTrending, topFivePopular, movieGenres };
   }, [featuredMovie, topFiveTrending, topFivePopular, movieGenres]);
 
+  /* ---------- Movies page------ */
+  // useEffect for movies
+  useEffect(() => {
+    fetch(`${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}`)
+    .then(res => res.json())
+    .then(data => {
+      if(page === 1){
+        setAllMovies(data.results?? [])
+      }
+      else {
+        setAllMovies(prev => [...prev,...(data.results?? [])])
+      }
+    })
+    .catch(err => console.log("Error fetching movies:", err))
+  }, [page]);
+
+  // see more page incrementation
+  function pageIncrement(){
+    setPage(prev => prev + 1);
+  }
+
+
   return (
     <>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
@@ -86,9 +110,10 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/home" element={<Home />} />
                     <Route path="/home/:cardId" element={<CardDetails />} />
+                    <Route path="/movies/:movieId" element={<MoviesDetail />} />
                     <Route
                       path="/movies"
-                      element={<Movies movies={movies} />}
+                      element={<Movies pageIncrement={pageIncrement} page={page} movies={allMovies} />}
                     />
                     <Route path="/shows" element={<Shows shows={shows} />} />
                     <Route path="/library" element={<Library />} />

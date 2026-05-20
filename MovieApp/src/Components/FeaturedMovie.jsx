@@ -7,7 +7,7 @@ function FeaturedMovie() {
   if (!featuredMovie)
     return <div className="h-[500px] bg-gray-900 animate-pulse rounded-3xl" />;
     // featured movie genre id's 
-  const featuredMovieGenresId = featuredMovie.genre_ids.map(featuredMovieGenreId => featuredMovieGenreId); // resolved [21,28,18...]
+  const featuredMovieGenresId = featuredMovie.genre_ids.map(featuredMovieGenreId => featuredMovieGenreId); 
 
 const matchedGenres = movieGenres.filter(genre => featuredMovieGenresId.includes(genre.id));
   const backgroundUrl = `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`;

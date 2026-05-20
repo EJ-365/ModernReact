@@ -1,24 +1,25 @@
 import { GridLoader } from "react-spinners";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
 import { API_KEY } from "../api/tmdb";
-function CardDetails() {
-  const { topFiveTrending, topFivePopular, movieGenres } =
-    useContext(FeaturedMovieContext);
-  const { cardId } = useParams();
+function MoviesDetail() {
+  const { movieId } = useParams();
   const navigate = useNavigate();
-  const currentMovie =
-    topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
-    topFivePopular?.find((movie) => movie.id === Number(cardId));
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
-
+  const [currentMovie, setCurrentMovie] = useState(null);
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
   }
+
+  useEffect(() => {
+    fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
+      .then((res) => res.json())
+      .then((data) => setCurrentMovie(data))
+      .catch((err) => console.log("Error fetching data", err));
+  }, [movieId]);
 
   useEffect(() => {
     if (!currentMovie?.id) return;
@@ -42,17 +43,13 @@ function CardDetails() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
 
-  if (!currentMovie) return (
-    <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
-      <GridLoader size={8} color="#ffffff" /> <p className="mx-3">Loading...</p>;
-    </div>
-  )
-
-  // movie genre implementation
-  const genreId = currentMovie.genre_ids.map((id) => id); // [10,20,15]
-  const matchedGenres = movieGenres.filter((genre) =>
-    genreId.includes(genre.id),
-  );
+  if (!currentMovie)
+    return (
+      <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
+        <GridLoader size={8} color="#ffffff" />{" "}
+        <p className="mx-3">Loading...</p>;
+      </div>
+    );
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -129,7 +126,7 @@ function CardDetails() {
             </span>
           </div>
           <div className="mb-6 md:space-x-4 space-x-2">
-            {matchedGenres.map((genre) => (
+            {currentMovie.genres.map((genre) => (
               <span
                 key={genre.id}
                 className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300"
@@ -170,69 +167,77 @@ function CardDetails() {
       <div className="dark:text-white font-bold text-3xl mt-40 mb-20 mx-25 md:text-left text-center ">
         <p>Top Cast</p>
       </div>
-     {
-      showMoreCast ? (
+      {showMoreCast ? (
         <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
-        {movieCredit?.cast?.length > 0 ? (
-          movieCredit.cast.slice(11).map((actor) => (
-            <div key={actor.id} className="md:mx-3 text-center my-2 mx-4">
-              <div>
-                <img
-                  src={
-                    actor.profile_path
-                      ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
-                      : "https://via.placeholder.com/200x300?text=No+Image"
-                  }
-                  alt={actor.name}
-                  className="md:w-20 h-auto w-20 rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
-                />
+          {movieCredit?.cast?.length > 0 ? (
+            movieCredit.cast.slice(11).map((actor) => (
+              <div key={actor.id} className="md:mx-3 text-center my-2 mx-4">
+                <div>
+                  <img
+                    src={
+                      actor.profile_path
+                        ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                        : "https://via.placeholder.com/200x300?text=No+Image"
+                    }
+                    alt={actor.name}
+                    className="md:w-20 h-auto w-20 rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
+                  />
+                </div>
+                <div>
+                  <p className="text-center font-medium my-2">{actor.name}</p>
+                  <p className="italic font-normal text-zinc-400 text-[16px]">
+                    {actor.character}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-center font-medium my-2">{actor.name}</p>
-                <p className="italic font-normal text-zinc-400 text-[16px]">
-                  {actor.character}
-                </p>
+            ))
+          ) : (
+            <p className="dark:">No cast information available.</p>
+          )}
+        </div>
+      ) : (
+        <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
+          {movieCredit?.cast?.length > 0 ? (
+            movieCredit.cast.slice(0, 10).map((actor) => (
+              <div key={actor.id} className="md:mx-auto text-center my-2 mx-4">
+                <div>
+                  <img
+                    src={
+                      actor.profile_path
+                        ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
+                        : "https://via.placeholder.com/200x300?text=No+Image"
+                    }
+                    alt={actor.name}
+                    className="md:w-20 h-auto w-20 rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
+                  />
+                </div>
+                <div>
+                  <p className="text-center font-medium my-2">{actor.name}</p>
+                  <p className="italic font-normal text-zinc-400 text-[16px]">
+                    {actor.character}
+                  </p>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center flex justify-center">
+              {" "}
+              <p className="dark:text-white text-center font-semibold">
+                No cast information available.
+              </p>
             </div>
-          ))
-        ) : (
-          <p className="dark:">No cast information available.</p>
-        )}
-      </div>
-      ) : ( <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
-        {movieCredit?.cast?.length > 0 ? (
-          movieCredit.cast.slice(0, 10).map((actor) => (
-            <div key={actor.id} className="md:mx-auto text-center my-2 mx-4">
-              <div>
-                <img
-                  src={
-                    actor.profile_path
-                      ? `https://image.tmdb.org/t/p/w200${actor.profile_path}`
-                      : "https://via.placeholder.com/200x300?text=No+Image"
-                  }
-                  alt={actor.name}
-                  className="md:w-20 h-auto w-20 rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
-                />
-              </div>
-              <div>
-                <p className="text-center font-medium my-2">{actor.name}</p>
-                <p className="italic font-normal text-zinc-400 text-[16px]">
-                  {actor.character}
-                </p>
-              </div>
-            </div>
-          ))
-        ) : (
-         <div className="text-center flex justify-center">  <p className="dark:text-white text-center font-semibold">No cast information available.</p></div>
-        )}
-      </div>)
-     }
+          )}
+        </div>
+      )}
       <div className=" text-center mt-12 w-auto mx-auto">
-        <button className=" dark:text-zinc-400 text-white py-2 px-5 bg-violet-700/50 rounded-lg capitalize font-semibold text-md cursor-pointer hover:bg-violet-900 hover:text-zinc-300 transition-colors" onClick={showMore}>
+        <button
+          className=" dark:text-zinc-400 text-white py-2 px-5 bg-violet-700/50 rounded-lg capitalize font-semibold text-md cursor-pointer hover:bg-violet-900 hover:text-zinc-300 transition-colors"
+          onClick={showMore}
+        >
           {showMoreCast ? "hide" : "see more"}
         </button>
       </div>
     </section>
   );
 }
-export default CardDetails;
+export default MoviesDetail;
