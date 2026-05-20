@@ -2,54 +2,88 @@ import { GridLoader } from "react-spinners";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API_KEY } from "../api/tmdb";
+
+function isMovieDetails(data) {
+  return Boolean(data?.id && Array.isArray(data.genres));
+}
+
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
-  const [movieCredit, setMovieCredit] = useState(null);
+  const [movieCreditState, setMovieCreditState] = useState({
+    movieId: null,
+    credit: null,
+  });
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [currentMovie, setCurrentMovie] = useState(null);
+  const [movieState, setMovieState] = useState({
+    movieId: null,
+    movie: null,
+    status: "loading",
+  });
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
   }
 
   useEffect(() => {
-    fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
+    const controller = new AbortController();
+
+    fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`, {
+      signal: controller.signal,
+    })
       .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (!isMovieDetails(data)) {
+          setMovieState({ movieId, movie: null, status: "not-found" });
+          return;
+        }
+
+        setMovieState({ movieId, movie: data, status: "ready" });
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error fetching data", err);
+        setMovieState({ movieId, movie: null, status: "not-found" });
+      });
+
+    return () => controller.abort();
   }, [movieId]);
 
-  useEffect(() => {
-    if (!currentMovie?.id) return;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
-    )
-      .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
-      .catch((err) => console.log("Error while fetching the data", err));
-  }, [currentMovie?.id]);
+  const currentMovie =
+    movieState.movieId === movieId ? movieState.movie : null;
+  const loadStatus =
+    movieState.movieId === movieId ? movieState.status : "loading";
+  const runtime = currentMovie?.runtime;
 
   // useEffect for the movie credits
 
   useEffect(() => {
-    if (!currentMovie?.id) return;
+    if (!currentMovie?.id) return undefined;
+
+    const controller = new AbortController();
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
+      { signal: controller.signal },
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
-      .catch((err) => console.log("Error while fetching the data", err));
+      .then((data) =>
+        setMovieCreditState({
+          movieId: currentMovie.id,
+          credit: Array.isArray(data?.cast) ? data : { cast: [] },
+        }),
+      )
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+        setMovieCreditState({ movieId: currentMovie.id, credit: { cast: [] } });
+      });
+
+    return () => controller.abort();
   }, [currentMovie?.id]);
 
-  if (!currentMovie)
-    return (
-      <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
-        <GridLoader size={8} color="#ffffff" />{" "}
-        <p className="mx-3">Loading...</p>;
-      </div>
-    );
+  const movieCredit =
+    movieCreditState.movieId === currentMovie?.id ? movieCreditState.credit : null;
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -57,13 +91,16 @@ function MoviesDetail() {
   };
 
   const getReleaseYear = (releaseYear) => {
+    if (!releaseYear) return "N/A";
     const date = new Date(releaseYear);
-    return date.getFullYear();
+    return Number.isNaN(date.getTime()) ? "N/A" : date.getFullYear();
   };
 
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!Number.isFinite(runtime)) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -71,6 +108,27 @@ function MoviesDetail() {
 
     return `${toHours}h ${formattedMins}m`;
   };
+
+  if (loadStatus === "loading")
+    return (
+      <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
+        <GridLoader size={8} color="#ffffff" />{" "}
+        <p className="mx-3">Loading...</p>;
+      </div>
+    );
+
+  if (!currentMovie)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">Movie details are unavailable.</p>
+        <button
+          className="mt-5 text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-sm font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+          onClick={() => navigate("/movies")}
+        >
+          Back to movies
+        </button>
+      </div>
+    );
 
   // UI START HERE
   return (
@@ -113,7 +171,9 @@ function MoviesDetail() {
           <div className="md:text-xl text-lg md:space-x-8 my-4 space-x-2">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentMovie.vote_average.toFixed(2)}`}
+              {Number.isFinite(currentMovie.vote_average)
+                ? currentMovie.vote_average.toFixed(2)
+                : "N/A"}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />

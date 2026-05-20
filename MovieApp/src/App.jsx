@@ -20,7 +20,7 @@ import MoviesDetail from "./Components/MoviesDetail";
 
 function App() {
   const [movieGenres, setMovieGenres] = useState([]);
-  const [allMovies, setAllMovies] = useState([]);
+  const [moviePages, setMoviePages] = useState({});
   const[page, setPage] = useState(1);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -60,7 +60,7 @@ function App() {
   useEffect(() => {
     fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setMovieGenres(data.genres))
+      .then((data) => setMovieGenres(Array.isArray(data?.genres) ? data.genres : []))
       .catch((err) => console.log("Error finding movie genre", err));
   }, []);
 
@@ -75,17 +75,23 @@ function App() {
   }, [featuredMovie, topFiveTrending, topFivePopular, movieGenres]);
 
   /* ---------- Movies page------ */
+  const allMovies = useMemo(() => {
+    return Object.keys(moviePages)
+      .map(Number)
+      .sort((firstPage, nextPage) => firstPage - nextPage)
+      .flatMap((moviePage) => moviePages[moviePage]);
+  }, [moviePages]);
+
   // useEffect for movies
   useEffect(() => {
     fetch(`${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}`)
     .then(res => res.json())
     .then(data => {
-      if(page === 1){
-        setAllMovies(data.results?? [])
-      }
-      else {
-        setAllMovies(prev => [...prev,...(data.results?? [])])
-      }
+      const results = Array.isArray(data?.results) ? data.results : [];
+      setMoviePages((previousPages) => ({
+        ...previousPages,
+        [page]: results,
+      }));
     })
     .catch(err => console.log("Error fetching movies:", err))
   }, [page]);
