@@ -9,7 +9,7 @@ function FeaturedMovie() {
     // featured movie genre id's 
   const featuredMovieGenresId = featuredMovie.genre_ids.map(featuredMovieGenreId => featuredMovieGenreId); 
 
-const matchedGenres = movieGenres.filter(genre => featuredMovieGenresId.includes(genre.id));
+const matchedGenres = (movieGenres ?? []).filter(genre => featuredMovieGenresId.includes(genre.id));
   const backgroundUrl = `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`;
 
   return (

@@ -1,19 +1,20 @@
 import { GridLoader } from "react-spinners";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
 import { API_KEY } from "../api/tmdb";
+
+function isMovieDetails(data) {
+  return Boolean(data?.id && Array.isArray(data.genres));
+}
+
 function CardDetails() {
-  const { topFiveTrending, topFivePopular, movieGenres } =
-    useContext(FeaturedMovieContext);
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const currentMovie =
-    topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
-    topFivePopular?.find((movie) => movie.id === Number(cardId));
+  const [currentMovie, setCurrentMovie] = useState(null);
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
+  const [loadStatus, setLoadStatus] = useState("loading");
 
   // show more cast function
   function showMore() {
@@ -21,38 +22,76 @@ function CardDetails() {
   }
 
   useEffect(() => {
-    if (!currentMovie?.id) return;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
-    )
+    setCurrentMovie(null);
+    setRuntime(undefined);
+    setMovieCredit(null);
+    setShowMoreCast(false);
+    setLoadStatus("loading");
+
+    const controller = new AbortController();
+
+    fetch(`https://api.themoviedb.org/3/movie/${cardId}?api_key=${API_KEY}`, {
+      signal: controller.signal,
+    })
       .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
-      .catch((err) => console.log("Error while fetching the data", err));
-  }, [currentMovie?.id]);
+      .then((data) => {
+        if (!isMovieDetails(data)) {
+          setLoadStatus("not-found");
+          return;
+        }
+
+        setCurrentMovie(data);
+        setRuntime(data.runtime);
+        setLoadStatus("ready");
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+        setLoadStatus("not-found");
+      });
+
+    return () => controller.abort();
+  }, [cardId]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
-    if (!currentMovie?.id) return;
+    if (!currentMovie?.id) return undefined;
+
+    const controller = new AbortController();
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
+      { signal: controller.signal },
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
-      .catch((err) => console.log("Error while fetching the data", err));
+      .then((data) => setMovieCredit(Array.isArray(data?.cast) ? data : { cast: [] }))
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+        setMovieCredit({ cast: [] });
+      });
+
+    return () => controller.abort();
   }, [currentMovie?.id]);
 
-  if (!currentMovie) return (
+  if (loadStatus === "loading") return (
     <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
       <GridLoader size={8} color="#ffffff" /> <p className="mx-3">Loading...</p>;
     </div>
   )
 
-  // movie genre implementation
-  const genreId = currentMovie.genre_ids.map((id) => id); // [10,20,15]
-  const matchedGenres = movieGenres.filter((genre) =>
-    genreId.includes(genre.id),
-  );
+  if (!currentMovie) return (
+    <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+      <p className="mx-3">Movie details are unavailable.</p>
+      <button
+        className="mt-5 text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-sm font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        onClick={() => navigate("/home")}
+      >
+        Back to home
+      </button>
+    </div>
+  )
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -60,13 +99,16 @@ function CardDetails() {
   };
 
   const getReleaseYear = (releaseYear) => {
+    if (!releaseYear) return "N/A";
     const date = new Date(releaseYear);
-    return date.getFullYear();
+    return Number.isNaN(date.getTime()) ? "N/A" : date.getFullYear();
   };
 
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!Number.isFinite(runtime)) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -116,7 +158,9 @@ function CardDetails() {
           <div className="md:text-xl text-lg md:space-x-8 my-4 space-x-2">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentMovie.vote_average.toFixed(2)}`}
+              {Number.isFinite(currentMovie.vote_average)
+                ? currentMovie.vote_average.toFixed(2)
+                : "N/A"}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
@@ -129,7 +173,7 @@ function CardDetails() {
             </span>
           </div>
           <div className="mb-6 md:space-x-4 space-x-2">
-            {matchedGenres.map((genre) => (
+            {currentMovie.genres.map((genre) => (
               <span
                 key={genre.id}
                 className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300"
