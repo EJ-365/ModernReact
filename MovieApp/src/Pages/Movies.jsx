@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-function Movies({ movies, page,pageIncrement }) {
+function Movies({ allMovies, page,pageIncrement }) {
   const genres = [
     "action",
     "adventure",
@@ -31,12 +31,12 @@ function Movies({ movies, page,pageIncrement }) {
         ))}
       </div>
       <div className="dark:text-white mx-50 my-5">
-        <p className=" text-violet-800/70 dark:text-zinc-300 font-bold  text-sm italic text-[14px] ">Showing Page: {`${page}`}</p>
+        <p className=" text-violet-800/70 dark:text-zinc-300 font-bold  text-sm italic text-[14px] ">Showing Page: {`${page} of ${allMovies.totalPages}`}</p>
       </div>
 
       {/* Movies rendering */}
       <div className="flex justify-center flex-wrap md:ml-20 mx-10">
-        {movies.map((movie) => (
+        {allMovies.movies.map((movie) => (
           <Link
           to={`/movies/${movie.id}`}
             key={`${movie.id}`}

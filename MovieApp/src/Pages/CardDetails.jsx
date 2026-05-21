@@ -77,12 +77,12 @@ function CardDetails() {
 
   // UI START HERE
   return (
-    <section className="mb-20">
+    <section className="mb-20 relative">
       <div
         style={{
           backgroundImage: `url(https://image.tmdb.org/t/p/original${currentMovie.backdrop_path})`,
         }}
-        className="bg-cover bg-center h-180 md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-8  inset-0 object-cover relative z-10 overflow-hidden"
+        className="bg-cover bg-center h-100 md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-8  inset-0 object-cover relative z-10 overflow-hidden"
       >
         {/** overlay */}
         <div className="dark:bg-linear-to-l from-[#08070fb9] border-none via-black/70 to-black/40 absolute inset-0" />
@@ -92,28 +92,28 @@ function CardDetails() {
       <span
         onClick={redirectToHome}
         role="button"
-        class="bx bx-chevron-left dark:text-white/70 text-white text-4xl md:mx-12 mx-3 font-thin bottom-175 z-10 relative  hover:cursor-pointer"
+        className="bx bx-chevron-left dark:text-white/70 text-white text-4xl font-thin top-4 left-4 md:left-12 z-20 absolute hover:cursor-pointer"
       />
 
       {/* movie details */}
-      <div className="main dark:text-white flex mx-10 items-start space-x-4 absolute-400  rounded-b-2xl border-violet-900/30 dark:shadow-0 shadow-lg border-2   rounded-t-3xl backdrop-blur-2xl p-2 blur-2x top-10 relative mb-10  light:bg-white/30  md:flex-row flex-col ">
+      <div className="main dark:text-white flex mx-4 md:mx-20 items-center md:items-start space-x-0 md:space-x-4 absolute-400  rounded-b-2xl border-violet-900/30 dark:shadow-0 shadow-lg border-2   rounded-t-3xl backdrop-blur-2xl blur-2x top-10 relative mb-10  light:bg-white/30  md:flex-row flex-col p-4 md:p-10  ">
         {/* image div */}
-        <div className="md:my-0 md:w-90 w-auto md:mx-0 ml-5 my-10">
+        <div className="md:my-0 md:w-240 w-full max-w-64 md:max-w-none md:mx-0 mx-auto my-6 text-center">
           <img
             src={`https://image.tmdb.org/t/p/w500${currentMovie.poster_path}`}
             alt={currentMovie.title || "Poster"}
-            className="w-auto rounded-3xl h-110"
+            className="w-full md:w-auto rounded-3xl h-auto md:h-128 align-middle"
           />
         </div>
 
         {/* content div */}
-        <div className="flex flex-col mx-4 justify-start items-start">
+        <div className="flex flex-col mx-0 md:mx-18 justify-start items-center md:items-start w-full md:w-auto">
           <div>
             <h1 className="md:text-5xl text-center text-3xl font-bold leading-snug md:text-normal text-wrap ">
               {currentMovie.title}
             </h1>
           </div>
-          <div className="md:text-xl text-lg md:space-x-8 my-4 space-x-2">
+          <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
               {`${currentMovie.vote_average.toFixed(2)}`}
@@ -128,7 +128,7 @@ function CardDetails() {
               {getRuntime(runtime)}
             </span>
           </div>
-          <div className="mb-6 md:space-x-4 space-x-2">
+          <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
             {matchedGenres.map((genre) => (
               <span
                 key={genre.id}
@@ -140,7 +140,7 @@ function CardDetails() {
           </div>
 
           {/* button */}
-          <div className="flex space-x-4 z-1">
+          <div className="flex flex-wrap justify-center gap-3 z-1 md:space-x-4 md:gap-0">
             <button className="text-white capitalize bg-[#8b5cf6] md:px-6 px-2 py-3 rounded-xl md:text-lg font-medium hover:cursor-pointer duration-300 hover:bg-violet-600 text-sm pr-4">
               <i className="bxf bx-play align-middle md:text-3xl mx-1" />
               play trailer
@@ -152,12 +152,12 @@ function CardDetails() {
           </div>
 
           {/* overview desc */}
-          <div className="flex flex-col items-start my-10">
+          <div className="flex flex-col items-center md:items-start my-10 w-full">
             <h2 className="capitalize  text-2xl md:font-bold font-semibold mb-2 ">
               overview
             </h2>
-            <div className="md:w-1/2 w-auto">
-              <p className="md:text-[18px] text-[16px] font-normal leading-normal">
+            <div className="md:w-3/4 w-full">
+              <p className="md:text-[18px] text-[16px] font-normal leading-normal text-center md:text-left">
                 {currentMovie.overview}
               </p>
             </div>

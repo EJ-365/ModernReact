@@ -14,6 +14,7 @@ function MoviesDetail() {
     setShowMoreCast((prev) => !prev);
   }
 
+  // fetches a specific movie object
   useEffect(() => {
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
@@ -47,13 +48,13 @@ function MoviesDetail() {
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
-        <p className="mx-3">Loading...</p>;
+        <p className="mx-3">Loading...</p>
       </div>
     );
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
-    navigate("/home");
+    navigate("/movies");
   };
 
   const getReleaseYear = (releaseYear) => {
@@ -74,12 +75,12 @@ function MoviesDetail() {
 
   // UI START HERE
   return (
-    <section className="mb-20">
+    <section className="mb-20 relative">
       <div
         style={{
           backgroundImage: `url(https://image.tmdb.org/t/p/original${currentMovie.backdrop_path})`,
         }}
-        className="bg-cover bg-center h-180 md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-8  inset-0 object-cover relative z-10 overflow-hidden"
+        className="bg-cover bg-center h-100 md:w-auto w-full flex flex-col items-left justify-normal align-bottom pt-70 px-15 py-8  inset-0 object-cover relative z-10 overflow-hidden"
       >
         {/** overlay */}
         <div className="dark:bg-linear-to-l from-[#08070fb9] border-none via-black/70 to-black/40 absolute inset-0" />
@@ -89,28 +90,28 @@ function MoviesDetail() {
       <span
         onClick={redirectToHome}
         role="button"
-        class="bx bx-chevron-left dark:text-white/70 text-white text-4xl md:mx-12 mx-3 font-thin bottom-175 z-10 relative  hover:cursor-pointer"
+        className="bx bx-chevron-left dark:text-white/70 text-white text-4xl font-thin top-4 left-4 md:left-12 z-20 absolute hover:cursor-pointer"
       />
 
       {/* movie details */}
-      <div className="main dark:text-white flex mx-10 items-start space-x-4 absolute-400  rounded-b-2xl border-violet-900/30 dark:shadow-0 shadow-lg border-2   rounded-t-3xl backdrop-blur-2xl p-2 blur-2x top-10 relative mb-10  light:bg-white/30  md:flex-row flex-col ">
+      <div className="main dark:text-white flex mx-4 md:mx-20 items-center md:items-start space-x-0 md:space-x-4 absolute-400  rounded-b-2xl border-violet-900/30 dark:shadow-0 shadow-lg border-2   rounded-t-3xl backdrop-blur-2xl blur-2x top-10 relative mb-10  light:bg-white/30  md:flex-row flex-col p-4 md:p-10  ">
         {/* image div */}
-        <div className="md:my-0 md:w-90 w-auto md:mx-0 ml-5 my-10">
+        <div className="md:my-0 md:w-240 w-full max-w-64 md:max-w-none md:mx-0 mx-auto my-6 text-center">
           <img
             src={`https://image.tmdb.org/t/p/w500${currentMovie.poster_path}`}
             alt={currentMovie.title || "Poster"}
-            className="w-auto rounded-3xl h-110"
+            className="w-full md:w-auto rounded-3xl h-auto md:h-128 align-middle"
           />
         </div>
 
         {/* content div */}
-        <div className="flex flex-col mx-4 justify-start items-start">
+        <div className="flex flex-col mx-0 md:mx-18 justify-start items-center md:items-start w-full md:w-auto">
           <div>
             <h1 className="md:text-5xl text-center text-3xl font-bold leading-snug md:text-normal text-wrap ">
               {currentMovie.title}
             </h1>
           </div>
-          <div className="md:text-xl text-lg md:space-x-8 my-4 space-x-2">
+          <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
               {`${currentMovie.vote_average.toFixed(2)}`}
@@ -125,7 +126,7 @@ function MoviesDetail() {
               {getRuntime(runtime)}
             </span>
           </div>
-          <div className="mb-6 md:space-x-4 space-x-2">
+          <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
             {currentMovie.genres.map((genre) => (
               <span
                 key={genre.id}
@@ -137,7 +138,7 @@ function MoviesDetail() {
           </div>
 
           {/* button */}
-          <div className="flex space-x-4 z-1">
+          <div className="flex flex-wrap justify-center gap-3 z-1 md:space-x-4 md:gap-0">
             <button className="text-white capitalize bg-[#8b5cf6] md:px-6 px-2 py-3 rounded-xl md:text-lg font-medium hover:cursor-pointer duration-300 hover:bg-violet-600 text-sm pr-4">
               <i className="bxf bx-play align-middle md:text-3xl mx-1" />
               play trailer
@@ -149,12 +150,12 @@ function MoviesDetail() {
           </div>
 
           {/* overview desc */}
-          <div className="flex flex-col items-start my-10">
+          <div className="flex flex-col items-center md:items-start my-10 w-full">
             <h2 className="capitalize  text-2xl md:font-bold font-semibold mb-2 ">
               overview
             </h2>
-            <div className="md:w-1/2 w-auto">
-              <p className="md:text-[18px] text-[16px] font-normal leading-normal">
+            <div className="md:w-3/4 w-full">
+              <p className="md:text-[18px] text-[16px] font-normal leading-normal text-center md:text-left">
                 {currentMovie.overview}
               </p>
             </div>
@@ -164,14 +165,14 @@ function MoviesDetail() {
 
       {/* cast and crew */}
 
-      <div className="dark:text-white font-bold text-3xl mt-40 mb-20 mx-25 md:text-left text-center ">
+      <div className="dark:text-white font-bold text-3xl mt-40 mb-20 mx-4 md:mx-25 md:text-left text-center ">
         <p>Top Cast</p>
       </div>
       {showMoreCast ? (
-        <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
+        <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
           {movieCredit?.cast?.length > 0 ? (
             movieCredit.cast.slice(11).map((actor) => (
-              <div key={actor.id} className="md:mx-3 text-center my-2 mx-4">
+              <div key={actor.id} className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-3 text-center my-2">
                 <div>
                   <img
                     src={
@@ -180,12 +181,12 @@ function MoviesDetail() {
                         : "https://via.placeholder.com/200x300?text=No+Image"
                     }
                     alt={actor.name}
-                    className="md:w-20 h-auto w-20 rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
+                    className="md:w-20 h-auto w-20 mx-auto rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
                   />
                 </div>
                 <div>
-                  <p className="text-center font-medium my-2">{actor.name}</p>
-                  <p className="italic font-normal text-zinc-400 text-[16px]">
+                  <p className="text-center font-medium my-2 text-sm md:text-base wrap-break-word">{actor.name}</p>
+                  <p className="italic font-normal text-zinc-400 text-sm md:text-[16px] wrap-break-word">
                     {actor.character}
                   </p>
                 </div>
@@ -196,10 +197,10 @@ function MoviesDetail() {
           )}
         </div>
       ) : (
-        <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
+        <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
           {movieCredit?.cast?.length > 0 ? (
             movieCredit.cast.slice(0, 10).map((actor) => (
-              <div key={actor.id} className="md:mx-auto text-center my-2 mx-4">
+              <div key={actor.id} className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-auto text-center my-2">
                 <div>
                   <img
                     src={
@@ -208,12 +209,12 @@ function MoviesDetail() {
                         : "https://via.placeholder.com/200x300?text=No+Image"
                     }
                     alt={actor.name}
-                    className="md:w-20 h-auto w-20 rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
+                    className="md:w-20 h-auto w-20 mx-auto rounded-full hover:border hover:border-violet-500/70 cursor-pointer duration-300 transition-colors"
                   />
                 </div>
                 <div>
-                  <p className="text-center font-medium my-2">{actor.name}</p>
-                  <p className="italic font-normal text-zinc-400 text-[16px]">
+                  <p className="text-center font-medium my-2 text-sm md:text-base wrap-break-word">{actor.name}</p>
+                  <p className="italic font-normal text-zinc-400 text-sm md:text-[16px] wrap-break-word">
                     {actor.character}
                   </p>
                 </div>

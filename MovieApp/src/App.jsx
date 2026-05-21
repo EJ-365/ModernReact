@@ -20,7 +20,10 @@ import MoviesDetail from "./Components/MoviesDetail";
 
 function App() {
   const [movieGenres, setMovieGenres] = useState([]);
-  const [allMovies, setAllMovies] = useState([]);
+  const [allMovies, setAllMovies] = useState({
+    movies: [],
+    totalPages: 0
+  });
   const[page, setPage] = useState(1);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
@@ -81,10 +84,16 @@ function App() {
     .then(res => res.json())
     .then(data => {
       if(page === 1){
-        setAllMovies(data.results?? [])
+        setAllMovies({movies: data.results?? [], totalPages: data.total_pages > 500 ? 500: data.total_pages})
       }
       else {
-        setAllMovies(prev => [...prev,...(data.results?? [])])
+        setAllMovies(prev => {
+          const combinedMovies = [...prev.movies, ...(data.results ?? [])];
+          return {
+            movies: [...new Map(combinedMovies.map((movie) => [movie.id, movie])).values()],
+            totalPages: prev.totalPages
+          };
+        })
       }
     })
     .catch(err => console.log("Error fetching movies:", err))
@@ -113,7 +122,7 @@ function App() {
                     <Route path="/movies/:movieId" element={<MoviesDetail />} />
                     <Route
                       path="/movies"
-                      element={<Movies pageIncrement={pageIncrement} page={page} movies={allMovies} />}
+                      element={<Movies pageIncrement={pageIncrement} page={page} allMovies={allMovies} />}
                     />
                     <Route path="/shows" element={<Shows shows={shows} />} />
                     <Route path="/library" element={<Library />} />
