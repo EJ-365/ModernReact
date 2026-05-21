@@ -12,11 +12,15 @@ function CardDetails() {
     topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
     topFivePopular?.find((movie) => movie.id === Number(cardId));
   const [fetchedMovie, setFetchedMovie] = useState(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadErrorCardId, setLoadErrorCardId] = useState(null);
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const currentMovie = contextMovie || fetchedMovie;
+  const activeFetchedMovie =
+    fetchedMovie?.id && String(fetchedMovie.id) === String(cardId)
+      ? fetchedMovie
+      : null;
+  const currentMovie = contextMovie || activeFetchedMovie;
 
   // show more cast function
   function showMore() {
@@ -25,16 +29,10 @@ function CardDetails() {
 
   useEffect(() => {
     if (contextMovie?.id) {
-      setLoadError(false);
       return;
     }
 
     let ignore = false;
-
-    setFetchedMovie(null);
-    setRuntime(undefined);
-    setMovieCredit(null);
-    setLoadError(false);
 
     fetch(`https://api.themoviedb.org/3/movie/${cardId}?api_key=${API_KEY}`)
       .then((res) => {
@@ -48,14 +46,16 @@ function CardDetails() {
           throw new Error("Movie response did not include a valid movie");
         }
         if (!ignore) {
+          setMovieCredit(null);
           setFetchedMovie(data);
           setRuntime(data.runtime);
+          setLoadErrorCardId(null);
         }
       })
       .catch((err) => {
         console.log("Error fetching movie details", err);
         if (!ignore) {
-          setLoadError(true);
+          setLoadErrorCardId(cardId);
         }
       });
 
@@ -85,6 +85,8 @@ function CardDetails() {
       .then((data) => setMovieCredit(data))
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
+
+  const loadError = loadErrorCardId === cardId && !currentMovie;
 
   if (loadError) return (
     <div className="dark:text-white text-center text-2xl font-bold h-screen w-full flex flex-col items-center justify-center gap-4 px-4">

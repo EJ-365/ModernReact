@@ -9,7 +9,7 @@ function MoviesDetail() {
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadErrorMovieId, setLoadErrorMovieId] = useState(null);
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
@@ -18,11 +18,6 @@ function MoviesDetail() {
   // fetches a specific movie object
   useEffect(() => {
     let ignore = false;
-
-    setCurrentMovie(null);
-    setRuntime(undefined);
-    setMovieCredit(null);
-    setLoadError(false);
 
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => {
@@ -36,14 +31,16 @@ function MoviesDetail() {
           throw new Error("Movie response did not include a valid movie");
         }
         if (!ignore) {
+          setMovieCredit(null);
           setCurrentMovie(data);
           setRuntime(data.runtime);
+          setLoadErrorMovieId(null);
         }
       })
       .catch((err) => {
         console.log("Error fetching data", err);
         if (!ignore) {
-          setLoadError(true);
+          setLoadErrorMovieId(movieId);
         }
       });
 
@@ -74,6 +71,10 @@ function MoviesDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
 
+  const isCurrentMovie =
+    currentMovie?.id && String(currentMovie.id) === String(movieId);
+  const loadError = loadErrorMovieId === movieId && !isCurrentMovie;
+
   if (loadError)
     return (
       <div className="dark:text-white text-center text-2xl font-bold h-screen w-full flex flex-col items-center justify-center gap-4 px-4">
@@ -87,7 +88,7 @@ function MoviesDetail() {
       </div>
     );
 
-  if (!currentMovie)
+  if (!isCurrentMovie)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
