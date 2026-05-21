@@ -8,17 +8,61 @@ function CardDetails() {
     useContext(FeaturedMovieContext);
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const currentMovie =
+  const contextMovie =
     topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
     topFivePopular?.find((movie) => movie.id === Number(cardId));
+  const [fetchedMovie, setFetchedMovie] = useState(null);
+  const [loadError, setLoadError] = useState(false);
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
+  const currentMovie = contextMovie || fetchedMovie;
 
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
   }
+
+  useEffect(() => {
+    if (contextMovie?.id) {
+      setLoadError(false);
+      return;
+    }
+
+    let ignore = false;
+
+    setFetchedMovie(null);
+    setRuntime(undefined);
+    setMovieCredit(null);
+    setLoadError(false);
+
+    fetch(`https://api.themoviedb.org/3/movie/${cardId}?api_key=${API_KEY}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Movie request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.id) {
+          throw new Error("Movie response did not include a valid movie");
+        }
+        if (!ignore) {
+          setFetchedMovie(data);
+          setRuntime(data.runtime);
+        }
+      })
+      .catch((err) => {
+        console.log("Error fetching movie details", err);
+        if (!ignore) {
+          setLoadError(true);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [cardId, contextMovie?.id]);
 
   useEffect(() => {
     if (!currentMovie?.id) return;
@@ -42,6 +86,18 @@ function CardDetails() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
 
+  if (loadError) return (
+    <div className="dark:text-white text-center text-2xl font-bold h-screen w-full flex flex-col items-center justify-center gap-4 px-4">
+      <p>Movie details could not be loaded.</p>
+      <button
+        className="text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        onClick={() => navigate("/home")}
+      >
+        back home
+      </button>
+    </div>
+  );
+
   if (!currentMovie) return (
     <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
       <GridLoader size={8} color="#ffffff" /> <p className="mx-3">Loading...</p>;
@@ -49,10 +105,14 @@ function CardDetails() {
   )
 
   // movie genre implementation
-  const genreId = currentMovie.genre_ids.map((id) => id); // [10,20,15]
-  const matchedGenres = movieGenres.filter((genre) =>
-    genreId.includes(genre.id),
-  );
+  const genreIds = Array.isArray(currentMovie.genre_ids)
+    ? currentMovie.genre_ids
+    : [];
+  const matchedGenres = Array.isArray(currentMovie.genres)
+    ? currentMovie.genres
+    : (Array.isArray(movieGenres) ? movieGenres : []).filter((genre) =>
+        genreIds.includes(genre.id),
+      );
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -67,6 +127,8 @@ function CardDetails() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!Number.isFinite(runtime)) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -74,6 +136,10 @@ function CardDetails() {
 
     return `${toHours}h ${formattedMins}m`;
   };
+
+  const voteAverage = Number.isFinite(currentMovie.vote_average)
+    ? currentMovie.vote_average.toFixed(2)
+    : "N/A";
 
   // UI START HERE
   return (
@@ -116,7 +182,7 @@ function CardDetails() {
           <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentMovie.vote_average.toFixed(2)}`}
+              {voteAverage}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
