@@ -9,6 +9,7 @@ function MoviesDetail() {
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
+  const [loadErrorMovieId, setLoadErrorMovieId] = useState(null);
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
@@ -16,10 +17,36 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
+    let ignore = false;
+
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
-      .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Movie request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.id) {
+          throw new Error("Movie response did not include a valid movie");
+        }
+        if (!ignore) {
+          setMovieCredit(null);
+          setCurrentMovie(data);
+          setRuntime(data.runtime);
+          setLoadErrorMovieId(null);
+        }
+      })
+      .catch((err) => {
+        console.log("Error fetching data", err);
+        if (!ignore) {
+          setLoadErrorMovieId(movieId);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [movieId]);
 
   useEffect(() => {
@@ -44,7 +71,24 @@ function MoviesDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
 
-  if (!currentMovie)
+  const isCurrentMovie =
+    currentMovie?.id && String(currentMovie.id) === String(movieId);
+  const loadError = loadErrorMovieId === movieId && !isCurrentMovie;
+
+  if (loadError)
+    return (
+      <div className="dark:text-white text-center text-2xl font-bold h-screen w-full flex flex-col items-center justify-center gap-4 px-4">
+        <p>Movie details could not be loaded.</p>
+        <button
+          className="text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+          onClick={() => navigate("/movies")}
+        >
+          back to movies
+        </button>
+      </div>
+    );
+
+  if (!isCurrentMovie)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
@@ -65,6 +109,8 @@ function MoviesDetail() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!Number.isFinite(runtime)) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -72,6 +118,13 @@ function MoviesDetail() {
 
     return `${toHours}h ${formattedMins}m`;
   };
+
+  const movieGenres = Array.isArray(currentMovie.genres)
+    ? currentMovie.genres
+    : [];
+  const voteAverage = Number.isFinite(currentMovie.vote_average)
+    ? currentMovie.vote_average.toFixed(2)
+    : "N/A";
 
   // UI START HERE
   return (
@@ -114,7 +167,7 @@ function MoviesDetail() {
           <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentMovie.vote_average.toFixed(2)}`}
+              {voteAverage}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
@@ -127,7 +180,7 @@ function MoviesDetail() {
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
-            {currentMovie.genres.map((genre) => (
+            {movieGenres.map((genre) => (
               <span
                 key={genre.id}
                 className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300"
