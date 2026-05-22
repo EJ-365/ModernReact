@@ -19,12 +19,15 @@ import Warning from "./Components/Warning";
 import MoviesDetail from "./Components/MoviesDetail";
 
 function App() {
-  const [movieGenres, setMovieGenres] = useState([]);
+  const [genres, setGenres] = useState([]); // for movies page
+  const [selectedGenre, setSelectedGenre] = useState(""); // holds the genre id
+  const [movieGenres, setMovieGenres] = useState([]); // movie page genre
+  const [searchQuery, setSearchQuery] = useState("");
   const [allMovies, setAllMovies] = useState({
     movies: [],
-    totalPages: 0
+    totalPages: 0,
   });
-  const[page, setPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") return true;
@@ -80,30 +83,40 @@ function App() {
   /* ---------- Movies page------ */
   // useEffect for movies
   useEffect(() => {
-    fetch(`${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}`)
-    .then(res => res.json())
-    .then(data => {
-      if(page === 1){
-        setAllMovies({movies: data.results?? [], totalPages: data.total_pages > 500 ? 500: data.total_pages})
-      }
-      else {
-        setAllMovies(prev => {
-          const combinedMovies = [...prev.movies, ...(data.results ?? [])];
-          return {
-            movies: [...new Map(combinedMovies.map((movie) => [movie.id, movie])).values()],
-            totalPages: prev.totalPages
-          };
-        })
-      }
-    })
-    .catch(err => console.log("Error fetching movies:", err))
-  }, [page]);
+    const genreParam = selectedGenre ? `&with_genres=${selectedGenre}` : "";
+    const url = searchQuery === ""
+      ? `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}${genreParam}`
+      : `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (page === 1) {
+          setAllMovies({
+            movies: data.results ?? [],
+            totalPages: data.total_pages > 500 ? 500 : data.total_pages,
+          });
+        } else {
+          setAllMovies((prev) => {
+            const combinedMovies = [...prev.movies, ...(data.results ?? [])];
+            return {
+              movies: [
+                ...new Map(
+                  combinedMovies.map((movie) => [movie.id, movie]),
+                ).values(),
+              ],
+              totalPages: prev.totalPages,
+            };
+          });
+        }
+      })
+      .catch((err) => console.log("Error fetching movies:", err));
+  }, [page, selectedGenre,searchQuery]);
 
   // see more page incrementation
-  function pageIncrement(){
-    setPage(prev => prev + 1);
+  function pageIncrement() {
+    setPage((prev) => prev + 1);
   }
-
 
   return (
     <>
@@ -122,7 +135,20 @@ function App() {
                     <Route path="/movies/:movieId" element={<MoviesDetail />} />
                     <Route
                       path="/movies"
-                      element={<Movies pageIncrement={pageIncrement} page={page} allMovies={allMovies} />}
+                      element={
+                        <Movies
+                          setPage={setPage}
+                          pageIncrement={pageIncrement}
+                          page={page}
+                          allMovies={allMovies}
+                          setAllMovies={setAllMovies}
+                          genres={genres}
+                          setGenres={setGenres}
+                          selectedGenre={selectedGenre}
+                          setSelectedGenre={setSelectedGenre}
+                          setSearchQuery={setSearchQuery}
+                        />
+                      }
                     />
                     <Route path="/shows" element={<Shows shows={shows} />} />
                     <Route path="/library" element={<Library />} />
