@@ -1,7 +1,7 @@
 import { GridLoader } from "react-spinners";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { API_KEY } from "../api/tmdb";
+import { API_KEY, BASE_URL } from "../api/tmdb";
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
@@ -9,6 +9,7 @@ function MoviesDetail() {
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
+  const [error, setError] = useState("");
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
@@ -16,33 +17,70 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
-    fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
-      .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
-  }, [movieId]);
+    let ignore = false;
 
-  useEffect(() => {
-    if (!currentMovie?.id) return;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
-    )
-      .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
-      .catch((err) => console.log("Error while fetching the data", err));
-  }, [currentMovie?.id]);
+    setCurrentMovie(null);
+    setMovieCredit(null);
+    setRuntime(undefined);
+    setError("");
+
+    fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Movie not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (ignore) return;
+        if (!data?.id) throw new Error("Movie not found");
+        setCurrentMovie(data);
+        setRuntime(data.runtime);
+      })
+      .catch((err) => {
+        if (ignore) return;
+        console.log("Error fetching data", err);
+        setError("We couldn't find that movie.");
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [movieId]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
     if (!currentMovie?.id) return;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
-    )
-      .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
-      .catch((err) => console.log("Error while fetching the data", err));
+    let ignore = false;
+
+    fetch(`${BASE_URL}/movie/${currentMovie.id}/credits?api_key=${API_KEY}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Credits not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (!ignore) setMovieCredit(data);
+      })
+      .catch((err) => {
+        if (!ignore) console.log("Error while fetching the data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
+
+  if (error)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">{error}</p>
+        <button
+          onClick={() => navigate("/movies")}
+          className="mt-6 capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-5 py-2 rounded-xl font-medium dark:text-white text-base cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+        >
+          Back to movies
+        </button>
+      </div>
+    );
 
   if (!currentMovie)
     return (
@@ -65,6 +103,7 @@ function MoviesDetail() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!Number.isFinite(runtime)) return "N/A";
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -114,7 +153,9 @@ function MoviesDetail() {
           <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentMovie.vote_average.toFixed(2)}`}
+              {Number.isFinite(currentMovie.vote_average)
+                ? currentMovie.vote_average.toFixed(2)
+                : "N/A"}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
@@ -127,7 +168,7 @@ function MoviesDetail() {
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
-            {currentMovie.genres.map((genre) => (
+            {(currentMovie.genres ?? []).map((genre) => (
               <span
                 key={genre.id}
                 className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300"
