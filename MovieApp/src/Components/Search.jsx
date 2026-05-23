@@ -3,6 +3,7 @@ import { useState } from "react";
 function Search({ setSearchQuery, setPage }) {
   const [localQuery, setLocalQuery] = useState("");
   function handleSearch() {
+    setPage(1);
     setSearchQuery(localQuery);
   }
 
