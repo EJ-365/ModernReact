@@ -2,18 +2,24 @@ import { GridLoader } from "react-spinners";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
-import { API_KEY } from "../api/tmdb";
+import { API_KEY, BASE_URL } from "../api/tmdb";
 function CardDetails() {
   const { topFiveTrending, topFivePopular, movieGenres } =
     useContext(FeaturedMovieContext);
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const currentMovie =
-    topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
-    topFivePopular?.find((movie) => movie.id === Number(cardId));
-  const [runtime, setRuntime] = useState();
+  const routeMovieId = Number(cardId);
+  const contextMovie =
+    topFiveTrending?.find((movie) => movie.id === routeMovieId) ||
+    topFivePopular?.find((movie) => movie.id === routeMovieId);
+  const [fetchedMovie, setFetchedMovie] = useState(null);
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
+  const [error, setError] = useState(null);
+  const currentMovie =
+    fetchedMovie?.id === routeMovieId ? fetchedMovie : contextMovie;
+  const creditForRoute =
+    movieCredit?.movieId === currentMovie?.id ? movieCredit.data : null;
 
   // show more cast function
   function showMore() {
@@ -21,26 +27,64 @@ function CardDetails() {
   }
 
   useEffect(() => {
-    if (!currentMovie?.id) return;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
-    )
-      .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
-      .catch((err) => console.log("Error while fetching the data", err));
-  }, [currentMovie?.id]);
+    let ignore = false;
+
+    fetch(`${BASE_URL}/movie/${cardId}?api_key=${API_KEY}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Movie not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (ignore) return;
+        if (!data?.id) throw new Error("Movie not found");
+        setFetchedMovie(data);
+        setError(null);
+      })
+      .catch((err) => {
+        if (ignore) return;
+        console.log("Error while fetching the data", err);
+        setError({ cardId, message: "We couldn't find that movie." });
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [cardId]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
     if (!currentMovie?.id) return;
-    fetch(
-      `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
-    )
-      .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
-      .catch((err) => console.log("Error while fetching the data", err));
+    let ignore = false;
+
+    fetch(`${BASE_URL}/movie/${currentMovie.id}/credits?api_key=${API_KEY}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Credits not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (!ignore) setMovieCredit({ movieId: currentMovie.id, data });
+      })
+      .catch((err) => {
+        if (!ignore) console.log("Error while fetching the data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
+
+  if (error?.cardId === cardId && !currentMovie) return (
+    <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+      <p className="mx-3">{error.message}</p>
+      <button
+        onClick={() => navigate("/home")}
+        className="mt-6 capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-5 py-2 rounded-xl font-medium dark:text-white text-base cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+      >
+        Back to home
+      </button>
+    </div>
+  )
 
   if (!currentMovie) return (
     <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -49,9 +93,10 @@ function CardDetails() {
   )
 
   // movie genre implementation
-  const genreId = currentMovie.genre_ids.map((id) => id); // [10,20,15]
-  const matchedGenres = movieGenres.filter((genre) =>
-    genreId.includes(genre.id),
+  const matchedGenres = currentMovie.genres ?? (
+    Array.isArray(movieGenres) && Array.isArray(currentMovie.genre_ids)
+      ? movieGenres.filter((genre) => currentMovie.genre_ids.includes(genre.id))
+      : []
   );
 
   // redirecting to home chevron icon
@@ -67,6 +112,7 @@ function CardDetails() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!Number.isFinite(runtime)) return "N/A";
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -116,7 +162,9 @@ function CardDetails() {
           <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentMovie.vote_average.toFixed(2)}`}
+              {Number.isFinite(currentMovie.vote_average)
+                ? currentMovie.vote_average.toFixed(2)
+                : "N/A"}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
@@ -125,7 +173,7 @@ function CardDetails() {
             <span>
               {" "}
               <i className=" mr-2 bx bx-clock dark:text-white  align-middle" />
-              {getRuntime(runtime)}
+              {getRuntime(currentMovie.runtime)}
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
@@ -173,8 +221,8 @@ function CardDetails() {
      {
       showMoreCast ? (
         <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
-        {movieCredit?.cast?.length > 0 ? (
-          movieCredit.cast.slice(11).map((actor) => (
+        {creditForRoute?.cast?.length > 0 ? (
+          creditForRoute.cast.slice(11).map((actor) => (
             <div key={actor.id} className="md:mx-3 text-center my-2 mx-4">
               <div>
                 <img
@@ -200,8 +248,8 @@ function CardDetails() {
         )}
       </div>
       ) : ( <div className="dark:text-white flex flex-wrap space-x-3 px-20 md:text-left text-center mx-auto ">
-        {movieCredit?.cast?.length > 0 ? (
-          movieCredit.cast.slice(0, 10).map((actor) => (
+        {creditForRoute?.cast?.length > 0 ? (
+          creditForRoute.cast.slice(0, 10).map((actor) => (
             <div key={actor.id} className="md:mx-auto text-center my-2 mx-4">
               <div>
                 <img
