@@ -6,10 +6,11 @@ import { API_KEY } from "../api/tmdb";
 function ShowDetail() {
   const { showId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
+  const [runtime, setRuntime] = useState(null);
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailError, setDetailError] = useState(null);
 
   // show more cast function
   function showMore() {
@@ -18,45 +19,121 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
-    fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
-      .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+    const controller = new AbortController();
+
+    fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`TV show request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.id || !Array.isArray(data.genres)) {
+          throw new Error("TV show response was missing required fields");
+        }
+        setCurrentShow(data);
+        setDetailError(null);
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error fetching data", err);
+        setDetailError({ showId, message: "TV show not found." });
+      });
+
+    return () => controller.abort();
   }, [showId]);
 
   useEffect(() => {
     if (!currentShow?.id) return;
+    const controller = new AbortController();
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}?api_key=${API_KEY}`,
+      { signal: controller.signal },
     )
-      .then((res) => res.json())
-      .then((data) => setRuntime(data.episode_run_time?.[0]))
-      .catch((err) => console.log("Error while fetching the data", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Runtime request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setRuntime({
+          showId: currentShow.id,
+          value: Array.isArray(data.episode_run_time)
+            ? data.episode_run_time[0]
+            : undefined,
+        });
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+      });
+
+    return () => controller.abort();
   }, [currentShow?.id]);
 
   // useEffect for the TV show credits
   useEffect(() => {
     if (!currentShow?.id) return;
+    const controller = new AbortController();
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}/credits?api_key=${API_KEY}`,
+      { signal: controller.signal },
     )
-      .then((res) => res.json())
-      .then((data) => setShowCredit(data))
-      .catch((err) => console.log("Error while fetching the data", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Credits request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) =>
+        setShowCredit({
+          showId: currentShow.id,
+          cast: Array.isArray(data.cast) ? data.cast : [],
+        }),
+      )
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+      });
+
+    return () => controller.abort();
   }, [currentShow?.id]);
 
-  if (!currentShow)
+  // redirecting to shows page chevron icon
+  const redirectToShows = () => {
+    navigate("/shows");
+  };
+
+  const activeError =
+    detailError?.showId === showId ? detailError.message : "";
+  const isCurrentRouteShow = currentShow?.id === Number(showId);
+
+  if (activeError)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">{activeError}</p>
+        <button
+          onClick={redirectToShows}
+          className="mt-6 text-white capitalize bg-[#8b5cf6] px-6 py-3 rounded-xl text-lg font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </div>
+    );
+
+  if (!currentShow || !isCurrentRouteShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
         <p className="mx-3">Loading...</p>
       </div>
     );
-
-  // redirecting to shows page chevron icon
-  const redirectToShows = () => {
-    navigate("/shows");
-  };
 
   const getReleaseYear = (releaseYear) => {
     const date = new Date(releaseYear);
@@ -74,6 +151,11 @@ function ShowDetail() {
 
     return `${toHours}h ${formattedMins}m`;
   };
+
+  const activeRuntime =
+    runtime?.showId === currentShow.id ? runtime.value : undefined;
+  const activeShowCredit =
+    showCredit?.showId === currentShow.id ? showCredit : null;
 
   // UI START HERE
   return (
@@ -125,7 +207,7 @@ function ShowDetail() {
             <span>
               {" "}
               <i className=" mr-2 bx bx-clock dark:text-white  align-middle" />
-              {getRuntime(runtime)}
+              {getRuntime(activeRuntime)}
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
@@ -171,8 +253,8 @@ function ShowDetail() {
       </div>
       {showMoreCast ? (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {showCredit?.cast?.length > 0 ? (
-            showCredit.cast.slice(11).map((actor) => (
+          {activeShowCredit?.cast?.length > 0 ? (
+            activeShowCredit.cast.slice(11).map((actor) => (
               <div
                 key={actor.id}
                 className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-3 text-center my-2"
@@ -204,8 +286,8 @@ function ShowDetail() {
         </div>
       ) : (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {showCredit?.cast?.length > 0 ? (
-            showCredit.cast.slice(0, 10).map((actor) => (
+          {activeShowCredit?.cast?.length > 0 ? (
+            activeShowCredit.cast.slice(0, 10).map((actor) => (
               <div
                 key={actor.id}
                 className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-auto text-center my-2"

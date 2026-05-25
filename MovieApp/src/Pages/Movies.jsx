@@ -12,13 +12,13 @@ function Movies({
   setGenres,
   selectedGenre,
   setSelectedGenre,
-  setSearchQuery
+  setSearchQuery,
 }) {
   // fetching the genres endpoint
   useEffect(() => {
     fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setGenres(data.genres))
+      .then((data) => setGenres(Array.isArray(data.genres) ? data.genres : []))
       .catch((err) => console.log("Error fetching genre", err));
   }, [setGenres]);
 
@@ -35,6 +35,7 @@ function Movies({
         <button
           onClick={() => {
             setSelectedGenre("");
+            setSearchQuery("");
             setPage(1);
             setAllMovies({ movies: [], totalPages: 0 });
           }}
@@ -52,6 +53,7 @@ function Movies({
             <button
               onClick={() => {
                 setSelectedGenre(genre.id);
+                setSearchQuery("");
                 setPage(1);
                 setAllMovies({ movies: [], totalPages: 0 });
               }}
