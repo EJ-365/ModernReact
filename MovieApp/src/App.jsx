@@ -4,7 +4,6 @@ import { ThemeContext } from "./Contexts/ThemeContext";
 import { FeaturedMovieContext } from "./Contexts/featuredMovieContext";
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
-import shows from "./data/shows";
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
 // import popularMovies from "./data/popularMovies";
@@ -17,6 +16,7 @@ import ErrorPage from "./Pages/ErrorPage";
 import CardDetails from "./Pages/CardDetails";
 import Warning from "./Components/Warning";
 import MoviesDetail from "./Components/MoviesDetail";
+import ShowDetail from "./Components/ShowDetail";
 
 function App() {
   const [genres, setGenres] = useState([]); // for movies page
@@ -26,6 +26,11 @@ function App() {
   const [allMovies, setAllMovies] = useState({
     movies: [],
     totalPages: 0,
+  });
+
+  const [shows, setAllShows] = useState({
+    shows: [],
+    showsTotalPages: 0,
   });
   const [page, setPage] = useState(1);
   const [darkMode, setDarkMode] = useState(() => {
@@ -84,9 +89,10 @@ function App() {
   // useEffect for movies
   useEffect(() => {
     const genreParam = selectedGenre ? `&with_genres=${selectedGenre}` : "";
-    const url = searchQuery === ""
-      ? `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}${genreParam}`
-      : `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
+    const url =
+      searchQuery === ""
+        ? `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}${genreParam}`
+        : `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
 
     fetch(url)
       .then((res) => res.json())
@@ -111,12 +117,45 @@ function App() {
         }
       })
       .catch((err) => console.log("Error fetching movies:", err));
-  }, [page, selectedGenre,searchQuery]);
+  }, [page, selectedGenre, searchQuery]);
 
   // see more page incrementation
   function pageIncrement() {
     setPage((prev) => prev + 1);
   }
+
+  /*------------------TV Shows useEffect and endpoint -----------------*/
+  useEffect(() => {
+    const genreParam = selectedGenre ? `&with_genres=${selectedGenre}` : "";
+    const url =
+      searchQuery === ""
+        ? `${BASE_URL}/discover/tv?api_key=${API_KEY}&page=${page}${genreParam}`
+        : `${BASE_URL}/search/tv?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
+
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        if (page === 1) {
+          setAllShows({
+            shows: data.results ?? [],
+            showsTotalPages: data.total_pages > 500 ? 500 : data.total_pages,
+          });
+        } else {
+          setAllShows((prev) => {
+            const combinedShows = [...prev.shows, ...(data.results ?? [])];
+            return {
+              shows: [
+                ...new Map(
+                  combinedShows.map((show) => [show.id, show]),
+                ).values(),
+              ],
+              showsTotalPages: prev.showsTotalPages,
+            };
+          });
+        }
+      })
+      .catch((err) => console.log("Error fetching shows:", err));
+  }, [page, selectedGenre, searchQuery]);
 
   return (
     <>
@@ -133,6 +172,7 @@ function App() {
                     <Route path="/home" element={<Home />} />
                     <Route path="/home/:cardId" element={<CardDetails />} />
                     <Route path="/movies/:movieId" element={<MoviesDetail />} />
+                    <Route path="/shows/:showId" element={<ShowDetail />} />
                     <Route
                       path="/movies"
                       element={
@@ -150,7 +190,23 @@ function App() {
                         />
                       }
                     />
-                    <Route path="/shows" element={<Shows shows={shows} />} />
+                    <Route
+                      path="/shows"
+                      element={
+                        <Shows
+                          shows={shows}
+                          setAllShows={setAllShows}
+                          setPage={setPage}
+                          page={page}
+                          pageIncrement={pageIncrement}
+                          genres={genres}
+                          setGenres={setGenres}
+                          selectedGenre={selectedGenre}
+                          setSelectedGenre={setSelectedGenre}
+                          setSearchQuery={setSearchQuery}
+                        />
+                      }
+                    />
                     <Route path="/library" element={<Library />} />
                     <Route path="*" element={<ErrorPage />} />
                   </Routes>
