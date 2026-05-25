@@ -15,7 +15,6 @@ import Shows from "./Pages/Shows";
 import Library from "./Pages/Library";
 import ErrorPage from "./Pages/ErrorPage";
 import CardDetails from "./Pages/CardDetails";
-import Warning from "./Components/Warning";
 import MoviesDetail from "./Components/MoviesDetail";
 import ShowDetail from "./Components/ShowDetail";
 
@@ -172,7 +171,6 @@ function App() {
   return (
     <>
       <ThemeContext.Provider value={{ darkMode, setDarkMode }}>
-        <Warning />
         <div className="flex flex-col md:flex-row min-h-screen dark:bg-linear-to-r from-[#0b0a13] via-[#08070f] to-[#08070f]">
           <Navbar />
           <main className="flex-1 overflow-auto min-w-0">
