@@ -10,6 +10,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailError, setDetailError] = useState("");
 
   // show more cast function
   function showMore() {
@@ -18,32 +19,107 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
-    fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
-      .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+    const controller = new AbortController();
+
+    setCurrentShow(null);
+    setShowCredit(null);
+    setRuntime(undefined);
+    setDetailError("");
+
+    fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`TV show request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.id || !Array.isArray(data.genres)) {
+          throw new Error("TV show response was missing required fields");
+        }
+        setCurrentShow(data);
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error fetching data", err);
+        setDetailError("TV show not found.");
+      });
+
+    return () => controller.abort();
   }, [showId]);
 
   useEffect(() => {
     if (!currentShow?.id) return;
+    const controller = new AbortController();
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}?api_key=${API_KEY}`,
+      { signal: controller.signal },
     )
-      .then((res) => res.json())
-      .then((data) => setRuntime(data.episode_run_time?.[0]))
-      .catch((err) => console.log("Error while fetching the data", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Runtime request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setRuntime(
+          Array.isArray(data.episode_run_time)
+            ? data.episode_run_time[0]
+            : undefined,
+        );
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+      });
+
+    return () => controller.abort();
   }, [currentShow?.id]);
 
   // useEffect for the TV show credits
   useEffect(() => {
     if (!currentShow?.id) return;
+    const controller = new AbortController();
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}/credits?api_key=${API_KEY}`,
+      { signal: controller.signal },
     )
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Credits request failed with status ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => setShowCredit(data))
-      .catch((err) => console.log("Error while fetching the data", err));
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        console.log("Error while fetching the data", err);
+      });
+
+    return () => controller.abort();
   }, [currentShow?.id]);
+
+  // redirecting to shows page chevron icon
+  const redirectToShows = () => {
+    navigate("/shows");
+  };
+
+  if (detailError)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">{detailError}</p>
+        <button
+          onClick={redirectToShows}
+          className="mt-6 text-white capitalize bg-[#8b5cf6] px-6 py-3 rounded-xl text-lg font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </div>
+    );
 
   if (!currentShow)
     return (
@@ -52,11 +128,6 @@ function ShowDetail() {
         <p className="mx-3">Loading...</p>
       </div>
     );
-
-  // redirecting to shows page chevron icon
-  const redirectToShows = () => {
-    navigate("/shows");
-  };
 
   const getReleaseYear = (releaseYear) => {
     const date = new Date(releaseYear);
