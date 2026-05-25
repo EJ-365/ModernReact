@@ -3,6 +3,11 @@ import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FeaturedMovieContext } from "../Contexts/featuredMovieContext";
 import { API_KEY } from "../api/tmdb";
+import {
+  isLibraryItemSaved,
+  removeLibraryItem,
+  saveLibraryItem,
+} from "../utils/libraryStorage";
 function CardDetails() {
   const { topFiveTrending, topFivePopular, movieGenres } =
     useContext(FeaturedMovieContext);
@@ -14,6 +19,7 @@ function CardDetails() {
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
+  const [, setLibraryVersion] = useState(0);
 
   // show more cast function
   function showMore() {
@@ -48,6 +54,8 @@ function CardDetails() {
     </div>
   )
 
+  const isSaved = isLibraryItemSaved(currentMovie.id, "movie");
+
   // movie genre implementation
   const genreId = currentMovie.genre_ids.map((id) => id); // [10,20,15]
   const matchedGenres = movieGenres.filter((genre) =>
@@ -58,6 +66,24 @@ function CardDetails() {
   const redirectToHome = () => {
     navigate("/home");
   };
+
+  function toggleLibraryItem() {
+    if (isSaved) {
+      removeLibraryItem(currentMovie.id, "movie");
+      setLibraryVersion((prev) => prev + 1);
+      return;
+    }
+
+    saveLibraryItem({
+      id: currentMovie.id,
+      mediaType: "movie",
+      title: currentMovie.title,
+      poster_path: currentMovie.poster_path,
+      voteAverage: currentMovie.vote_average,
+      releaseDate: currentMovie.release_date,
+    });
+    setLibraryVersion((prev) => prev + 1);
+  }
 
   const getReleaseYear = (releaseYear) => {
     const date = new Date(releaseYear);
@@ -145,9 +171,12 @@ function CardDetails() {
               <i className="bxf bx-play align-middle md:text-3xl mx-1" />
               play trailer
             </button>
-            <button className="text-white capitalize bg-[#252542] md:px-6 px-2 py-3 rounded-xl md:text-lg text-sm font-medium hover:cursor-pointer pr-4 duration-200 hover:bg-slate-700 z-1">
+            <button
+              onClick={toggleLibraryItem}
+              className="text-white capitalize bg-[#252542] md:px-6 px-2 py-3 rounded-xl md:text-lg text-sm font-medium hover:cursor-pointer pr-4 duration-200 hover:bg-slate-700 z-1"
+            >
               <i className="bx bx-heart align-middle md:text-3xl mx-2 " />
-              add to library
+              {isSaved ? "remove from library" : "add to library"}
             </button>
           </div>
 

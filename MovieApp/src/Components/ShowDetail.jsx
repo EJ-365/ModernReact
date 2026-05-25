@@ -2,6 +2,11 @@ import { GridLoader } from "react-spinners";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API_KEY } from "../api/tmdb";
+import {
+  isLibraryItemSaved,
+  removeLibraryItem,
+  saveLibraryItem,
+} from "../utils/libraryStorage";
 
 function ShowDetail() {
   const { showId } = useParams();
@@ -10,6 +15,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [, setLibraryVersion] = useState(0);
 
   // show more cast function
   function showMore() {
@@ -53,10 +59,30 @@ function ShowDetail() {
       </div>
     );
 
+  const isSaved = isLibraryItemSaved(currentShow.id, "show");
+
   // redirecting to shows page chevron icon
   const redirectToShows = () => {
     navigate("/shows");
   };
+
+  function toggleLibraryItem() {
+    if (isSaved) {
+      removeLibraryItem(currentShow.id, "show");
+      setLibraryVersion((prev) => prev + 1);
+      return;
+    }
+
+    saveLibraryItem({
+      id: currentShow.id,
+      mediaType: "show",
+      title: currentShow.name,
+      poster_path: currentShow.poster_path,
+      voteAverage: currentShow.vote_average,
+      releaseDate: currentShow.first_air_date,
+    });
+    setLibraryVersion((prev) => prev + 1);
+  }
 
   const getReleaseYear = (releaseYear) => {
     const date = new Date(releaseYear);
@@ -145,9 +171,12 @@ function ShowDetail() {
               <i className="bxf bx-play align-middle md:text-3xl mx-1" />
               play trailer
             </button>
-            <button className="text-white capitalize bg-[#252542] md:px-6 px-2 py-3 rounded-xl md:text-lg text-sm font-medium hover:cursor-pointer pr-4 duration-200 hover:bg-slate-700 z-1">
+            <button
+              onClick={toggleLibraryItem}
+              className="text-white capitalize bg-[#252542] md:px-6 px-2 py-3 rounded-xl md:text-lg text-sm font-medium hover:cursor-pointer pr-4 duration-200 hover:bg-slate-700 z-1"
+            >
               <i className="bx bx-heart align-middle md:text-3xl mx-2 " />
-              add to library
+              {isSaved ? "remove from library" : "add to library"}
             </button>
           </div>
 
