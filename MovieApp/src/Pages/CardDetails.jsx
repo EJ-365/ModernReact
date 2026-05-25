@@ -10,7 +10,7 @@ function CardDetails() {
   const navigate = useNavigate();
   const currentMovie =
     topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
-    topFivePopular?.find((movie) => movie.id === Number(cardId));
+    topFivePopular?.find((movie) => movie.id === Number(cardId))
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);

@@ -6,6 +6,7 @@ import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
 import { TrendingMoviesContext } from "./Contexts/TrendingMoviesContext";
 import { PopularMoviesContext } from "./Contexts/PopularMoviesContext";
+import { TrendingShowsContext } from "./Contexts/trendingShowsContext";
 // import popularMovies from "./data/popularMovies";
 import { API_KEY, BASE_URL } from "./api/tmdb";
 import { useMovies } from "./hooks/useMovies"; // custom hook for the movie api
@@ -84,6 +85,17 @@ function App() {
   const featuredMovieValue = useMemo(() => {
     return { featuredMovie, topFiveTrending, topFivePopular, movieGenres };
   }, [featuredMovie, topFiveTrending, topFivePopular, movieGenres]);
+
+
+  // trendingShows endpoints and api calls
+  const trendingShowUrl = `${BASE_URL}/trending/tv/day?api_key=${API_KEY}`;
+  const trendingShows = useMovies(trendingShowUrl);
+  const topFiveShows = trendingShows.slice(0, 5);
+
+  // useMemo for popular movies
+  const trendingShowsValue = useMemo(() => {
+    return { topFiveShows };
+  }, [topFiveShows]);
 
   /* ---------- Movies page------ */
   // useEffect for movies
@@ -167,7 +179,8 @@ function App() {
             <TrendingMoviesContext.Provider value={trendingMoviesValue}>
               <PopularMoviesContext.Provider value={popularMoviesValue}>
                 <FeaturedMovieContext.Provider value={featuredMovieValue}>
-                  <Routes>
+                  <TrendingShowsContext.Provider value={trendingShowsValue}>
+                    <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/home" element={<Home />} />
                     <Route path="/home/:cardId" element={<CardDetails />} />
@@ -209,7 +222,8 @@ function App() {
                     />
                     <Route path="/library" element={<Library />} />
                     <Route path="*" element={<ErrorPage />} />
-                  </Routes>
+                    </Routes>
+                  </TrendingShowsContext.Provider>
                 </FeaturedMovieContext.Provider>
               </PopularMoviesContext.Provider>
             </TrendingMoviesContext.Provider>
