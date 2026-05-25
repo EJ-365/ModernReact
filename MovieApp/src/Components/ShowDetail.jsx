@@ -6,11 +6,11 @@ import { API_KEY } from "../api/tmdb";
 function ShowDetail() {
   const { showId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
+  const [runtime, setRuntime] = useState(null);
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
-  const [detailError, setDetailError] = useState("");
+  const [detailError, setDetailError] = useState(null);
 
   // show more cast function
   function showMore() {
@@ -20,11 +20,6 @@ function ShowDetail() {
   // fetches a specific TV show object
   useEffect(() => {
     const controller = new AbortController();
-
-    setCurrentShow(null);
-    setShowCredit(null);
-    setRuntime(undefined);
-    setDetailError("");
 
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`, {
       signal: controller.signal,
@@ -40,11 +35,12 @@ function ShowDetail() {
           throw new Error("TV show response was missing required fields");
         }
         setCurrentShow(data);
+        setDetailError(null);
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
         console.log("Error fetching data", err);
-        setDetailError("TV show not found.");
+        setDetailError({ showId, message: "TV show not found." });
       });
 
     return () => controller.abort();
@@ -65,11 +61,12 @@ function ShowDetail() {
         return res.json();
       })
       .then((data) => {
-        setRuntime(
-          Array.isArray(data.episode_run_time)
+        setRuntime({
+          showId: currentShow.id,
+          value: Array.isArray(data.episode_run_time)
             ? data.episode_run_time[0]
             : undefined,
-        );
+        });
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
@@ -94,7 +91,12 @@ function ShowDetail() {
         }
         return res.json();
       })
-      .then((data) => setShowCredit(data))
+      .then((data) =>
+        setShowCredit({
+          showId: currentShow.id,
+          cast: Array.isArray(data.cast) ? data.cast : [],
+        }),
+      )
       .catch((err) => {
         if (err.name === "AbortError") return;
         console.log("Error while fetching the data", err);
@@ -108,10 +110,14 @@ function ShowDetail() {
     navigate("/shows");
   };
 
-  if (detailError)
+  const activeError =
+    detailError?.showId === showId ? detailError.message : "";
+  const isCurrentRouteShow = currentShow?.id === Number(showId);
+
+  if (activeError)
     return (
       <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
-        <p className="mx-3">{detailError}</p>
+        <p className="mx-3">{activeError}</p>
         <button
           onClick={redirectToShows}
           className="mt-6 text-white capitalize bg-[#8b5cf6] px-6 py-3 rounded-xl text-lg font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
@@ -121,7 +127,7 @@ function ShowDetail() {
       </div>
     );
 
-  if (!currentShow)
+  if (!currentShow || !isCurrentRouteShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
@@ -145,6 +151,11 @@ function ShowDetail() {
 
     return `${toHours}h ${formattedMins}m`;
   };
+
+  const activeRuntime =
+    runtime?.showId === currentShow.id ? runtime.value : undefined;
+  const activeShowCredit =
+    showCredit?.showId === currentShow.id ? showCredit : null;
 
   // UI START HERE
   return (
@@ -196,7 +207,7 @@ function ShowDetail() {
             <span>
               {" "}
               <i className=" mr-2 bx bx-clock dark:text-white  align-middle" />
-              {getRuntime(runtime)}
+              {getRuntime(activeRuntime)}
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
@@ -242,8 +253,8 @@ function ShowDetail() {
       </div>
       {showMoreCast ? (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {showCredit?.cast?.length > 0 ? (
-            showCredit.cast.slice(11).map((actor) => (
+          {activeShowCredit?.cast?.length > 0 ? (
+            activeShowCredit.cast.slice(11).map((actor) => (
               <div
                 key={actor.id}
                 className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-3 text-center my-2"
@@ -275,8 +286,8 @@ function ShowDetail() {
         </div>
       ) : (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {showCredit?.cast?.length > 0 ? (
-            showCredit.cast.slice(0, 10).map((actor) => (
+          {activeShowCredit?.cast?.length > 0 ? (
+            activeShowCredit.cast.slice(0, 10).map((actor) => (
               <div
                 key={actor.id}
                 className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-auto text-center my-2"
