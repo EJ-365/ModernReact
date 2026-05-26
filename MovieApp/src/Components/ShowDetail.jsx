@@ -2,6 +2,7 @@ import { GridLoader } from "react-spinners";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { API_KEY } from "../api/tmdb";
+import ErrorPage from "../Pages/ErrorPage";
 import {
   isLibraryItemSaved,
   removeLibraryItem,
@@ -15,6 +16,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [hasError, setHasError] = useState(false);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,10 +26,35 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
+    let shouldIgnore = false;
+
+    setCurrentShow(null);
+    setRuntime(undefined);
+    setShowCredit(null);
+    setShowMoreCast(false);
+    setHasError(false);
+
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
-      .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch TV show ${showId}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.id || !Array.isArray(data.genres)) {
+          throw new Error(`Invalid TV show response for ${showId}`);
+        }
+        if (!shouldIgnore) setCurrentShow(data);
+      })
+      .catch((err) => {
+        console.log("Error fetching data", err);
+        if (!shouldIgnore) setHasError(true);
+      });
+
+    return () => {
+      shouldIgnore = true;
+    };
   }, [showId]);
 
   useEffect(() => {
@@ -51,6 +78,8 @@ function ShowDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
+  if (hasError) return <ErrorPage />;
+
   if (!currentShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -60,6 +89,9 @@ function ShowDetail() {
     );
 
   const isSaved = isLibraryItemSaved(currentShow.id, "show");
+  const voteAverage = Number.isFinite(currentShow.vote_average)
+    ? currentShow.vote_average.toFixed(2)
+    : "N/A";
 
   // redirecting to shows page chevron icon
   const redirectToShows = () => {
@@ -142,7 +174,7 @@ function ShowDetail() {
           <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentShow.vote_average.toFixed(2)}`}
+              {voteAverage}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
