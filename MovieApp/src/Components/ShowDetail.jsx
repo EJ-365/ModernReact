@@ -12,12 +12,29 @@ import {
 function ShowDetail() {
   const { showId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
-  const [showCredit, setShowCredit] = useState(null);
+  const [runtimeState, setRuntimeState] = useState({
+    showId: null,
+    runtime: undefined,
+  });
+  const [showCreditState, setShowCreditState] = useState({
+    showId: null,
+    credits: null,
+  });
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [currentShow, setCurrentShow] = useState(null);
-  const [hasError, setHasError] = useState(false);
+  const [showState, setShowState] = useState({
+    showId: null,
+    currentShow: null,
+    hasError: false,
+  });
   const [, setLibraryVersion] = useState(0);
+  const currentShow =
+    showState.showId === showId ? showState.currentShow : null;
+  const hasError = showState.showId === showId && showState.hasError;
+  const currentShowId = currentShow?.id ? String(currentShow.id) : null;
+  const runtime =
+    runtimeState.showId === currentShowId ? runtimeState.runtime : undefined;
+  const showCredit =
+    showCreditState.showId === currentShowId ? showCreditState.credits : null;
 
   // show more cast function
   function showMore() {
@@ -27,12 +44,7 @@ function ShowDetail() {
   // fetches a specific TV show object
   useEffect(() => {
     let shouldIgnore = false;
-
-    setCurrentShow(null);
-    setRuntime(undefined);
-    setShowCredit(null);
-    setShowMoreCast(false);
-    setHasError(false);
+    const requestedShowId = showId;
 
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => {
@@ -45,11 +57,23 @@ function ShowDetail() {
         if (!data?.id || !Array.isArray(data.genres)) {
           throw new Error(`Invalid TV show response for ${showId}`);
         }
-        if (!shouldIgnore) setCurrentShow(data);
+        if (!shouldIgnore) {
+          setShowState({
+            showId: requestedShowId,
+            currentShow: data,
+            hasError: false,
+          });
+        }
       })
       .catch((err) => {
         console.log("Error fetching data", err);
-        if (!shouldIgnore) setHasError(true);
+        if (!shouldIgnore) {
+          setShowState({
+            showId: requestedShowId,
+            currentShow: null,
+            hasError: true,
+          });
+        }
       });
 
     return () => {
@@ -59,22 +83,33 @@ function ShowDetail() {
 
   useEffect(() => {
     if (!currentShow?.id) return;
+    const requestedShowId = String(currentShow.id);
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.episode_run_time?.[0]))
+      .then((data) =>
+        setRuntimeState({
+          showId: requestedShowId,
+          runtime: data.episode_run_time?.[0],
+        }),
+      )
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
   // useEffect for the TV show credits
   useEffect(() => {
     if (!currentShow?.id) return;
+    const requestedShowId = String(currentShow.id);
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setShowCredit(data))
+      .then((data) =>
+        setShowCreditState({ showId: requestedShowId, credits: data }),
+      )
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
