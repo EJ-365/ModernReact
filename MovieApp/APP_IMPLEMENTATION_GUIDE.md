@@ -11,13 +11,17 @@ The goal of this app is to let a user:
 - View a featured movie on the home page.
 - View trending movies.
 - View popular movies.
+- View trending TV shows.
 - Click a movie card and open a details page.
 - Browse a larger Movies page using TMDB discover results.
-- Filter Movies page results by genre.
-- Search movies by text.
-- Load more movies using pagination.
+- Browse a larger TV Shows page using TMDB discover results.
+- Filter Movies and TV Shows page results by genre.
+- Search movies and TV shows by text.
+- Load more movies and TV shows using pagination.
 - Open a movie detail page from the Movies page.
-- View movie metadata such as rating, year, runtime, overview, genres, and cast.
+- Open a TV show detail page from the Shows page or trending shows.
+- Save and remove movies and TV shows in a local Library.
+- View metadata such as rating, year, runtime, overview, genres, and cast.
 - Switch between dark and light theme.
 - Navigate through Home, Movies, Shows, Library, and fallback error routes.
 
@@ -31,6 +35,8 @@ The app is not just a static card layout anymore. It now has several important a
 - Mobile navigation drawer.
 - Search and filtering logic.
 - Pagination with duplicate movie prevention.
+- Local storage persistence for theme and saved library items.
+- Custom favicon branding.
 
 ## 2. Application Startup
 
@@ -54,7 +60,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 ```
 
-This imports the global CSS file. That file loads Tailwind and defines the custom warning marquee animation.
+This imports the global CSS file. That file loads Tailwind and defines app-wide utility behavior such as the custom dark-mode variant.
 
 ```jsx
 import App from "./App.jsx";
@@ -115,6 +121,12 @@ This supports normal text characters.
 This is important for responsive design. Without it, mobile Tailwind layouts would not scale correctly.
 
 ```html
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+```
+
+This points the browser tab icon to the custom MovieFinder favicon in `public/favicon.svg`.
+
+```html
 <link href="https://cdn.boxicons.com/..." rel="stylesheet">
 ```
 
@@ -123,6 +135,7 @@ These links load Boxicons. The app uses icon class names like:
 - `bx bx-home-alt`
 - `bx bx-movie`
 - `bx bx-heart`
+- `bxf bx-heart`
 - `bx bx-chevron-left`
 - `bxf bx-star`
 - `bxf bx-play`
@@ -218,18 +231,6 @@ That means dark mode is applied to `<html>`, and every nested component can use 
 - `dark:text-white`
 - `dark:bg-[#19192d]`
 - `dark:hover:bg-white/10`
-
-```css
-@keyframes warning-marquee
-```
-
-This defines a horizontal movement animation from `translateX(0)` to `translateX(-50%)`.
-
-```css
-.animate-warning-marquee
-```
-
-This class applies the marquee animation to the warning banner.
 
 ## 6. TMDB API Helper
 
@@ -350,9 +351,14 @@ Stores `topFiveTrending` for the `TrendingMovies` component.
 
 Stores `topFivePopular` for the `PopularMovies` component.
 
+### File: `src/Contexts/trendingShowsContext.js`
+
+Stores `topFiveShows` for the `TrendingShows` component.
+
 Why multiple contexts exist:
 
 - Trending and popular are separate home sections.
+- Trending shows are a separate home section with TV data.
 - Featured data is shared with both the featured card and home detail route.
 - Theme is separate because it affects the entire UI, not movie data.
 
@@ -369,6 +375,7 @@ It handles:
 - Genre state.
 - Search state.
 - Pagination state.
+- Movie and TV show browse state.
 - Context provider values.
 - Route definitions.
 
@@ -395,12 +402,13 @@ const [genres, setGenres] = useState([]);
 ```
 
 Used by the Movies page genre buttons.
+Used by the Movies and Shows page genre buttons.
 
 ```js
 const [selectedGenre, setSelectedGenre] = useState("");
 ```
 
-Stores the selected TMDB genre id. Empty string means "all movies".
+Stores the selected TMDB genre id. Empty string means "all results".
 
 ```js
 const [movieGenres, setMovieGenres] = useState([]);
@@ -412,7 +420,7 @@ Used for translating genre ids into names for featured/detail displays.
 const [searchQuery, setSearchQuery] = useState("");
 ```
 
-Stores the current movie search query from the search input.
+Stores the current search query from the search input.
 
 ```js
 const [allMovies, setAllMovies] = useState({
@@ -425,6 +433,15 @@ Stores Movies page results. It is an object instead of a plain array because the
 
 - the list of movies
 - the total number of pages
+
+```js
+const [shows, setAllShows] = useState({
+  shows: [],
+  showsTotalPages: 0,
+});
+```
+
+Stores TV Shows page results with the same object-shaped pattern as `allMovies`.
 
 ```js
 const [page, setPage] = useState(1);
@@ -507,6 +524,24 @@ const featuredMovie = featuredMovies[0];
 
 The featured movie is the first movie from TMDB's now playing results.
 
+### Trending Shows
+
+```js
+const trendingShowUrl = `${BASE_URL}/trending/tv/day?api_key=${API_KEY}`;
+const trendingShows = useMovies(trendingShowUrl);
+const topFiveShows = trendingShows.slice(0, 5);
+```
+
+This fetches daily trending TV shows and keeps the first five for the home page.
+
+```js
+const trendingShowsValue = useMemo(() => {
+  return { topFiveShows };
+}, [topFiveShows]);
+```
+
+This object is passed into `TrendingShowsContext.Provider`.
+
 ### Movies Page Fetch
 
 This is the most complex fetch in the app.
@@ -575,6 +610,28 @@ The effect reruns when:
 - the selected genre changes
 - the search query changes
 
+### TV Shows Page Fetch
+
+The Shows page uses the same pattern as Movies, but with TMDB's TV endpoints.
+
+```js
+const url = searchQuery === ""
+  ? `${BASE_URL}/discover/tv?api_key=${API_KEY}&page=${page}${genreParam}`
+  : `${BASE_URL}/search/tv?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
+```
+
+When there is no search query, the app browses TV shows with discover. When there is a search query, it searches TV shows by text.
+
+For page 1, the app replaces the `shows` array. For later pages, it appends new shows and dedupes by id:
+
+```js
+shows: [
+  ...new Map(
+    combinedShows.map((show) => [show.id, show]),
+  ).values(),
+],
+```
+
 ### Routes
 
 ```jsx
@@ -597,22 +654,28 @@ This route shows details for a home page movie. `:cardId` becomes available thro
 This route shows details for a movie from the Movies page. It uses `movieId`.
 
 ```jsx
+<Route path="/shows/:showId" element={<ShowDetail />} />
+```
+
+This route shows details for a TV show from the Shows page or Trending Shows section. It uses `showId`.
+
+```jsx
 <Route path="/movies" element={<Movies ... />} />
 ```
 
 This renders the Movies browsing page and passes the state/functions it needs.
 
 ```jsx
-<Route path="/shows" element={<Shows shows={shows} />} />
+<Route path="/shows" element={<Shows ... />} />
 ```
 
-This renders static TV show cards from local data.
+This renders the TV Shows browsing page and passes show results, genre/search state, and pagination handlers.
 
 ```jsx
 <Route path="/library" element={<Library />} />
 ```
 
-This renders the empty library page.
+This renders saved movies and TV shows from local storage.
 
 ```jsx
 <Route path="*" element={<ErrorPage />} />
@@ -1053,6 +1116,7 @@ This is a simple composition page:
 <FeaturedMovie />
 <TrendingMovies />
 <PopularMovies />
+<TrendingShows />
 ```
 
 It does not fetch data itself. `App.jsx` fetches data, providers pass data down, and these components consume context.
@@ -1126,7 +1190,7 @@ Card UI:
 - row layout on desktop
 - poster with `aspect-2/3`
 - hover scale
-- heart icon overlay
+- clickable `LibraryHeartButton` overlay
 - dark gradient hover overlay
 - title hover turns violet
 - release date and rating below
@@ -1155,7 +1219,77 @@ Why `CardDetails` searches both lists:
 - Or it may come from popular.
 - So `CardDetails` checks both.
 
-## 18. Navbar
+## 18. Trending Shows
+
+### File: `src/Components/TrendingShows.jsx`
+
+This component reads:
+
+```js
+const { topFiveShows } = useContext(TrendingShowsContext);
+```
+
+It maps over five trending TV shows and creates links:
+
+```jsx
+to={`/shows/${trendingNow.id}`}
+```
+
+That opens `ShowDetail`, not `CardDetails`, because TV shows need TMDB's `/tv` detail and credits endpoints.
+
+The card UI matches the movie sections, but uses TV show fields:
+
+- `name` instead of `title`
+- `first_air_date` instead of `release_date`
+- `mediaType: "show"` when saving to the Library
+
+## 19. Library Heart Button
+
+### File: `src/Components/LibraryHeartButton.jsx`
+
+This reusable button powers the heart overlays on movie and TV cards.
+
+It receives a small `item` object:
+
+```js
+{
+  id,
+  mediaType,
+  title,
+  poster_path,
+  voteAverage,
+  releaseDate,
+}
+```
+
+The initial saved state is read from local storage:
+
+```js
+const [isSaved, setIsSaved] = useState(() =>
+  isLibraryItemSaved(item.id, item.mediaType),
+);
+```
+
+The click handler stops the surrounding card link from navigating:
+
+```js
+event.preventDefault();
+event.stopPropagation();
+```
+
+Then it either saves or removes the item:
+
+```js
+saveLibraryItem(item);
+removeLibraryItem(item.id, item.mediaType);
+```
+
+The icon changes visually:
+
+- unsaved: `bx bx-heart`
+- saved: `bxf bx-heart`
+
+## 20. Navbar
 
 ### File: `src/Components/Navbar.jsx`
 
@@ -1226,63 +1360,83 @@ Each `NavLink` closes the drawer on click:
 onClick={() => setMobileOpen(false)}
 ```
 
-## 19. Shows Page
+## 21. Shows Page
 
 ### File: `src/Pages/Shows.jsx`
 
-This page currently uses local static data from `src/data/shows.js`.
+This page displays TV show results from TMDB. `App.jsx` owns the fetched show data and passes it into this component.
 
 It renders:
 
 - a heading
-- static genre chips
+- search input
+- dynamic genre filter buttons
+- page indicator
 - show cards
-- a see more button placeholder
+- see more button
 
 The UI matches movie card styling:
 
 - poster image
-- heart icon
+- clickable `LibraryHeartButton`
 - hover overlay
-- title
-- date
+- show name
+- first air date
 - rating
 
-Genre chip keys use the genre string:
+When a genre is clicked, the Shows page clears the current list and resets pagination:
 
-```jsx
-key={genre}
+```js
+setAllShows({ shows: [], showsTotalPages: 0 });
+setPage(1);
 ```
 
-That is safe because each string in the array is unique.
+Each card links to:
 
-## 20. Library Page
+```jsx
+to={`/shows/${show.id}`}
+```
+
+That opens `ShowDetail`.
+
+## 22. Library Page
 
 ### File: `src/Pages/Library.jsx`
 
-This page is an empty-state screen.
+This page displays saved movies and TV shows from local storage.
 
-It uses:
+It initializes state from the storage helper:
 
 ```js
-const navigate = useNavigate();
+const [libraryItems, setLibraryItems] = useState(() => getLibraryItems());
 ```
 
-The button calls:
+If the library is empty, it shows an empty-state screen and a button that navigates to the Movies page:
 
 ```js
 navigate("/movies");
 ```
 
-This sends users to the Movies page.
+If saved items exist, it renders a responsive grid. Each item links back to the correct detail route:
+
+```jsx
+`/${item.mediaType === "movie" ? "movies" : "shows"}/${item.id}`
+```
+
+The remove button calls:
+
+```js
+setLibraryItems(removeLibraryItem(id, mediaType));
+```
 
 UI purpose:
 
-- Show that the library is empty.
-- Tell users what the library will be for.
-- Give them a clear action to explore movies.
+- Show saved movies and TV shows.
+- Let users open saved detail pages.
+- Let users remove saved items.
+- Keep saved items persisted between browser sessions.
 
-## 21. Error Page
+## 23. Error Page
 
 ### File: `src/Pages/ErrorPage.jsx`
 
@@ -1302,49 +1456,42 @@ It is connected by:
 <Route path="*" element={<ErrorPage />} />
 ```
 
-## 22. Warning Banner
+## 24. Favicon
 
-### File: `src/Components/Warning.jsx`
+### File: `public/favicon.svg`
 
-This component shows a red scrolling banner:
+The app uses a custom SVG favicon instead of the default Vite icon.
 
-```js
-const MESSAGE = "Work in progress - not fully done, thank you for understanding";
+It is linked in `index.html`:
+
+```html
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 ```
 
-The rendered message is duplicated twice so the animation can loop smoothly.
+The favicon design matches the app's movie theme:
 
-Important classes:
+- dark rounded background
+- purple movie frame
+- white play icon
+- small heart accent
 
-- `overflow-hidden`: hides text outside the banner.
-- `w-max`: content width equals text width.
-- `animate-warning-marquee`: custom CSS animation.
-- `whitespace-nowrap`: prevents line breaks.
-- `shrink-0`: keeps each text block from shrinking.
-
-## 23. Data Files
+## 25. Data Files
 
 ### `src/data/shows.js`
 
-This exports static TV show data. Each item has:
+This is older static TV show data from an earlier version of the app. The current Shows page uses TMDB discover/search data instead.
 
-- `id`
-- `title`
-- `image`
-- `rating`
-- `date`
-
-The Shows page maps over this array.
+It can be kept as reference data or removed in a cleanup pass if nothing imports it.
 
 ### `src/data/movies.js`
 
-This is older static movie data with the same general shape as `shows.js`. The current Movies page now uses TMDB discover data instead.
+This is older static movie data. The current Movies page now uses TMDB discover/search data instead.
 
 ### `src/data/popularMovies.js`, `src/data/trendingMovies.js`, `src/data/showMoviesAndShow.js`
 
 These are local/static data files from earlier versions of the app. The current main home sections use live TMDB data from `App.jsx` and `useMovies`.
 
-## 24. Tailwind Class Patterns Used Across The App
+## 26. Tailwind Class Patterns Used Across The App
 
 ### Layout
 
@@ -1420,7 +1567,7 @@ work because `App.jsx` toggles `.dark` on the document root.
 - `rounded-xl`, `rounded-3xl`: rounded image corners.
 - `bg-cover bg-center`: backdrop fills hero area and stays centered.
 
-## 25. Important Bugs Fixed During Development
+## 27. Important Bugs Fixed During Development
 
 ### Detail page refresh bug
 
@@ -1484,22 +1631,59 @@ Fix:
 
 Assign the URL string to a variable and pass it to `fetch`.
 
-## 26. Current Main Data Flow
+### Trending shows detail route bug
+
+Problem:
+
+Trending show cards originally linked to `/home/:cardId`, which renders `CardDetails`. That page is movie-focused and fetches TMDB `/movie` endpoints.
+
+Fix:
+
+Trending show cards now link to:
+
+```jsx
+to={`/shows/${trendingNow.id}`}
+```
+
+That route renders `ShowDetail`, which uses TMDB `/tv` endpoints.
+
+### Card heart click bug
+
+Problem:
+
+The heart icons were inside `Link` cards. Clicking the heart triggered the parent link and navigated to the detail page.
+
+Fix:
+
+`LibraryHeartButton` calls:
+
+```js
+event.preventDefault();
+event.stopPropagation();
+```
+
+This lets the heart save/remove items without activating the card link.
+
+## 28. Current Main Data Flow
 
 ### Home flow
 
 ```txt
 App.jsx
-  fetches trending/popular/featured/genres
+  fetches trending movies, popular movies, featured movie, trending shows, and genres
   provides context values
 Home.jsx
-  renders FeaturedMovie, TrendingMovies, PopularMovies
-User clicks a home card
+  renders FeaturedMovie, TrendingMovies, PopularMovies, TrendingShows
+User clicks a movie home card
   /home/:cardId
 CardDetails.jsx
   finds movie in topFiveTrending or topFivePopular
   fetches runtime and credits
   renders detail UI
+User clicks a trending show
+  /shows/:showId
+ShowDetail.jsx
+  fetches TV show by id and credits
 ```
 
 ### Movies page flow
@@ -1528,14 +1712,54 @@ MoviesDetail.jsx
   fetches movie by id and credits
 ```
 
-## 27. Why The App Is Structured This Way
+### Shows page flow
+
+```txt
+App.jsx
+  stores page, selectedGenre, searchQuery, shows
+Shows.jsx
+  displays search, genre buttons, show cards
+User clicks genre
+  selectedGenre changes
+  page resets to 1
+App.jsx effect runs
+  fetches TV discover endpoint with with_genres
+User searches
+  searchQuery changes
+App.jsx effect runs
+  fetches TV search endpoint
+User clicks see more
+  page increments
+App.jsx effect runs
+  appends next page and dedupes by id
+User clicks show
+  /shows/:showId
+ShowDetail.jsx
+  fetches show by id and credits
+```
+
+### Library flow
+
+```txt
+User clicks a heart icon or detail-page library button
+libraryStorage.js
+  saves/removes item in localStorage
+Library.jsx
+  reads saved items from localStorage
+  renders saved movie/show cards
+User clicks remove
+  item is removed from localStorage and state updates
+```
+
+## 29. Why The App Is Structured This Way
 
 The app currently uses a mixed state strategy:
 
 - Context for home page sections and global theme.
-- Props for the Movies page because `App.jsx` owns the search/filter/pagination state.
+- Props for the Movies and Shows pages because `App.jsx` owns the search/filter/pagination state.
 - Route params for detail pages.
-- Direct API fetch by id for the Movies detail page.
+- Direct API fetch by id for movie and TV detail pages.
+- Local storage helpers for saved library items.
 
 This is a reasonable learning-stage architecture because it shows several important React patterns:
 
@@ -1546,31 +1770,31 @@ This is a reasonable learning-stage architecture because it shows several import
 - Conditional rendering for loading states.
 - Responsive Tailwind design.
 
-## 28. Future Improvements
+## 30. Future Improvements
 
 These are not required, but they would make the app cleaner later:
 
-- Move Movies page fetch logic into a custom hook like `useDiscoverMovies`.
+- Move Movies and Shows page fetch logic into custom hooks like `useDiscoverMovies` and `useDiscoverShows`.
 - Move repeated card UI into a reusable `MovieCard` component.
 - Move repeated detail UI into a reusable `MovieDetailLayout`.
 - Fetch `MoviesDetail` runtime from the first movie-by-id response instead of a second fetch.
-- Add loading state for Movies page filtering/searching.
+- Add loading state for Movies and Shows page filtering/searching.
 - Disable "see more" while a fetch is in progress.
 - Debounce search input or search only when clicking search.
-- Add real library save/remove behavior.
 - Replace remaining `class` attributes with `className` where needed.
 - Add error UI for failed API requests.
 
-## 29. Summary
+## 31. Summary
 
-This app has grown from simple static cards into a routed React application with live TMDB data, search, genre filters, pagination, responsive detail pages, context providers, theme switching, and reusable API patterns.
+This app has grown from simple static cards into a routed React application with live TMDB data, search, genre filters, pagination, responsive detail pages, context providers, theme switching, a saved Library, and reusable API/storage patterns.
 
 The main idea is:
 
 - `App.jsx` owns the important global state and routes.
 - Home page sections consume context.
-- Movies page receives browsing state through props.
+- Movies and Shows pages receive browsing state through props.
 - Detail pages use route ids.
+- Library persistence uses local storage.
 - Tailwind handles the visual design and responsive behavior.
 
-The result is a movie browsing app that can show home highlights, browse discover results, filter by genre, search by text, load more movies, and open full movie details.
+The result is a movie and TV browsing app that can show home highlights, browse discover results, filter by genre, search by text, load more results, save items to a Library, and open full detail pages.
