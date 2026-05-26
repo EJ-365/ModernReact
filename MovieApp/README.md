@@ -2,9 +2,7 @@
 
 MovieFinder is a React movie browsing app built with Vite, React Router, Tailwind CSS, and the TMDB API.
 
-> Status: work in progress. The app is usable, but not fully finished yet.
-
-## Current Features
+## Features
 
 - Home page with a featured movie, trending movies, popular movies, and trending shows.
 - Movies page powered by TMDB discover results.
@@ -22,6 +20,7 @@ MovieFinder is a React movie browsing app built with Vite, React Router, Tailwin
 - Responsive mobile and desktop layouts.
 - Dark/light theme toggle with local storage persistence.
 - Mobile navigation drawer.
+- Custom MovieFinder favicon.
 - 404 fallback page.
 
 ## Tech Stack
@@ -86,6 +85,7 @@ The app currently uses a mix of React Context and props:
 - Props are used for Movies and Shows page state like search, genre filtering, pagination, and results.
 - Dynamic detail pages use route params from React Router.
 - Saved library items are stored in `localStorage` through `src/utils/libraryStorage.js`.
+- The app uses a custom SVG favicon at `public/favicon.svg`.
 
 The Movies page fetch chooses between two TMDB endpoints:
 
@@ -102,18 +102,6 @@ The Library feature stores a small saved item object for each movie or show:
 - Poster path
 - Vote average
 - Release date or first air date
-
-## Not Fully Done Yet
-
-Planned or unfinished areas:
-
-- Trailer playback.
-- Better loading and error states for all API requests.
-- Better search UX, such as debounce or a clear submit flow.
-- More complete TV Shows API integration.
-- Refactoring repeated movie card and detail UI into reusable components.
-- Cleanup of older static data files that are no longer used heavily.
-- More polishing for responsive layouts.
 
 ## Detailed Documentation
 
