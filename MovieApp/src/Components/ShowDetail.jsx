@@ -27,12 +27,6 @@ function ShowDetail() {
   useEffect(() => {
     const controller = new AbortController();
 
-    setCurrentShow(null);
-    setShowCredit(null);
-    setRuntime(undefined);
-    setShowMoreCast(false);
-    setShowError(false);
-
     async function fetchShow() {
       try {
         const res = await fetch(
@@ -45,6 +39,10 @@ function ShowDetail() {
           throw new Error(data?.status_message || "TV show not found");
         }
 
+        setShowCredit(null);
+        setRuntime(undefined);
+        setShowMoreCast(false);
+        setShowError(false);
         setCurrentShow(data);
       } catch (err) {
         if (err.name === "AbortError") return;
