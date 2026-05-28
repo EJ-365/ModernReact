@@ -19,7 +19,9 @@ function Shows({
   useEffect(() => {
     fetch(`${BASE_URL}/genre/tv/list?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setGenres(data.genres))
+      .then((data) =>
+        setGenres(Array.isArray(data.genres) ? data.genres : []),
+      )
       .catch((err) => console.log("Error fetching genre", err));
   }, [setGenres]);
 

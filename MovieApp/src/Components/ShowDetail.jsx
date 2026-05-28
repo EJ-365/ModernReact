@@ -8,6 +8,16 @@ import {
   saveLibraryItem,
 } from "../utils/libraryStorage";
 
+function isValidShowResponse(show) {
+  return (
+    show &&
+    show.success !== false &&
+    show.id &&
+    Array.isArray(show.genres) &&
+    typeof show.vote_average === "number"
+  );
+}
+
 function ShowDetail() {
   const { showId } = useParams();
   const navigate = useNavigate();
@@ -15,6 +25,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailError, setDetailError] = useState("");
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,32 +35,90 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
+    let ignore = false;
+
+    setCurrentShow(null);
+    setRuntime(undefined);
+    setShowCredit(null);
+    setDetailError("");
+
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (!isValidShowResponse(data)) {
+          setDetailError("We couldn't find this TV show.");
+          return;
+        }
+
+        setCurrentShow(data);
+      })
+      .catch((err) => {
+        if (ignore) return;
+
+        console.log("Error fetching data", err);
+        setDetailError("Unable to load this TV show.");
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [showId]);
 
   useEffect(() => {
     if (!currentShow?.id) return;
+    let ignore = false;
+
+    setRuntime(undefined);
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.episode_run_time?.[0]))
+      .then((data) => {
+        if (!ignore) setRuntime(data.episode_run_time?.[0]);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentShow?.id]);
 
   // useEffect for the TV show credits
   useEffect(() => {
     if (!currentShow?.id) return;
+    let ignore = false;
+
+    setShowCredit(null);
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setShowCredit(data))
+      .then((data) => {
+        if (!ignore) setShowCredit(data);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentShow?.id]);
+
+  if (detailError)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center px-4">
+        <p className="mx-3">{detailError}</p>
+        <button
+          onClick={() => navigate("/shows")}
+          className="mt-6 text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </div>
+    );
 
   if (!currentShow)
     return (
