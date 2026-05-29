@@ -24,7 +24,7 @@ function MoviesDetail() {
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
-  const [detailError, setDetailError] = useState(false);
+  const [detailErrorMovieId, setDetailErrorMovieId] = useState(null);
   const [, setLibraryVersion] = useState(0);
   // show more cast function
   function showMore() {
@@ -35,12 +35,6 @@ function MoviesDetail() {
   useEffect(() => {
     let ignore = false;
 
-    setCurrentMovie(null);
-    setRuntime(undefined);
-    setMovieCredit(null);
-    setShowMoreCast(false);
-    setDetailError(false);
-
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
       .then((data) => {
@@ -48,13 +42,14 @@ function MoviesDetail() {
 
         if (isValidMovieDetail(data)) {
           setCurrentMovie(data);
+          setDetailErrorMovieId(null);
           return;
         }
 
-        setDetailError(true);
+        setDetailErrorMovieId(movieId);
       })
       .catch((err) => {
-        if (!ignore) setDetailError(true);
+        if (!ignore) setDetailErrorMovieId(movieId);
         console.log("Error fetching data", err);
       });
 
@@ -101,7 +96,7 @@ function MoviesDetail() {
     };
   }, [currentMovie?.id]);
 
-  if (detailError)
+  if (detailErrorMovieId === movieId)
     return (
       <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
         <p className="mx-3">Movie details are unavailable.</p>
@@ -114,7 +109,7 @@ function MoviesDetail() {
       </div>
     );
 
-  if (!currentMovie)
+  if (!currentMovie || currentMovie.id !== Number(movieId))
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}

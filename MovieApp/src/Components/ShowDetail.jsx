@@ -24,7 +24,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
-  const [detailError, setDetailError] = useState(false);
+  const [detailErrorShowId, setDetailErrorShowId] = useState(null);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -36,12 +36,6 @@ function ShowDetail() {
   useEffect(() => {
     let ignore = false;
 
-    setCurrentShow(null);
-    setRuntime(undefined);
-    setShowCredit(null);
-    setShowMoreCast(false);
-    setDetailError(false);
-
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
       .then((data) => {
@@ -49,13 +43,14 @@ function ShowDetail() {
 
         if (isValidShowDetail(data)) {
           setCurrentShow(data);
+          setDetailErrorShowId(null);
           return;
         }
 
-        setDetailError(true);
+        setDetailErrorShowId(showId);
       })
       .catch((err) => {
-        if (!ignore) setDetailError(true);
+        if (!ignore) setDetailErrorShowId(showId);
         console.log("Error fetching data", err);
       });
 
@@ -101,7 +96,7 @@ function ShowDetail() {
     };
   }, [currentShow?.id]);
 
-  if (detailError)
+  if (detailErrorShowId === showId)
     return (
       <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
         <p className="mx-3">TV show details are unavailable.</p>
@@ -114,7 +109,7 @@ function ShowDetail() {
       </div>
     );
 
-  if (!currentShow)
+  if (!currentShow || currentShow.id !== Number(showId))
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
