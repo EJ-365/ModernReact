@@ -7,6 +7,7 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+import { isValidShowDetail } from "../utils/tmdbDetails";
 
 function ShowDetail() {
   const { showId } = useParams();
@@ -15,6 +16,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailErrorShowId, setDetailErrorShowId] = useState(null);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,34 +26,82 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
+    let ignore = false;
+
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (isValidShowDetail(data)) {
+          setCurrentShow(data);
+          setDetailErrorShowId(null);
+          return;
+        }
+
+        setDetailErrorShowId(showId);
+      })
+      .catch((err) => {
+        if (!ignore) setDetailErrorShowId(showId);
+        console.log("Error fetching data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [showId]);
 
   useEffect(() => {
     if (!currentShow?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.episode_run_time?.[0]))
+      .then((data) => {
+        if (!ignore) setRuntime(data.episode_run_time?.[0]);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentShow?.id]);
 
   // useEffect for the TV show credits
   useEffect(() => {
     if (!currentShow?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setShowCredit(data))
+      .then((data) => {
+        if (!ignore) setShowCredit(data);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentShow?.id]);
 
-  if (!currentShow)
+  if (detailErrorShowId === showId)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">TV show details are unavailable.</p>
+        <button
+          onClick={() => navigate("/shows")}
+          className="mt-6 capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-5 py-2 rounded-xl font-medium dark:text-white text-base cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+        >
+          back to shows
+        </button>
+      </div>
+    );
+
+  if (!currentShow || currentShow.id !== Number(showId))
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
