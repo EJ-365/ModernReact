@@ -19,7 +19,8 @@ function CardDetails() {
     topFivePopular?.find((movie) => movie.id === Number(cardId));
   const [fetchedMovie, setFetchedMovie] = useState(null);
   const [detailErrorCardId, setDetailErrorCardId] = useState(null);
-  const currentMovie = contextMovie || fetchedMovie;
+  const currentMovie =
+    contextMovie || (fetchedMovie?.id === Number(cardId) ? fetchedMovie : null);
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
@@ -31,11 +32,7 @@ function CardDetails() {
   }
 
   useEffect(() => {
-    if (contextMovie?.id) {
-      setFetchedMovie(null);
-      setDetailErrorCardId(null);
-      return;
-    }
+    if (contextMovie?.id) return;
 
     let ignore = false;
 
@@ -104,7 +101,7 @@ function CardDetails() {
     };
   }, [currentMovie?.id]);
 
-  if (detailErrorCardId === cardId)
+  if (!currentMovie && detailErrorCardId === cardId)
     return (
       <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
         <p className="mx-3">Movie details are unavailable.</p>
