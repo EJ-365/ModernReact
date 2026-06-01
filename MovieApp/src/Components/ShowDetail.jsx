@@ -8,6 +8,14 @@ import {
   saveLibraryItem,
 } from "../utils/libraryStorage";
 
+function isValidShowDetail(show) {
+  return Boolean(
+    show?.id &&
+      typeof show.vote_average === "number" &&
+      Array.isArray(show.genres),
+  );
+}
+
 function ShowDetail() {
   const { showId } = useParams();
   const navigate = useNavigate();
@@ -15,6 +23,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailError, setDetailError] = useState(false);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,10 +33,33 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
+    let ignore = false;
+
+    setCurrentShow(null);
+    setRuntime(undefined);
+    setShowCredit(null);
+    setDetailError(false);
+
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (!isValidShowDetail(data)) {
+          setDetailError(true);
+          return;
+        }
+
+        setCurrentShow(data);
+      })
+      .catch((err) => {
+        if (!ignore) setDetailError(true);
+        console.log("Error fetching data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [showId]);
 
   useEffect(() => {
@@ -51,6 +83,25 @@ function ShowDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
+  // redirecting to shows page chevron icon
+  const redirectToShows = () => {
+    navigate("/shows");
+  };
+
+  if (detailError)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center gap-4 px-4">
+        <p>Show details are unavailable.</p>
+        <button
+          type="button"
+          onClick={redirectToShows}
+          className="text-white capitalize bg-[#8b5cf6] px-4 py-2 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </div>
+    );
+
   if (!currentShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -60,11 +111,6 @@ function ShowDetail() {
     );
 
   const isSaved = isLibraryItemSaved(currentShow.id, "show");
-
-  // redirecting to shows page chevron icon
-  const redirectToShows = () => {
-    navigate("/shows");
-  };
 
   function toggleLibraryItem() {
     if (isSaved) {
