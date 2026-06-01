@@ -22,9 +22,11 @@ function ShowDetail() {
   const [runtime, setRuntime] = useState();
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [currentShow, setCurrentShow] = useState(null);
-  const [detailError, setDetailError] = useState(false);
+  const [fetchedShow, setCurrentShow] = useState(null);
+  const [detailErrorId, setDetailErrorId] = useState(null);
   const [, setLibraryVersion] = useState(0);
+  const currentShow = String(fetchedShow?.id) === showId ? fetchedShow : null;
+  const detailError = detailErrorId === showId;
 
   // show more cast function
   function showMore() {
@@ -35,25 +37,25 @@ function ShowDetail() {
   useEffect(() => {
     let ignore = false;
 
-    setCurrentShow(null);
-    setRuntime(undefined);
-    setShowCredit(null);
-    setDetailError(false);
-
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
       .then((data) => {
         if (ignore) return;
 
         if (!isValidShowDetail(data)) {
-          setDetailError(true);
+          setCurrentShow(null);
+          setDetailErrorId(showId);
           return;
         }
 
         setCurrentShow(data);
+        setDetailErrorId(null);
       })
       .catch((err) => {
-        if (!ignore) setDetailError(true);
+        if (!ignore) {
+          setCurrentShow(null);
+          setDetailErrorId(showId);
+        }
         console.log("Error fetching data", err);
       });
 

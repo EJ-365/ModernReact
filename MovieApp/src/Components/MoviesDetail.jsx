@@ -22,9 +22,13 @@ function MoviesDetail() {
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [currentMovie, setCurrentMovie] = useState(null);
-  const [detailError, setDetailError] = useState(false);
+  const [fetchedMovie, setCurrentMovie] = useState(null);
+  const [detailErrorId, setDetailErrorId] = useState(null);
   const [, setLibraryVersion] = useState(0);
+  const currentMovie =
+    String(fetchedMovie?.id) === movieId ? fetchedMovie : null;
+  const detailError = detailErrorId === movieId;
+
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
@@ -34,25 +38,25 @@ function MoviesDetail() {
   useEffect(() => {
     let ignore = false;
 
-    setCurrentMovie(null);
-    setRuntime(undefined);
-    setMovieCredit(null);
-    setDetailError(false);
-
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
       .then((data) => {
         if (ignore) return;
 
         if (!isValidMovieDetail(data)) {
-          setDetailError(true);
+          setCurrentMovie(null);
+          setDetailErrorId(movieId);
           return;
         }
 
         setCurrentMovie(data);
+        setDetailErrorId(null);
       })
       .catch((err) => {
-        if (!ignore) setDetailError(true);
+        if (!ignore) {
+          setCurrentMovie(null);
+          setDetailErrorId(movieId);
+        }
         console.log("Error fetching data", err);
       });
 
