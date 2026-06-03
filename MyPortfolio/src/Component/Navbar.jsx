@@ -20,7 +20,8 @@ function Navbar() {
         {/* Nav-link div */}
         <ul className="flex space-x-5 items-center md:my-0 my-4 ">
           <NavLink
-            to="/Home"
+            to="/"
+            end
             className={({ isActive }) =>
               `text-[16px] capitalize ${
                 isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"
@@ -42,7 +43,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/About"
+            to="/about"
             className={({ isActive }) =>
               `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -61,7 +62,7 @@ function Navbar() {
             )}
           </NavLink>
           <NavLink
-            to="/Project"
+            to="/projects"
             className={({ isActive }) =>
               `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -80,7 +81,7 @@ function Navbar() {
             )}
           </NavLink>
           <NavLink
-            to="/Contact"
+            to="/contact"
             className={({ isActive }) =>
               `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
