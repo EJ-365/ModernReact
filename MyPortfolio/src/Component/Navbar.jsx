@@ -23,7 +23,7 @@ function Navbar() {
             to="/Home"
             className={({ isActive }) =>
               `text-[16px] capitalize ${
-                isActive ? "text-[#8B5CF6]" : "text-gray-700 dark:text-white"
+                isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"
               }`
             }
           >
@@ -33,7 +33,7 @@ function Navbar() {
                 <div
                   className={
                     isActive
-                      ? "w-11 my-0.5 text-center mr-2 bg-red-500 border"
+                      ? "w-11 my-0.5 text-center mr-2 bg-black border dark:bg-white"
                       : ""
                   }
                 />
@@ -44,7 +44,7 @@ function Navbar() {
           <NavLink
             to="/About"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-[#8B5CF6] dark:text-[#d2c1fa] " : "text-gray-700 dark:text-white"}`
+              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -53,7 +53,7 @@ function Navbar() {
                 <div
                   className={
                     isActive
-                      ? "w-11 my-0.5  text-center mr-2 bg-red-500 border"
+                      ? "w-11 my-0.5  text-center mr-2 bg-black border dark:bg-white"
                       : ""
                   }
                 />{" "}
@@ -63,7 +63,7 @@ function Navbar() {
           <NavLink
             to="/Project"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-[#8B5CF6] dark:text-[#d2c1fa] " : "text-gray-700 dark:text-white"}`
+              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -72,7 +72,7 @@ function Navbar() {
                 <div
                   className={
                     isActive
-                      ? "w-15 my-0.5  text-center mr-2 bg-red-500 border"
+                      ? "w-15 my-0.5  text-center mr-2 bg-black border dark:bg-white"
                       : ""
                   }
                 />{" "}
@@ -82,7 +82,7 @@ function Navbar() {
           <NavLink
             to="/Contact"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-[#8B5CF6] dark:text-[#d2c1fa] " : "text-gray-700 dark:text-white"}`
+              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -91,7 +91,7 @@ function Navbar() {
                 <div
                   className={
                     isActive
-                      ? "w-15 my-0.5  text-center mr-2 bg-red-500 border"
+                      ? "w-15 my-0.5  text-center mr-2 bg-black border dark:bg-white"
                       : ""
                   }
                 />{" "}
@@ -101,7 +101,7 @@ function Navbar() {
         </ul>
 
         <div className="flex items-center space-x-8">
-          <button className="capitalize py-2.5 text-sm px-8 bg-[#8B5CF6] text-[#FFFFFF] hover:bg-[#7C3AED] cursor-pointer">
+          <button className="capitalize py-2.5 text-sm px-8 bg-black text-[#FFFFFF] hover:bg-neutral-800 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-neutral-200">
             Hire me
           </button>
           <button

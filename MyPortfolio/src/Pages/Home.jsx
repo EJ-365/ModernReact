@@ -12,7 +12,7 @@ function Home() {
         </h1>
         <p>{information.position}</p>
         <div className="space-x-2 mt-11">
-          <button className="bg-[#8B5CF6] text-white px-7 py-2 text-[11px] font-mono uppercase cursor-pointer hover:bg-[#7C3AED]">
+          <button className="bg-black text-white px-7 py-2 text-[11px] font-mono uppercase cursor-pointer hover:bg-neutral-800">
             view work
           </button>
 
