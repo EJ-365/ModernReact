@@ -7,6 +7,7 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+import { isShowDetailResponse } from "../utils/tmdbDetail";
 
 function ShowDetail() {
   const { showId } = useParams();
@@ -15,6 +16,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [showLoadError, setShowLoadError] = useState(false);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,10 +26,29 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
+    let isActive = true;
+    setCurrentShow(null);
+    setShowLoadError(false);
+    setRuntime(undefined);
+    setShowCredit(null);
+
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (!isShowDetailResponse(data)) {
+          throw new Error("Invalid TV show detail response");
+        }
+
+        if (isActive) setCurrentShow(data);
+      })
+      .catch((err) => {
+        console.log("Error fetching data", err);
+        if (isActive) setShowLoadError(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [showId]);
 
   useEffect(() => {
@@ -51,6 +72,25 @@ function ShowDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
+  if (showLoadError) {
+    return (
+      <section className="dark:text-white h-screen w-full flex flex-col items-center justify-center text-center px-6">
+        <h1 className="text-3xl font-bold mb-4">TV show unavailable</h1>
+        <p className="text-zinc-500 dark:text-zinc-300 mb-8 max-w-xl">
+          We could not load this TV show. It may have been removed or the show
+          service may be temporarily unavailable.
+        </p>
+        <button
+          onClick={redirectToShows}
+          className="capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-7 py-3 rounded-xl font-medium dark:text-white md:text-[17px] cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+        >
+          <i className="bx bx-caret-left font-bold text-xl align-middle " />{" "}
+          Back to shows
+        </button>
+      </section>
+    );
+  }
+
   if (!currentShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -62,9 +102,9 @@ function ShowDetail() {
   const isSaved = isLibraryItemSaved(currentShow.id, "show");
 
   // redirecting to shows page chevron icon
-  const redirectToShows = () => {
+  function redirectToShows() {
     navigate("/shows");
-  };
+  }
 
   function toggleLibraryItem() {
     if (isSaved) {

@@ -7,6 +7,7 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+import { isMovieDetailResponse } from "../utils/tmdbDetail";
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ function MoviesDetail() {
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
+  const [movieLoadError, setMovieLoadError] = useState(false);
   const [, setLibraryVersion] = useState(0);
   // show more cast function
   function showMore() {
@@ -22,10 +24,29 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
+    let isActive = true;
+    setCurrentMovie(null);
+    setMovieLoadError(false);
+    setRuntime(undefined);
+    setMovieCredit(null);
+
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (!isMovieDetailResponse(data)) {
+          throw new Error("Invalid movie detail response");
+        }
+
+        if (isActive) setCurrentMovie(data);
+      })
+      .catch((err) => {
+        console.log("Error fetching data", err);
+        if (isActive) setMovieLoadError(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [movieId]);
 
   useEffect(() => {
@@ -50,6 +71,25 @@ function MoviesDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
 
+  if (movieLoadError) {
+    return (
+      <section className="dark:text-white h-screen w-full flex flex-col items-center justify-center text-center px-6">
+        <h1 className="text-3xl font-bold mb-4">Movie unavailable</h1>
+        <p className="text-zinc-500 dark:text-zinc-300 mb-8 max-w-xl">
+          We could not load this movie. It may have been removed or the movie
+          service may be temporarily unavailable.
+        </p>
+        <button
+          onClick={redirectToHome}
+          className="capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-7 py-3 rounded-xl font-medium dark:text-white md:text-[17px] cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+        >
+          <i className="bx bx-caret-left font-bold text-xl align-middle " />{" "}
+          Back to movies
+        </button>
+      </section>
+    );
+  }
+
   if (!currentMovie)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -61,9 +101,9 @@ function MoviesDetail() {
   const isSaved = isLibraryItemSaved(currentMovie.id, "movie");
 
   // redirecting to home chevron icon
-  const redirectToHome = () => {
+  function redirectToHome() {
     navigate("/movies");
-  };
+  }
 
   function toggleLibraryItem() {
     if (isSaved) {
