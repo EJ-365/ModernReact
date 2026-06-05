@@ -25,10 +25,6 @@ function MoviesDetail() {
   // fetches a specific movie object
   useEffect(() => {
     let isActive = true;
-    setCurrentMovie(null);
-    setMovieLoadError(false);
-    setRuntime(undefined);
-    setMovieCredit(null);
 
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
@@ -37,11 +33,21 @@ function MoviesDetail() {
           throw new Error("Invalid movie detail response");
         }
 
-        if (isActive) setCurrentMovie(data);
+        if (isActive) {
+          setCurrentMovie(data);
+          setMovieLoadError(false);
+          setRuntime(undefined);
+          setMovieCredit(null);
+        }
       })
       .catch((err) => {
         console.log("Error fetching data", err);
-        if (isActive) setMovieLoadError(true);
+        if (isActive) {
+          setCurrentMovie(null);
+          setMovieLoadError(true);
+          setRuntime(undefined);
+          setMovieCredit(null);
+        }
       });
 
     return () => {

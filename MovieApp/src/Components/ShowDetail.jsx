@@ -27,10 +27,6 @@ function ShowDetail() {
   // fetches a specific TV show object
   useEffect(() => {
     let isActive = true;
-    setCurrentShow(null);
-    setShowLoadError(false);
-    setRuntime(undefined);
-    setShowCredit(null);
 
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
@@ -39,11 +35,21 @@ function ShowDetail() {
           throw new Error("Invalid TV show detail response");
         }
 
-        if (isActive) setCurrentShow(data);
+        if (isActive) {
+          setCurrentShow(data);
+          setShowLoadError(false);
+          setRuntime(undefined);
+          setShowCredit(null);
+        }
       })
       .catch((err) => {
         console.log("Error fetching data", err);
-        if (isActive) setShowLoadError(true);
+        if (isActive) {
+          setCurrentShow(null);
+          setShowLoadError(true);
+          setRuntime(undefined);
+          setShowCredit(null);
+        }
       });
 
     return () => {
