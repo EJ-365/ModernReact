@@ -6,7 +6,7 @@ function Navbar() {
   const { darkMode, setDarkMode } = useContext(ThemeContext);
   return (
     <header>
-      <nav className="bg-white flex md:flex-row flex-col items-center justify-evenly pb-4 pt-3 shadow-sm dark:bg-black dark:text-white ">
+      <nav className="bg-white flex md:flex-row flex-col items-center justify-evenly pb-4 pt-3 shadow-sm dark:bg-black dark:text-white border-b border-b-gray-300 dark:border-b-gray-900">
         {/* Logo div */}
         <div className="flex items-left md:justify-start">
           <Link

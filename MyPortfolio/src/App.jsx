@@ -3,6 +3,7 @@ import Home from "./Pages/Home";
 import { useEffect, useState } from "react";
 import Navbar from "./Component/Navbar";
 import { ThemeContext } from "./Context/themeContext";
+import Footer from "./Component/Footer";
 function App() {
 
   // useState and useEffect for darkMode
@@ -22,6 +23,7 @@ function App() {
           <Route element={<Home/>} path="/home"/>
         </Routes>
       </ThemeContext.Provider>
+      <Footer/>
     </>
   );
 }
