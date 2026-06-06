@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Navbar from "./Component/Navbar";
 import { ThemeContext } from "./Context/themeContext";
 import Footer from "./Component/Footer";
+import About from "./Pages/About";
+import Project from "./Pages/Project";
 function App() {
 
   // useState and useEffect for darkMode
@@ -21,6 +23,9 @@ function App() {
         <Routes>
           <Route element={<Home />} path="/" />
           <Route element={<Home/>} path="/home"/>
+          <Route  element={<About/>} path="/about"/>
+          <Route  element={<Project/>} path="/project"/>
+
         </Routes>
       </ThemeContext.Provider>
       <Footer/>

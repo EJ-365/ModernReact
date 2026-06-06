@@ -60,6 +60,26 @@ function Navbar() {
               </>
             )}
           </NavLink>
+
+          <NavLink
+            to="/Skill"
+            className={({ isActive }) =>
+              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                Skills
+                <div
+                  className={
+                    isActive
+                      ? "w-11 my-0.5  text-center mr-2 bg-black border dark:bg-white"
+                      : ""
+                  }
+                />{" "}
+              </>
+            )}
+          </NavLink>
           <NavLink
             to="/Project"
             className={({ isActive }) =>
