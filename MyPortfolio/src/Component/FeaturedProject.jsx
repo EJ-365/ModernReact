@@ -16,7 +16,7 @@ function FeaturedProject() {
         {getTwoProjects.map((featured) => (
           <div
             key={featured.title}
-            className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 md:p-10 lg:flex-1"
+            className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:p-10 lg:flex-1"
           >
             <ul className="my-3 flex flex-wrap justify-start gap-3">
               {featured.tools.map((tool) => (
@@ -55,7 +55,7 @@ function FeaturedProject() {
         ))}
 
         {/* second featured project */}
-        <div className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 md:p-14 lg:w-100">
+        <div className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:p-14 lg:w-100">
           <ul className="my-3 flex flex-wrap justify-start gap-3">
             <li className="mb-3">
               <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-normal font-medium dark:bg-neutral-800 dark:text-neutral-300">
@@ -98,7 +98,7 @@ function FeaturedProject() {
       {/* rest of the featured projects */}
       <div>
         {restOfFeaturedProject.map((featured) => (
-          <div key={featured.title} className="mx-6 my-4 border border-gray-200 bg-gray-100/50 p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950 md:mx-20 md:pt-3 pb-3">
+          <div key={featured.title} className="mx-6 my-4 border border-gray-200 bg-gray-100/50 p-4 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:mx-20 md:pt-3 pb-3">
             <ul className="my-3 flex flex-wrap justify-start gap-3 md:ml-9">
               {featured.tools.map((tool) => (
                 <li key={tool} className="mb-3">
