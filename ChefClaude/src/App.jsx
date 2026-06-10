@@ -151,9 +151,15 @@ function Ingredient({ ingredients, setRecipe, setLoading, removeIngredient, reci
   // get recipe function to get the recipe from the api
   async function getRecipe() {
     setLoading(true); // shows the spinner loading when ai is thinking..
-    const recipeMarkdown = await getRecipeFromLlama(ingredients);
-    setRecipe(recipeMarkdown); // ai shows the response
-    setLoading(false); // immediately stop the loading
+    try {
+      const recipeMarkdown = await getRecipeFromLlama(ingredients);
+      setRecipe(recipeMarkdown); // ai shows the response
+    } catch (err) {
+      console.error(err);
+      setRecipe("Sorry, Chef Claude could not get a recipe right now. Please check the API token setup and try again.");
+    } finally {
+      setLoading(false); // immediately stop the loading
+    }
   }
 
   return (

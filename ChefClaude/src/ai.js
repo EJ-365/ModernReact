@@ -12,12 +12,17 @@ render to a web page
 // --------------------------------------------------------
 // 1. ANTHROPIC (Claude) Configuration
 // --------------------------------------------------------
-const anthropic = new Anthropic({
-    apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-    dangerouslyAllowBrowser: true,
-})
-
 export async function getRecipeFromChefClaude(ingredientsArr) {
+    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
+    if (!apiKey) {
+        throw new Error("Missing VITE_ANTHROPIC_API_KEY")
+    }
+
+    const anthropic = new Anthropic({
+        apiKey,
+        dangerouslyAllowBrowser: true,
+    })
+
     const ingredientsString = ingredientsArr.join(", ")
 
     const msg = await anthropic.messages.create({
@@ -34,10 +39,13 @@ export async function getRecipeFromChefClaude(ingredientsArr) {
 // --------------------------------------------------------
 // 2. HUGGING FACE (Mistral) Configuration
 // --------------------------------------------------------
-const hf = new HfInference(
-    import.meta.env.VITE_HF_ACCESS_TOKEN)
-
 export async function getRecipeFromLlama(ingredientsArr) {
+    const hfToken = import.meta.env.VITE_HF_ACCESS_TOKEN
+    if (!hfToken) {
+        throw new Error("Missing VITE_HF_ACCESS_TOKEN")
+    }
+
+    const hf = new HfInference(hfToken)
     const ingredientsString = ingredientsArr.join(", ")
     try {
         const response = await hf.chatCompletion({
