@@ -7,6 +7,8 @@ import Footer from "./Component/Footer";
 import About from "./Pages/About";
 import Project from "./Pages/Project";
 import Skills from "./Pages/Skills";
+import Contact from "./Pages/Contact";
+import Error from "./Pages/Error";
 function App() {
 
   // useState and useEffect for darkMode
@@ -27,7 +29,11 @@ function App() {
           <Route  element={<About/>} path="/about"/>
           <Route  element={<Project/>} path="/project"/>
           <Route element={<Skills/>} path="/skill"/>
-          <Route element={""} path="/error"/>
+          <Route element={<Contact/>} path="/contact"/>
+          <Route element={<Contact/>} path="/Contact"/>
+      
+          <Route element={<Error />} path="*" />
+     
 
         </Routes>
       </ThemeContext.Provider>

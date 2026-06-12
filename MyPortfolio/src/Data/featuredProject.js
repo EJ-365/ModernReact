@@ -1,34 +1,34 @@
 export const featuredProjectData = [
   {
-    title: "Lumina Dashboard",
-    desc: `A high-density analytics interface designed for real-time monitoring of
-        serverless architectural metrics.`,
-    github: "www.github.com/ejay365",
-    live: "https://google.com",
-    tools: ["react", "typescript", "tailwind css"],
+    title: "Chef Claude",
+    desc: `An AI-powered recipe generator where users enter ingredients they have
+      on hand and the Claude AI API generates a custom recipe.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/ChefClaude",
+    live: "https://chefclaude-project.netlify.app",
+    tools: ["react", "css", "claude ai api"],
   },
   {
-    title: "Portfolio Studio",
-    desc: `A minimal portfolio experience focused on clean layout, dark mode,
-        and accessible project presentation.`,
-    github: "https://github.com/EJ-365/portfolio-studio",
-    live: "https://portfolio-studio.vercel.app",
-    tools: ["react", "next.js"],
-  }, 
-  {
-    title: "TaskFlow",
-    desc: `A lightweight task manager with filtered views, persistent state,
-        and a responsive dashboard layout.`,
-    github: "https://github.com/EJ-365/taskflow",
-    live: "https://taskflow-demo.vercel.app",
-    tools: ["react", "local storage", "tailwind css"],
+    title: "MovieFinder",
+    desc: `A Netflix-style movie and TV browser with trending content, genre
+      categories, dark mode, and a personal library for saving favorites.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/MovieApp",
+    live: "https://moviefinder-ej.netlify.app",
+    tools: ["react", "css", "movie api"],
   },
   {
-    title: "Movie Finder",
-    desc: `A search-focused movie discovery app with reusable cards,
-        loading states, and clean result layouts.`,
-    github: "https://github.com/EJ-365/movie-finder",
-    live: "https://moviefinder-ej.netlify.app/",
-    tools: ["react", "api", "css"],
+    title: "RecipeFinder",
+    desc: `A recipe discovery app with search, category filters, and detailed
+      recipe views for ingredients, cook time, servings, and instructions.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/RecipeFinder",
+    live: "https://recipefinder365.netlify.app",
+    tools: ["react", "css", "mealdb api"],
+  },
+  {
+    title: "FlashQuiz",
+    desc: `An interactive trivia app where users choose a category and question
+      count, answer flashcards, and track a mastery score.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/FlashCard",
+    live: "https://flashquiz365.netlify.app",
+    tools: ["react", "css", "open trivia api"],
   },
 ];

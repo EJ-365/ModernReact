@@ -1,50 +1,82 @@
 export const projectsData = [
   {
-    title: "Weather Lens",
-    desc: `A clean weather application that displays current conditions, search
-      results, and location-based forecast details.`,
-    github: "https://github.com/EJ-365/weather-lens",
-    live: "https://weather-lens-demo.vercel.app",
-    tools: ["react", "weather api", "tailwind css"],
+    title: "Chef Claude",
+    desc: `An AI-powered recipe generator where users type in ingredients they
+      have on hand and the Claude AI API generates a custom recipe.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/ChefClaude",
+    live: "https://chefclaude-project.netlify.app",
+    tools: ["react", "css", "claude ai api"],
   },
   {
-    title: "Budget Board",
-    desc: `A personal budgeting interface for tracking income, expenses, savings,
-      and monthly spending categories.`,
-    github: "https://github.com/EJ-365/budget-board",
-    live: "https://budget-board-demo.vercel.app",
-    tools: ["react", "charts", "local storage"],
+    title: "MovieFinder",
+    desc: `A Netflix-style movie and TV show browser with trending content, genre
+      categories, dark mode, and a personal library for saving favorites.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/MovieApp",
+    live: "https://moviefinder-ej.netlify.app",
+    tools: ["react", "css", "movie api"],
   },
   {
-    title: "Recipe Finder",
-    desc: `A recipe search experience with ingredient filters, saved meals,
-      and responsive recipe cards.`,
-    github: "https://github.com/EJ-365/recipe-finder",
-    live: "https://recipe-finder-demo.vercel.app",
-    tools: ["react", "api", "css modules"],
+    title: "RecipeFinder",
+    desc: `A recipe discovery app with search, category filters, and full recipe
+      details including ingredients, cooking time, servings, and instructions.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/RecipeFinder",
+    live: "https://recipefinder365.netlify.app",
+    tools: ["react", "css", "mealdb api"],
   },
   {
-    title: "Dev Notes",
-    desc: `A markdown-style notes app for saving frontend snippets, learning notes,
-      and reusable UI patterns.`,
-    github: "https://github.com/EJ-365/dev-notes",
-    live: "https://dev-notes-demo.vercel.app",
-    tools: ["react", "markdown", "tailwind css"],
+    title: "FlashQuiz",
+    desc: `A flashcard trivia app where users choose a category and question
+      count, then answer cards while tracking their mastery score.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/FlashCard",
+    live: "https://flashquiz365.netlify.app",
+    tools: ["react", "css", "open trivia api"],
   },
   {
-    title: "Shop Grid",
-    desc: `A responsive ecommerce product grid with filtering, product cards,
-      and clean checkout-focused interface patterns.`,
-    github: "https://github.com/EJ-365/shop-grid",
-    live: "https://shop-grid-demo.vercel.app",
-    tools: ["react", "filtering", "tailwind css"],
+    title: "Team Hub",
+    desc: `A soccer team management dashboard for managing squad information,
+      tracking player stats, and organizing team data.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/ReactRouter/TeamHub",
+    live: "https://teamhub365.netlify.app",
+    tools: ["react", "css", "dashboard ui"],
   },
   {
-    title: "Launch Page",
-    desc: `A polished landing page concept with reusable sections, responsive
-      spacing, and conversion-focused call-to-action blocks.`,
-    github: "https://github.com/EJ-365/launch-page",
-    live: "https://launch-page-demo.vercel.app",
-    tools: ["react", "vite", "responsive design"],
+    title: "Shopping Cart",
+    desc: `A boutique-style ecommerce interface with product listings and a live
+      shopping cart sidebar that updates as items are added.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/ShoppingCart",
+    live: "https://shopping-cart-project-ejay.netlify.app",
+    tools: ["react", "css", "cart logic"],
+  },
+  {
+    title: "Advice Generator",
+    desc: `A random advice app that fetches advice on each click and includes
+      bookmark, copy, share, and dark mode interactions.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/AdviceGenerator",
+    live: "https://advice-generator365.netlify.app",
+    tools: ["react", "css", "advice slip api"],
+  },
+  {
+    title: "My Todos",
+    desc: `A clean task app for adding, completing, filtering, and clearing todos
+      with a live active item counter.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/TodoApp",
+    live: "https://mytodoapp-ejay.netlify.app",
+    tools: ["react", "css", "state management"],
+  },
+  {
+    title: "Mini Notes",
+    desc: `A minimalist notes app for adding, filtering, and managing notes across
+      All, Completed, and Active views.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/NotesApp",
+    live: "https://mini-note-app-project.netlify.app",
+    tools: ["react", "css", "filtering"],
+  },
+  {
+    title: "Tenzies",
+    desc: `A fully interactive dice game where users roll ten dice and freeze
+      matching values until all dice show the same number.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/Tenzies",
+    live: "https://tenzies365-game.netlify.app",
+    tools: ["react", "css", "game logic"],
   },
 ];

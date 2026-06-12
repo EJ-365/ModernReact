@@ -1,6 +1,6 @@
 import { featuredProjectData } from "../Data/featuredProject";
 const getTwoProjects = featuredProjectData.slice(0, 1);
-const restOfFeaturedProject = featuredProjectData.slice(1, 4);
+const restOfFeaturedProject = featuredProjectData.slice(2, 4);
 function FeaturedProject() {
   return (
     <section>
@@ -8,7 +8,7 @@ function FeaturedProject() {
         <span className="uppercase font-mono text-xs tracking-[4px] font-bold text-neutral-500 dark:text-neutral-400">
           portfolio
         </span>
-        <h3 className="capitalize text-3xl font-bold md:text-[44px]">Featured Projects</h3>
+        <h3 className="capitalize text-3xl font-bold md:text-5xl">Featured Projects</h3>
       </div>
 
       {/* projects */}
@@ -21,14 +21,14 @@ function FeaturedProject() {
             <ul className="my-3 flex flex-wrap justify-start gap-3">
               {featured.tools.map((tool) => (
                 <li key={tool} className="mb-3">
-                  <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-normal font-medium dark:bg-neutral-800 dark:text-neutral-300">
+                  <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-base font-mono font-medium dark:bg-neutral-800 dark:text-neutral-300">
                     {tool}
                   </button>
                 </li>
               ))}
             </ul>
             <div>
-              <h4 className="font-bold text-3xl my-4">{featured.title}</h4>
+              <h4 className="font-space font-bold text-3xl my-4">{featured.title}</h4>
               <p className="mb-5 w-full max-w-2xl text-base md:text-lg">{featured.desc}</p>
               <div className="flex flex-wrap gap-4">
                 <a
@@ -54,28 +54,26 @@ function FeaturedProject() {
           </div>
         ))}
 
-        {/* second featured project */}
+        {/* statically featured project */}
         <div className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:p-14 lg:w-100">
           <ul className="my-3 flex flex-wrap justify-start gap-3">
-            <li className="mb-3">
-              <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-normal font-medium dark:bg-neutral-800 dark:text-neutral-300">
-                next.js
-              </button>
-            </li>
-            <li className="mb-3">
-              <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-normal font-medium dark:bg-neutral-800 dark:text-neutral-300">
-                framer
-              </button>
-            </li>
+            {["react", "css", "movie api"].map((tool) => (
+              <li key={tool} className="mb-3">
+                <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-base font-mono font-medium dark:bg-neutral-800 dark:text-neutral-300">
+                  {tool}
+                </button>
+              </li>
+            ))}
           </ul>
           <div>
-            <h4 className="font-medium text-xl my-4">Sync OS</h4>
+            <h4 className="font-space font-medium text-xl my-4">MovieFinder</h4>
             <p className="mb-5 w-full text-sm lg:w-80">
-              Minimalist task management system with gesture-based interactions.
+              A Netflix-style movie and TV browser with trending content, genre
+              categories, dark mode, and a personal library for saving favorites.
             </p>
             <div className="flex flex-wrap gap-4">
               <a
-                href="#"
+                href="https://moviefinder-ej.netlify.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-sm uppercase"
@@ -83,7 +81,7 @@ function FeaturedProject() {
                 live
               </a>
               <a
-                href="#"
+                href="https://github.com/EJ-365/ModernReact/tree/main/MovieApp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-mono text-sm uppercase"
@@ -102,7 +100,7 @@ function FeaturedProject() {
             <ul className="my-3 flex flex-wrap justify-start gap-3 md:ml-9">
               {featured.tools.map((tool) => (
                 <li key={tool} className="mb-3">
-                  <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-normal font-medium dark:bg-neutral-800 dark:text-neutral-300">
+                  <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-base font-mono font-medium dark:bg-neutral-800 dark:text-neutral-300">
                     {tool}
                   </button>
                 </li>
@@ -119,7 +117,7 @@ function FeaturedProject() {
                 href={featured.live}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[14px] uppercase "
+                className="font-mono text-sm uppercase "
               >
                 live  <i className="bx bx-arrow-up-right-stroke align-middle text-xl font-thin font-mono ml-1" />
               </a>
@@ -127,7 +125,7 @@ function FeaturedProject() {
                 href={featured.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[14px] uppercase"
+                className="font-mono text-sm uppercase"
               >
                 github  <i className="bx bx-chevrons-left-right align-middle text-xl font-thin font-mono ml-1" />
               </a>

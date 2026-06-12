@@ -4,6 +4,7 @@ import { Link, NavLink } from "react-router-dom";
 
 function Navbar() {
   const { darkMode, setDarkMode } = useContext(ThemeContext);
+  const otherProjectsUrl = "https://ejaygabrielportfolio.netlify.app/allproject";
   return (
     <header>
       <nav className="bg-white flex md:flex-row flex-col items-center justify-evenly pb-4 pt-3 shadow-sm dark:bg-black dark:text-white border-b border-b-gray-300 dark:border-b-gray-900">
@@ -11,7 +12,7 @@ function Navbar() {
         <div className="flex items-left md:justify-start">
           <Link
             to="/"
-            className="font-space uppercase font-extrabold text-[16px] px-3 py-3"
+            className="font-space uppercase font-extrabold text-base px-3 py-3"
           >
             Ejay Gabriel
           </Link>
@@ -22,7 +23,7 @@ function Navbar() {
           <NavLink
             to="/Home"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${
+              `text-base capitalize ${
                 isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"
               }`
             }
@@ -44,7 +45,7 @@ function Navbar() {
           <NavLink
             to="/About"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
+              `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -64,7 +65,7 @@ function Navbar() {
           <NavLink
             to="/Skill"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
+              `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -83,7 +84,7 @@ function Navbar() {
           <NavLink
             to="/Project"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
+              `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -99,10 +100,22 @@ function Navbar() {
               </>
             )}
           </NavLink>
+
+          <a
+            href={otherProjectsUrl}
+       
+            className="text-base capitalize text-gray-700 dark:text-white"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            more JS projects
+       
+          </a>
+     
           <NavLink
             to="/Contact"
             className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
+              `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
           >
             {({ isActive }) => (
@@ -121,9 +134,13 @@ function Navbar() {
         </ul>
 
         <div className="flex items-center space-x-8">
-          <button className="capitalize py-2.5 text-sm px-8 bg-black text-[#FFFFFF] hover:bg-neutral-800 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-neutral-200">
-            Hire me
-          </button>
+          <a
+            href="/resume.pdf"
+            download
+            className="capitalize py-2.5 text-sm font-mono px-8 bg-black text-[#FFFFFF] hover:bg-neutral-800 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+          >
+            download resume
+          </a>
           <button
             onClick={() => setDarkMode(!darkMode)}
             className={`text-xl dark:text-white cursor-pointer ${darkMode ? "bxf bx-sun" : "bxf bx-moon"}`}
