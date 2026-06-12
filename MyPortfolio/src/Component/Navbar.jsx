@@ -20,7 +20,7 @@ function Navbar() {
         {/* Nav-link div */}
         <ul className="flex space-x-5 items-center md:my-0 my-4 ">
           <NavLink
-            to="/Home"
+            to="/home"
             className={({ isActive }) =>
               `text-[16px] capitalize ${
                 isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"
@@ -42,7 +42,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/About"
+            to="/about"
             className={({ isActive }) =>
               `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -62,7 +62,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/Skill"
+            to="/skill"
             className={({ isActive }) =>
               `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -81,7 +81,7 @@ function Navbar() {
             )}
           </NavLink>
           <NavLink
-            to="/Project"
+            to="/project"
             className={({ isActive }) =>
               `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -89,25 +89,6 @@ function Navbar() {
             {({ isActive }) => (
               <>
                 projects
-                <div
-                  className={
-                    isActive
-                      ? "w-15 my-0.5  text-center mr-2 bg-black border dark:bg-white"
-                      : ""
-                  }
-                />{" "}
-              </>
-            )}
-          </NavLink>
-          <NavLink
-            to="/Contact"
-            className={({ isActive }) =>
-              `text-[16px] capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                contact
                 <div
                   className={
                     isActive

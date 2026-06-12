@@ -15,6 +15,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailError, setDetailError] = useState(false);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -26,8 +27,19 @@ function ShowDetail() {
   useEffect(() => {
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (!data?.id || !Array.isArray(data.genres)) {
+          setDetailError(true);
+          return;
+        }
+
+        setDetailError(false);
+        setCurrentShow(data);
+      })
+      .catch((err) => {
+        console.log("Error fetching data", err);
+        setDetailError(true);
+      });
   }, [showId]);
 
   useEffect(() => {
@@ -51,6 +63,24 @@ function ShowDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
+  // redirecting to shows page chevron icon
+  const redirectToShows = () => {
+    navigate("/shows");
+  };
+
+  if (detailError)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">Show details are unavailable.</p>
+        <button
+          onClick={redirectToShows}
+          className="mt-6 text-white capitalize bg-[#8b5cf6] px-6 py-3 rounded-xl text-lg font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </div>
+    );
+
   if (!currentShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -60,11 +90,6 @@ function ShowDetail() {
     );
 
   const isSaved = isLibraryItemSaved(currentShow.id, "show");
-
-  // redirecting to shows page chevron icon
-  const redirectToShows = () => {
-    navigate("/shows");
-  };
 
   function toggleLibraryItem() {
     if (isSaved) {
