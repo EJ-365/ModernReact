@@ -23,8 +23,6 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
-    setDetailError(false);
-    setCurrentMovie(null);
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
       .then((data) => {
@@ -33,6 +31,7 @@ function MoviesDetail() {
           return;
         }
 
+        setDetailError(false);
         setCurrentMovie(data);
       })
       .catch((err) => {

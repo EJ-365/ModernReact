@@ -25,8 +25,6 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
-    setDetailError(false);
-    setCurrentShow(null);
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
       .then((data) => {
@@ -35,6 +33,7 @@ function ShowDetail() {
           return;
         }
 
+        setDetailError(false);
         setCurrentShow(data);
       })
       .catch((err) => {
