@@ -21,7 +21,7 @@ function Navbar() {
         {/* Nav-link div */}
         <ul className="flex space-x-5 items-center md:my-0 my-4 ">
           <NavLink
-            to="/Home"
+            to="/home"
             className={({ isActive }) =>
               `text-base capitalize ${
                 isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"
@@ -43,7 +43,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/About"
+            to="/about"
             className={({ isActive }) =>
               `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -63,7 +63,7 @@ function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/Skill"
+            to="/skill"
             className={({ isActive }) =>
               `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -82,7 +82,7 @@ function Navbar() {
             )}
           </NavLink>
           <NavLink
-            to="/Project"
+            to="/project"
             className={({ isActive }) =>
               `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -113,7 +113,7 @@ function Navbar() {
           </a>
      
           <NavLink
-            to="/Contact"
+            to="/contact"
             className={({ isActive }) =>
               `text-base capitalize ${isActive ? "text-black dark:text-white" : "text-gray-700 dark:text-white"}`
             }
@@ -137,11 +137,15 @@ function Navbar() {
           <a
             href="/resume.pdf"
             download
-            className="capitalize py-2.5 text-sm font-mono px-8 bg-black text-[#FFFFFF] hover:bg-neutral-800 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+            className="capitalize py-2.5 text-sm font-mono px-8 bg-black text-[#FFFFFF] hover:bg-neutral-800 cursor-pointer dark:bg-white dark:text-black dark:hover:bg-neutral-200 flex items-center gap-2"
           >
             download resume
+            <i className="bxf bx-arrow-to-bottom-stroke text-lg align-middle" />
           </a>
           <button
+            type="button"
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
             onClick={() => setDarkMode(!darkMode)}
             className={`text-xl dark:text-white cursor-pointer ${darkMode ? "bxf bx-sun" : "bxf bx-moon"}`}
           />

@@ -1,6 +1,6 @@
 import { featuredProjectData } from "../Data/featuredProject";
-const getTwoProjects = featuredProjectData.slice(0, 1);
-const restOfFeaturedProject = featuredProjectData.slice(2, 4);
+const primaryFeaturedProjects = featuredProjectData.slice(0, 2);
+const restOfFeaturedProject = featuredProjectData.slice(2);
 function FeaturedProject() {
   return (
     <section>
@@ -13,10 +13,10 @@ function FeaturedProject() {
 
       {/* projects */}
       <div className="flex flex-col items-stretch gap-4 px-6 md:px-20 lg:flex-row">
-        {getTwoProjects.map((featured) => (
+        {primaryFeaturedProjects.map((featured, index) => (
           <div
             key={featured.title}
-            className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:p-10 lg:flex-1"
+            className={`my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:p-10 ${index === 0 ? "lg:flex-1" : "lg:w-100"}`}
           >
             <ul className="my-3 flex flex-wrap justify-start gap-3">
               {featured.tools.map((tool) => (
@@ -28,8 +28,8 @@ function FeaturedProject() {
               ))}
             </ul>
             <div>
-              <h4 className="font-space font-bold text-3xl my-4">{featured.title}</h4>
-              <p className="mb-5 w-full max-w-2xl text-base md:text-lg">{featured.desc}</p>
+              <h4 className={`font-space my-4 ${index === 0 ? "text-3xl font-bold" : "text-xl font-medium"}`}>{featured.title}</h4>
+              <p className={`mb-5 w-full ${index === 0 ? "max-w-2xl text-base md:text-lg" : "text-sm lg:w-80"}`}>{featured.desc}</p>
               <div className="flex flex-wrap gap-4">
                 <a
                   href={featured.live}
@@ -38,7 +38,7 @@ function FeaturedProject() {
                   className="font-mono text-sm uppercase"
                 >
                   live{" "}
-                  <i className="bx bx-arrow-up-right-stroke align-middle text-2xl font-thin font-mono mr-3" />
+                  <i className="bx bx-arrow-up-right-stroke align-middle text-xl font-thin font-mono ml-1" />
                 </a>
                 <a
                   href={featured.github}
@@ -53,44 +53,6 @@ function FeaturedProject() {
             </div>
           </div>
         ))}
-
-        {/* statically featured project */}
-        <div className="my-4 w-full border border-gray-200 bg-gray-100/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-950 md:p-14 lg:w-100">
-          <ul className="my-3 flex flex-wrap justify-start gap-3">
-            {["react", "css", "movie api"].map((tool) => (
-              <li key={tool} className="mb-3">
-                <button className="capitalize bg-gray-200/70 text-gray-500 px-3 py-0.2 text-base font-mono font-medium dark:bg-neutral-800 dark:text-neutral-300">
-                  {tool}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div>
-            <h4 className="font-space font-medium text-xl my-4">MovieFinder</h4>
-            <p className="mb-5 w-full text-sm lg:w-80">
-              A Netflix-style movie and TV browser with trending content, genre
-              categories, dark mode, and a personal library for saving favorites.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="https://moviefinder-ej.netlify.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-sm uppercase"
-              >
-                live
-              </a>
-              <a
-                href="https://github.com/EJ-365/ModernReact/tree/main/MovieApp"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-sm uppercase"
-              >
-                github
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* rest of the featured projects */}

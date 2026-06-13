@@ -108,6 +108,78 @@ function Skills() {
             </p>
           </div>
         </div>
+
+        <div className="border border-neutral-300 py-4 px-6 dark:border-neutral-800 dark:bg-neutral-950">
+          <h4 className="text-lg font-space font-semibold capitalize md:w-90">
+            <i className="bxf bx-layout mx-1.5 align-middle text-black dark:text-white" />
+            frontend concepts
+          </h4>
+          <div className="my-8 flex flex-wrap items-center justify-start gap-3 md:mx-auto md:justify-center md:space-x-3 md:space-y-3 md:gap-0">
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              responsive design
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              mobile-first
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              accessibility
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              component design
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              cross-browser ui
+            </p>
+          </div>
+        </div>
+
+        <div className="border border-neutral-300 bg-neutral-100 py-4 px-6 dark:border-neutral-800 dark:bg-neutral-950">
+          <h4 className="text-lg font-space font-semibold capitalize md:w-90">
+            <i className="bxf bx-data mx-1.5 align-middle text-black dark:text-white" />
+            data & state
+          </h4>
+          <div className="my-8 flex flex-wrap items-center justify-start gap-3 md:mx-auto md:justify-center md:space-x-3 md:space-y-3 md:gap-0">
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              rest apis
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              context api
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              local storage
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              api integration
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              async data
+            </p>
+          </div>
+        </div>
+
+        <div className="border border-neutral-300 py-4 px-6 dark:border-neutral-800 dark:bg-neutral-950">
+          <h4 className="text-lg font-space font-semibold capitalize md:w-90">
+            <i className="bxf bx-user-voice mx-1.5 align-middle text-black dark:text-white" />
+            professional skills
+          </h4>
+          <div className="my-8 flex flex-wrap items-center justify-start gap-3 md:mx-auto md:justify-center md:space-x-3 md:space-y-3 md:gap-0">
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              mentoring
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              collaboration
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              communication
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              problem solving
+            </p>
+            <p className="py-2 px-4 uppercase bg-neutral-100 text-xs font-mono font-medium border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+              attention to detail
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex md:flex-row flex-col mx-4 justify-evenly items-center mt-60">
@@ -122,7 +194,7 @@ function Skills() {
           <div className="my-4 mx-4 mt-10 md:mx-0">
             <button
               onClick={() => navigate("/project")}
-              className="uppercase md:px-8 px-4 py-3 border text-xs font-mono dark:border-neutral-700 cursor-pointer"
+              className="uppercase md:px-8 px-4 py-3 border text-xs font-mono dark:border-neutral-700 cursor-pointer hover:bg-black dark:hover:bg-white dark:hover:text-black hover:text-white transition-all duration-200"
             >
               View Projects
             </button>

@@ -6,7 +6,7 @@ function Footer(){
             </div>
 
             <div className="md:space-x-10 space-x-4 font-mono font-thin text-sm dark:text-white">
-                <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                <a href="https://www.linkedin.com/in/ejay-gabriel-24a7261bb/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
                 <a href="https://github.com/EJ-365" target="_blank" rel="noopener noreferrer">GitHub</a>
             </div>
         </footer>

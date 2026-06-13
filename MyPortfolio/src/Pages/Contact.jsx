@@ -1,4 +1,33 @@
+import { useState } from "react";
+
 function Contact() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+
+  const handleChange = (event) => {
+    const { id, value } = event.target;
+    setFormData((currentData) => ({
+      ...currentData,
+      [id]: value,
+    }));
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const subject = encodeURIComponent(
+      `Portfolio message from ${formData.name || "website visitor"}`,
+    );
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`,
+    );
+
+    window.location.href = `mailto:eebudonihian@gmail.com?subject=${subject}&body=${body}`;
+  };
+
   return (
     <section className="bg-white py-16 text-black dark:bg-black dark:text-white min-h-screen md:py-24">
       <div className="mx-6 flex flex-col gap-12 md:mx-auto md:max-w-5xl md:flex-row md:items-start md:justify-center md:gap-20">
@@ -36,21 +65,12 @@ function Contact() {
                   <i className="bx bx-arrow-up-right-stroke align-middle text-lg font-thin" />
                 </a>
                 <a
-                  href="https://www.linkedin.com"
+                  href="https://www.linkedin.com/in/ejay-gabriel-24a7261bb/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm hover:underline"
                 >
                   LinkedIn{" "}
-                  <i className="bx bx-arrow-up-right-stroke align-middle text-lg font-thin" />
-                </a>
-                <a
-                  href="https://twitter.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline"
-                >
-                  Twitter{" "}
                   <i className="bx bx-arrow-up-right-stroke align-middle text-lg font-thin" />
                 </a>
               </div>
@@ -64,7 +84,7 @@ function Contact() {
         <div className="w-full border border-gray-200 bg-gray-50 p-8 dark:border-neutral-800 dark:bg-neutral-950 md:w-100 md:p-10">
           <form
             className="space-y-8"
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={handleSubmit}
           >
             <div>
               <label
@@ -77,6 +97,9 @@ function Contact() {
                 id="name"
                 type="text"
                 placeholder="John Doe"
+                value={formData.name}
+                onChange={handleChange}
+                required
                 className="mt-3 w-full border-b border-gray-300 bg-transparent py-2 text-sm outline-none placeholder:text-gray-400 dark:border-neutral-700 dark:placeholder:text-neutral-500"
               />
             </div>
@@ -92,6 +115,9 @@ function Contact() {
                 id="email"
                 type="email"
                 placeholder="alex@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
                 className="mt-3 w-full border-b border-gray-300 bg-transparent py-2 text-sm outline-none placeholder:text-gray-400 dark:border-neutral-700 dark:placeholder:text-neutral-500"
               />
             </div>
@@ -107,6 +133,9 @@ function Contact() {
                 id="message"
                 rows={5}
                 placeholder="Tell me about your project..."
+                value={formData.message}
+                onChange={handleChange}
+                required
                 className="mt-3 w-full resize-none border-b border-gray-300 bg-transparent py-2 text-sm outline-none placeholder:text-gray-400 dark:border-neutral-700 dark:placeholder:text-neutral-500"
               />
             </div>

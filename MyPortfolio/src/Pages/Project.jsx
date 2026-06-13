@@ -25,7 +25,7 @@ function Project() {
       {/*listing all projects */}
       <div className="mx-6 md:ml-15 md:mr-0">
         {projectsData.map((project) => (
-          <div className="flex md:flex-row flex-col items-center justify-between md:mr-20 md:border-b border-gray-300 dark:border-gray-900 my-16 md:my-0">
+          <div key={project.title} className="flex md:flex-row flex-col items-center justify-between md:mr-20 md:border-b border-gray-300 dark:border-gray-900 my-16 md:my-0">
             {/* text content */}
             <div className="w-full md:py-18 md:px-20 py-8 text-center md:text-left ">
               <h3 className="md:text-3xl font-space font-bold my-3 text-2xl">
@@ -34,15 +34,15 @@ function Project() {
               <p className="my-7 text-sm md:text-base">{project.desc}</p>
               <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-4">
                 {project.tools.map(tool => (
-                    <span className="whitespace-nowrap px-2 py-1 bg-gray-100 font-mono md:font-medium md:text-sm text-xs capitalize dark:text-black">{tool}</span>
+                    <span key={`${project.title}-${tool}`} className="whitespace-nowrap px-2 py-1 bg-gray-100 font-mono md:font-medium md:text-sm text-xs capitalize dark:text-black">{tool}</span>
                 ))}
               </div>
             </div>
             {/* links */}
             <div className="flex flex-col items-center gap-3 md:block md:space-x-4">
-               <a href={project.live} className="capitalize text-sm">Live preview <i className="bx bx-arrow-up-right-stroke text-xl align-middle font-thin " /></a>
+               <a href={project.live} target="_blank" rel="noopener noreferrer" className="capitalize text-sm">Live preview <i className="bx bx-arrow-up-right-stroke text-xl align-middle font-thin " /></a>
                <div className="w-30 h-0.5 bg-black dark:bg-white"/>
-               <a href={project.github} className="text-sm">Github Repository <i className="bx bx-chevrons-left-right align-middle text-xl font-thin font-mono ml-1" /></a>
+               <a href={project.github} target="_blank" rel="noopener noreferrer" className="text-sm">Github Repository <i className="bx bx-chevrons-left-right align-middle text-xl font-thin font-mono ml-1" /></a>
                <div className="w-43 h-0.5 bg-black dark:bg-white"/>
             </div>
           </div>
@@ -62,7 +62,7 @@ function Project() {
  
      
        <div className="flex flex-col items-center py-30 my-50 border md:w-3/4 bg-gray-100 dark:bg-black border-gray-300 dark:border-gray-900 shadow-xs md:mx-auto w-full">
-        <h3 className="font-semibold md:text-4xl text-2xl mb-6 text-center">Intrested in Collaboration?</h3>
+        <h3 className="font-semibold md:text-4xl text-2xl mb-6 text-center">Interested in Collaboration?</h3>
         <p className="my-0 md:w-120 text-center text-base text-gray-700 dark:text-white">
         Currently looking for Front-End Internship opportunities starting
         Summer 2027. Let's build something precise.

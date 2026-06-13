@@ -14,12 +14,13 @@ function Error() {
         <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 text-center max-w-xl">
           The page you are looking for doesn't exist yet.
         </p>
-        <a
-         onClick={() => navigate("/")}
+        <button
+          type="button"
+          onClick={() => navigate("/")}
           className="mt-10 px-7 py-3 bg-black text-white dark:bg-white dark:text-black rounded hover:bg-neutral-900 dark:hover:bg-neutral-200 text-sm font-semibold uppercase transition"
         >
           Go Home
-        </a>
+        </button>
       </div>
     </section>
   );
