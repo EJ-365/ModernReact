@@ -20,7 +20,7 @@ Getting Started
 Prerequisites
 
 Node.js installed on your machine.
-A Hugging Face API key (for the ai.js file).
+A Hugging Face API key for the Netlify recipe function.
 
 Installation
 
@@ -32,8 +32,8 @@ Install dependencies:
 npm install
 
 
-Create a .env file and add your API key:
-VITE_HF_ACCESS_TOKEN=your_token_here
+Create a .env file and add your server-side API key:
+HF_ACCESS_TOKEN=your_token_here
 
 
 Start the development server:
@@ -44,7 +44,8 @@ npm run dev
 Project Structure
 
 App.jsx: Main application logic and state management.
-ai.js: Handles the communication with the AI model.
+ai.js: Calls the server-side recipe endpoint.
+netlify/functions/recipe.js: Handles communication with the AI model.
 index.css: Global styles and Tailwind imports.
 footer.jsx: Custom footer component.
 
