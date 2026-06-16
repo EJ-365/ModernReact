@@ -1,4 +1,3 @@
-/* global process */
 import { HfInference } from "@huggingface/inference"
 
 const HF_MODEL = "meta-llama/Llama-3.1-8B-Instruct"
