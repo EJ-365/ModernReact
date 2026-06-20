@@ -8,7 +8,7 @@ import Venues from "./pages/Venues";
 
 function App() {
   return (
-    <div className="bg-[#08080a] h-screen">
+    <div className="bg-[#08080a]">
       <Navbar />
 
       <Routes>

@@ -29,6 +29,45 @@ function Home() {
           <button className="capitalize bg-[#6e23ae] border border-purple-200/60 text-white font-medium p-3 rounded-xl px-10 hover:shadow-sm transition-all duration-300 hover:bg-[#6e23ae] cursor-pointer">explore teams <i className="bx bx-arrow-right-stroke align-middle text-2xl" /></button>
         </div>
       </div>
+
+      {/* host cities, matches and teams grid */}
+      <div className="flex md:flex-row flex-col items-center justify-evenly p-20 space-x-4 md:my-0 space-y-4">
+        <div className="bg-[#151518] border border-purple-100/10 flex items-center space-x-3 w-full p-7 rounded-2xl">
+          <div className="px-4 py-3 border border-purple-800/50 bg-[#3b304b]/60 rounded-lg">
+          <i className="bx bx-group text-3xl text-purple-400/90" />
+          </div>
+
+          <div>
+            <p className="capitalize text-zinc-400">teams</p>
+            <h3 className="font-bold text-2xl">48</h3>
+            <small className="text-zinc-400">Expanded format</small>
+          </div>
+        </div>
+
+        <div className="bg-[#151518] border border-purple-100/10 flex items-center space-x-3 w-full p-7 rounded-2xl">
+          <div className="px-4 py-3 border border-purple-800/50 bg-[#3b304b]/60 rounded-lg">
+          <i className="bx bx-calendar-alt text-3xl text-purple-400/90" />
+          </div>
+
+          <div>
+            <p className="capitalize text-zinc-400">matches</p>
+            <h3 className="font-bold text-2xl">104</h3>
+            <small className="text-zinc-400">Across 39 days</small>
+          </div>
+        </div>
+
+        <div className="bg-[#151518] border border-purple-100/10 flex items-center space-x-3 w-full p-7 rounded-2xl">
+          <div className="px-4 py-3 border border-purple-800/50 bg-[#3b304b]/60 rounded-lg">
+          <i className="bx bx-location text-3xl text-purple-400/90" />
+          </div>
+
+          <div>
+            <p className="capitalize text-zinc-400">host cities</p>
+            <h3 className="font-bold text-2xl">16</h3>
+            <small className="text-zinc-400">USA, CAN, MEX</small>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
