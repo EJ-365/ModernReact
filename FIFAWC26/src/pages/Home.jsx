@@ -1,9 +1,10 @@
+import UpcomingMatches from "../component/UpcomingMatches";
 function Home() {
   return (
     <section className="text-white">
       <div className="w-full text-center my-15 flex flex-col items-center justify-start bg-[#7323b8]  py-30  ">
         <div className="mb-10">
-          <p className="capitalize bg-[#683496] px-8 py-1 rounded-3xl text-[15px] border">
+          <p className="capitalize bg-[#743fa3] px-8 py-1 rounded-3xl text-[15px] border border-purple-100/40">
             {" "}
             <i className="bxf bx-radio-circle text-green-500 align-middle relative top-0" />{" "}
             The biggest tournament
@@ -33,7 +34,7 @@ function Home() {
       {/* host cities, matches and teams grid */}
       <div className="flex md:flex-row flex-col items-center justify-evenly p-20 space-x-4 md:my-0 space-y-4">
         <div className="bg-[#151518] border border-purple-100/10 flex items-center space-x-3 w-full p-7 rounded-2xl">
-          <div className="px-4 py-3 border border-purple-800/50 bg-[#3b304b]/60 rounded-lg">
+          <div className="px-4 py-3 border border-purple-800/10 bg-[#3b304b]/60 rounded-lg">
           <i className="bx bx-group text-3xl text-purple-400/90" />
           </div>
 
@@ -45,7 +46,7 @@ function Home() {
         </div>
 
         <div className="bg-[#151518] border border-purple-100/10 flex items-center space-x-3 w-full p-7 rounded-2xl">
-          <div className="px-4 py-3 border border-purple-800/50 bg-[#3b304b]/60 rounded-lg">
+          <div className="px-4 py-3 border border-purple-800/10 bg-[#3b304b]/60 rounded-lg">
           <i className="bx bx-calendar-alt text-3xl text-purple-400/90" />
           </div>
 
@@ -57,7 +58,7 @@ function Home() {
         </div>
 
         <div className="bg-[#151518] border border-purple-100/10 flex items-center space-x-3 w-full p-7 rounded-2xl">
-          <div className="px-4 py-3 border border-purple-800/50 bg-[#3b304b]/60 rounded-lg">
+          <div className="px-4 py-3 border border-purple-800/10 bg-[#3b304b]/60 rounded-lg">
           <i className="bx bx-location text-3xl text-purple-400/90" />
           </div>
 
@@ -68,6 +69,8 @@ function Home() {
           </div>
         </div>
       </div>
+
+      <UpcomingMatches/>
     </section>
   );
 }
