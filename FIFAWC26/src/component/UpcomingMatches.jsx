@@ -1,4 +1,5 @@
 import useFetch from "../Hooks/useFetch";
+import { formatMatchScore, selectUpcomingMatches } from "../utils/matches";
 
 function UpcomingMatches() {
   const { data, loading, error } = useFetch(
@@ -7,9 +8,9 @@ function UpcomingMatches() {
 
   if (loading) return <p>Loading...</p>;
 
-  if (error) return <p>Error: {error}</p>;
+  if (error) return <p>Error: {error.message || String(error)}</p>;
 
-  const matches = data?.data.slice(0, 4) || [];
+  const matches = selectUpcomingMatches(data);
 
   return (
     <section>
@@ -22,7 +23,9 @@ function UpcomingMatches() {
       </div>
 
       <div className="mx-auto mt-8 flex flex-col md:flex-row flex-wrap gap-6 p-10">
-        {matches.map((match) => (
+        {matches.length === 0 ? (
+          <p className="text-zinc-400">No upcoming matches are available.</p>
+        ) : matches.map((match) => (
           <div
             key={match.num}
             className="flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl"
@@ -52,7 +55,7 @@ function UpcomingMatches() {
                 <p className="text-zinc-400 font-medium text-lg">vs</p>
 
                 <p className="text-2xl font-bold bg-purple-900/30 px-3 py-1.5 rounded-2xl">
-                  {match.score_home}:{match.score_away}
+                  {formatMatchScore(match)}
                 </p>
               </div>
 

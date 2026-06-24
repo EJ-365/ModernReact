@@ -5,13 +5,31 @@ function useFetch(url){
     const[error, setError] = useState(null);
 
     useEffect(() => {
-        fetch(url)
-        .then(res => res.json())
+        const controller = new AbortController();
+
+        fetch(url, { signal: controller.signal })
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Request failed with status ${res.status}`);
+            }
+
+            return res.json();
+        })
         .then(data => {
             setData(data);
-            setLoading(false);
         })
-        .catch(err => setError(err));
+        .catch(err => {
+            if (err.name !== "AbortError") {
+                setError(err);
+            }
+        })
+        .finally(() => {
+            if (!controller.signal.aborted) {
+                setLoading(false);
+            }
+        });
+
+        return () => controller.abort();
 
     }, [url])
 
