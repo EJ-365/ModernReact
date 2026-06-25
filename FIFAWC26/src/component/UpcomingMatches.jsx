@@ -1,15 +1,13 @@
 import useFetch from "../Hooks/useFetch";
 
 function UpcomingMatches() {
-  const { data, loading, error } = useFetch(
-    `https://cors-anywhere.herokuapp.com/https://wheniskickoff.com/data/v1/matches.json`,
-  );
+  const { data, loading, error } = useFetch("/api/matches.json");
 
   if (loading) return <p>Loading...</p>;
 
   if (error) return <p>Error: {error}</p>;
 
-  const matches = data?.data.slice(0, 4) || [];
+  const matches = data?.data?.slice(0, 4) ?? [];
 
   return (
     <section>
@@ -33,18 +31,18 @@ function UpcomingMatches() {
               </small>
 
               <small className="text-sm font-medium text-white bg-zinc-700 px-3 py-0.5 rounded-sm capitalize">
-                {match.venue} stadium
+                {match.venue_name ?? "TBD"}
               </small>
             </div>
 
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 flex-1 flex-col items-center">
                 <p className="bg-[#232325] font-medium px-4 text-center border border-white/10 py-4 rounded-full w-15">
-                  {match.home}
+                  {match.home ?? "TBD"}
                 </p>
 
                 <p className="font-medium text-center mt-2">
-                  {match.home_name}
+                  {match.home_name ?? "TBD"}
                 </p>
               </div>
 
@@ -52,17 +50,17 @@ function UpcomingMatches() {
                 <p className="text-zinc-400 font-medium text-lg">vs</p>
 
                 <p className="text-2xl font-bold bg-purple-900/30 px-3 py-1.5 rounded-2xl">
-                  {match.score_home}:{match.score_away}
+                  {match.score_home ?? 0}:{match.score_away ?? 0}
                 </p>
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col items-center">
                 <p className="bg-[#232325] font-medium px-4 text-center border border-white/10 py-4 rounded-full w-15">
-                  {match.away}
+                  {match.away ?? "TBD"}
                 </p>
 
                 <p className="font-medium text-center mt-2">
-                  {match.away_name}
+                  {match.away_name ?? "TBD"}
                 </p>
               </div>
             </div>
