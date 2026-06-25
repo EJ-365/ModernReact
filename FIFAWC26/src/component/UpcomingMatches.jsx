@@ -13,7 +13,7 @@ function UpcomingMatches() {
 
   return (
     <section>
-      <div className="flex items-center justify-between container mx-auto px-10 md:p-0">
+      <div className="flex items-center justify-between container mx-auto px-10 md:px-20">
         <h2 className="md:text-3xl text-xl md:font-bold ">Upcoming Matches</h2>
 
         <p className="text-purple-400 font-medium ">

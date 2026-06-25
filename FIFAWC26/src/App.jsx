@@ -5,6 +5,7 @@ import Matches from "./pages/Matches";
 import Teams from "./pages/Teams";
 import Standings from "./pages/Standing";
 import Venues from "./pages/Venues";
+import Footer from "./component/Footer";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/venues" element={<Venues/>} />
 
       </Routes>
+      <Footer/>
     </div>
   );
 }
