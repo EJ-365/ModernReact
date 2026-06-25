@@ -9,8 +9,8 @@ export default defineConfig({
       '/api': {
         target: 'https://wheniskickoff.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
-  }
+        rewrite: (path) => path.replace(/^\/api/, '/data/v1'),
+      },
+    },
+  },
 })
