@@ -5,7 +5,13 @@ function UpcomingMatches() {
 
   if (loading) return <p>Loading...</p>;
 
-  if (error) return <p>Error: {error}</p>;
+  if (error) {
+    return (
+      <p role="alert">
+        Unable to load upcoming matches: {error.message || String(error)}
+      </p>
+    );
+  }
 
   const matches = data?.data?.slice(0, 4) ?? [];
 
