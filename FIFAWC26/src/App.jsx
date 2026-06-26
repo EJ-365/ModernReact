@@ -9,19 +9,21 @@ import Footer from "./component/Footer";
 
 function App() {
   return (
-    <div className="bg-[#08080a]">
+    <div className="bg-[#08080a] min-h-screen flex flex-col">
       <Navbar />
 
-      <Routes>
-      <Route path="/" element={<Home />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/matches" element={<Matches/>} />
-        <Route path="/teams" element={<Teams />} />
-        <Route path="/standings" element={<Standings/>} />
-        <Route path="/venues" element={<Venues/>} />
+      <main className="pb-16">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/matches" element={<Matches />} />
+          <Route path="/teams" element={<Teams />} />
+          <Route path="/standings" element={<Standings />} />
+          <Route path="/venues" element={<Venues />} />
+        </Routes>
+      </main>
 
-      </Routes>
-      <Footer/>
+      <Footer />
     </div>
   );
 }
