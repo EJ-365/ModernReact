@@ -1,7 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import useFetch from "../Hooks/useFetch";
 import { countryCodes } from "../data/countryCodes";
 function UpcomingMatches() {
   const { data, loading, error } = useFetch("/api/matches.json");
+  const navigate = useNavigate();
+  const redirectToMatches = () => {
+    return (
+      navigate("/matches")
+    )
+  }
   if (loading) return <p>Loading</p>
 
   if (error) return <p>Error: {error}</p>;
@@ -15,7 +22,7 @@ function UpcomingMatches() {
         <h2 className="md:text-3xl text-xl md:font-bold ">Upcoming Matches</h2>
 
         <p className="text-purple-400 font-medium ">
-          See all <i className="bx bx-arrow-right-stroke align-middle" />
+          <button onClick={redirectToMatches} className=" cursor-pointer"> See all <i className="bx bx-arrow-right-stroke align-middle "/></button>
         </p>
       </div>
 
@@ -23,7 +30,7 @@ function UpcomingMatches() {
         {matches.map((match) => (
           <div
             key={match.num}
-            className="flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl"
+            className="flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6"
           >
             <div className="flex items-center justify-between gap-2 my-6">
               <small className="text-xs font-medium text-zinc-400">
@@ -55,7 +62,7 @@ function UpcomingMatches() {
                 <p className="text-zinc-400 font-medium text-lg">vs</p>
 
                 <p className="text-2xl font-bold bg-purple-900/30 px-3 py-1.5 rounded-2xl">
-                  {match.score_home ?? 0}:{match.score_away ?? 0}
+                  {match.score_home ?? 0}-{match.score_away ?? 0}
                 </p>
               </div>
 

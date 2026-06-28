@@ -78,7 +78,7 @@ function Matches() {
                   VS
                 </p>
                 <p className="text-lg font-bold text-purple-400 md:text-xl">
-                  {match.score_home}:{match.score_away}
+                  {match.score_home}-{match.score_away}
                 </p>
               </div>
 
