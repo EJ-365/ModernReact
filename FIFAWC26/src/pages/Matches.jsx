@@ -33,13 +33,13 @@ function Matches() {
       </div>
 
       {/*showing all matches */}
-      <section className="grid w-full min-w-0 grid-cols-1 gap-4 md:grid-cols-3 md:gap-x-10">
+      <section className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 xl:grid-cols-3">
         {matches.map((match) => (
           <div
             key={match.num}
-            className="my-4 flex w-full min-w-0 flex-col gap-4 overflow-hidden rounded-2xl border border-purple-800/30 bg-[#161618] px-4 py-4 cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:flex-row md:items-center md:justify-between md:px-8"
+            className="flex w-full flex-col gap-5 rounded-2xl border border-purple-800/30 bg-[#161618] p-5 cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6"
           >
-            <div className="min-w-0 w-full md:w-auto">
+            <div className="min-w-0 w-full">
               <p className="truncate text-sm font-medium text-purple-400/90 md:text-base">
                 <i className="bx bx-calendar align-middle -top-0.5 relative" />{" "}
                 {new Date(match.date).toLocaleString("en-US", {
@@ -61,36 +61,34 @@ function Matches() {
               </p>
             </div>
 
-            <div className="flex w-full min-w-0 flex-col items-center justify-center md:w-auto md:px-4 md:py-6">
-              <div className="flex w-full max-w-full items-center justify-center gap-2 sm:gap-3 md:gap-6">
+            <div className="flex w-full min-w-0 items-center justify-between gap-3 md:gap-6">
+              <div className="flex min-w-0 flex-1 flex-col items-center">
                 <img
-                  className="h-10 w-14 shrink-0 rounded-xl object-cover md:h-14 md:w-20 md:rounded-2xl"
-                  src={`https://flagcdn.com/w320/${countryCodes[match.home] ?? "un"}.png`}
+                  className="w-[72px] rounded-lg border border-white/10 object-cover aspect-3/2 bg-[#232325] md:w-24 md:rounded-xl"
+                  src={`https://flagcdn.com/w80/${countryCodes[match.home] ?? "un"}.png`}
                   alt={match.home_name}
                 />
-
-                <div className="flex min-w-10 flex-col items-center justify-center md:min-w-12">
-                  <p className="mb-1 w-9 rounded-md bg-[#232326] px-2 py-1 text-center text-xs font-medium text-zinc-400 md:mb-2 md:w-10 md:text-sm">
-                    VS
-                  </p>
-                  <p className="text-lg font-bold text-purple-400 md:text-xl">
-                    {match.score_home}:{match.score_away}
-                  </p>
-                </div>
-
-                <img
-                  className="h-10 w-14 shrink-0 rounded-xl object-cover md:h-14 md:w-20 md:rounded-2xl"
-                  src={`https://flagcdn.com/w320/${countryCodes[match.away] ?? "un"}.png`}
-                  alt={match.away_name}
-                />
-              </div>
-
-              <div className="mt-2 grid w-full md:w-auto grid-cols-[1fr_auto_1fr] items-start gap-1 px-1 md:mt-3 md:flex md:max-w-none md:justify-center md:gap-6 md:px-0 md:pr-10">
-                <p className="min-w-0 truncate text-center text-sm font-medium md:w-20 md:text-xl text-wrap">
+                <p className="mt-2 w-full text-center text-sm font-medium leading-snug md:text-base">
                   {match.home_name}
                 </p>
-                <div className="w-8 shrink-0 md:min-w-12" />
-                <p className="min-w-0 truncate text-center text-sm font-medium md:w-20 md:text-xl text-wrap ">
+              </div>
+
+              <div className="flex shrink-0 flex-col items-center px-1 md:px-3">
+                <p className="mb-1 rounded-md bg-[#232326] px-2 py-1 text-xs font-medium text-zinc-400 md:text-sm">
+                  VS
+                </p>
+                <p className="text-lg font-bold text-purple-400 md:text-xl">
+                  {match.score_home}:{match.score_away}
+                </p>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col items-center">
+                <img
+                  className="w-[72px] rounded-lg border border-white/10 object-cover aspect-3/2 bg-[#232325] md:w-24 md:rounded-xl"
+                  src={`https://flagcdn.com/w80/${countryCodes[match.away] ?? "un"}.png`}
+                  alt={match.away_name}
+                />
+                <p className="mt-2 w-full text-center text-sm font-medium leading-snug md:text-base">
                   {match.away_name}
                 </p>
               </div>
