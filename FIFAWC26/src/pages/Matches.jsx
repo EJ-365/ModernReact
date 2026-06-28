@@ -19,7 +19,13 @@ function Matches() {
   }
 
   if (error) return <p>Error: {error}</p>;
-  const matches = data.data ?? error;
+  const matches = Array.isArray(data?.data) ? data.data : [];
+  const hasInvalidMatchData = data && !Array.isArray(data.data);
+
+  if (hasInvalidMatchData) {
+    return <p>Match schedule is unavailable.</p>;
+  }
+
   return (
     <main className="mx-auto w-full max-w-full overflow-x-hidden px-4 text-white md:px-20">
       <div className="flex flex-col items-left justify-start my-10">
