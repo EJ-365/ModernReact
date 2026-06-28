@@ -7,9 +7,6 @@ function useFetch(url) {
 
   useEffect(() => {
     if (!url) {
-      setData(null);
-      setError(null);
-      setLoading(false);
       return;
     }
 
