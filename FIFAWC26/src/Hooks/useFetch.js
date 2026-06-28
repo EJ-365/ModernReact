@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 
 function useFetch(url) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [state, setState] = useState({
+    url,
+    data: null,
+    loading: Boolean(url),
+    error: null,
+  });
 
   useEffect(() => {
     if (!url) {
@@ -24,26 +27,31 @@ function useFetch(url) {
         return res.json();
       })
       .then((data) => {
-        setData(data);
+        setState({ url, data, loading: false, error: null });
       })
       .catch((err) => {
         if (err.name === "AbortError") {
           return;
         }
 
-        setData(null);
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+        setState({
+          url,
+          data: null,
+          loading: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
       });
 
     return () => controller.abort();
   }, [url]);
 
-  return { data, loading, error };
+  const isStale = state.url !== url;
+
+  return {
+    data: isStale ? null : state.data,
+    loading: Boolean(url) && (isStale || state.loading),
+    error: isStale ? null : state.error,
+  };
 }
 
 export default useFetch;
