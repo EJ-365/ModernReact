@@ -1,69 +1,17 @@
 import useFetch from "../Hooks/useFetch";
-
+import { countryCodes } from "../data/countryCodes";
 function UpcomingMatches() {
   const { data, loading, error } = useFetch("/api/matches.json");
-
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p>Loading</p>
 
   if (error) return <p>Error: {error}</p>;
 
   const matches = data?.data?.slice(0, 4) ?? [];
   // 2026 World Cup teams → ISO codes for flagcdn (keys match API: match.home / match.away)
-  const countryCodes = {
-    ARG: "ar",
-    AUS: "au",
-    AUT: "at",
-    BEL: "be",
-    BIH: "ba",
-    BRA: "br",
-    CAN: "ca",
-    CIV: "ci",
-    COD: "cd",
-    COL: "co",
-    CPV: "cv",
-    CRO: "hr",
-    CUW: "cw",
-    CZE: "cz",
-    DZA: "dz",
-    ECU: "ec",
-    EGY: "eg",
-    ENG: "gb-eng",
-    ESP: "es",
-    FRA: "fr",
-    GER: "de",
-    GHA: "gh",
-    HAI: "ht",
-    IRN: "ir",
-    IRQ: "iq",
-    JAM: "jm",
-    JOR: "jo",
-    JPN: "jp",
-    KOR: "kr",
-    KSA: "sa",
-    MAR: "ma",
-    MEX: "mx",
-    NED: "nl",
-    NOR: "no",
-    NZL: "nz",
-    PAN: "pa",
-    PAR: "py",
-    POR: "pt",
-    QAT: "qa",
-    RSA: "za",
-    SCO: "gb-sct",
-    SEN: "sn",
-    SUI: "ch",
-    SWE: "se",
-    TUN: "tn",
-    TUR: "tr",
-    URU: "uy",
-    USA: "us",
-    UZB: "uz",
-  };
 
   return (
     <section>
-      <div className="flex items-center justify-between container mx-auto px-10 md:px-20">
+      <div className="flex md:flex-row flex-col items-center justify-between container mx-auto px-10 md:px-20">
         <h2 className="md:text-3xl text-xl md:font-bold ">Upcoming Matches</h2>
 
         <p className="text-purple-400 font-medium ">
@@ -93,7 +41,7 @@ function UpcomingMatches() {
 
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 flex-1 flex-col items-center">
-                <img src={`https://flagcdn.com/w320/${countryCodes[match.home]?? "TBD"}.png`} alt={countryCodes[match.home_name]} className="bg-[#232325] font-medium text-center border border-white/10 rounded-full w-full"/>
+                <img src={`https://flagcdn.com/w320/${countryCodes[match.home]?? "TBD"}.png`} alt={countryCodes[match.home_name]} className="bg-[#232325] font-medium text-center border border-white/10 rounded-full md:w-24 w-full"/>
                  
                 
                 
@@ -112,7 +60,7 @@ function UpcomingMatches() {
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col items-center">
-                <img src={`https://flagcdn.com/w320/${countryCodes[match.away] ?? "TBD"}.png`} className="bg-[#232325] font-medium  text-center border border-white/10  rounded-full w-60"/>
+                <img src={`https://flagcdn.com/w320/${countryCodes[match.away] ?? "TBD"}.png`} className="bg-[#232325] font-medium  text-center border border-white/10  rounded-full w-full md:w-24"/>
               
 
                 <p className="font-medium text-center mt-2">

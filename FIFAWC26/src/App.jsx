@@ -9,7 +9,7 @@ import Footer from "./component/Footer";
 
 function App() {
   return (
-    <div className="bg-[#08080a] min-h-screen flex flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden bg-[#08080a]">
       <Navbar />
 
       <main className="pb-16">
