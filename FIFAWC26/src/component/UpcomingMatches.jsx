@@ -30,7 +30,7 @@ function UpcomingMatches() {
         {matches.map((match) => (
           <div
             key={match.num}
-            className="flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6"
+            className="flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6 hover:scale-101"
           >
             <div className="flex items-center justify-between gap-2 my-6">
               <small className="text-xs font-medium text-zinc-400">

@@ -37,7 +37,7 @@ function Matches() {
         {matches.map((match) => (
           <div
             key={match.num}
-            className="flex w-full flex-col gap-5 rounded-2xl border border-purple-800/30 bg-[#161618] p-5 cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6"
+            className="flex w-full flex-col gap-5 rounded-2xl border border-purple-800/30 bg-[#161618] p-5 cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6  hover:scale-101"
           >
             <div className="min-w-0 w-full">
               <p className="truncate text-sm font-medium text-purple-400/90 md:text-base">
