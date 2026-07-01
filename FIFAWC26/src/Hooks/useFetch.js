@@ -13,13 +13,6 @@ function useFetch(url) {
 
     const controller = new AbortController();
 
-    setState({
-      url,
-      data: null,
-      loading: true,
-      error: null,
-    });
-
     fetch(url, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) {
