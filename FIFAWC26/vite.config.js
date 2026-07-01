@@ -13,4 +13,13 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'https://wheniskickoff.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/data/v1'),
+      },
+    },
+  },
 })

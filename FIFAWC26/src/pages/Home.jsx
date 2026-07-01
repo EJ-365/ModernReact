@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import UpcomingMatches from "../component/UpcomingMatches";
+import fwc26logo from "../assets/fwc26logo.svg";
 function Home() {
   const navigate = useNavigate();
 
@@ -31,7 +32,7 @@ function Home() {
           </h1>
         </div>
         <div className="my-10">
-            <img src="/src/assets/fwc26logo.svg" className="w-60"/>
+            <img src={fwc26logo} className="w-60" alt="FIFA World Cup 2026 logo" />
         </div>
 
         <div className="my-9 md:w-130 w-90">

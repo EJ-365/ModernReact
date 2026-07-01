@@ -1,4 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
+import fwc26logo from "../assets/fwc26logo.svg";
 
 export default function Navbar() {
   return (
@@ -7,7 +8,7 @@ export default function Navbar() {
         {/* logo section */}
         <div className="mb-2 flex items-center mx-3 md:mb-0">
           <div className="w-full">
-            <img src="/src/assets/fwc26logo.svg" className="w-10" alt="FWC26 logo" />
+            <img src={fwc26logo} className="w-10" alt="FWC26 logo" />
           </div>
           <div className="ml-4 text-white">
             <Link to="/" className="text-2xl font-bold uppercase text-nowrap">

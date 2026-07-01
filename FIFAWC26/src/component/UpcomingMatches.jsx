@@ -48,7 +48,7 @@ function UpcomingMatches() {
 
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 flex-1 flex-col items-center">
-                <img src={`https://flagcdn.com/w320/${countryCodes[match.home]?? "TBD"}.png`} alt={countryCodes[match.home_name]} className="bg-[#232325] font-medium text-center border border-white/10 rounded-full md:w-24 w-full"/>
+                <img src={`https://flagcdn.com/w320/${countryCodes[match.home] ?? "un"}.png`} alt={match.home_name} className="bg-[#232325] font-medium text-center border border-white/10 rounded-full md:w-24 w-full"/>
                  
                 
                 
@@ -67,7 +67,7 @@ function UpcomingMatches() {
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col items-center">
-                <img src={`https://flagcdn.com/w320/${countryCodes[match.away] ?? "TBD"}.png`} className="bg-[#232325] font-medium  text-center border border-white/10  rounded-full w-full md:w-24"/>
+                <img src={`https://flagcdn.com/w320/${countryCodes[match.away] ?? "un"}.png`} alt={match.away_name} className="bg-[#232325] font-medium  text-center border border-white/10  rounded-full w-full md:w-24"/>
               
 
                 <p className="font-medium text-center mt-2">

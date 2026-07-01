@@ -1,0 +1,682 @@
+{
+  "meta": {
+    "version": "1.0",
+    "generated": "2026-06-27T08:02:44Z",
+    "source": "wheniskickoff.com"
+  },
+  "count": 48,
+  "data": [
+    {
+      "code": "ARG",
+      "name": "Argentina",
+      "flag": "🇦🇷",
+      "group": "J",
+      "rank": 1,
+      "confederation": "CONMEBOL",
+      "slug": "argentina",
+      "matches": [
+        "argentina-vs-algeria-2026-06-17",
+        "argentina-vs-austria-2026-06-22",
+        "jordan-vs-argentina-2026-06-28"
+      ]
+    },
+    {
+      "code": "AUS",
+      "name": "Australia",
+      "flag": "🇦🇺",
+      "group": "D",
+      "rank": 24,
+      "confederation": "AFC",
+      "slug": "australia",
+      "matches": [
+        "australia-vs-turkey-2026-06-14",
+        "united-states-vs-australia-2026-06-19",
+        "paraguay-vs-australia-2026-06-26"
+      ]
+    },
+    {
+      "code": "AUT",
+      "name": "Austria",
+      "flag": "🇦🇹",
+      "group": "J",
+      "rank": 25,
+      "confederation": "UEFA",
+      "slug": "austria",
+      "matches": [
+        "austria-vs-jordan-2026-06-17",
+        "argentina-vs-austria-2026-06-22",
+        "algeria-vs-austria-2026-06-28"
+      ]
+    },
+    {
+      "code": "BEL",
+      "name": "Belgium",
+      "flag": "🇧🇪",
+      "group": "G",
+      "rank": 9,
+      "confederation": "UEFA",
+      "slug": "belgium",
+      "matches": [
+        "belgium-vs-egypt-2026-06-15",
+        "belgium-vs-iran-2026-06-21",
+        "new-zealand-vs-belgium-2026-06-27"
+      ]
+    },
+    {
+      "code": "BIH",
+      "name": "Bosnia-Herzegovina",
+      "flag": "🇧🇦",
+      "group": "B",
+      "rank": 62,
+      "confederation": "UEFA",
+      "slug": "bosnia-herzegovina",
+      "matches": [
+        "canada-vs-bosnia-herzegovina-2026-06-12",
+        "switzerland-vs-bosnia-herzegovina-2026-06-18",
+        "bosnia-herzegovina-vs-qatar-2026-06-24"
+      ]
+    },
+    {
+      "code": "BRA",
+      "name": "Brazil",
+      "flag": "🇧🇷",
+      "group": "C",
+      "rank": 3,
+      "confederation": "CONMEBOL",
+      "slug": "brazil",
+      "matches": [
+        "brazil-vs-morocco-2026-06-13",
+        "brazil-vs-haiti-2026-06-20",
+        "scotland-vs-brazil-2026-06-24"
+      ]
+    },
+    {
+      "code": "CAN",
+      "name": "Canada",
+      "flag": "🇨🇦",
+      "group": "B",
+      "rank": 40,
+      "confederation": "CONCACAF",
+      "slug": "canada",
+      "matches": [
+        "canada-vs-bosnia-herzegovina-2026-06-12",
+        "canada-vs-qatar-2026-06-18",
+        "switzerland-vs-canada-2026-06-24"
+      ]
+    },
+    {
+      "code": "CIV",
+      "name": "Ivory Coast",
+      "flag": "🇨🇮",
+      "group": "E",
+      "rank": 44,
+      "confederation": "CAF",
+      "slug": "ivory-coast",
+      "matches": [
+        "ivory-coast-vs-ecuador-2026-06-14",
+        "germany-vs-ivory-coast-2026-06-20",
+        "curaçao-vs-ivory-coast-2026-06-25"
+      ]
+    },
+    {
+      "code": "COD",
+      "name": "Congo DR",
+      "flag": "🇨🇩",
+      "group": "K",
+      "rank": null,
+      "confederation": "CAF",
+      "slug": "congo-dr",
+      "matches": [
+        "portugal-vs-congo-dr-2026-06-17",
+        "colombia-vs-congo-dr-2026-06-24",
+        "congo-dr-vs-uzbekistan-2026-06-27"
+      ]
+    },
+    {
+      "code": "COL",
+      "name": "Colombia",
+      "flag": "🇨🇴",
+      "group": "K",
+      "rank": 16,
+      "confederation": "CONMEBOL",
+      "slug": "colombia",
+      "matches": [
+        "uzbekistan-vs-colombia-2026-06-18",
+        "colombia-vs-congo-dr-2026-06-24",
+        "colombia-vs-portugal-2026-06-27"
+      ]
+    },
+    {
+      "code": "CPV",
+      "name": "Cape Verde Islands",
+      "flag": "🇨🇻",
+      "group": "H",
+      "rank": 75,
+      "confederation": "CAF",
+      "slug": "cape-verde-islands",
+      "matches": [
+        "spain-vs-cape-verde-islands-2026-06-15",
+        "uruguay-vs-cape-verde-islands-2026-06-21",
+        "cape-verde-islands-vs-saudi-arabia-2026-06-27"
+      ]
+    },
+    {
+      "code": "CRO",
+      "name": "Croatia",
+      "flag": "🇭🇷",
+      "group": "L",
+      "rank": 7,
+      "confederation": "UEFA",
+      "slug": "croatia",
+      "matches": [
+        "england-vs-croatia-2026-06-17",
+        "panama-vs-croatia-2026-06-23",
+        "croatia-vs-ghana-2026-06-27"
+      ]
+    },
+    {
+      "code": "CUW",
+      "name": "Curaçao",
+      "flag": "🇨🇼",
+      "group": "E",
+      "rank": 85,
+      "confederation": "CONCACAF",
+      "slug": "curacao",
+      "matches": [
+        "germany-vs-curaçao-2026-06-14",
+        "ecuador-vs-curaçao-2026-06-21",
+        "curaçao-vs-ivory-coast-2026-06-25"
+      ]
+    },
+    {
+      "code": "CZE",
+      "name": "Czechia",
+      "flag": "🇨🇿",
+      "group": "A",
+      "rank": 36,
+      "confederation": "UEFA",
+      "slug": "czechia",
+      "matches": [
+        "south-korea-vs-czechia-2026-06-12",
+        "czechia-vs-south-africa-2026-06-18",
+        "czechia-vs-mexico-2026-06-25"
+      ]
+    },
+    {
+      "code": "DZA",
+      "name": "Algeria",
+      "flag": "🇩🇿",
+      "group": "J",
+      "rank": 38,
+      "confederation": "CAF",
+      "slug": "algeria",
+      "matches": [
+        "argentina-vs-algeria-2026-06-17",
+        "jordan-vs-algeria-2026-06-23",
+        "algeria-vs-austria-2026-06-28"
+      ]
+    },
+    {
+      "code": "ECU",
+      "name": "Ecuador",
+      "flag": "🇪🇨",
+      "group": "E",
+      "rank": 30,
+      "confederation": "CONMEBOL",
+      "slug": "ecuador",
+      "matches": [
+        "ivory-coast-vs-ecuador-2026-06-14",
+        "ecuador-vs-curaçao-2026-06-21",
+        "ecuador-vs-germany-2026-06-25"
+      ]
+    },
+    {
+      "code": "EGY",
+      "name": "Egypt",
+      "flag": "🇪🇬",
+      "group": "G",
+      "rank": 33,
+      "confederation": "CAF",
+      "slug": "egypt",
+      "matches": [
+        "belgium-vs-egypt-2026-06-15",
+        "new-zealand-vs-egypt-2026-06-22",
+        "egypt-vs-iran-2026-06-27"
+      ]
+    },
+    {
+      "code": "ENG",
+      "name": "England",
+      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+      "group": "L",
+      "rank": 5,
+      "confederation": "UEFA",
+      "slug": "england",
+      "matches": [
+        "england-vs-croatia-2026-06-17",
+        "england-vs-ghana-2026-06-23",
+        "panama-vs-england-2026-06-27"
+      ]
+    },
+    {
+      "code": "ESP",
+      "name": "Spain",
+      "flag": "🇪🇸",
+      "group": "H",
+      "rank": 6,
+      "confederation": "UEFA",
+      "slug": "spain",
+      "matches": [
+        "spain-vs-cape-verde-islands-2026-06-15",
+        "spain-vs-saudi-arabia-2026-06-21",
+        "uruguay-vs-spain-2026-06-27"
+      ]
+    },
+    {
+      "code": "FRA",
+      "name": "France",
+      "flag": "🇫🇷",
+      "group": "I",
+      "rank": 2,
+      "confederation": "UEFA",
+      "slug": "france",
+      "matches": [
+        "france-vs-senegal-2026-06-16",
+        "france-vs-iraq-2026-06-22",
+        "norway-vs-france-2026-06-26"
+      ]
+    },
+    {
+      "code": "GER",
+      "name": "Germany",
+      "flag": "🇩🇪",
+      "group": "E",
+      "rank": 8,
+      "confederation": "UEFA",
+      "slug": "germany",
+      "matches": [
+        "germany-vs-curaçao-2026-06-14",
+        "germany-vs-ivory-coast-2026-06-20",
+        "ecuador-vs-germany-2026-06-25"
+      ]
+    },
+    {
+      "code": "GHA",
+      "name": "Ghana",
+      "flag": "🇬🇭",
+      "group": "L",
+      "rank": 60,
+      "confederation": "CAF",
+      "slug": "ghana",
+      "matches": [
+        "ghana-vs-panama-2026-06-17",
+        "england-vs-ghana-2026-06-23",
+        "croatia-vs-ghana-2026-06-27"
+      ]
+    },
+    {
+      "code": "HAI",
+      "name": "Haiti",
+      "flag": "🇭🇹",
+      "group": "C",
+      "rank": 85,
+      "confederation": "CONCACAF",
+      "slug": "haiti",
+      "matches": [
+        "haiti-vs-scotland-2026-06-14",
+        "brazil-vs-haiti-2026-06-20",
+        "morocco-vs-haiti-2026-06-24"
+      ]
+    },
+    {
+      "code": "IRN",
+      "name": "Iran",
+      "flag": "🇮🇷",
+      "group": "G",
+      "rank": 22,
+      "confederation": "AFC",
+      "slug": "iran",
+      "matches": [
+        "iran-vs-new-zealand-2026-06-16",
+        "belgium-vs-iran-2026-06-21",
+        "egypt-vs-iran-2026-06-27"
+      ]
+    },
+    {
+      "code": "IRQ",
+      "name": "Iraq",
+      "flag": "🇮🇶",
+      "group": "I",
+      "rank": null,
+      "confederation": "AFC",
+      "slug": "iraq",
+      "matches": [
+        "iraq-vs-norway-2026-06-16",
+        "france-vs-iraq-2026-06-22",
+        "senegal-vs-iraq-2026-06-26"
+      ]
+    },
+    {
+      "code": "JOR",
+      "name": "Jordan",
+      "flag": "🇯🇴",
+      "group": "J",
+      "rank": 68,
+      "confederation": "AFC",
+      "slug": "jordan",
+      "matches": [
+        "austria-vs-jordan-2026-06-17",
+        "jordan-vs-algeria-2026-06-23",
+        "jordan-vs-argentina-2026-06-28"
+      ]
+    },
+    {
+      "code": "JPN",
+      "name": "Japan",
+      "flag": "🇯🇵",
+      "group": "F",
+      "rank": 14,
+      "confederation": "AFC",
+      "slug": "japan",
+      "matches": [
+        "netherlands-vs-japan-2026-06-14",
+        "tunisia-vs-japan-2026-06-21",
+        "japan-vs-sweden-2026-06-25"
+      ]
+    },
+    {
+      "code": "KOR",
+      "name": "South Korea",
+      "flag": "🇰🇷",
+      "group": "A",
+      "rank": 23,
+      "confederation": "AFC",
+      "slug": "south-korea",
+      "matches": [
+        "south-korea-vs-czechia-2026-06-12",
+        "mexico-vs-south-korea-2026-06-19",
+        "south-africa-vs-south-korea-2026-06-25"
+      ]
+    },
+    {
+      "code": "KSA",
+      "name": "Saudi Arabia",
+      "flag": "🇸🇦",
+      "group": "H",
+      "rank": 56,
+      "confederation": "AFC",
+      "slug": "saudi-arabia",
+      "matches": [
+        "saudi-arabia-vs-uruguay-2026-06-15",
+        "spain-vs-saudi-arabia-2026-06-21",
+        "cape-verde-islands-vs-saudi-arabia-2026-06-27"
+      ]
+    },
+    {
+      "code": "MAR",
+      "name": "Morocco",
+      "flag": "🇲🇦",
+      "group": "C",
+      "rank": 10,
+      "confederation": "CAF",
+      "slug": "morocco",
+      "matches": [
+        "brazil-vs-morocco-2026-06-13",
+        "scotland-vs-morocco-2026-06-19",
+        "morocco-vs-haiti-2026-06-24"
+      ]
+    },
+    {
+      "code": "MEX",
+      "name": "Mexico",
+      "flag": "🇲🇽",
+      "group": "A",
+      "rank": 15,
+      "confederation": "CONCACAF",
+      "slug": "mexico",
+      "matches": [
+        "mexico-vs-south-africa-2026-06-11",
+        "mexico-vs-south-korea-2026-06-19",
+        "czechia-vs-mexico-2026-06-25"
+      ]
+    },
+    {
+      "code": "NED",
+      "name": "Netherlands",
+      "flag": "🇳🇱",
+      "group": "F",
+      "rank": 8,
+      "confederation": "UEFA",
+      "slug": "netherlands",
+      "matches": [
+        "netherlands-vs-japan-2026-06-14",
+        "netherlands-vs-sweden-2026-06-20",
+        "tunisia-vs-netherlands-2026-06-25"
+      ]
+    },
+    {
+      "code": "NOR",
+      "name": "Norway",
+      "flag": "🇳🇴",
+      "group": "I",
+      "rank": 46,
+      "confederation": "UEFA",
+      "slug": "norway",
+      "matches": [
+        "iraq-vs-norway-2026-06-16",
+        "norway-vs-senegal-2026-06-23",
+        "norway-vs-france-2026-06-26"
+      ]
+    },
+    {
+      "code": "NZL",
+      "name": "New Zealand",
+      "flag": "🇳🇿",
+      "group": "G",
+      "rank": 93,
+      "confederation": "OFC",
+      "slug": "new-zealand",
+      "matches": [
+        "iran-vs-new-zealand-2026-06-16",
+        "new-zealand-vs-egypt-2026-06-22",
+        "new-zealand-vs-belgium-2026-06-27"
+      ]
+    },
+    {
+      "code": "PAN",
+      "name": "Panama",
+      "flag": "🇵🇦",
+      "group": "L",
+      "rank": 58,
+      "confederation": "CONCACAF",
+      "slug": "panama",
+      "matches": [
+        "ghana-vs-panama-2026-06-17",
+        "panama-vs-croatia-2026-06-23",
+        "panama-vs-england-2026-06-27"
+      ]
+    },
+    {
+      "code": "PAR",
+      "name": "Paraguay",
+      "flag": "🇵🇾",
+      "group": "D",
+      "rank": 40,
+      "confederation": "CONMEBOL",
+      "slug": "paraguay",
+      "matches": [
+        "united-states-vs-paraguay-2026-06-13",
+        "turkey-vs-paraguay-2026-06-20",
+        "paraguay-vs-australia-2026-06-26"
+      ]
+    },
+    {
+      "code": "POR",
+      "name": "Portugal",
+      "flag": "🇵🇹",
+      "group": "K",
+      "rank": 6,
+      "confederation": "UEFA",
+      "slug": "portugal",
+      "matches": [
+        "portugal-vs-congo-dr-2026-06-17",
+        "portugal-vs-uzbekistan-2026-06-23",
+        "colombia-vs-portugal-2026-06-27"
+      ]
+    },
+    {
+      "code": "QAT",
+      "name": "Qatar",
+      "flag": "🇶🇦",
+      "group": "B",
+      "rank": 35,
+      "confederation": "AFC",
+      "slug": "qatar",
+      "matches": [
+        "qatar-vs-switzerland-2026-06-13",
+        "canada-vs-qatar-2026-06-18",
+        "bosnia-herzegovina-vs-qatar-2026-06-24"
+      ]
+    },
+    {
+      "code": "RSA",
+      "name": "South Africa",
+      "flag": "🇿🇦",
+      "group": "A",
+      "rank": 55,
+      "confederation": "CAF",
+      "slug": "south-africa",
+      "matches": [
+        "mexico-vs-south-africa-2026-06-11",
+        "czechia-vs-south-africa-2026-06-18",
+        "south-africa-vs-south-korea-2026-06-25"
+      ]
+    },
+    {
+      "code": "SCO",
+      "name": "Scotland",
+      "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+      "group": "C",
+      "rank": 32,
+      "confederation": "UEFA",
+      "slug": "scotland",
+      "matches": [
+        "haiti-vs-scotland-2026-06-14",
+        "scotland-vs-morocco-2026-06-19",
+        "scotland-vs-brazil-2026-06-24"
+      ]
+    },
+    {
+      "code": "SEN",
+      "name": "Senegal",
+      "flag": "🇸🇳",
+      "group": "I",
+      "rank": 17,
+      "confederation": "CAF",
+      "slug": "senegal",
+      "matches": [
+        "france-vs-senegal-2026-06-16",
+        "norway-vs-senegal-2026-06-23",
+        "senegal-vs-iraq-2026-06-26"
+      ]
+    },
+    {
+      "code": "SUI",
+      "name": "Switzerland",
+      "flag": "🇨🇭",
+      "group": "B",
+      "rank": 16,
+      "confederation": "UEFA",
+      "slug": "switzerland",
+      "matches": [
+        "qatar-vs-switzerland-2026-06-13",
+        "switzerland-vs-bosnia-herzegovina-2026-06-18",
+        "switzerland-vs-canada-2026-06-24"
+      ]
+    },
+    {
+      "code": "SWE",
+      "name": "Sweden",
+      "flag": "🇸🇪",
+      "group": "F",
+      "rank": 45,
+      "confederation": "UEFA",
+      "slug": "sweden",
+      "matches": [
+        "sweden-vs-tunisia-2026-06-15",
+        "netherlands-vs-sweden-2026-06-20",
+        "japan-vs-sweden-2026-06-25"
+      ]
+    },
+    {
+      "code": "TUN",
+      "name": "Tunisia",
+      "flag": "🇹🇳",
+      "group": "F",
+      "rank": 42,
+      "confederation": "CAF",
+      "slug": "tunisia",
+      "matches": [
+        "sweden-vs-tunisia-2026-06-15",
+        "tunisia-vs-japan-2026-06-21",
+        "tunisia-vs-netherlands-2026-06-25"
+      ]
+    },
+    {
+      "code": "TUR",
+      "name": "Turkey",
+      "flag": "🇹🇷",
+      "group": "D",
+      "rank": 41,
+      "confederation": "UEFA",
+      "slug": "turkey",
+      "matches": [
+        "australia-vs-turkey-2026-06-14",
+        "turkey-vs-paraguay-2026-06-20",
+        "turkey-vs-united-states-2026-06-26"
+      ]
+    },
+    {
+      "code": "URU",
+      "name": "Uruguay",
+      "flag": "🇺🇾",
+      "group": "H",
+      "rank": 12,
+      "confederation": "CONMEBOL",
+      "slug": "uruguay",
+      "matches": [
+        "saudi-arabia-vs-uruguay-2026-06-15",
+        "uruguay-vs-cape-verde-islands-2026-06-21",
+        "uruguay-vs-spain-2026-06-27"
+      ]
+    },
+    {
+      "code": "USA",
+      "name": "United States",
+      "flag": "🇺🇸",
+      "group": "D",
+      "rank": 11,
+      "confederation": "CONCACAF",
+      "slug": "united-states",
+      "matches": [
+        "united-states-vs-paraguay-2026-06-13",
+        "united-states-vs-australia-2026-06-19",
+        "turkey-vs-united-states-2026-06-26"
+      ]
+    },
+    {
+      "code": "UZB",
+      "name": "Uzbekistan",
+      "flag": "🇺🇿",
+      "group": "K",
+      "rank": 62,
+      "confederation": "AFC",
+      "slug": "uzbekistan",
+      "matches": [
+        "uzbekistan-vs-colombia-2026-06-18",
+        "portugal-vs-uzbekistan-2026-06-23",
+        "congo-dr-vs-uzbekistan-2026-06-27"
+      ]
+    }
+  ]
+}
