@@ -1,6 +1,7 @@
 import useFetch from "../Hooks/useFetch";
 import { countryCodes } from "../data/countryCodes";
 import { PacmanLoader } from "react-spinners";
+import { getArrayData, hasInvalidArrayData } from "../utils/apiPayload";
 function Teams() {
   const { data, loading, error } = useFetch("/api/teams.json");
   if (loading) {
@@ -19,7 +20,11 @@ function Teams() {
     );
   }
   if (error) return <p>Error: {error}</p>;
-  const teams = data.data ?? error;
+  const teams = getArrayData(data);
+
+  if (hasInvalidArrayData(data)) {
+    return <p>Team list is unavailable.</p>;
+  }
 
   return (
     <main className=" mx-auto container mt-20 md:px-0 px-4">
