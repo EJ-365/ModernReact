@@ -1,5 +1,5 @@
 import useFetch from "../Hooks/useFetch";
-import { PacmanLoader } from "react-spinners";
+import { BarLoader } from "react-spinners";
 
 import { countryCodes } from "../data/countryCodes";
 function Matches() {
@@ -7,13 +7,13 @@ function Matches() {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center w-auto flex-col">
-        <PacmanLoader
+        <BarLoader
           color="#800080"
           size={14}
           aria-label="Loading Spinner"
           data-testid="loader"
         />
-        <p className="text-purple-200 my-4 font-sm text-sm italic text-center">Loading...</p>
+        <p className="text-purple-300 my-4 font-sm text-sm italic text-center">Loading...</p>
       </div>
     );
   }
@@ -22,7 +22,7 @@ function Matches() {
   const matches = data.data ?? error;
   return (
     <main className="mx-auto w-full max-w-full overflow-x-hidden px-4 text-white md:px-20">
-      <div className="flex flex-col items-left justify-start my-10">
+      <div className="flex flex-col items-left justify-start my-10 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
         <h1 className="text-2xl font-bold my-2 md:text-4xl">Match Schedule</h1>
         <p className="text-zinc-400 text-[16.5px] font-medium">
           All 104 matches of the 2026 tournament
@@ -34,10 +34,11 @@ function Matches() {
 
       {/*showing all matches */}
       <section className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 md:gap-8 xl:grid-cols-3">
-        {matches.map((match) => (
+        {matches.map((match, index) => (
           <div
             key={match.num}
-            className="flex w-full flex-col gap-5 rounded-2xl border border-purple-800/30 bg-[#161618] p-5 cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6  hover:scale-101"
+            style={{ animationDelay: `${index * 60}ms` }}
+            className="animate-fade-in-up card-hover flex w-full flex-col gap-5 rounded-2xl border border-purple-800/30 bg-[#161618] p-5 cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 md:gap-6 md:p-6"
           >
             <div className="min-w-0 w-full">
               <p className="truncate text-sm font-medium text-purple-400/90 md:text-base">

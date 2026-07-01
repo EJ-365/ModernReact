@@ -3,7 +3,7 @@ import fwc26logo from "../assets/fwc26logo.svg";
 
 export default function Navbar() {
   return (
-    <header className="border-b border-white/5 shadow-lg py-3">
+    <header className="animate-fade-in-up border-b border-white/5 shadow-lg py-3">
       <nav className="mx-auto flex flex-col items-center justify-center md:flex-row">
         {/* logo section */}
         <div className="mb-2 flex items-center mx-3 md:mb-0">

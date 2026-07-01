@@ -18,7 +18,7 @@ function UpcomingMatches() {
 
   return (
     <section>
-      <div className="flex md:flex-row flex-col items-center justify-between container mx-auto px-10 md:px-20">
+      <div className="flex md:flex-row flex-col items-center justify-between container mx-auto px-10 md:px-20 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
         <h2 className="md:text-3xl text-xl md:font-bold ">Upcoming Matches</h2>
 
         <p className="text-purple-400 font-medium ">
@@ -27,10 +27,11 @@ function UpcomingMatches() {
       </div>
 
       <div className="mx-auto mt-8 flex flex-col md:flex-row flex-wrap gap-6 p-10 mb-32">
-        {matches.map((match) => (
+        {matches.map((match, index) => (
           <div
             key={match.num}
-            className="flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 hover:transition-all hover:duration-200 md:gap-6 md:p-6 hover:scale-101"
+            style={{ animationDelay: `${index * 80}ms` }}
+            className="animate-fade-in-up card-hover flex flex-1 min-w-[260px] flex-col border border-white/10 bg-[#151518] p-6 rounded-2xl cursor-pointer hover:bg-[#1c1c22] hover:border-purple-600/40 md:gap-6 md:p-6"
           >
             <div className="flex items-center justify-between gap-2 my-6">
               <small className="text-xs font-medium text-zinc-400">
