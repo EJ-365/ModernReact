@@ -2,6 +2,7 @@ import useFetch from "../Hooks/useFetch";
 import { PacmanLoader } from "react-spinners";
 
 import { countryCodes } from "../data/countryCodes";
+import { getArrayData, hasInvalidArrayData } from "../utils/apiPayload";
 function Matches() {
   const { data, loading, error } = useFetch("/api/matches.json");
   if (loading) {
@@ -19,7 +20,12 @@ function Matches() {
   }
 
   if (error) return <p>Error: {error}</p>;
-  const matches = data.data ?? error;
+  const matches = getArrayData(data);
+
+  if (hasInvalidArrayData(data)) {
+    return <p>Match schedule is unavailable.</p>;
+  }
+
   return (
     <main className="mx-auto w-full max-w-full overflow-x-hidden px-4 text-white md:px-20">
       <div className="flex flex-col items-left justify-start my-10">
