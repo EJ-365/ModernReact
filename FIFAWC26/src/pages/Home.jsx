@@ -9,6 +9,11 @@ function Home() {
     )
   };
 
+  const redirectToTeams = () => {
+    return (
+      navigate("/teams")
+    )
+  };
   return (
     <section className="text-white">
       <div className="w-full text-center my-15 flex flex-col items-center justify-start bg-[#7323b8]  py-30  ">
@@ -36,7 +41,7 @@ function Home() {
         <div className="my-8 space-x-6 space-y-3 flex md:flex-row flex-col items-center justify-center">
           <button onClick={redirectMatchesPage} className="capitalize bg-white text-purple-600 font-medium p-3 rounded-xl px-10 hover:text-purple-800 hover:shadow-xl transition-all duration-300 cursor-pointer">view schedule <i className="bx bx-arrow-right-stroke align-middle text-2xl" /></button>
 
-          <button className="capitalize bg-[#6e23ae] border border-purple-200/60 text-white font-medium p-3 rounded-xl px-10 hover:shadow-sm transition-all duration-300 hover:bg-[#6e23ae] cursor-pointer">explore teams <i className="bx bx-arrow-right-stroke align-middle text-2xl" /></button>
+          <button onClick={redirectToTeams} className="capitalize bg-[#6e23ae] border border-purple-200/60 text-white font-medium p-3 rounded-xl px-10 hover:shadow-sm transition-all duration-300 hover:bg-[#6e23ae] cursor-pointer">explore teams <i className="bx bx-arrow-right-stroke align-middle text-2xl" /></button>
         </div>
       </div>
 
