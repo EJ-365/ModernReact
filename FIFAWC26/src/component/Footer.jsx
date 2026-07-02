@@ -69,7 +69,7 @@ function Footer() {
         <div className="text-white">
           <p className="text-sm text-purple-300">
             &copy; {new Date().getFullYear()} FIFA World Cup 2026. All rights
-            reserved. Developed by Ejay Gabriel.
+            reserved. Developed by Ejay Gabriel with Cursor AI.
           </p>
         </div>
       </div>

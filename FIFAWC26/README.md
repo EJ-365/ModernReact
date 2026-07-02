@@ -347,7 +347,12 @@ Photos are stored in state keyed by `venue.id`.
 
 ---
 
+## Credits
 
+- **Ejay Gabriel** — Project developer
+- **Cursor AI** — Pair-programming assistance (components, routing, deployment fixes, standings table)
+
+---
 
 ## License
 
