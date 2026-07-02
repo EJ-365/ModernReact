@@ -35,7 +35,8 @@ export const projectsData = [
     title: "Team Hub",
     desc: `A soccer team management dashboard for managing squad information,
       tracking player stats, and organizing team data.`,
-    github: "https://github.com/EJ-365/ModernReact/tree/main/ReactRouter/TeamHub",
+    github:
+      "https://github.com/EJ-365/ModernReact/tree/main/ReactRouter/TeamHub",
     live: "https://teamhub365.netlify.app",
     tools: ["react", "css", "dashboard ui"],
   },
@@ -78,5 +79,13 @@ export const projectsData = [
     github: "https://github.com/EJ-365/ModernReact/tree/main/Tenzies",
     live: "https://tenzies365-game.netlify.app",
     tools: ["react", "css", "game logic"],
+  },
+
+  {
+    title: "FIFA World Cup 2026",
+    desc: `A React-based web application for the FIFA World Cup 2026 that provides comprehensive tournament details, including match schedules, team information, and group standings.`,
+    github: "https://github.com/EJ-365/ModernReact/tree/main/FIFAWC26",
+    live: "https://fwc26-ejay365.netlify.app",
+    tools: ["javascript", "react", "css", "wheniskickoff api", "flagpedia.net"],
   },
 ];
