@@ -1,0 +1,122 @@
+{
+  "meta": {
+    "version": "1.0",
+    "generated": "2026-06-27T08:02:44Z",
+    "source": "wheniskickoff.com"
+  },
+  "count": 16,
+  "data": [
+    {
+      "id": "metlife",
+      "name": "MetLife Stadium",
+      "city": "East Rutherford, NJ",
+      "country": "USA",
+      "capacity": 82500
+    },
+    {
+      "id": "sofi",
+      "name": "SoFi Stadium",
+      "city": "Los Angeles, CA",
+      "country": "USA",
+      "capacity": 70240
+    },
+    {
+      "id": "att",
+      "name": "AT&T Stadium",
+      "city": "Arlington, TX",
+      "country": "USA",
+      "capacity": 80000
+    },
+    {
+      "id": "hardrock",
+      "name": "Hard Rock Stadium",
+      "city": "Miami Gardens, FL",
+      "country": "USA",
+      "capacity": 65326
+    },
+    {
+      "id": "mercedes",
+      "name": "Mercedes-Benz Stadium",
+      "city": "Atlanta, GA",
+      "country": "USA",
+      "capacity": 71000
+    },
+    {
+      "id": "nrg",
+      "name": "NRG Stadium",
+      "city": "Houston, TX",
+      "country": "USA",
+      "capacity": 72220
+    },
+    {
+      "id": "lincoln",
+      "name": "Lincoln Financial Field",
+      "city": "Philadelphia, PA",
+      "country": "USA",
+      "capacity": 69176
+    },
+    {
+      "id": "lumen",
+      "name": "Lumen Field",
+      "city": "Seattle, WA",
+      "country": "USA",
+      "capacity": 68740
+    },
+    {
+      "id": "levis",
+      "name": "Levi's Stadium",
+      "city": "Santa Clara, CA",
+      "country": "USA",
+      "capacity": 68500
+    },
+    {
+      "id": "arrowhead",
+      "name": "Arrowhead Stadium",
+      "city": "Kansas City, MO",
+      "country": "USA",
+      "capacity": 76416
+    },
+    {
+      "id": "gillette",
+      "name": "Gillette Stadium",
+      "city": "Foxborough, MA",
+      "country": "USA",
+      "capacity": 65878
+    },
+    {
+      "id": "azteca",
+      "name": "Estadio Azteca",
+      "city": "Mexico City",
+      "country": "Mexico",
+      "capacity": 87523
+    },
+    {
+      "id": "akron",
+      "name": "Estadio Akron",
+      "city": "Guadalajara",
+      "country": "Mexico",
+      "capacity": 49850
+    },
+    {
+      "id": "bbva",
+      "name": "Estadio BBVA",
+      "city": "Monterrey",
+      "country": "Mexico",
+      "capacity": 53500
+    },
+    {
+      "id": "bmo",
+      "name": "BMO Field",
+      "city": "Toronto",
+      "country": "Canada",
+      "capacity": 30000
+    },
+    {
+      "id": "bcplace",
+      "name": "BC Place",
+      "city": "Vancouver",
+      "country": "Canada",
+      "capacity": 54500
+    }
+  ]
+}

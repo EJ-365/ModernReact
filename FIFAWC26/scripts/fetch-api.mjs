@@ -8,7 +8,7 @@ const base = "https://wheniskickoff.com/data/v1";
 
 await mkdir(apiDir, { recursive: true });
 
-for (const file of ["matches.json", "teams.json"]) {
+for (const file of ["matches.json", "teams.json", "venues.json"]) {
   const res = await fetch(`${base}/${file}`);
   if (!res.ok) throw new Error(`Failed to fetch ${file}: ${res.status}`);
   await writeFile(path.join(apiDir, file), await res.text());

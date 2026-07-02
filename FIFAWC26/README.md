@@ -14,7 +14,7 @@ Tailwind CSS
 - **Matches** — Full schedule of all 104 matches with flags, scores, dates, and venues
 - **Teams** — All 48 participating nations with flags and group assignments
 - **Venues** — 16 host stadiums with capacity info and photos from Pexels
-- **Standings** — Group standings via embedded ESPN widget
+- **Standings** — Group tables computed from match data, plus embeddable WC26 Widget and links to FIFA, ESPN, and BBC
 - **404 page** — Custom error page with navigation back home
 - **Responsive design** — Mobile-first layout; desktop styles preserved on larger screens
 - **Animations** — Page transitions and staggered card fade-in effects
@@ -103,7 +103,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 npm run build
 ```
 
-The `prebuild` script automatically fetches the latest `matches.json` and `teams.json` into `public/api/` before building.
+The `prebuild` script automatically fetches the latest `matches.json`, `teams.json`, and `venues.json` into `public/api/` before building.
 
 Preview the production build:
 
@@ -147,8 +147,9 @@ Proxy config lives in `vite.config.js`.
 
 - `public/api/matches.json`
 - `public/api/teams.json`
+- `public/api/venues.json`
 
-Venues are fetched live via the proxy in dev, or from the same wheniskickoff endpoint in production if your host supports the `/api` proxy.
+Venues, matches, and teams are served as static files in production (no server proxy required).
 
 ### Response shape
 
@@ -175,11 +176,20 @@ countryCodes["MEX"] // → "mx"
 
 ### Standings
 
-There is no standings endpoint in the wheniskickoff API. The Standings page embeds an ESPN iframe:
+There is no standings endpoint in the wheniskickoff API. The Standings page uses **three layers**:
 
-```
-https://www.espn.com/soccer/standings/_/league/fifa.world
-```
+1. **Computed tables (primary)** — Built from finished group-stage matches in `matches.json` and `teams.json`. Works everywhere, including mobile and Netlify.
+2. **WC26 Widget iframe (embed)** — [wc26-widget.vercel.app](https://wc26-widget.vercel.app/groups?theme=dark) — open-source, embeddable group standings designed for websites and READMEs.
+3. **External links (fallback)** — FIFA, ESPN, and BBC Sport standings open in a new tab.
+
+**Why not ESPN in an iframe?** ESPN (and most major sports sites) send `X-Frame-Options: SAMEORIGIN`, which blocks embedding on Netlify and mobile browsers. The app links out instead.
+
+| Source | URL | In-app |
+|--------|-----|--------|
+| WC26 Widget | `https://wc26-widget.vercel.app/groups?theme=dark` | Iframe embed |
+| FIFA Official | `https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/standings` | External link |
+| ESPN | `https://www.espn.com/soccer/standings/_/league/fifa.world` | External link |
+| BBC Sport | `https://www.bbc.com/sport/football/world-cup/table` | External link |
 
 ---
 
@@ -231,7 +241,7 @@ FIFAWC26/
 | `/home`      | Home      | Same as `/`                      |
 | `/matches`   | Matches   | Full match schedule              |
 | `/teams`     | Teams     | All 48 teams                     |
-| `/standings` | Standings | ESPN group standings iframe      |
+| `/standings` | Standings | Computed group tables + WC26 Widget embed + external links |
 | `/venues`    | Venues    | Host stadiums with Pexels photos |
 | `*`          | Error     | 404 page                         |
 
@@ -330,7 +340,7 @@ Photos are stored in state keyed by `venue.id`.
 
 ## Known Limitations
 
-- **Standings** rely on an external ESPN iframe (not computed from local match data).
+- **Standings** — Primary tables are computed from local match data. ESPN/FIFA block iframe embedding; use the WC26 Widget embed or external links in the footer.
 - **Venue photos** depend on Pexels search results and may not always match the exact stadium.
 - **Pexels API key** is required for venue images; without it, venue cards show without photos.
 - The wheniskickoff API has no auth but is a third-party service — availability is not guaranteed.
@@ -341,4 +351,4 @@ Photos are stored in state keyed by `venue.id`.
 
 ## License
 
-This project is for educational purposes. FIFA, World Cup, and related marks as.re property of their respective owner
+This project is for educational purposes. FIFA, World Cup, and related marks are property of their respective owners.

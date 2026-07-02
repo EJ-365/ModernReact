@@ -40,8 +40,15 @@ function Venues() {
       </div>
     );
   }
-  if (error) return <p>Error: {error}</p>;
-  const venues = data.data ?? error;
+  if (error) return <p>Error: {String(error)}</p>;
+  const venues = data?.data ?? [];
+  if (!venues.length) {
+    return (
+      <main className="container mx-auto mt-20 px-4 text-center text-white">
+        <p className="text-zinc-400">No venue data available.</p>
+      </main>
+    );
+  }
 
   // image api next:
   return (
@@ -77,17 +84,24 @@ function Venues() {
                 className="animate-fade-in-up card-hover direct-parent border border-zinc-700 w-full max-w-full sm:max-w-none rounded-2xl my-3 flex flex-col bg-[#161618] hover:bg-[#242427] hover:border-purple-700/40"
               >
                 {/*image div */}
-                <div className="w-full overflow-hidden rounded-t-2xl relative">
-                  {photos[venue.id] && (
-                    <img
-                      src={photos[venue.id]}
-                      className="h-48 w-full object-cover transition-transform duration-500 hover:scale-105 sm:h-40 md:h-48"
-                      alt={venue.name}
-                    />
-                  )}
-                  <span className="absolute bg-[#161618] px-3 rounded-lg text-purple-400 font-medium text-sm py-1 top-2 right-6 ">
-                    {venue.country}
-                  </span>
+                <div className="relative w-full overflow-hidden rounded-t-2xl">
+                  <div className="flex h-40 w-full items-center justify-center bg-[#232325] sm:h-40 md:h-48">
+                    {photos[venue.id] ? (
+                      <img
+                        src={photos[venue.id]}
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                        alt={venue.name}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-zinc-500">
+                        <i className="bx bx-stadium text-4xl text-purple-500/40" />
+                        <span className="text-xs">Photo loading…</span>
+                      </div>
+                    )}
+                    <span className="absolute right-3 top-2 rounded-lg bg-[#161618]/90 px-3 py-1 text-sm font-medium text-purple-400">
+                      {venue.country}
+                    </span>
+                  </div>
                 </div>
                 {/* stadium name and city */}
                 <div className="mx-3 sm:mx-4 pt-2 text-left">
