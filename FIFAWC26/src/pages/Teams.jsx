@@ -1,6 +1,7 @@
 import useFetch from "../Hooks/useFetch";
 import { countryCodes } from "../data/countryCodes";
 import { BarLoader } from "react-spinners";
+import { getDataArray, getErrorMessage } from "../utils/apiResponse";
 function Teams() {
   const { data, loading, error } = useFetch("/api/teams.json");
   if (loading) {
@@ -18,8 +19,8 @@ function Teams() {
       </div>
     );
   }
-  if (error) return <p>Error: {error}</p>;
-  const teams = data.data ?? error;
+  if (error) return <p>Error: {getErrorMessage(error)}</p>;
+  const teams = getDataArray(data);
 
   return (
     <main className=" mx-auto container mt-20 md:px-0 px-4">
