@@ -8,15 +8,7 @@ function useFetch(url) {
   useEffect(() => {
     let isCurrent = true;
 
-    if (!url) {
-      setData(null);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
+    if (!url) return;
 
     fetch(url)
       .then((res) => {
