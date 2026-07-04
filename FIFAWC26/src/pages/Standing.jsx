@@ -2,6 +2,7 @@ import { useState } from "react";
 import useFetch from "../Hooks/useFetch";
 import { countryCodes } from "../data/countryCodes";
 import { BarLoader } from "react-spinners";
+import { getPayloadArray } from "../data/apiPayload";
 
 const STANDINGS_SOURCES = [
   {
@@ -132,8 +133,8 @@ function Standings() {
 
   if (error) return <p>Error: {String(error)}</p>;
 
-  const matches = matchesData?.data ?? [];
-  const teams = teamsData?.data ?? [];
+  const matches = getPayloadArray(matchesData);
+  const teams = getPayloadArray(teamsData);
   const standings = computeStandings(matches, teams);
 
   return (
