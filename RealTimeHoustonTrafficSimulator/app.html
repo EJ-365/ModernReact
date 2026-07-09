@@ -377,106 +377,102 @@
     .dtchip{padding:6px 9px}
     #whereami{max-width:min(42vw,320px);font-size:11px}
   }
-  /* Mobile chrome toggles (hidden on desktop) */
-  #mChrome{display:none}
-  #mSheetScrim{display:none}
+  /* Mobile chrome (hidden on desktop) */
+  #mChrome,#mHud,#mTabs,#mSheetScrim{display:none}
 
   @media (max-width:680px){
     :root{--m-safe-t:env(safe-area-inset-top,0px);--m-safe-b:env(safe-area-inset-bottom,0px);
-      --m-safe-l:env(safe-area-inset-left,0px);--m-safe-r:env(safe-area-inset-right,0px)}
+      --m-safe-l:env(safe-area-inset-left,0px);--m-safe-r:env(safe-area-inset-right,0px);
+      --m-dock-h:64px}
 
-    #mChrome{display:flex;position:fixed;z-index:14;left:0;right:0;bottom:0;
-      padding:8px max(10px,var(--m-safe-r)) calc(10px + var(--m-safe-b)) max(10px,var(--m-safe-l));
-      gap:8px;pointer-events:none;justify-content:space-between;align-items:flex-end}
-    #mChrome>*{pointer-events:auto}
-    #mChrome .mFab{min-height:44px;min-width:44px;padding:0 14px;border-radius:999px;
-      background:rgba(12,18,24,.92);border:1px solid #2c353f;color:#e8eef4;
-      font-family:inherit;font-size:12px;font-weight:800;letter-spacing:.02em;
-      box-shadow:0 10px 28px rgba(0,0,0,.45);backdrop-filter:blur(12px);cursor:pointer;
-      display:inline-flex;align-items:center;justify-content:center;gap:7px}
-    #mChrome .mFab.on{border-color:#2c5c3f;color:#7fd6a0;background:#122018ee}
-    #mChrome .mFab svg{flex:0 0 auto}
-    #mLocFab{width:48px;height:48px;min-width:48px;padding:0;border-radius:50%}
-    #mSheetScrim{display:none;position:fixed;inset:0;z-index:12;background:rgba(3,6,10,.45);border:0;padding:0}
+    /* Map first: hide desktop chrome piles */
+    #leftCol{display:none!important}
+    #legend,#alerts,#camhint,#tourReplayMobile,#locBtn{display:none!important}
+    #compass{display:none!important}
+    #drivetimes{display:none!important}
+    #vignette{opacity:.55}
+
+    /* Slim always-on HUD */
+    #mHud{display:flex;position:fixed;z-index:14;top:max(8px,var(--m-safe-t));
+      left:max(8px,var(--m-safe-l));right:max(8px,var(--m-safe-r));
+      align-items:center;gap:8px;pointer-events:none}
+    #mHud>*{pointer-events:auto}
+    #mHudChip{flex:1;min-width:0;display:flex;align-items:center;gap:8px;
+      background:rgba(10,14,20,.88);border:1px solid #2a3340;border-radius:14px;
+      padding:8px 10px;backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+    #mHudChip .mTime{font-family:'Overpass Mono',monospace;font-size:15px;font-weight:700;flex:0 0 auto}
+    #mHudChip .mPhase{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#ffe08a}
+    #mHudChip .mWx{margin-left:auto;text-align:right;min-width:0}
+    #mHudChip .mTemp{font-family:'Overpass Mono',monospace;font-size:15px;font-weight:700}
+    #mHudChip .mDesc{font-size:10px;color:#aeb7c0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:28vw}
+    #mHudLoc{flex:0 0 auto;width:44px;height:44px;border-radius:12px;border:1px solid #2a3340;
+      background:rgba(10,14,20,.88);color:#cfd8e0;display:inline-flex;align-items:center;justify-content:center;
+      backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;padding:0}
+    #mHudLoc.on{color:#6cb8ff;border-color:#2c5a80}
+
+    #whereami{top:calc(max(8px,var(--m-safe-t)) + 54px);left:50%;transform:translateX(-50%);
+      bottom:auto;font-size:11px;padding:5px 11px;max-width:calc(100vw - 24px);z-index:13;
+      background:rgba(10,14,20,.82)}
+    #whereami .road{max-width:42vw;overflow:hidden;text-overflow:ellipsis}
+    #followChip{top:calc(max(8px,var(--m-safe-t)) + 96px);bottom:auto;z-index:13}
+
+    /* Bottom dock */
+    #mChrome{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;z-index:16;
+      left:0;right:0;bottom:0;gap:0;
+      padding:6px max(6px,var(--m-safe-r)) calc(6px + var(--m-safe-b)) max(6px,var(--m-safe-l));
+      background:rgba(8,12,18,.94);border-top:1px solid #24303c;backdrop-filter:blur(16px);
+      box-shadow:0 -12px 40px rgba(0,0,0,.45)}
+    #mChrome .mFab{min-height:52px;width:100%;border:0;background:transparent;color:#8a939c;
+      font-family:inherit;font-size:10px;font-weight:800;letter-spacing:.02em;cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+      border-radius:12px;padding:4px 2px}
+    #mChrome .mFab svg{opacity:.9}
+    #mChrome .mFab.on{color:#7fd6a0;background:rgba(127,214,160,.1)}
+    #mChrome .mFabLbl{line-height:1.1}
+
+    #mSheetScrim{display:none;position:fixed;inset:0;z-index:14;background:rgba(3,6,10,.5);border:0;padding:0}
     body.m-sheet-open #mSheetScrim{display:block}
 
-    /* Compact top status strip; expands into sheet */
-    #leftCol{left:max(8px,var(--m-safe-l));top:max(8px,var(--m-safe-t));right:max(8px,var(--m-safe-r));
-      width:auto;max-width:none;max-height:none;bottom:auto;z-index:13;gap:0;
-      transition:transform .28s cubic-bezier(.22,1,.36,1)}
-    #leftCol #topCenter{display:none}
-    #sign{max-width:100%;padding:10px 12px 9px;border-radius:16px;max-height:none;
-      overflow:hidden;transition:max-height .28s ease}
-    #sign h1{font-size:14px;line-height:1.1}
-    #sign h1 br{display:none}
-    #sign .sub{font-size:9px;margin-top:2px}
-    #clock{font-size:20px}
-    #clockRow{margin-top:6px;gap:8px}
-    #dateLine{font-size:10px}
-    .shields{display:none}
-    #wxCard{margin-top:8px;padding:8px 9px}
-    #wxGrid,#wxLocal,#wxSrc,#wxFeels{display:none}
-    #wxTemp{font-size:20px}
-    #wxDesc{font-size:11px}
-    body:not(.m-top-open) #sign #wxCard,
-    body:not(.m-top-open) #sign #dateLine,
-    body:not(.m-top-open) #sign #clockRow{display:none}
-    body:not(.m-top-open) #sign{padding:9px 12px}
-    body:not(.m-top-open) #sign h1{font-size:13px}
-    body.m-top-open #wxGrid{display:grid;grid-template-columns:1fr 1fr 1fr}
-    body.m-top-open #wxSrc{display:flex}
-    body.m-top-open #wxFeels{display:block}
-    body.m-top-open #leftCol{max-height:min(58vh,520px);overflow:auto;-webkit-overflow-scrolling:touch}
-
-    /* Bottom controls sheet: peek bar when closed, full sheet when open */
-    #panel{top:auto;left:max(8px,var(--m-safe-l));right:max(8px,var(--m-safe-r));
-      bottom:calc(62px + var(--m-safe-b));width:auto;max-width:none;z-index:13;
-      max-height:min(58vh,520px);border-radius:18px 18px 14px 14px;padding:12px 12px 14px;
-      transform:translateY(calc(100% + 80px));transition:transform .3s cubic-bezier(.22,1,.36,1);
+    /* One bottom sheet for Go / Live / More */
+    #panel{top:auto;left:0;right:0;bottom:calc(var(--m-dock-h) + var(--m-safe-b));
+      width:auto;max-width:none;z-index:15;
+      max-height:min(62vh,560px);border-radius:18px 18px 0 0;padding:8px 14px 16px;
+      border-left:0;border-right:0;border-bottom:0;
+      transform:translateY(110%);transition:transform .28s cubic-bezier(.22,1,.36,1);
       -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
     body.m-panel-open #panel{transform:translateY(0)}
-    #panel::before{content:"";display:block;width:36px;height:4px;border-radius:99px;
-      background:#3a4450;margin:0 auto 10px}
-    .grp{margin-bottom:16px}
-    .btn{min-height:40px;padding:10px 8px;font-size:12px}
-    select{min-height:42px;font-size:14px;padding:10px}
-
-    #legend{display:none}
-    #alerts{display:none}
-    #camhint{display:none}
-    #tourReplayMobile{display:none!important}
-
-    #whereami{top:auto;bottom:calc(70px + var(--m-safe-b));left:50%;transform:translateX(-50%);
-      font-size:11px;padding:6px 12px;max-width:calc(100vw - 24px);z-index:11}
-    body.m-panel-open #whereami{bottom:calc(min(58vh,520px) + 72px + var(--m-safe-b))}
-    #whereami .road{max-width:36vw;overflow:hidden;text-overflow:ellipsis}
-    #drivetimes{bottom:calc(118px + var(--m-safe-b));left:8px;right:8px;transform:none;
-      max-width:none;justify-content:flex-start;overflow-x:auto;gap:6px;z-index:10;
-      padding-bottom:2px;-webkit-overflow-scrolling:touch}
-    body.m-panel-open #drivetimes{opacity:0;pointer-events:none}
-    .dtchip{padding:6px 10px}
-    .dtchip .tm{font-size:13px}
-    #compass{top:max(10px,var(--m-safe-t));right:max(10px,var(--m-safe-r));left:auto;
-      transform:none;width:44px;height:44px;z-index:11}
-    #locBtn{display:none}
-    #followChip{top:auto;bottom:calc(118px + var(--m-safe-b));left:50%;transform:translateX(-50%);z-index:11}
-    body.m-panel-open #followChip{bottom:calc(min(58vh,520px) + 80px + var(--m-safe-b))}
-    #geoToast{bottom:calc(78px + var(--m-safe-b));left:max(10px,var(--m-safe-l));right:max(10px,var(--m-safe-r));
-      transform:none;max-width:none;flex-wrap:wrap}
-    #geoToast button{min-height:40px;padding:8px 14px}
-
-    /* Tour: bottom sheet on phones */
+    #panel::before{content:"";display:block;width:40px;height:4px;border-radius:99px;
+      background:#3a4450;margin:2px auto 8px}
+    #mTabs{display:flex;gap:6px;position:sticky;top:0;z-index:2;background:var(--panel);
+      padding:0 0 10px;margin:0 0 4px;border-bottom:1px solid #1d232a}
+    #mTabs button{flex:1;min-height:40px;border-radius:10px;border:1px solid #2a3340;
+      background:#141a22;color:#aeb7c0;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}
+    #mTabs button.on{background:#163024;border-color:#2c5c3f;color:#7fd6a0}
+    #panel .grp{display:none;margin-bottom:14px}
+    body.m-tab-go #tourLocGrp{display:block}
+    body.m-tab-live #tourFlightGrp,
+    body.m-tab-live #tourBoardGrp{display:block}
+    body.m-tab-more #tourTimeGrp,
+    body.m-tab-more #tourWxGrp,
+    body.m-tab-more #tourHazGrp,
+    body.m-tab-more #tourVolGrp,
+    body.m-tab-more #tourReplayGrp{display:block}
+    .btn{min-height:44px;padding:11px 8px;font-size:13px}
+    select{min-height:46px;font-size:16px;padding:11px 10px} /* 16px avoids iOS zoom */
+    #flights,#aptBoard{max-height:32vh}
+    #geoToast{bottom:calc(var(--m-dock-h) + 12px + var(--m-safe-b));
+      left:max(10px,var(--m-safe-l));right:max(10px,var(--m-safe-r));
+      transform:none;max-width:none;flex-wrap:wrap;z-index:17}
+    #geoToast button{min-height:42px;padding:8px 14px}
+    #poiCard{max-width:calc(100vw - 20px);left:10px!important;right:10px;width:auto;z-index:18}
     #tourCard{left:max(10px,var(--m-safe-l))!important;right:max(10px,var(--m-safe-r))!important;
-      top:auto!important;bottom:calc(72px + var(--m-safe-b))!important;width:auto!important;
-      transform:none!important;max-height:min(42vh,340px);overflow:auto;-webkit-overflow-scrolling:touch}
-    #tourSpot{border-radius:12px}
-    #tourCard .tourNav button{min-height:42px;padding:10px 16px;font-size:13px}
-    #poiCard{max-width:calc(100vw - 20px);left:10px!important;right:10px;width:auto}
+      top:auto!important;bottom:calc(var(--m-dock-h) + 12px + var(--m-safe-b))!important;width:auto!important;
+      transform:none!important;max-height:min(40vh,320px);overflow:auto;-webkit-overflow-scrolling:touch}
+    #tourCard .tourNav button{min-height:44px;padding:11px 16px;font-size:14px}
   }
-  @media (max-width:400px){
-    #sign h1{font-size:12.5px}
-    #mChrome .mFab{font-size:11px;padding:0 11px}
-    #mChrome .mFab span.mFabLbl{display:none}
+  @media (max-width:380px){
+    #mHudChip .mDesc{display:none}
+    #mChrome .mFab{font-size:9px}
   }
   /* rich-UI polish: everything eases, nothing snaps */
   #leftCol>#sign,#leftCol>#topCenter{animation:rise .5s ease both}
@@ -533,7 +529,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.7.2</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.2</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -597,6 +593,11 @@
 <div id="whereami"><svg class="pin" width="13" height="15" viewBox="0 0 24 28" fill="none"><path d="M12 1C6.5 1 2 5.4 2 10.8 2 18 12 27 12 27s10-9 10-16.2C22 5.4 17.5 1 12 1z" fill="#ff6b5e"/><circle cx="12" cy="10.6" r="4" fill="#0d1014"/></svg><span class="dist" id="waDist">Greater Houston</span><span class="road" id="waRoad">—</span></div>
 
 <div id="panel">
+  <div id="mTabs" role="tablist" aria-label="Control sections">
+    <button type="button" class="on" data-tab="go" role="tab">Go</button>
+    <button type="button" data-tab="live" role="tab">Live</button>
+    <button type="button" data-tab="more" role="tab">More</button>
+  </div>
   <div class="grp" id="tourLocGrp">
     <label>Fly to district</label>
     <select id="locSelect">
@@ -721,7 +722,7 @@
     <input type="range" id="timeSlider" min="0" max="1439" step="1" value="720">
     <div class="hint" id="timeHint">Presets & slider pause “Live”. Speed only applies off-live.</div>
   </div>
-  <div class="grp">
+  <div class="grp" id="tourWxGrp">
     <label>Weather</label>
     <select id="wxSelect">
       <option value="auto" selected>Auto — live local weather</option>
@@ -755,7 +756,7 @@
     <button type="button" class="btn" id="hazClear" style="width:100%;margin-top:6px">Clear prediction</button>
     <div id="hazStatus">No active hazard prediction. Pick a scenario to preview impacts on traffic &amp; the map.</div>
   </div>
-  <div class="grp">
+  <div class="grp" id="tourVolGrp">
     <label>Traffic volume</label>
     <div class="sublabel">How many simulated cars on freeways — Auto follows rush-hour patterns</div>
     <div class="btnrow" id="volBtns">
@@ -771,7 +772,7 @@
     <div id="flights"></div>
     <div id="flEmpty" style="display:none">Listening for live Houston ADS-B…</div>
   </div>
-  <div class="grp">
+  <div class="grp" id="tourBoardGrp">
     <label>Airport boards <span id="boardSrc" style="font-weight:400;color:var(--dim);font-size:9px"></span></label>
     <div class="sublabel">Houston airports only · live FlightAware departures &amp; arrivals</div>
     <div class="btnrow" id="boardAptBtns" style="margin-bottom:8px">
@@ -800,18 +801,40 @@
 
 <button id="locBtn" title="Go to my location"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12z" fill="#cfd8e0"/></svg></button>
 <button type="button" id="tourReplayMobile">Replay tour</button>
-<button type="button" id="mSheetScrim" aria-label="Close panels"></button>
-<div id="mChrome" aria-label="Mobile controls">
-  <button type="button" class="mFab" id="mTopFab" aria-expanded="false" aria-controls="leftCol">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-    <span class="mFabLbl">Status</span>
-  </button>
-  <button type="button" class="mFab" id="mLocFab" title="My location" aria-label="My location">
+<button type="button" id="mSheetScrim" aria-label="Close panel"></button>
+
+<div id="mHud" aria-label="Live status">
+  <div id="mHudChip">
+    <div>
+      <div class="mTime" id="mHudTime">--:--</div>
+      <div class="mPhase" id="mHudPhase">—</div>
+    </div>
+    <div class="mWx">
+      <div class="mTemp" id="mHudTemp">--°</div>
+      <div class="mDesc" id="mHudDesc">Houston</div>
+    </div>
+  </div>
+  <button type="button" id="mHudLoc" title="My location" aria-label="My location">
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12z" fill="currentColor"/></svg>
   </button>
-  <button type="button" class="mFab" id="mPanelFab" aria-expanded="false" aria-controls="panel">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="18" cy="17" r="2.2" fill="currentColor"/></svg>
-    <span class="mFabLbl">Controls</span>
+</div>
+
+<div id="mChrome" aria-label="Mobile dock">
+  <button type="button" class="mFab" id="mGoFab" data-tab="go" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s7-5.8 7-11a7 7 0 1 0-14 0c0 5.2 7 11 7 11z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.5" fill="currentColor"/></svg>
+    <span class="mFabLbl">Go</span>
+  </button>
+  <button type="button" class="mFab" id="mLiveFab" data-tab="live" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span class="mFabLbl">Live</span>
+  </button>
+  <button type="button" class="mFab" id="mMoreFab" data-tab="more" aria-expanded="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></svg>
+    <span class="mFabLbl">More</span>
+  </button>
+  <button type="button" class="mFab" id="mMapFab" aria-label="Close and view map">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7l5-2 6 2 5-2v14l-5 2-6-2-5 2V7z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    <span class="mFabLbl">Map</span>
   </button>
 </div>
 
@@ -854,7 +877,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.7.2 (0708-netlify-api). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.8.2 (0708-airplanes-live). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -3319,61 +3342,83 @@ window.FLIGHTS=[];
     /* Houston-ish bounding box */
     return {lamin:28.7,lamax:30.6,lomin:-96.6,lomax:-94.3};
   }
-  async function fetchLiveAir(){
-    /* Prefer adsb.lol (richer ADS-B, fewer 429s). Fall back to OpenSky. */
-    const radiusNm=75;
-    try{
-      const adUrl='/api/adsblol/v2/point/29.7604/-95.3698/'+radiusNm;
-      const r2=await fetch(adUrl,{cache:'no-store'});
-      if(r2.ok){
-        const j2=await r2.json();
-        const ac=Array.isArray(j2&&j2.ac)?j2.ac:[];
-        if(ac.length){
-          return {src:'adsb.lol',rows:ac.map(a=>{
-            const altFt=numOrNull(a.alt_baro)!=null?numOrNull(a.alt_baro):(numOrNull(a.alt_geom)!=null?numOrNull(a.alt_geom):null);
-            const gs=numOrNull(a.gs);
-            return {
-            icao24:String(a.hex||'').trim().toLowerCase(),
-            cs:cleanCS(a.flight||''),
-            country:'',
-            lon:numOrNull(a.lon),lat:numOrNull(a.lat),
-            altM:(altFt!=null?(altFt*0.3048):null),
-            altFt:altFt,
-            onGround:!!a.ground||String(a.alt_baro||'').toLowerCase()==='ground',
-            vel:(gs!=null?(gs/1.94384):null),
-            gsKts:gs!=null?Math.round(gs):null,
-            track:numOrNull(a.track),
-            vsFpm:numOrNull(a.baro_rate),
-            actype:a.t||null,
-            category:a.category||a.cat||null,
-            reg:a.r||null,
-            baroInHg:(numOrNull(a.nav_qnh)!=null?numOrNull(a.nav_qnh)*0.0295299830714:null),
-            _adsb:a,
-          };})};
-        }
-      }
-    }catch(e){}
-    const b=bbox();
-    const osUrl='/api/opensky/api/states/all?lamin='+b.lamin+'&lomin='+b.lomin+'&lamax='+b.lamax+'&lomax='+b.lomax;
-    const r=await fetch(osUrl,{cache:'no-store'});
-    if(!r.ok)throw new Error('OpenSky '+r.status);
-    const j=await r.json();
-    const states=Array.isArray(j&&j.states)?j.states:[];
-    return {src:'OpenSky',rows:states.map(s=>{
+  function mapAdsbLol(ac){
+    return (Array.isArray(ac)?ac:[]).map(a=>{
+      const altFt=numOrNull(a.alt_baro)!=null?numOrNull(a.alt_baro):(numOrNull(a.alt_geom)!=null?numOrNull(a.alt_geom):null);
+      const gs=numOrNull(a.gs);
+      return {
+        icao24:String(a.hex||'').trim().toLowerCase(),
+        cs:cleanCS(a.flight||''),
+        country:'',
+        lon:numOrNull(a.lon),lat:numOrNull(a.lat),
+        altM:(altFt!=null?(altFt*0.3048):null),
+        altFt:altFt,
+        onGround:!!a.ground||String(a.alt_baro||'').toLowerCase()==='ground',
+        vel:(gs!=null?(gs/1.94384):null),
+        gsKts:gs!=null?Math.round(gs):null,
+        track:numOrNull(a.track),
+        vsFpm:numOrNull(a.baro_rate),
+        actype:a.t||null,
+        category:a.category||a.cat||null,
+        reg:a.r||null,
+        baroInHg:(numOrNull(a.nav_qnh)!=null?numOrNull(a.nav_qnh)*0.0295299830714:null),
+        _adsb:a,
+      };
+    });
+  }
+  function mapOpenSky(states){
+    return (Array.isArray(states)?states:[]).map(s=>{
       const altM=numOrNull(s[7]);
       const vel=numOrNull(s[9]);
       return {
-      icao24:s[0],
-      cs:cleanCS(s[1]),
-      country:s[2],
-      lon:numOrNull(s[5]),lat:numOrNull(s[6]),
-      altM:altM,
-      altFt:altM!=null?Math.round(altM*3.28084):null,
-      onGround:!!s[8],
-      vel:vel,
-      gsKts:vel!=null?Math.round(vel*1.94384):null,
-      track:numOrNull(s[10]),
-    };})};
+        icao24:s[0],
+        cs:cleanCS(s[1]),
+        country:s[2],
+        lon:numOrNull(s[5]),lat:numOrNull(s[6]),
+        altM:altM,
+        altFt:altM!=null?Math.round(altM*3.28084):null,
+        onGround:!!s[8],
+        vel:vel,
+        gsKts:vel!=null?Math.round(vel*1.94384):null,
+        track:numOrNull(s[10]),
+      };
+    });
+  }
+  async function tryJson(urls){
+    let lastErr='';
+    for(const url of urls){
+      try{
+        const r=await fetch(url,{cache:'no-store',mode:'cors'});
+        if(!r.ok){lastErr=url+' → '+r.status;continue;}
+        return await r.json();
+      }catch(e){lastErr=String(e&&e.message?e.message:e);}
+    }
+    throw new Error(lastErr||'feed unreachable');
+  }
+  async function fetchLiveAir(){
+    /* Production: call public ADS-B hosts directly (CORS). Prefer airplanes.live —
+       adsb.lol / OpenSky often 429 from shared Netlify egress IPs. */
+    const radiusNm=75;
+    const local=typeof isLocalDevHost==='function'?isLocalDevHost():/localhost|127\.0\.0\.1/.test(location.hostname);
+    const pointPath='/v2/point/29.7604/-95.3698/'+radiusNm;
+    const adHosts=[
+      {src:'airplanes.live', direct:'https://api.airplanes.live'+pointPath, proxy:'/api/airplanes'+pointPath},
+      {src:'adsb.lol', direct:'https://api.adsb.lol'+pointPath, proxy:'/api/adsblol'+pointPath},
+    ];
+    for(const h of adHosts){
+      try{
+        const urls=local?[h.proxy,h.direct]:[h.direct,h.proxy];
+        const j2=await tryJson(urls);
+        const rows=mapAdsbLol(j2&&j2.ac);
+        if(rows.length)return {src:h.src,rows};
+      }catch(e){}
+    }
+    const b=bbox();
+    const qs='lamin='+b.lamin+'&lomin='+b.lomin+'&lamax='+b.lamax+'&lomax='+b.lomax;
+    const osDirect='https://opensky-network.org/api/states/all?'+qs;
+    const osProxy='/api/opensky/api/states/all?'+qs;
+    const j=await tryJson(local?[osProxy,osDirect]:[osDirect,osProxy]);
+    return {src:'OpenSky',rows:mapOpenSky(j&&j.states)};
   }
   async function fetchAeroAPI(callsign){
     const cs=cleanCS(callsign);
@@ -3386,11 +3431,24 @@ window.FLIGHTS=[];
   async function fetchAdsbLol(callsign,icao24){
     const cs=cleanCS(callsign);
     const urls=[];
-    if(cs)urls.push('/api/adsblol/v2/callsign/'+encodeURIComponent(cs));
-    if(icao24)urls.push('/api/adsblol/v2/hex/'+encodeURIComponent(icao24));
+    function add(host,path){
+      urls.push(host+path);
+      if(host.includes('airplanes.live'))urls.push('/api/airplanes'+path);
+      else if(host.includes('adsb.lol'))urls.push('/api/adsblol'+path);
+    }
+    if(cs){
+      const p='/v2/callsign/'+encodeURIComponent(cs);
+      add('https://api.airplanes.live',p);
+      add('https://api.adsb.lol',p);
+    }
+    if(icao24){
+      const p='/v2/hex/'+encodeURIComponent(icao24);
+      add('https://api.airplanes.live',p);
+      add('https://api.adsb.lol',p);
+    }
     for(const url of urls){
       try{
-        const r=await fetch(url,{cache:'no-store'});
+        const r=await fetch(url,{cache:'no-store',mode:'cors'});
         if(!r.ok)continue;
         const j=await r.json();
         const ac=(j&&j.ac&&j.ac[0])||null;
@@ -5441,7 +5499,8 @@ function updateUserMarker(){
     userDot.position.set(userWorld.x,42,userWorld.z);
     userHalo.position.set(userWorld.x,40,userWorld.z);
     document.getElementById('locBtn').classList.add('active');
-    const mLoc=document.getElementById('mLocFab');if(mLoc)mLoc.classList.add('on');
+    const mLoc=document.getElementById('mHudLoc');if(mLoc)mLoc.classList.add('on');
+    const mLocOld=document.getElementById('mLocFab');if(mLocOld)mLocOld.classList.add('on');
   }
 }
 function requestGeo(cb){
@@ -7609,6 +7668,8 @@ function updateHUD(nightF){
   const hh=Math.floor(simH),mm=Math.floor((simH-hh)*60);
   const h12=((hh+11)%12)+1,ap=hh<12?'AM':'PM';
   $('clock').textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
+  const mTime=$('mHudTime');if(mTime)mTime.textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
+  const mPhase=$('mHudPhase');if(mPhase)mPhase.textContent=$('phase')?$('phase').textContent:'';
   $('phase').textContent=phaseLabel(simH)+(liveMode?' · LIVE':' · FORECAST');
   const now=new Date();
   $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'America/Chicago'})+(weekend?' · weekend pattern':' · weekday pattern');
@@ -7627,6 +7688,8 @@ function updateHUD(nightF){
   const windDir=useLive?(wxSrc.windDir!=null?wxSrc.windDir:liveWx.windDir):0;
   $('wxTemp').textContent=temp+'°';
   $('wxDesc').textContent=(wxMode==='auto'&&useLive)?(wxSrc.label||wxDesc):wxDesc;
+  const mTemp=$('mHudTemp');if(mTemp)mTemp.textContent=temp+'°';
+  const mDesc=$('mHudDesc');if(mDesc)mDesc.textContent=$('wxDesc').textContent;
   $('wxFeels').textContent='feels like '+feels+'°';
   $('wxHum').textContent=hum+'%';
   $('wxWind').textContent=useLive?(wxSrc.wind+' '+windArrow(windDir)):(6+Math.round(6*wxBlend.cloud))+' mph';
@@ -8249,63 +8312,73 @@ setTimeout(()=>{
   setTimeout(()=>{try{l.remove();}catch(e){} fireHtsReady();},550);
 },800);
 
-/* ==================== Mobile chrome (sheets) ==================== */
+/* ==================== Mobile chrome (map-first dock) ==================== */
 (function setupMobileChrome(){
   const mq=window.matchMedia('(max-width:680px)');
-  const topFab=$('mTopFab');
-  const panelFab=$('mPanelFab');
-  const locFab=$('mLocFab');
-  const scrim=$('mSheetScrim');
-  if(!topFab||!panelFab)return;
+  const goFab=$('mGoFab'), liveFab=$('mLiveFab'), moreFab=$('mMoreFab'), mapFab=$('mMapFab');
+  const hudLoc=$('mHudLoc'), scrim=$('mSheetScrim'), tabs=$('mTabs');
+  if(!goFab||!liveFab||!moreFab)return;
+  let activeTab='go';
   function isMobile(){return mq.matches;}
-  function syncFabs(){
-    const topOpen=document.body.classList.contains('m-top-open');
-    const panelOpen=document.body.classList.contains('m-panel-open');
-    topFab.classList.toggle('on',topOpen);
-    panelFab.classList.toggle('on',panelOpen);
-    topFab.setAttribute('aria-expanded',topOpen?'true':'false');
-    panelFab.setAttribute('aria-expanded',panelOpen?'true':'false');
-    document.body.classList.toggle('m-sheet-open',topOpen||panelOpen);
-  }
-  function closeSheets(){
-    document.body.classList.remove('m-top-open','m-panel-open','m-sheet-open');
-    syncFabs();
-  }
-  function openTop(only){
-    if(only)document.body.classList.remove('m-panel-open');
-    document.body.classList.add('m-top-open');
-    syncFabs();
-  }
-  function openPanel(only){
-    if(only)document.body.classList.remove('m-top-open');
-    document.body.classList.add('m-panel-open');
-    syncFabs();
+  function setTab(tab){
+    activeTab=tab||'go';
+    document.body.classList.remove('m-tab-go','m-tab-live','m-tab-more');
+    document.body.classList.add('m-tab-'+activeTab);
+    [goFab,liveFab,moreFab].forEach(btn=>{
+      const on=btn.dataset.tab===activeTab && document.body.classList.contains('m-panel-open');
+      btn.classList.toggle('on',on);
+      btn.setAttribute('aria-expanded',on?'true':'false');
+    });
+    if(tabs)tabs.querySelectorAll('button').forEach(b=>{
+      b.classList.toggle('on',b.dataset.tab===activeTab);
+    });
     const panel=$('panel');
     if(panel)panel.scrollTop=0;
   }
-  window.htsMobile={isMobile,openTop,openPanel,closeSheets,syncFabs};
-  topFab.addEventListener('click',()=>{
+  function syncFabs(){
+    const open=document.body.classList.contains('m-panel-open');
+    document.body.classList.toggle('m-sheet-open',open);
+    setTab(activeTab);
+  }
+  function closeSheets(){
+    document.body.classList.remove('m-panel-open','m-sheet-open','m-top-open');
+    [goFab,liveFab,moreFab].forEach(b=>{b.classList.remove('on');b.setAttribute('aria-expanded','false');});
+  }
+  function openPanel(tab){
+    if(tab)activeTab=tab;
+    document.body.classList.add('m-panel-open');
+    syncFabs();
+  }
+  function openTop(){openPanel('more');}
+  window.htsMobile={isMobile,openTop,openPanel:(t)=>openPanel(typeof t==='string'?t:(t===true?'go':'go')),closeSheets,syncFabs,setTab};
+  /* Compat for tour: openPanel(true) meant open controls */
+  window.htsMobile.openPanel=function(arg){
+    if(arg===true||arg===false||arg==null)openPanel(activeTab||'go');
+    else openPanel(String(arg));
+  };
+  function toggleTab(tab){
     if(!isMobile())return;
-    if(document.body.classList.contains('m-top-open'))closeSheets();
-    else openTop(true);
-  });
-  panelFab.addEventListener('click',()=>{
-    if(!isMobile())return;
-    if(document.body.classList.contains('m-panel-open'))closeSheets();
-    else openPanel(true);
-  });
+    if(document.body.classList.contains('m-panel-open')&&activeTab===tab)closeSheets();
+    else openPanel(tab);
+  }
+  goFab.addEventListener('click',()=>toggleTab('go'));
+  liveFab.addEventListener('click',()=>toggleTab('live'));
+  moreFab.addEventListener('click',()=>toggleTab('more'));
+  if(mapFab)mapFab.addEventListener('click',()=>closeSheets());
   if(scrim)scrim.addEventListener('click',closeSheets);
-  if(locFab)locFab.addEventListener('click',()=>{const btn=$('locBtn');if(btn)btn.click();});
-  mq.addEventListener('change',()=>{if(!mq.matches)closeSheets();});
-  const sign=$('sign');
-  if(sign)sign.addEventListener('click',(e)=>{
-    if(!isMobile())return;
-    if(e.target.closest('a,button,select,input'))return;
-    if(document.body.classList.contains('m-top-open'))closeSheets();
-    else openTop(true);
+  if(hudLoc)hudLoc.addEventListener('click',()=>{const btn=$('locBtn');if(btn)btn.click();});
+  if(tabs)tabs.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{openPanel(b.dataset.tab||'go');});
   });
+  mq.addEventListener('change',()=>{
+    if(!mq.matches){
+      closeSheets();
+      document.body.classList.remove('m-tab-go','m-tab-live','m-tab-more');
+      document.querySelectorAll('#panel .grp').forEach(g=>{g.style.display='';});
+    }else setTab(activeTab);
+  });
+  if(isMobile())setTab('go');
 })();
-
 /* ==================== First-visit guided tour ==================== */
 (function setupTour(){
   const KEY='houstonSim.tour.v1';
@@ -8326,13 +8399,13 @@ setTimeout(()=>{
   const mobileMq=window.matchMedia('(max-width:680px)');
   let idx=0,activeEl=null,running=false;
   const STEPS=[
-    {sel:'#sign',title:'Welcome to Space City',body:'This is a living 3D Houston metro. On a phone: one finger rotates, pinch zooms, two fingers pan. Use Status and Controls at the bottom.'},
-    {sel:'#sign',mobileOpen:'top',title:'Live clock and weather',body:'Tap Status (or the green sign) for Houston time and Open-Meteo conditions. Expand it anytime for humidity, wind, and more.'},
-    {sel:'#legend',fallback:'#mPanelFab',mobileOpen:'panel',mobileSel:'#volBtns',title:'Traffic at a glance',body:'Freeway colors show speed. Open Controls to change traffic volume, or watch the drive time chips above the bottom bar.'},
-    {sel:'#whereami',fallback:'#mLocFab',title:'Where you are looking',body:'This pill tracks the district and road under the camera. The locate button drops a you are here marker when location is allowed.'},
-    {sel:'#tourLocGrp',mobileOpen:'panel',title:'Fly anywhere',body:'Open Controls, then jump to neighborhoods, airports, schools, and landmarks. Pick a place and the camera flies there.'},
-    {sel:'#tourTimeGrp',mobileOpen:'panel',title:'Time and sky',body:'Stay on Live Houston time, or scrub dawn to night. Weather can follow the real sky or lock to a preset like rain or storm.'},
-    {sel:'#tourFlightGrp',mobileOpen:'panel',title:'Flights and what ifs',body:'Track live ADS-B aircraft and airport boards. Hazard predictions are educational overlays, not official alerts. Replay this tour from Controls anytime.'}
+    {sel:'#sign',mobileSel:'#mHud',fallback:'#scene',title:'Welcome to Space City',body:'This is a living 3D Houston metro. One finger rotates, pinch zooms, two fingers pan. The map stays open so you can explore.'},
+    {sel:'#sign',mobileSel:'#mHudChip',fallback:'#whereami',title:'Live clock and weather',body:'Time and Houston weather stay on screen. On a phone, tap the locate button to drop a you are here marker.'},
+    {sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',title:'Go anywhere',body:'Open Go (or use the side panel), then pick a district, airport, or landmark. The camera flies there.'},
+    {sel:'#whereami',fallback:'#mHudLoc',title:'Where you are looking',body:'This pill tracks the district and road under the camera as you move around.'},
+    {sel:'#tourFlightGrp',mobileOpen:'live',mobileSel:'#mLiveFab',title:'Live flights',body:'Open Live for aircraft in the sky and airport boards. Find a plane, then jump to it.'},
+    {sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',title:'Time, weather, hazards',body:'Open More for time of day, sky presets, traffic volume, and hazard overlays.'},
+    {sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',title:'Back to the map',body:'On a phone, tap Map anytime to close the sheet and keep exploring. Pinch and drag freely.'}
   ];
   function isMobile(){return mobileMq.matches;}
   function done(){try{localStorage.setItem(KEY,'1');}catch(e){} finish(true);}
@@ -8345,8 +8418,7 @@ setTimeout(()=>{
   }
   function prepareStep(step){
     if(!isMobile()||!window.htsMobile)return;
-    if(step.mobileOpen==='top')window.htsMobile.openTop(true);
-    else if(step.mobileOpen==='panel')window.htsMobile.openPanel(true);
+    if(step.mobileOpen)window.htsMobile.openPanel(step.mobileOpen);
     else window.htsMobile.closeSheets();
   }
   function resolveTarget(step){
@@ -8384,7 +8456,7 @@ setTimeout(()=>{
         spot.style.display='block';
         spot.style.top=(r.top-m)+'px';spot.style.left=(r.left-m)+'px';
         spot.style.width=Math.max(24,r.width+m*2)+'px';spot.style.height=Math.max(24,r.height+m*2)+'px';
-        spot.style.borderRadius=(el.id==='whereami'||el.id==='locBtn'||el.id==='mLocFab')?'999px':'14px';
+        spot.style.borderRadius=(el.id==='whereami'||el.id==='locBtn'||el.id==='mHudLoc')?'999px':'14px';
         placeCard(r);
       }else{spot.style.display='none';placeCard({left:0,top:0,bottom:0,right:0,width:0,height:0});}
       kickerEl.textContent='Quick tour';titleEl.textContent=step.title;bodyEl.textContent=step.body;
@@ -8417,6 +8489,7 @@ setTimeout(()=>{
   if(panel&&!document.getElementById('tourReplayPanel')){
     const wrap=document.createElement('div');
     wrap.className='grp';
+    wrap.id='tourReplayGrp';
     wrap.innerHTML='<button type="button" class="btn" id="tourReplayPanel" style="width:100%">Replay quick tour</button>';
     panel.appendChild(wrap);
     $('tourReplayPanel').addEventListener('click',()=>start(true));

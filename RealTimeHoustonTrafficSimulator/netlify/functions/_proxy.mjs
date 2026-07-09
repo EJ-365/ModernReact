@@ -1,4 +1,5 @@
 /** Shared proxy helper for Netlify Functions (Node 18+). */
+
 function buildQuery(event) {
   if (event.rawQuery) return event.rawQuery;
   if (event.rawQueryString) return event.rawQueryString;
@@ -15,6 +16,9 @@ function buildQuery(event) {
 
 function stripPath(path, stripPrefixes) {
   let p = path || "/";
+  try {
+    if (/^https?:\/\//i.test(p)) p = new URL(p).pathname;
+  } catch (_) {}
   for (const prefix of stripPrefixes) {
     if (p === prefix || p.startsWith(prefix + "/")) {
       p = p.slice(prefix.length);
@@ -22,6 +26,23 @@ function stripPath(path, stripPrefixes) {
     }
   }
   return p.replace(/^\/+/, "");
+}
+
+/** Prefer original browser path (Netlify rewrite keeps event.path as the public URL). */
+function resolveIncomingPath(event, stripPrefixes) {
+  const candidates = [
+    event.path,
+    event.rawPath,
+    event.headers && (event.headers["x-forwarded-path"] || event.headers["X-Forwarded-Path"]),
+    event.headers && (event.headers["x-original-url"] || event.headers["X-Original-Url"]),
+    event.rawUrl,
+  ].filter(Boolean);
+
+  for (const c of candidates) {
+    const stripped = stripPath(String(c), stripPrefixes);
+    if (stripped) return stripped;
+  }
+  return "";
 }
 
 export async function proxyRequest(event, {
@@ -63,7 +84,19 @@ export async function proxyRequest(event, {
     };
   }
 
-  const path = stripPath(event.path || "/", stripPrefixes);
+  const path = resolveIncomingPath(event, stripPrefixes);
+  if (!path) {
+    return {
+      statusCode: 400,
+      headers: headersOut,
+      body: JSON.stringify({
+        error: "missing_upstream_path",
+        hint: "Request must look like /api/flightaware/aeroapi/...",
+        debug: { path: event.path, rawUrl: event.rawUrl || null },
+      }),
+    };
+  }
+
   const qs = buildQuery(event);
   const target = `${upstreamOrigin.replace(/\/$/, "")}/${path}${qs ? `?${qs}` : ""}`;
 

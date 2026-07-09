@@ -1,4 +1,5 @@
-# Netlify: Vite static site + serverless API proxies
+# Netlify: Vite static site + API proxies
+# Base directory in Netlify UI must be: RealTimeHoustonTrafficSimulator
 [build]
   command = "npm run build"
   publish = "dist"
@@ -6,53 +7,46 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["netlify/functions/**"]
 
-# ——— Authenticated / CORS proxies (serverless) ———
+# ——— Public feeds: edge rewrite (no function, no key) ———
+# These mirror Vite's /api/* proxies. Prefer edge over functions so
+# path/query forwarding stays reliable on Netlify.
 [[redirects]]
-  from = "/api/flightaware/*"
-  to = "/.netlify/functions/flightaware/:splat"
+  from = "/api/airplanes/*"
+  to = "https://api.airplanes.live/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/adsblol/*"
-  to = "/.netlify/functions/adsblol/:splat"
+  to = "https://api.adsb.lol/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/opensky/*"
-  to = "/.netlify/functions/opensky/:splat"
+  to = "https://opensky-network.org/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/adsbdb/*"
-  to = "/.netlify/functions/adsbdb/:splat"
+  to = "https://api.adsbdb.com/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/hexdb/*"
-  to = "/.netlify/functions/hexdb/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/tomtom/*"
-  to = "/.netlify/functions/tomtom/:splat"
+  to = "https://hexdb.io/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/transtar/*"
-  to = "/.netlify/functions/transtar/:splat"
+  to = "https://traffic.houstontranstar.org/:splat"
   status = 200
   force = true
 
-# Open-Meteo / Nominatim: browser can call them directly (CORS).
-# Keep edge rewrites as a fallback for older clients.
 [[redirects]]
   from = "/api/openmeteo/*"
   to = "https://api.open-meteo.com/:splat"
@@ -62,6 +56,19 @@
 [[redirects]]
   from = "/api/nominatim/*"
   to = "https://nominatim.openstreetmap.org/:splat"
+  status = 200
+  force = true
+
+# ——— Authenticated proxies (serverless injects secrets) ———
+[[redirects]]
+  from = "/api/flightaware/*"
+  to = "/.netlify/functions/flightaware"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/tomtom/*"
+  to = "/.netlify/functions/tomtom"
   status = 200
   force = true
 

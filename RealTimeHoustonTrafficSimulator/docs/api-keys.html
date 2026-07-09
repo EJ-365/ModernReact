@@ -63,13 +63,15 @@ TOMTOM_API_KEY=
     </ul>
 
     <h2>Netlify production</h2>
-    <p>Local <code>npm run dev</code> uses Vite proxies. On Netlify, serverless functions under <code>netlify/functions/</code> proxy the same <code>/api/*</code> paths.</p>
+    <p>Public feeds (ADS-B, OpenSky, weather, TranStar) use Netlify edge rewrites. Only FlightAware and TomTom need serverless functions so keys stay server-side.</p>
     <ol>
       <li>Site settings → <strong>Environment variables</strong></li>
       <li>Add <code>FLIGHTAWARE_API_KEY</code> (required for airport boards)</li>
       <li>Optional: <code>TOMTOM_API_KEY</code></li>
       <li><strong>Clear cache and deploy site</strong> (or push a new commit)</li>
+      <li>After deploy, hard-refresh <code>/app.html</code> (service worker cache bumps each release)</li>
     </ol>
+    <p>Live planes in the sky do <strong>not</strong> need a FlightAware key. Boards (IAH/HOU departures) do.</p>
     <p>Never put these keys in client code or a <code>VITE_</code> variable.</p>
 
     <h2>Security</h2>
