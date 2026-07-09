@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desktop packaging — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/desktop.html" aria-current="page">Desktop</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/download.html">Download</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/getting-started.html">Getting started</a>
+  <a href="/docs/architecture.html">Architecture</a>
+  <a href="/docs/desktop.html">Desktop packaging</a>
+  <a href="/download.html">Download page</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a href="/docs/">Overview</a>
+    <a href="/docs/getting-started.html">Getting started</a>
+    <a href="/docs/architecture.html">Architecture</a>
+    <a href="/docs/api-keys.html">API keys</a>
+    <a class="on" href="/docs/desktop.html">Desktop packaging</a>
+    <a href="/docs/ci.html">CI &amp; updates</a>
+    <a href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Ship it</p>
+    <h1>Desktop packaging</h1>
+    <p class="lead">Two paths: a portable Windows zip for demos, or an Electron shell for a true standalone .exe.</p>
+
+    <h2>Quick Windows zip (included script)</h2>
+    <pre><code>npm run build
+npm run package:win</code></pre>
+    <p>Writes <code>downloads/HoustonTrafficSimulator-Setup-win-x64.zip</code> containing the static <code>dist/</code> build plus a README launcher guide. Host that zip at the Download page URL.</p>
+
+    <h2>What’s in the zip</h2>
+    <ul>
+      <li>Production static site (<code>index.html</code>, <code>app.html</code>, assets)</li>
+      <li><code>README-DESKTOP.txt</code> — how to open locally</li>
+      <li>Note: live API proxies need a tiny local server (<code>npx serve</code> won’t proxy keys; use <code>npm run preview</code> or Electron)</li>
+    </ul>
+
+    <h2>Electron (optional)</h2>
+    <pre><code>npm install --save-dev electron electron-builder
+# add main process that loads http://localhost:5176/app.html in dev
+# or loads file:// dist/app.html / custom static server in prod
+npm run dist:win   # after you wire electron-builder</code></pre>
+    <p>For classroom kiosks, prefer Electron + a local proxy so TranStar/FlightAware keep working offline-from-browser but online-to-APIs.</p>
+
+    <h2>Web install (no download)</h2>
+    <p>Most users should use <a href="/download.html">Install web app</a> — zero packaging, always current.</p>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

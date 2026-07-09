@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API keys — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/api-keys.html" aria-current="page">API keys</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/getting-started.html">Getting started</a>
+  <a href="/docs/architecture.html">Architecture</a>
+  <a href="/docs/api-keys.html">API keys</a>
+  <a href="/docs/desktop.html">Desktop</a>
+  <a href="/docs/ci.html">CI &amp; updates</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a href="/docs/">Overview</a>
+    <a href="/docs/getting-started.html">Getting started</a>
+    <a href="/docs/architecture.html">Architecture</a>
+    <a class="on" href="/docs/api-keys.html">API keys</a>
+    <a href="/docs/desktop.html">Desktop packaging</a>
+    <a href="/docs/ci.html">CI &amp; updates</a>
+    <a href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Configuration</p>
+    <h1>API keys</h1>
+    <p class="lead">Most of the sim runs without secrets. Keys unlock richer live boards and flow.</p>
+
+    <h2>Environment file</h2>
+    <pre><code># .env.local (never commit)
+FLIGHTAWARE_API_KEY=
+TOMTOM_API_KEY=
+# Optional TranStar authenticated JSON endpoints:
+# TRANSTAR_SPEED_URL=
+# TRANSTAR_INCIDENT_URL=
+# TRANSTAR_CLOSURE_URL=</code></pre>
+
+    <h2>What needs a key?</h2>
+    <ul>
+      <li><strong>Open-Meteo weather</strong> — no key</li>
+      <li><strong>TranStar public RSS</strong> — no key</li>
+      <li><strong>ADS-B / OpenSky</strong> — no key (rate limits apply)</li>
+      <li><strong>FlightAware AeroAPI</strong> — airport boards + route enrichment</li>
+      <li><strong>TomTom Traffic</strong> — optional flow / incident fill-in</li>
+    </ul>
+
+    <h2>Security</h2>
+    <p>Vite injects keys only in server middleware. Do not prefix traffic secrets with <code>VITE_</code> or they will leak into the client bundle.</p>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

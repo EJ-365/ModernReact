@@ -1,0 +1,33 @@
+{
+  "name": "Houston Traffic Simulator",
+  "short_name": "Houston Sim",
+  "description": "Live 3D city traffic simulator. Houston now; LA, NYC, Austin, San Antonio, Boston and more coming. Created by Ejay Gabriel.",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0e14",
+  "theme_color": "#0a0e14",
+  "lang": "en-US",
+  "categories": ["navigation", "education", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

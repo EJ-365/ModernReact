@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Houston Traffic Simulator">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="55%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#07101c"/>
+  <rect x="10" y="10" width="108" height="108" rx="22" fill="url(#g)" opacity="0.95"/>
+  <rect x="28" y="28" width="72" height="72" rx="16" fill="#07101c"/>
+  <rect x="40" y="70" width="48" height="10" rx="5" fill="#334155"/>
+  <rect x="44" y="74" width="8" height="2" fill="#fbbf24"/>
+  <rect x="58" y="74" width="8" height="2" fill="#fbbf24"/>
+  <rect x="72" y="74" width="8" height="2" fill="#fbbf24"/>
+  <path d="M48 62h8v18h-8zM60 48h10v32h-10zM78 56h8v24h-8z" fill="#2dd4bf" opacity="0.9"/>
+  <circle cx="52" cy="74" r="3" fill="#fb7185"/>
+  <circle cx="76" cy="74" r="3" fill="#2dd4bf"/>
+</svg>

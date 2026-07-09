@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/architecture.html" aria-current="page">Architecture</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/getting-started.html">Getting started</a>
+  <a href="/docs/architecture.html">Architecture</a>
+  <a href="/docs/api-keys.html">API keys</a>
+  <a href="/docs/desktop.html">Desktop</a>
+  <a href="/docs/ci.html">CI &amp; updates</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a href="/docs/">Overview</a>
+    <a href="/docs/getting-started.html">Getting started</a>
+    <a class="on" href="/docs/architecture.html">Architecture</a>
+    <a href="/docs/api-keys.html">API keys</a>
+    <a href="/docs/desktop.html">Desktop packaging</a>
+    <a href="/docs/ci.html">CI &amp; updates</a>
+    <a href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Internals</p>
+    <h1>Architecture</h1>
+    <p class="lead">Two surfaces share one Vite app: a marketing shell and a monolithic Three.js simulator.</p>
+
+    <h2>Surfaces</h2>
+    <ul>
+      <li><strong>Marketing</strong> — <code>index.html</code>, <code>about.html</code>, <code>download.html</code>, <code>docs/*</code> styled by <code>public/site/</code>.</li>
+      <li><strong>Simulator</strong> — <code>app.html</code> (legacy monolithic scene graph, vehicles, weather, hazards, flights).</li>
+    </ul>
+
+    <h2>Runtime loop (simulator)</h2>
+    <pre><code>frame(now)
+  ├─ time / weather blend (Open-Meteo)
+  ├─ trafficTick → congestion colors
+  ├─ moveVehicles + signals / floods / hazards
+  ├─ flights + crowds + hotspot rings
+  └─ render Three.js scene</code></pre>
+
+    <h2>Live data path</h2>
+    <p>Browser calls same-origin <code>/api/*</code>. Vite middlewares/proxies attach secrets and forward to TranStar, TomTom, FlightAware, Open-Meteo, ADS-B providers. Keys never ship to the client bundle.</p>
+
+    <h2>Hazard system</h2>
+    <p><code>window.HAZARD</code> toggles educational overlays. Flood mode paints <code>FLOOD_CERTAIN</code> footprints + bayou ribbons. Nuclear mode scales rings from <code>NUK_YIELDS</code> (1 kt → 1 Mt).</p>
+
+    <h2>PWA</h2>
+    <p><code>manifest.webmanifest</code> + <code>sw.js</code> cache the marketing shell and <code>app.html</code> for installable / offline-tolerant launches. API routes are never cached.</p>
+
+    <h2>CI</h2>
+    <p>GitHub Actions (<code>.github/workflows/ci.yml</code>) builds on every push/PR. See <a href="/docs/ci.html">CI &amp; updates</a>. The project is updated often; green CI is the gate for shipping.</p>
+
+    <h2>Coordinate system</h2>
+    <p>World units anchored at Downtown Houston (<code>29.7604, -95.3698</code>) with <code>UNITS_PER_MILE = 210</code>. <code>geoToWorld</code> / <code>worldToGeo</code> convert landmarks and live aircraft.</p>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

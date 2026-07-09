@@ -1,0 +1,31 @@
+.page-docs .docs-layout{
+  display:grid;grid-template-columns:220px 1fr;gap:28px;max-width:1100px;margin:0 auto;
+  padding:32px clamp(16px,4vw,40px) 72px;
+}
+.docs-side{position:sticky;top:84px;align-self:start;display:flex;flex-direction:column;gap:6px}
+.docs-kicker{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
+.docs-side a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;padding:8px 10px;border-radius:10px}
+.docs-side a:hover,.docs-side a.on{background:rgba(255,255,255,.05);color:var(--ink);text-decoration:none}
+.docs-body h1{font-family:var(--display);font-size:clamp(32px,5vw,48px);margin:0 0 12px;letter-spacing:-.02em}
+.docs-body .lead{color:var(--muted);font-size:17px;max-width:58ch}
+.docs-body h2{font-family:var(--display);font-size:24px;margin:36px 0 12px}
+.docs-body p,.docs-body li{color:var(--muted);font-size:15px}
+.docs-body a{font-weight:600}
+.docs-body pre{
+  background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:16px;padding:16px 18px;
+  overflow:auto;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;line-height:1.55;color:#d7e2ea;
+}
+.docs-body code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;
+  background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px}
+.docs-body pre code{background:transparent;padding:0}
+.docs-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:28px 0}
+.docs-card{display:block;padding:18px;border-radius:18px;background:var(--panel);border:1px solid var(--line);
+  color:inherit;text-decoration:none;transition:border-color .15s,transform .15s}
+.docs-card:hover{border-color:rgba(45,212,191,.4);transform:translateY(-2px);text-decoration:none}
+.docs-card h3{margin:0 0 6px;font-size:16px;color:var(--ink)}
+.docs-card p{margin:0;font-size:13px}
+@media(max-width:800px){
+  .page-docs .docs-layout{grid-template-columns:1fr}
+  .docs-side{position:static;flex-direction:row;flex-wrap:wrap}
+  .docs-cards{grid-template-columns:1fr}
+}

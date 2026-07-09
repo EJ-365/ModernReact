@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CI &amp; continuous updates — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/ci.html" aria-current="page">CI</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/getting-started.html">Getting started</a>
+  <a href="/docs/ci.html">CI &amp; updates</a>
+  <a href="/docs/contributing.html">Contributing</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a href="/docs/">Overview</a>
+    <a href="/docs/getting-started.html">Getting started</a>
+    <a href="/docs/architecture.html">Architecture</a>
+    <a href="/docs/api-keys.html">API keys</a>
+    <a href="/docs/desktop.html">Desktop packaging</a>
+    <a class="on" href="/docs/ci.html">CI &amp; updates</a>
+    <a href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Shipping</p>
+    <h1>Continuous integration &amp; updates</h1>
+    <p class="lead">This software is updated often. Every push and pull request runs automated checks so the marketing site, simulator, and packages stay shippable — created by <strong>Ejay Gabriel</strong>.</p>
+
+    <h2>What CI does</h2>
+    <ul>
+      <li>Installs dependencies with <code>npm ci</code></li>
+      <li>Verifies required pages and PWA assets exist</li>
+      <li>Runs a full Vite production build</li>
+      <li>Uploads the <code>dist/</code> artifact for inspection</li>
+      <li>On <code>main</code> / <code>master</code> pushes, packages the Windows zip artifact</li>
+    </ul>
+
+    <h2>Workflow file</h2>
+    <pre><code>.github/workflows/ci.yml</code></pre>
+    <p>Triggers on push and pull request to <code>main</code>/<code>master</code>, plus manual <code>workflow_dispatch</code>.</p>
+
+    <h2>Local parity</h2>
+    <pre><code>npm ci
+npm run build
+npm run package:win   # optional desktop zip</code></pre>
+
+    <h2>Release rhythm</h2>
+    <ul>
+      <li>Simulator build tags (<code>#vtag</code> / console string) bump when behavior changes</li>
+      <li>Web app users get updates on refresh / reinstall of the hosted build</li>
+      <li>Desktop zip users re-download when a new package is published</li>
+      <li>City modules (LA, NYC, Austin, …) will land through the same CI path</li>
+    </ul>
+
+    <h2>Secrets in CI</h2>
+    <p>Production builds do not need live API keys. If you add deploy steps later, store <code>FLIGHTAWARE_API_KEY</code> / <code>TOMTOM_API_KEY</code> only in GitHub Actions secrets — never in the client bundle.</p>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# Netlify: static site from Vite dist/
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Public API proxies (no secrets). FlightAware / TomTom need serverless + env keys.
+[[redirects]]
+  from = "/api/openmeteo/*"
+  to = "https://api.open-meteo.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/nominatim/*"
+  to = "https://nominatim.openstreetmap.org/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/opensky/*"
+  to = "https://opensky-network.org/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/adsblol/*"
+  to = "https://api.adsb.lol/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/adsbdb/*"
+  to = "https://api.adsbdb.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/hexdb/*"
+  to = "https://hexdb.io/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/transtar/*"
+  to = "https://traffic.houstontranstar.org/:splat"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
