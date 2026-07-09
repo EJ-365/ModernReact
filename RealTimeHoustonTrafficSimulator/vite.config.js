@@ -123,6 +123,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/opensky/, ""),
         },
+        "/api/airplanes": {
+          target: "https://api.airplanes.live",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/airplanes/, ""),
+        },
         "/api/adsblol": {
           target: "https://api.adsb.lol",
           changeOrigin: true,
