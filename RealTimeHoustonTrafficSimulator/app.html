@@ -533,7 +533,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.7</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.7.1</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -854,7 +854,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.7 (0708-mobile). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.7.1 (0708-wx-direct). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -4979,8 +4979,17 @@ function wmoLookup(code){
     if(codes.includes(code))return {preset,label,rain};
   return {preset:'partly',label:'Partly cloudy',rain:0};
 }
+function isLocalDevHost(){
+  const h=location.hostname;
+  return h==='localhost'||h==='127.0.0.1'||h==='::1'||h.endsWith('.local');
+}
+/* Open-Meteo supports browser CORS. Prefer direct URL on Netlify/Vercel so weather
+   does not depend on host proxy rewrites (which often break query strings). */
+function openMeteoHost(){
+  return isLocalDevHost()?'/api/openmeteo':'https://api.open-meteo.com';
+}
 function openMeteoUrl(lat,lng,hourly){
-  return '/api/openmeteo/v1/forecast?latitude='+lat+'&longitude='+lng
+  return openMeteoHost()+'/v1/forecast?latitude='+lat+'&longitude='+lng
     +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,'
     +'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
     +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation&forecast_days=2':'')
@@ -5114,11 +5123,11 @@ async function reverseGeocodePlace(lat,lng){
   /* Strong local hit (< ~1.5 mi): trust neighborhood DB over street-only OSM results */
   if(localName&&local.mi<=1.5){
     _placeCache={lat,lng,name:localName,at:Date.now()};
-    /* still try OSM in background to refine city if needed, but return now */
     return localName;
   }
   try{
-    const url='/api/nominatim/reverse?format=jsonv2&lat='+encodeURIComponent(lat)
+    const nomHost=isLocalDevHost()?'/api/nominatim':'https://nominatim.openstreetmap.org';
+    const url=nomHost+'/reverse?format=jsonv2&lat='+encodeURIComponent(lat)
       +'&lon='+encodeURIComponent(lng)+'&zoom=16&addressdetails=1';
     const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});
     if(r.ok){
@@ -5136,10 +5145,9 @@ async function reverseGeocodePlace(lat,lng){
         _placeCache={lat,lng,name,at:Date.now()};
         return name;
       }
-      /* OSM often returns only a road — prefer known neighborhood / city */
       if(localName){_placeCache={lat,lng,name:localName,at:Date.now()};return localName;}
     }
-  }catch(e){ /* fall through */ }
+  }catch(e){ /* Nominatim often blocks browser CORS on production; neighborhood DB covers Houston */ }
   if(localName){_placeCache={lat,lng,name:localName,at:Date.now()};return localName;}
   const soft=nearestNeighborhood(lat,lng,6);
   if(soft){const name=formatPlaceLabel(soft.place.n,soft.place.c);_placeCache={lat,lng,name,at:Date.now()};return name;}
@@ -5159,19 +5167,37 @@ async function fetchLocalWeather(lat,lng,force){
     const d=Math.hypot(lat-localWx.lat,lng-localWx.lng);
     if(d<0.01&&(Date.now()-localWx.at)<8*60*1000)return;
   }
+  const box=$('wxLocal');
+  if(box)box.style.display='block';
+  const nmEl=$('wxLocalName');
+  const descEl=$('wxLocalDesc');
+  const tempEl=$('wxLocalTemp');
+  const metaEl=$('wxLocalMeta');
+  const quickName=suburbNameFromGeo(lat,lng);
+  if(nmEl&&(!localWx||force))nmEl.textContent=quickName;
+  if(!localWx){
+    if(tempEl)tempEl.textContent='--°';
+    if(descEl)descEl.textContent='Loading…';
+    if(metaEl)metaEl.textContent='Fetching local conditions…';
+  }
   try{
-    const box=$('wxLocal');
-    if(box)box.style.display='block';
-    const nmEl=$('wxLocalName');
-    if(nmEl&&(!localWx||force))nmEl.textContent='Locating…';
-    const [wxRes,place]=await Promise.all([
-      fetch(openMeteoUrl(lat,lng,false),{cache:'no-store'}),
-      reverseGeocodePlace(lat,lng),
-    ]);
+    /* Place name first (offline-friendly). Then weather alone so we do not
+       hit Open-Meteo’s 1-concurrent free-tier limit alongside downtown fetch. */
+    const place=await reverseGeocodePlace(lat,lng);
+    if(nmEl)nmEl.textContent=place||quickName;
+    const wxRes=await fetch(openMeteoUrl(lat,lng,false),{cache:'no-store'});
     if(!wxRes.ok)throw new Error(wxRes.status);
-    localWx=parseOpenMeteo(await wxRes.json(),{place:place||'Near you',lat,lng});
+    localWx=parseOpenMeteo(await wxRes.json(),{place:place||quickName||'Near you',lat,lng});
     if(nmEl)nmEl.textContent=localWx.place;
-  }catch(e){ /* keep last localWx if any */ }
+  }catch(e){
+    if(nmEl)nmEl.textContent=(_placeCache.name)||quickName;
+    if(!localWx){
+      if(descEl)descEl.textContent='Weather unavailable';
+      if(metaEl)metaEl.textContent='Retrying shortly…';
+      /* one quiet retry after downtown traffic settles */
+      setTimeout(()=>{if(userGeo&&!localWx)fetchLocalWeather(userGeo.lat,userGeo.lng,true);},4000);
+    }
+  }
 }
 fetchWeather();
 setTimeout(()=>{if(!liveWx)fetchWeather();},12000);
