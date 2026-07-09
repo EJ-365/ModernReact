@@ -529,7 +529,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.5</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.6</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -877,7 +877,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.8.5 (0708-fa-path-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.8.6 (0708-raf-poll-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -3761,8 +3761,11 @@ window.FLIGHTS=[];
     f.m.position.copy(pos);f.m.rotation.copy(rot);f.m.visible=vis;
   }
 
+  let _liveFlightsInFlight=null;
   async function refreshLiveFlights(){
     if(!window.LIVE_FLIGHTS_ENABLED)return;
+    if(_liveFlightsInFlight)return _liveFlightsInFlight;
+    _liveFlightsInFlight=(async()=>{
     try{
       const feed=await fetchLiveAir();
       LIVE_FLIGHT_STATUS.ok=true;LIVE_FLIGHT_STATUS.err='';LIVE_FLIGHT_STATUS.at=Date.now();LIVE_FLIGHT_STATUS.src=feed.src;
@@ -3869,12 +3872,12 @@ window.FLIGHTS=[];
         }
       }
 
-      /* enrich top live flights: aircraft type + route (staggered to avoid rate limits) */
-      const schedPick=top.filter(x=>x.cs||x.icao24).slice(0,10);
+      /* enrich a few flights only — free DBs first; FA only if needed */
+      const schedPick=top.filter(x=>x.cs||x.icao24).slice(0,4);
       schedPick.forEach((x,i)=>{
         const f=LIVE_FLIGHTS.get(x.icao24);
         if(!f)return;
-        setTimeout(()=>enrichFlight(f),i*1500);
+        setTimeout(()=>enrichFlight(f),i*2500);
       });
 
       /* Sky ↔ panel: same eligibility set (max 8) */
@@ -3891,14 +3894,18 @@ window.FLIGHTS=[];
       LIVE_FLIGHT_STATUS.ok=false;
       LIVE_FLIGHT_STATUS.err=String(e&&e.message?e.message:e);
       LIVE_FLIGHT_STATUS.at=Date.now();
+    }finally{
+      _liveFlightsInFlight=null;
     }
+    })();
+    return _liveFlightsInFlight;
   }
 
   (function loop(){
     refreshLiveFlights().finally(()=>{
-      /* Back off when rate-limited so we recover into realtime instead of staying stuck. */
       const msg=(window.LIVE_FLIGHT_STATUS&&LIVE_FLIGHT_STATUS.err)||'';
-      const backoff=/429|Too many requests/i.test(msg) ? 60000 : 15000;
+      /* ADS-B every 45s; back off hard on 429 */
+      const backoff=/429|Too many requests/i.test(msg) ? 120000 : 45000;
       setTimeout(loop, backoff);
     });
   })();
@@ -5898,6 +5905,10 @@ async function fetchTomTomIncidents(){
   return await r.json();
 }
 let _liveTrafficNext=0;
+let _liveTrafficInFlight=null;
+let _liveTrafficTimer=null;
+const LIVE_TRAFFIC_POLL_MS=3*60*1000; /* every 3 min — was effectively stacking from rAF */
+const LIVE_TRAFFIC_RETRY_MS=90*1000;
 let _liveIncidentEls=[];
 function clearLiveIncidentEls(){
   for(const el of _liveIncidentEls){try{el.remove();}catch(e){}}
@@ -5963,9 +5974,11 @@ async function refreshTomTomFallback(missingKeys){
     }
   }
   if(!samples.length)return 0;
-  const results=await Promise.allSettled(samples.map(s=>fetchTomTomFlowAt(s.lat,s.lng)));
-  for(let i=0;i<samples.length;i++){
-    const s=samples[i];
+  /* Cap fan-out — full freeway sample set was dozens of TomTom calls per poll */
+  const capped=samples.slice(0,12);
+  const results=await Promise.allSettled(capped.map(s=>fetchTomTomFlowAt(s.lat,s.lng)));
+  for(let i=0;i<capped.length;i++){
+    const s=capped[i];
     const rr=results[i];
     if(rr.status!=='fulfilled')continue;
     const f=rr.value&&rr.value.flowSegmentData;
@@ -5980,6 +5993,8 @@ async function refreshTomTomFallback(missingKeys){
   return got;
 }
 async function refreshLiveTraffic(){
+  if(_liveTrafficInFlight)return _liveTrafficInFlight;
+  _liveTrafficInFlight=(async()=>{
   try{
     let flowGot=0;
     let usedTranStar=false;
@@ -5997,9 +6012,9 @@ async function refreshLiveTraffic(){
       if(n>0){flowGot+=n;usedTranStar=true;}
     }catch(te){ /* keep going */ }
 
-    /* 3) Incidents + lane closures — refresh at least every ~30s */
+    /* 3) Incidents + lane closures — same cadence as outer poll */
     if(Date.now()>_liveTrafficNext){
-      _liveTrafficNext=Date.now()+30*1000;
+      _liveTrafficNext=Date.now()+LIVE_TRAFFIC_POLL_MS;
       try{
         const [incItems,closeItems]=await Promise.all([
           fetchTranStarRss('incidents_rss.xml'),
@@ -6063,8 +6078,18 @@ async function refreshLiveTraffic(){
     }
   }catch(e){
     window.LIVE_TRAFFIC.ok=false;window.LIVE_TRAFFIC.err=String(e&&e.message?e.message:e);window.LIVE_TRAFFIC.at=Date.now();
+  }finally{
+    _liveTrafficInFlight=null;
   }
+  })();
+  return _liveTrafficInFlight;
 }
+function startLiveTrafficPolling(){
+  if(_liveTrafficTimer)return;
+  refreshLiveTraffic();
+  _liveTrafficTimer=setInterval(()=>{refreshLiveTraffic();},LIVE_TRAFFIC_POLL_MS);
+}
+window.startLiveTrafficPolling=startLiveTrafficPolling;
 
 /* Smooth heading in radians — rejects 180° ADS-B flips unless they stick for a moment.
    World: +X east, −Z north. Airliner nose is +Z at yaw=0 → yaw = π − trackRad. */
@@ -8314,12 +8339,7 @@ function frame(now){
   const dt=Math.min((now-last)/1000,0.08);last=now;
   const inOSM=!!window.osmMode;
   simClock=now;
-  /* refresh live traffic every 45s (faster first pass) */
-  if(!window._nextLiveTrafficAt)window._nextLiveTrafficAt=now+800;
-  if(now>window._nextLiveTrafficAt){
-    window._nextLiveTrafficAt=now+((window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.ok)?30000:15000);
-    refreshLiveTraffic();
-  }
+  /* Live traffic / flights / boards poll on setInterval — never from rAF */
   if(liveMode){
     liveT+=dt;if(liveT>2){simH=houstonNow();liveT=0;}else simH+=dt/3600;
     window.simOffsetSec=0;
@@ -8456,6 +8476,7 @@ function frame(now){
   renderer.render(scene,camera);
 }
 requestAnimationFrame(frame);
+if(typeof startLiveTrafficPolling==='function')startLiveTrafficPolling();
 setTimeout(()=>{
   const l=$('loading');
   if(!l){fireHtsReady();return;}
