@@ -2,15 +2,16 @@ import { proxyRequest } from "./_proxy.mjs";
 
 /** Simple in-memory cache shared across warm function instances. */
 const CACHE = globalThis.__htsFaCache || (globalThis.__htsFaCache = new Map());
-const TTL_MS = 5 * 60 * 1000; // 5 minutes — boards don't need second-level freshness
-const NEG_TTL_MS = 60 * 1000; // short cache for errors (except 429, longer)
+const TTL_MS = 5 * 60 * 1000;
+const NEG_TTL_MS = 60 * 1000;
 const COOLDOWN_429_MS = 10 * 60 * 1000;
 
 function cacheKey(event) {
+  const path = event.path || "";
   const qp = event.queryStringParameters || {};
-  const path = qp.path || event.path || "";
-  const qs = event.rawQuery || event.rawQueryString || "";
-  return String(path) + "?" + String(qs);
+  const pathQ = qp.path || "";
+  const qs = event.rawQuery || event.rawQueryString || JSON.stringify(qp);
+  return `${path}|${pathQ}|${qs}`;
 }
 
 export async function handler(event) {
@@ -33,12 +34,17 @@ export async function handler(event) {
 
   const result = await proxyRequest(event, {
     upstreamOrigin: "https://aeroapi.flightaware.com",
-    stripPrefixes: ["/.netlify/functions/flightaware", "/api/flightaware"],
+    stripPrefixes: [
+      "/.netlify/functions/flightaware",
+      "/api/flightaware",
+      "/flightaware",
+    ],
     requireEnv: "FLIGHTAWARE_API_KEY",
     injectHeaders: key ? { "x-apikey": key } : {},
+    /* Netlify rewrites often drop ?max_pages= — default it server-side */
+    defaultQuery: { max_pages: "1" },
   });
 
-  /* Don't cache OPTIONS / missing-key / bad path */
   if (result.statusCode === 204 || result.statusCode === 400 || result.statusCode === 405) {
     return result;
   }
@@ -49,7 +55,6 @@ export async function handler(event) {
   let ttl = TTL_MS;
   if (result.statusCode === 429) ttl = COOLDOWN_429_MS;
   else if (result.statusCode >= 400) ttl = NEG_TTL_MS;
-  else if (result.statusCode >= 200 && result.statusCode < 300) ttl = TTL_MS;
 
   CACHE.set(ck, {
     statusCode: result.statusCode,
@@ -58,7 +63,6 @@ export async function handler(event) {
     expires: now + ttl,
   });
 
-  /* Cap map size */
   if (CACHE.size > 80) {
     const first = CACHE.keys().next().value;
     if (first != null) CACHE.delete(first);

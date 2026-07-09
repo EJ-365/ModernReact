@@ -529,7 +529,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.4</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.5</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -877,7 +877,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.8.4 (0708-fa-rate-limit). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.8.5 (0708-fa-path-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -3421,11 +3421,13 @@ window.FLIGHTS=[];
     return {src:'OpenSky',rows:mapOpenSky(j&&j.states)};
   }
   function flightAwareUrl(aeroPath, query){
-    /* Prefer query-param form so Netlify function rewrites keep the path. */
-    const q=new URLSearchParams(query||{});
+    /* Path-based: /api/flightaware/aeroapi/... so Netlify keeps the route in event.path.
+       Query-only ?path= is often dropped by function rewrites (→ 400 missing_upstream_path). */
     const clean=String(aeroPath||'').replace(/^\/+/,'');
-    q.set('path', clean.startsWith('aeroapi/')?clean:('aeroapi/'+clean));
-    return '/api/flightaware?'+q.toString();
+    const aero=clean.startsWith('aeroapi/')?clean:('aeroapi/'+clean);
+    const q=new URLSearchParams(query||{});
+    const qs=q.toString();
+    return '/api/flightaware/'+aero+(qs?('?'+qs):'');
   }
   window.flightAwareUrl=flightAwareUrl;
   /* Client cache for AeroAPI callsign lookups — saves credits across enrich passes */
@@ -3964,7 +3966,7 @@ window.FLIGHTS=[];
     const path='aeroapi/airports/'+encodeURIComponent(icao)+'/flights/'+kind;
     const url=(typeof window.flightAwareUrl==='function')
       ?window.flightAwareUrl(path,{max_pages:'1'})
-      :('/api/flightaware?path='+encodeURIComponent(path)+'&max_pages=1');
+      :('/api/flightaware/'+path+'?max_pages=1');
     const r=await fetch(url,{cache:'no-store'});
     if(!r.ok){
       let detail='';

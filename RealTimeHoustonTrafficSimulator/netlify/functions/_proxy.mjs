@@ -1,16 +1,63 @@
 /** Shared proxy helper for Netlify Functions (Node 18+). */
 
-function buildQuery(event) {
-  if (event.rawQuery) return event.rawQuery;
-  if (event.rawQueryString) return event.rawQueryString;
-  const q = event.queryStringParameters;
-  if (!q || typeof q !== "object") return "";
+function headersLower(event) {
+  const out = {};
+  const h = event.headers || {};
+  for (const [k, v] of Object.entries(h)) out[String(k).toLowerCase()] = v;
+  return out;
+}
+
+/** Collect query params from every place Netlify might put them. */
+function collectQuery(event) {
   const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(q)) {
-    if (v == null || k === "path") continue; // path is our routing param
-    if (Array.isArray(v)) v.forEach((x) => params.append(k, x));
-    else params.set(k, String(v));
+  const qp = event.queryStringParameters;
+  if (qp && typeof qp === "object") {
+    for (const [k, v] of Object.entries(qp)) {
+      if (v == null) continue;
+      if (Array.isArray(v)) v.forEach((x) => params.append(k, String(x)));
+      else params.set(k, String(v));
+    }
   }
+  const mvp = event.multiValueQueryStringParameters;
+  if (mvp && typeof mvp === "object") {
+    for (const [k, arr] of Object.entries(mvp)) {
+      if (!Array.isArray(arr)) continue;
+      for (const v of arr) {
+        if (v == null) continue;
+        if (!params.has(k)) params.set(k, String(v));
+      }
+    }
+  }
+  /* rawUrl / rawQuery often survive when queryStringParameters does not */
+  const rawBits = [event.rawQuery, event.rawQueryString];
+  if (event.rawUrl) {
+    try {
+      const u = new URL(event.rawUrl, "https://example.com");
+      rawBits.push(u.search.replace(/^\?/, ""));
+    } catch (_) {}
+  }
+  const hdrs = headersLower(event);
+  if (hdrs["x-forwarded-uri"]) {
+    try {
+      const u = new URL(hdrs["x-forwarded-uri"], "https://example.com");
+      rawBits.push(u.search.replace(/^\?/, ""));
+    } catch (_) {}
+  }
+  for (const bit of rawBits) {
+    if (!bit) continue;
+    try {
+      const extra = new URLSearchParams(String(bit));
+      for (const [k, v] of extra.entries()) {
+        if (!params.has(k)) params.set(k, v);
+      }
+    } catch (_) {}
+  }
+  return params;
+}
+
+function buildQuery(event, { omitKeys = ["path"] } = {}) {
+  const params = collectQuery(event);
+  for (const k of omitKeys) params.delete(k);
   return params.toString();
 }
 
@@ -19,6 +66,8 @@ function stripPath(path, stripPrefixes) {
   try {
     if (/^https?:\/\//i.test(p)) p = new URL(p).pathname;
   } catch (_) {}
+  /* Drop query/hash if somehow present */
+  p = p.split("?")[0].split("#")[0];
   for (const prefix of stripPrefixes) {
     if (p === prefix || p.startsWith(prefix + "/")) {
       p = p.slice(prefix.length);
@@ -28,23 +77,42 @@ function stripPath(path, stripPrefixes) {
   return p.replace(/^\/+/, "");
 }
 
-function resolveIncomingPath(event, stripPrefixes) {
-  /* Explicit ?path=aeroapi/... is most reliable under Netlify rewrites. */
-  const qp = event.queryStringParameters || {};
-  if (qp.path) return String(qp.path).replace(/^\/+/, "");
+function looksLikeAeroPath(p) {
+  if (!p) return false;
+  const s = String(p).replace(/^\/+/, "");
+  return s.startsWith("aeroapi/") || s === "aeroapi";
+}
 
+function resolveIncomingPath(event, stripPrefixes) {
+  const params = collectQuery(event);
+  const fromQ = params.get("path") || params.get("p");
+  if (fromQ && looksLikeAeroPath(fromQ)) {
+    return String(fromQ).replace(/^\/+/, "");
+  }
+
+  const hdrs = headersLower(event);
   const candidates = [
     event.path,
     event.rawPath,
-    event.headers && (event.headers["x-forwarded-path"] || event.headers["X-Forwarded-Path"]),
-    event.headers && (event.headers["x-original-url"] || event.headers["X-Original-Url"]),
+    hdrs["x-forwarded-path"],
+    hdrs["x-original-url"],
+    hdrs["x-forwarded-uri"],
     event.rawUrl,
   ].filter(Boolean);
 
   for (const c of candidates) {
-    const stripped = stripPath(String(c), stripPrefixes);
-    if (stripped && stripped !== "flightaware" && !stripped.startsWith("flightaware?")) {
-      return stripped;
+    let raw = String(c);
+    try {
+      if (/^https?:\/\//i.test(raw) || raw.startsWith("/")) {
+        raw = new URL(raw, "https://example.com").pathname;
+      }
+    } catch (_) {}
+    const stripped = stripPath(raw, stripPrefixes);
+    if (looksLikeAeroPath(stripped)) return stripped;
+    /* Direct function invoke: /.netlify/functions/flightaware/aeroapi/... */
+    if (stripped.startsWith("flightaware/")) {
+      const rest = stripped.slice("flightaware/".length);
+      if (looksLikeAeroPath(rest)) return rest;
     }
   }
   return "";
@@ -55,6 +123,7 @@ export async function proxyRequest(event, {
   stripPrefixes = [],
   injectHeaders = {},
   requireEnv,
+  defaultQuery = {},
 }) {
   const headersOut = {
     "content-type": "application/json",
@@ -96,13 +165,21 @@ export async function proxyRequest(event, {
       headers: headersOut,
       body: JSON.stringify({
         error: "missing_upstream_path",
-        hint: "Call /api/flightaware?path=aeroapi/airports/KIAH/flights/departures",
-        debug: { path: event.path, query: event.queryStringParameters || null },
+        hint: "Use /api/flightaware/aeroapi/... or /api/flightaware?path=aeroapi/...",
+        debug: {
+          path: event.path || null,
+          rawUrl: event.rawUrl || null,
+          query: event.queryStringParameters || null,
+        },
       }),
     };
   }
 
-  const qs = buildQuery(event);
+  const qsParams = new URLSearchParams(buildQuery(event));
+  for (const [k, v] of Object.entries(defaultQuery || {})) {
+    if (!qsParams.has(k)) qsParams.set(k, String(v));
+  }
+  const qs = qsParams.toString();
   const target = `${upstreamOrigin.replace(/\/$/, "")}/${path}${qs ? `?${qs}` : ""}`;
 
   try {

@@ -78,7 +78,7 @@ export default defineConfig(({ mode }) => {
             }
           });
 
-          /* Supports /api/flightaware?path=aeroapi/... (Netlify-compatible) and legacy /api/flightaware/aeroapi/... */
+          /* Path form: /api/flightaware/aeroapi/...  (also accepts legacy ?path=) */
           server.middlewares.use("/api/flightaware", async (req, res) => {
             try {
               const key = env.FLIGHTAWARE_API_KEY || process.env.FLIGHTAWARE_API_KEY;
@@ -93,17 +93,24 @@ export default defineConfig(({ mode }) => {
               }
               const url = new URL(req.url || "/", "http://local");
               let aeroPath = url.searchParams.get("path") || url.pathname.replace(/^\/+/, "");
-              aeroPath = String(aeroPath).replace(/^\/+/, "");
-              if (!aeroPath) {
+              aeroPath = String(aeroPath).replace(/^\/+/, "")
+                .replace(/^api\/flightaware\/?/i, "")
+                .replace(/^flightaware\/?/i, "");
+              if (!aeroPath.startsWith("aeroapi")) {
                 res.statusCode = 400;
                 res.setHeader("content-type", "application/json");
-                res.end(JSON.stringify({ error: "missing_upstream_path" }));
+                res.end(JSON.stringify({
+                  error: "missing_upstream_path",
+                  hint: "Use /api/flightaware/aeroapi/airports/KIAH/flights/departures",
+                  debug: { pathname: url.pathname, aeroPath },
+                }));
                 return;
               }
               const target = new URL(`https://aeroapi.flightaware.com/${aeroPath}`);
               url.searchParams.forEach((v, k) => {
                 if (k !== "path") target.searchParams.set(k, v);
               });
+              if (!target.searchParams.has("max_pages")) target.searchParams.set("max_pages", "1");
               const upstream = await fetch(target.toString(), {
                 method: "GET",
                 headers: {
