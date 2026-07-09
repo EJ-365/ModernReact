@@ -1,9 +1,58 @@
-# Netlify: static site from Vite dist/
+# Netlify: Vite static site + serverless API proxies
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
-# Public API proxies (no secrets). FlightAware / TomTom need serverless + env keys.
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["netlify/functions/**"]
+
+# ——— Authenticated / CORS proxies (serverless) ———
+[[redirects]]
+  from = "/api/flightaware/*"
+  to = "/.netlify/functions/flightaware/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/adsblol/*"
+  to = "/.netlify/functions/adsblol/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/opensky/*"
+  to = "/.netlify/functions/opensky/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/adsbdb/*"
+  to = "/.netlify/functions/adsbdb/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/hexdb/*"
+  to = "/.netlify/functions/hexdb/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/tomtom/*"
+  to = "/.netlify/functions/tomtom/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/transtar/*"
+  to = "/.netlify/functions/transtar/:splat"
+  status = 200
+  force = true
+
+# Open-Meteo / Nominatim: browser can call them directly (CORS).
+# Keep edge rewrites as a fallback for older clients.
 [[redirects]]
   from = "/api/openmeteo/*"
   to = "https://api.open-meteo.com/:splat"
@@ -13,36 +62,6 @@
 [[redirects]]
   from = "/api/nominatim/*"
   to = "https://nominatim.openstreetmap.org/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/opensky/*"
-  to = "https://opensky-network.org/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/adsblol/*"
-  to = "https://api.adsb.lol/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/adsbdb/*"
-  to = "https://api.adsbdb.com/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/hexdb/*"
-  to = "https://hexdb.io/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/transtar/*"
-  to = "https://traffic.houstontranstar.org/:splat"
   status = 200
   force = true
 

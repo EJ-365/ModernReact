@@ -62,6 +62,16 @@ TOMTOM_API_KEY=
       <li><strong>TomTom Traffic</strong> — optional flow / incident fill-in</li>
     </ul>
 
+    <h2>Netlify production</h2>
+    <p>Local <code>npm run dev</code> uses Vite proxies. On Netlify, serverless functions under <code>netlify/functions/</code> proxy the same <code>/api/*</code> paths.</p>
+    <ol>
+      <li>Site settings → <strong>Environment variables</strong></li>
+      <li>Add <code>FLIGHTAWARE_API_KEY</code> (required for airport boards)</li>
+      <li>Optional: <code>TOMTOM_API_KEY</code></li>
+      <li><strong>Clear cache and deploy site</strong> (or push a new commit)</li>
+    </ol>
+    <p>Never put these keys in client code or a <code>VITE_</code> variable.</p>
+
     <h2>Security</h2>
     <p>Vite injects keys only in server middleware. Do not prefix traffic secrets with <code>VITE_</code> or they will leak into the client bundle.</p>
   </article>

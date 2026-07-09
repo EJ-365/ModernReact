@@ -533,7 +533,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.7.1</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.7.2</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -854,7 +854,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.7.1 (0708-wx-direct). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.7.2 (0708-netlify-api). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -3803,7 +3803,12 @@ window.FLIGHTS=[];
     const icao='K'+String(apt).toUpperCase();
     const url='/api/flightaware/aeroapi/airports/'+encodeURIComponent(icao)+'/flights/'+kind+'?max_pages=1';
     const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)throw new Error('Board '+apt+' '+kind+' '+r.status);
+    if(!r.ok){
+      let detail='';
+      try{const j=await r.json();detail=j&& (j.error||j.hint||j.title)||'';}catch(e){}
+      const msg='Board '+apt+' '+kind+' '+r.status+(detail?(' · '+detail):'');
+      throw new Error(msg);
+    }
     return await r.json();
   }
   function boardRows(j,kind){
@@ -7841,7 +7846,16 @@ window.renderAirportBoard=function(force){
   }
   if(empty){
     empty.style.display=rows.length?'none':'block';
-    if(!rows.length)empty.textContent=(pack&&pack.err)?pack.err:('No '+ui.kind+' for '+ui.apt+' yet…');
+    if(!rows.length){
+      const err=(pack&&pack.err)||(window.HOUSTON_BOARD_STATUS&&HOUSTON_BOARD_STATUS.err)||'';
+      if(/FLIGHTAWARE_API_KEY_missing|missing/i.test(err)){
+        empty.textContent='Airport boards need FLIGHTAWARE_API_KEY in Netlify env vars. Add it under Site settings → Environment variables, then redeploy.';
+      }else if(/404/.test(err)){
+        empty.textContent='Board request failed (404). On Netlify, redeploy with the FlightAware function and set FLIGHTAWARE_API_KEY.';
+      }else{
+        empty.textContent=err||('No '+ui.kind+' for '+ui.apt+' yet…');
+      }
+    }
   }
   el.innerHTML='';
   const show=rows.filter(f=>isBoardFlightCurrent(f)).slice(0,14);

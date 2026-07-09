@@ -100,14 +100,21 @@ npm run build          # output → dist/
 Deploy the **`dist/`** folder (or connect the repo to Netlify / Vercel; configs are in `netlify.toml` and `vercel.json`).
 
 | Ready | Notes |
-|-------|--------|
+|------|--------|
 | Marketing site + PWA | Yes |
 | First visit tour in simulator | Yes (`localStorage` key `houstonSim.tour.v1`) |
-| Public live feeds (weather, TranStar, ADS-B) | Proxied on Netlify/Vercel |
-| FlightAware / TomTom | Need host env keys + serverless proxy (Vite proxies are **dev only**) |
+| Public live feeds (weather, TranStar, ADS-B) | Netlify functions + Open-Meteo direct |
+| FlightAware airport boards | Set `FLIGHTAWARE_API_KEY` in Netlify env, then redeploy |
+| TomTom | Optional `TOMTOM_API_KEY` in Netlify env |
 | Secrets | Keep `.env.local` local; never commit |
 
-Replay the tour anytime from **Replay tour** (desktop cam hint or mobile button).
+### Netlify env (required for boards)
+
+1. Netlify → Site configuration → Environment variables  
+2. Add `FLIGHTAWARE_API_KEY` = your AeroAPI key (same as `.env.local`)  
+3. Redeploy  
+
+Replay the tour anytime from **Replay tour** (desktop cam hint or mobile Controls).
 
 ---
 
