@@ -529,7 +529,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.3</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.4</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -877,7 +877,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.8.3 (0708-routes-boards). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.8.4 (0708-fa-rate-limit). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -3428,16 +3428,33 @@ window.FLIGHTS=[];
     return '/api/flightaware?'+q.toString();
   }
   window.flightAwareUrl=flightAwareUrl;
+  /* Client cache for AeroAPI callsign lookups — saves credits across enrich passes */
+  const FA_CS_CACHE=new Map(); /* cs -> {at, data, err, status} */
+  const FA_CS_TTL_MS=12*60*1000;
+  const FA_CS_NEG_TTL_MS=3*60*1000;
+  let faCsCooldownUntil=0;
   async function fetchAeroAPI(callsign){
     const cs=cleanCS(callsign);
     if(!cs)return null;
+    const now=Date.now();
+    if(now<faCsCooldownUntil)throw new Error('AeroAPI cooldown (429)');
+    const hit=FA_CS_CACHE.get(cs);
+    if(hit&&(now-hit.at)<(hit.err?FA_CS_NEG_TTL_MS:FA_CS_TTL_MS)){
+      if(hit.err)throw new Error(hit.err);
+      return hit.data;
+    }
     const r=await fetch(flightAwareUrl('aeroapi/flights/'+encodeURIComponent(cs),{max_pages:'1'}),{cache:'no-store'});
     if(!r.ok){
       let detail='';
       try{const j=await r.json();detail=j&&(j.error||j.hint)||'';}catch(e){}
-      throw new Error('AeroAPI '+r.status+(detail?(' · '+detail):''));
+      const msg='AeroAPI '+r.status+(detail?(' · '+detail):'');
+      if(r.status===429)faCsCooldownUntil=now+5*60*1000;
+      FA_CS_CACHE.set(cs,{at:now,data:null,err:msg,status:r.status});
+      throw new Error(msg);
     }
-    return await r.json();
+    const data=await r.json();
+    FA_CS_CACHE.set(cs,{at:now,data,err:'',status:200});
+    return data;
   }
   async function fetchAdsbLol(callsign,icao24){
     const cs=cleanCS(callsign);
@@ -3577,10 +3594,10 @@ window.FLIGHTS=[];
         }
       }
     }
-    /* FlightAware — upgrade/confirm Houston-related active legs */
+    /* FlightAware only if free DBs missed the route — boards own most FA quota */
     let gotFa=false;
     let faFlights=null;
-    if(f.cs){
+    if(f.cs&&!f._routeVerified){
       try{
         const data=await fetchAeroAPI(f.cs);
         faFlights=(data&&data.flights)||null;
@@ -3892,6 +3909,56 @@ window.FLIGHTS=[];
   window.HOUSTON_BOARDS={}; /* apt -> {departures:[], arrivals:[]} */
   window.BOARD_UI={apt:'IAH',kind:'departures'};
   const BOARD_APTS=['IAH','HOU','EFD','SGR','DWH','IWS','CXO'];
+  /* Was 14 FA calls/min (7 apts × 2). Now: only the selected airport, every 5 min. */
+  const BOARD_TTL_MS=5*60*1000;
+  const BOARD_POLL_MS=5*60*1000;
+  const BOARD_429_COOLDOWN_MS=10*60*1000;
+  const BOARD_CACHE_KEY='houstonSim.boardCache.v1';
+  let boardCooldownUntil=0;
+  let boardRefreshTimer=null;
+  let boardInFlight=null;
+
+  function loadBoardDisk(){
+    try{
+      const raw=localStorage.getItem(BOARD_CACHE_KEY);
+      if(!raw)return;
+      const j=JSON.parse(raw);
+      if(!j||typeof j!=='object')return;
+      for(const apt of Object.keys(j)){
+        const pack=j[apt];
+        if(!pack||!pack.at)continue;
+        if(Date.now()-pack.at>BOARD_TTL_MS*3)continue; /* keep stale UI up to 15 min */
+        window.HOUSTON_BOARDS[apt]=pack;
+      }
+      rebuildFlatBoard();
+    }catch(e){}
+  }
+  function saveBoardDisk(){
+    try{
+      const out={};
+      for(const apt of Object.keys(window.HOUSTON_BOARDS||{})){
+        const p=window.HOUSTON_BOARDS[apt];
+        if(p&&p.at)out[apt]={departures:p.departures||[],arrivals:p.arrivals||[],err:p.err||'',at:p.at,cached:!!p.cached};
+      }
+      localStorage.setItem(BOARD_CACHE_KEY,JSON.stringify(out));
+    }catch(e){}
+  }
+  function rebuildFlatBoard(){
+    const flat=[];
+    for(const apt of Object.keys(window.HOUSTON_BOARDS||{})){
+      const p=window.HOUSTON_BOARDS[apt];
+      if(!p)continue;
+      for(const f of (p.departures||[]))flat.push(f);
+      for(const f of (p.arrivals||[]))flat.push(f);
+    }
+    const key=f=>[f.cs,f.dep,f.arr,f.etd||f.eta||''].join('|');
+    const seen=new Set();
+    window.HOUSTON_BOARD=flat.filter(f=>{const k=key(f);if(seen.has(k))return false;seen.add(k);return true;});
+  }
+  function boardCacheFresh(apt){
+    const p=window.HOUSTON_BOARDS&&window.HOUSTON_BOARDS[apt];
+    return !!(p&&p.at&&(Date.now()-p.at)<BOARD_TTL_MS&&!p.err);
+  }
   async function fetchBoard(apt,kind){
     const icao='K'+String(apt).toUpperCase();
     const path='aeroapi/airports/'+encodeURIComponent(icao)+'/flights/'+kind;
@@ -3902,6 +3969,7 @@ window.FLIGHTS=[];
     if(!r.ok){
       let detail='';
       try{const j=await r.json();detail=j&& (j.error||j.hint||j.title)||'';}catch(e){}
+      if(r.status===429)boardCooldownUntil=Date.now()+BOARD_429_COOLDOWN_MS;
       const msg='Board '+apt+' '+kind+' '+r.status+(detail?(' · '+detail):'');
       throw new Error(msg);
     }
@@ -3948,39 +4016,72 @@ window.FLIGHTS=[];
     if(!isBoardFlightCurrent(row))return null;
     return row;
   }
-  async function refreshBoard(){
-    try{
-      const results=await Promise.all(BOARD_APTS.map(async apt=>{
+  async function refreshBoard(forceApt){
+    const apt=String(forceApt||(window.BOARD_UI&&window.BOARD_UI.apt)||'IAH').toUpperCase();
+    if(!BOARD_APTS.includes(apt))return;
+    if(!forceApt&&boardCacheFresh(apt)){
+      window.HOUSTON_BOARD_STATUS.ok=true;
+      window.HOUSTON_BOARD_STATUS.err='';
+      window.HOUSTON_BOARD_STATUS.at=window.HOUSTON_BOARDS[apt].at;
+      window.HOUSTON_BOARD_STATUS.cached=true;
+      if(typeof window.renderAirportBoard==='function')window.renderAirportBoard();
+      return;
+    }
+    if(Date.now()<boardCooldownUntil){
+      const wait=Math.ceil((boardCooldownUntil-Date.now())/60000);
+      window.HOUSTON_BOARD_STATUS.ok=!!(window.HOUSTON_BOARDS[apt]&&((window.HOUSTON_BOARDS[apt].departures||[]).length||(window.HOUSTON_BOARDS[apt].arrivals||[]).length));
+      window.HOUSTON_BOARD_STATUS.err='Rate limited · retry in ~'+wait+' min (showing cache)';
+      window.HOUSTON_BOARD_STATUS.at=Date.now();
+      if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+      return;
+    }
+    if(boardInFlight)return boardInFlight;
+    boardInFlight=(async()=>{
+      try{
+        /* Only the visible airport — 2 FA calls instead of 14 */
         const [depJ,arrJ]=await Promise.all([
           fetchBoard(apt,'departures').catch(e=>({_err:String(e&&e.message?e.message:e)})),
           fetchBoard(apt,'arrivals').catch(e=>({_err:String(e&&e.message?e.message:e)})),
         ]);
+        const err=(depJ&&depJ._err)||(arrJ&&arrJ._err)||'';
+        if(/429/.test(err)&&window.HOUSTON_BOARDS[apt]){
+          /* Keep last good board; don't wipe on rate limit */
+          window.HOUSTON_BOARD_STATUS.ok=true;
+          window.HOUSTON_BOARD_STATUS.err='Rate limited · showing cached '+apt;
+          window.HOUSTON_BOARD_STATUS.at=Date.now();
+          window.HOUSTON_BOARD_STATUS.cached=true;
+          if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+          return;
+        }
         const deps=boardRows(depJ,'departures').map(fl=>normFlight(fl,'departures',apt)).filter(Boolean);
         const arrs=boardRows(arrJ,'arrivals').map(fl=>normFlight(fl,'arrivals',apt)).filter(Boolean);
-        return {apt,deps,arrs,err:(depJ&&depJ._err)||(arrJ&&arrJ._err)||''};
-      }));
-      const flat=[];
-      for(const r of results){
-        window.HOUSTON_BOARDS[r.apt]={departures:r.deps,arrivals:r.arrs,err:r.err,at:Date.now()};
-        for(const f of r.deps)flat.push(f);
-        for(const f of r.arrs)flat.push(f);
+        window.HOUSTON_BOARDS[apt]={departures:deps,arrivals:arrs,err,at:Date.now(),cached:false};
+        rebuildFlatBoard();
+        const any=deps.length||arrs.length;
+        window.HOUSTON_BOARD_STATUS.ok=!!any;
+        window.HOUSTON_BOARD_STATUS.err=any?'':(err||'No board data');
+        window.HOUSTON_BOARD_STATUS.at=Date.now();
+        window.HOUSTON_BOARD_STATUS.cached=false;
+        saveBoardDisk();
+        if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+      }catch(e){
+        window.HOUSTON_BOARD_STATUS.ok=!!(window.HOUSTON_BOARDS[apt]&&((window.HOUSTON_BOARDS[apt].departures||[]).length||(window.HOUSTON_BOARDS[apt].arrivals||[]).length));
+        window.HOUSTON_BOARD_STATUS.err=String(e&&e.message?e.message:e);
+        window.HOUSTON_BOARD_STATUS.at=Date.now();
+        if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+      }finally{
+        boardInFlight=null;
       }
-      const key=f=>[f.cs,f.dep,f.arr,f.etd||f.eta||''].join('|');
-      const seen=new Set();
-      window.HOUSTON_BOARD=flat.filter(f=>{const k=key(f);if(seen.has(k))return false;seen.add(k);return true;});
-      const any=results.some(r=>((r.deps&&r.deps.length)||(r.arrs&&r.arrs.length)));
-      window.HOUSTON_BOARD_STATUS.ok=!!any;
-      window.HOUSTON_BOARD_STATUS.err=any?'':(results.map(r=>r.err).filter(Boolean)[0]||'No board data');
-      window.HOUSTON_BOARD_STATUS.at=Date.now();
-      if(typeof window.renderAirportBoard==='function')window.renderAirportBoard();
-    }catch(e){
-      window.HOUSTON_BOARD_STATUS.ok=false;
-      window.HOUSTON_BOARD_STATUS.err=String(e&&e.message?e.message:e);
-      window.HOUSTON_BOARD_STATUS.at=Date.now();
-    }
+    })();
+    return boardInFlight;
   }
-  refreshBoard();
-  setInterval(refreshBoard,60000);
+  window.refreshAirportBoard=function(force){
+    const apt=(window.BOARD_UI&&window.BOARD_UI.apt)||'IAH';
+    return refreshBoard(force?apt:null);
+  };
+  loadBoardDisk();
+  refreshBoard('IAH');
+  boardRefreshTimer=setInterval(()=>refreshBoard(null),BOARD_POLL_MS);
 })();
 /* Simulated airport-cycle / cruise planes removed — sky is live ADS-B only.
    FLIGHTS stays as an empty array so click/follow helpers remain safe. */
@@ -7941,7 +8042,12 @@ window.renderAirportBoard=function(force){
   const aptInfoN=aptInfo(ui.apt);
   if(src){
     const st=window.HOUSTON_BOARD_STATUS||{};
-    if(rows.length){src.style.color='#7fd6a0';src.textContent='· live · '+ui.apt+' '+ui.kind+' · '+rows.length;}
+    const age=pack&&pack.at?Math.max(0,Math.round((Date.now()-pack.at)/60000)):null;
+    const ageTxt=age==null?'':(age===0?' · just now':(' · '+age+'m ago'));
+    if(rows.length){
+      src.style.color=(pack&&pack.cached)||st.cached?'#ffe08a':'#7fd6a0';
+      src.textContent='· '+(st.cached||(pack&&pack.cached)?'cached':'live')+' · '+ui.apt+' '+ui.kind+' · '+rows.length+ageTxt;
+    }
     else if(st.ok){src.style.color='#ffb400';src.textContent='· '+ui.apt+' '+ui.kind+' empty';}
     else{src.style.color='#ffb400';src.textContent='· '+(st.err||'loading…');}
   }
@@ -7951,6 +8057,8 @@ window.renderAirportBoard=function(force){
       const err=(pack&&pack.err)||(window.HOUSTON_BOARD_STATUS&&HOUSTON_BOARD_STATUS.err)||'';
       if(/FLIGHTAWARE_API_KEY_missing|missing/i.test(err)){
         empty.textContent='Airport boards need FLIGHTAWARE_API_KEY in Netlify env vars. Add it under Site settings → Environment variables, then redeploy.';
+      }else if(/429|Rate limited|Too many/i.test(err)){
+        empty.textContent='FlightAware rate limit — boards refresh every 5 minutes and reuse cache. Wait a few minutes, then hard-refresh.';
       }else if(/404/.test(err)){
         empty.textContent='Board request failed (404). On Netlify, redeploy with the FlightAware function and set FLIGHTAWARE_API_KEY.';
       }else{
@@ -7987,12 +8095,15 @@ document.querySelectorAll('#boardAptBtns .btn').forEach(b=>b.addEventListener('c
   const view=CAM_VIEWS[String(window.BOARD_UI.apt).toLowerCase()];
   if(view){camGoal.theta=view.theta;camGoal.phi=view.phi;camGoal.radius=view.radius;camGoal.target.set(view.target[0],0,view.target[1]);}
   window.renderAirportBoard(true);
+  /* Fetch only this airport if cache is stale (not all 7) */
+  if(typeof window.refreshAirportBoard==='function')window.refreshAirportBoard(false);
 }));
 document.querySelectorAll('#boardKindBtns .btn').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('#boardKindBtns .btn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
   window.BOARD_UI.kind=b.getAttribute('data-kind');
   window.renderAirportBoard(true);
+  /* Kind switch is local — no extra FA call */
 }));
 
 function shuffleTraffic(){
