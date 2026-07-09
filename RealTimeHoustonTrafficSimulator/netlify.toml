@@ -60,9 +60,22 @@
   force = true
 
 # ——— Authenticated proxies (serverless injects secrets) ———
+# Exact path (query ?path=…) AND splat path both rewrite to the function.
+[[redirects]]
+  from = "/api/flightaware"
+  to = "/.netlify/functions/flightaware"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/flightaware/*"
   to = "/.netlify/functions/flightaware"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/tomtom"
+  to = "/.netlify/functions/tomtom"
   status = 200
   force = true
 

@@ -529,7 +529,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.2</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.8.3</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -877,7 +877,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.8.2 (0708-airplanes-live). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.8.3 (0708-routes-boards). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -3420,12 +3420,23 @@ window.FLIGHTS=[];
     const j=await tryJson(local?[osProxy,osDirect]:[osDirect,osProxy]);
     return {src:'OpenSky',rows:mapOpenSky(j&&j.states)};
   }
+  function flightAwareUrl(aeroPath, query){
+    /* Prefer query-param form so Netlify function rewrites keep the path. */
+    const q=new URLSearchParams(query||{});
+    const clean=String(aeroPath||'').replace(/^\/+/,'');
+    q.set('path', clean.startsWith('aeroapi/')?clean:('aeroapi/'+clean));
+    return '/api/flightaware?'+q.toString();
+  }
+  window.flightAwareUrl=flightAwareUrl;
   async function fetchAeroAPI(callsign){
     const cs=cleanCS(callsign);
     if(!cs)return null;
-    const url='/api/flightaware/aeroapi/flights/'+encodeURIComponent(cs)+'?max_pages=1';
-    const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)throw new Error('AeroAPI '+r.status);
+    const r=await fetch(flightAwareUrl('aeroapi/flights/'+encodeURIComponent(cs),{max_pages:'1'}),{cache:'no-store'});
+    if(!r.ok){
+      let detail='';
+      try{const j=await r.json();detail=j&&(j.error||j.hint)||'';}catch(e){}
+      throw new Error('AeroAPI '+r.status+(detail?(' · '+detail):''));
+    }
     return await r.json();
   }
   async function fetchAdsbLol(callsign,icao24){
@@ -3460,31 +3471,45 @@ window.FLIGHTS=[];
   async function fetchRouteByCallsign(callsign){
     const cs=cleanCS(callsign);
     if(!cs)return null;
-    /* 1) adsbdb — free route DB */
+    const local=typeof isLocalDevHost==='function'?isLocalDevHost():false;
+    /* 1) adsbdb — free route DB (CORS * — call direct on Netlify) */
     try{
-      const r=await fetch('/api/adsbdb/v0/callsign/'+encodeURIComponent(cs),{cache:'no-store'});
-      if(r.ok){
-        const j=await r.json();
-        const fr=(j&&j.response&&j.response.flightroute)||null;
-        if(fr&&(fr.origin||fr.destination)){
-          return {
-            dep:icaoToDisp((fr.origin&&(fr.origin.iata_code||fr.origin.icao_code))||''),
-            arr:icaoToDisp((fr.destination&&(fr.destination.iata_code||fr.destination.icao_code))||''),
-            src:'adsbdb'
-          };
-        }
+      const urls=local
+        ?['/api/adsbdb/v0/callsign/'+encodeURIComponent(cs),'https://api.adsbdb.com/v0/callsign/'+encodeURIComponent(cs)]
+        :['https://api.adsbdb.com/v0/callsign/'+encodeURIComponent(cs),'/api/adsbdb/v0/callsign/'+encodeURIComponent(cs)];
+      for(const url of urls){
+        try{
+          const r=await fetch(url,{cache:'no-store',mode:'cors'});
+          if(!r.ok)continue;
+          const j=await r.json();
+          const fr=(j&&j.response&&j.response.flightroute)||null;
+          if(fr&&(fr.origin||fr.destination)){
+            return {
+              dep:icaoToDisp((fr.origin&&(fr.origin.iata_code||fr.origin.icao_code))||''),
+              arr:icaoToDisp((fr.destination&&(fr.destination.iata_code||fr.destination.icao_code))||''),
+              src:'adsbdb'
+            };
+          }
+        }catch(e){}
       }
     }catch(e){}
     /* 2) hexdb route */
     try{
-      const r=await fetch('/api/hexdb/api/v1/route/icao/'+encodeURIComponent(cs),{cache:'no-store'});
-      if(r.ok){
-        const j=await r.json();
-        const route=String(j&&j.route||'');
-        const parts=route.split('-');
-        if(parts.length===2){
-          return {dep:icaoToDisp(parts[0]),arr:icaoToDisp(parts[1]),src:'hexdb'};
-        }
+      const urls=local
+        ?['/api/hexdb/api/v1/route/icao/'+encodeURIComponent(cs),'https://hexdb.io/api/v1/route/icao/'+encodeURIComponent(cs)]
+        :['https://hexdb.io/api/v1/route/icao/'+encodeURIComponent(cs),'/api/hexdb/api/v1/route/icao/'+encodeURIComponent(cs)];
+      for(const url of urls){
+        try{
+          const r=await fetch(url,{cache:'no-store',mode:'cors'});
+          if(!r.ok)continue;
+          const j=await r.json();
+          const route=String(j&&j.route||'');
+          const parts=route.split('-').filter(Boolean);
+          /* Prefer first→last when multi-leg (e.g. KAUS-KSFO-KPDX) */
+          if(parts.length>=2){
+            return {dep:icaoToDisp(parts[0]),arr:icaoToDisp(parts[parts.length-1]),src:'hexdb'};
+          }
+        }catch(e){}
       }
     }catch(e){}
     return null;
@@ -3493,12 +3518,21 @@ window.FLIGHTS=[];
     if(!icao24)return null;
     const end=Math.floor(Date.now()/1000);
     const begin=end-4*3600;
-    const url='/api/opensky/api/flights/aircraft?icao24='+encodeURIComponent(icao24)+'&begin='+begin+'&end='+end;
-    const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)return null;
-    const flights=await r.json();
-    if(!Array.isArray(flights)||!flights.length)return null;
-    return flights[flights.length-1];
+    const qs='icao24='+encodeURIComponent(icao24)+'&begin='+begin+'&end='+end;
+    const local=typeof isLocalDevHost==='function'?isLocalDevHost():false;
+    const urls=local
+      ?['/api/opensky/api/flights/aircraft?'+qs,'https://opensky-network.org/api/flights/aircraft?'+qs]
+      :['https://opensky-network.org/api/flights/aircraft?'+qs,'/api/opensky/api/flights/aircraft?'+qs];
+    for(const url of urls){
+      try{
+        const r=await fetch(url,{cache:'no-store',mode:'cors'});
+        if(!r.ok)continue;
+        const flights=await r.json();
+        if(!Array.isArray(flights)||!flights.length)continue;
+        return flights[flights.length-1];
+      }catch(e){}
+    }
+    return null;
   }
   /* icaoToDisp is global (defined near flight helpers) */
   function syncFlightRoute(f){
@@ -3531,7 +3565,19 @@ window.FLIGHTS=[];
       lon:Number.isFinite(f._lon)?f._lon:f._tLon,
       vsFpm:f.vsFpm,reg:f.reg
     };
-    /* FlightAware FIRST — only accept Houston-related active legs that fit position */
+    /* Free route DBs first (adsbdb/hexdb) — works without FlightAware key on Netlify */
+    if(f.cs&&!f._routeVerified){
+      const rr=await fetchRouteByCallsign(f.cs);
+      if(rr&&(isHoustonApt(rr.dep)||isHoustonApt(rr.arr))){
+        const fits=(!Number.isFinite(ctx.lat))||routeFitsPosition(rr.dep,rr.arr,ctx.lat,ctx.lon,ctx.vsFpm);
+        if(fits){
+          if(rr.dep&&rr.dep!=='—'){f.dep=rr.dep;f._guessRoute=false;}
+          if(rr.arr&&rr.arr!=='—'){f.arr=rr.arr;f._guessArr=false;}
+          if(f.dep&&f.dep!=='—'&&f.arr&&f.arr!=='—')f._routeVerified=true;
+        }
+      }
+    }
+    /* FlightAware — upgrade/confirm Houston-related active legs */
     let gotFa=false;
     let faFlights=null;
     if(f.cs){
@@ -3568,7 +3614,7 @@ window.FLIGHTS=[];
               }
             }
           }
-          /* If FA shows an active NON-Houston leg (e.g. SDF→SAT), do not fall back to a stale Houston pair */
+          /* If FA shows an active NON-Houston leg (e.g. SDF→SAT), do not keep a stale Houston pair */
           if(!gotFa){
             const active=pickAnyActiveAeroFlight(faFlights,ctx);
             if(active){
@@ -3587,18 +3633,7 @@ window.FLIGHTS=[];
         f._faErr=String(e&&e.message?e.message:e);
       }
     }
-    /* Free route DBs only if FA missed — and ONLY if result touches Houston AND fits position */
-    if(!gotFa&&f.cs&&!f._routeVerified){
-      const rr=await fetchRouteByCallsign(f.cs);
-      if(rr&&(isHoustonApt(rr.dep)||isHoustonApt(rr.arr))){
-        const fits=(!Number.isFinite(ctx.lat))||routeFitsPosition(rr.dep,rr.arr,ctx.lat,ctx.lon,ctx.vsFpm);
-        if(fits){
-          if(rr.dep&&rr.dep!=='—'){f.dep=rr.dep;f._guessRoute=false;}
-          if(rr.arr&&rr.arr!=='—'){f.arr=rr.arr;f._guessArr=false;}
-          if(f.dep&&f.dep!=='—'&&f.arr&&f.arr!=='—')f._routeVerified=true;
-        }
-      }
-    }
+    /* OpenSky historical route only if still missing */
     if(!gotFa&&!f._routeVerified){
       const route=await fetchOpenSkyRoute(f.icao24);
       if(route){
@@ -3859,7 +3894,10 @@ window.FLIGHTS=[];
   const BOARD_APTS=['IAH','HOU','EFD','SGR','DWH','IWS','CXO'];
   async function fetchBoard(apt,kind){
     const icao='K'+String(apt).toUpperCase();
-    const url='/api/flightaware/aeroapi/airports/'+encodeURIComponent(icao)+'/flights/'+kind+'?max_pages=1';
+    const path='aeroapi/airports/'+encodeURIComponent(icao)+'/flights/'+kind;
+    const url=(typeof window.flightAwareUrl==='function')
+      ?window.flightAwareUrl(path,{max_pages:'1'})
+      :('/api/flightaware?path='+encodeURIComponent(path)+'&max_pages=1');
     const r=await fetch(url,{cache:'no-store'});
     if(!r.ok){
       let detail='';

@@ -77,6 +77,53 @@ export default defineConfig(({ mode }) => {
               res.end(JSON.stringify({ error: "transtar_proxy_failed" }));
             }
           });
+
+          /* Supports /api/flightaware?path=aeroapi/... (Netlify-compatible) and legacy /api/flightaware/aeroapi/... */
+          server.middlewares.use("/api/flightaware", async (req, res) => {
+            try {
+              const key = env.FLIGHTAWARE_API_KEY || process.env.FLIGHTAWARE_API_KEY;
+              if (!key) {
+                res.statusCode = 500;
+                res.setHeader("content-type", "application/json");
+                res.end(JSON.stringify({
+                  error: "FLIGHTAWARE_API_KEY_missing",
+                  hint: "Set FLIGHTAWARE_API_KEY in .env.local",
+                }));
+                return;
+              }
+              const url = new URL(req.url || "/", "http://local");
+              let aeroPath = url.searchParams.get("path") || url.pathname.replace(/^\/+/, "");
+              aeroPath = String(aeroPath).replace(/^\/+/, "");
+              if (!aeroPath) {
+                res.statusCode = 400;
+                res.setHeader("content-type", "application/json");
+                res.end(JSON.stringify({ error: "missing_upstream_path" }));
+                return;
+              }
+              const target = new URL(`https://aeroapi.flightaware.com/${aeroPath}`);
+              url.searchParams.forEach((v, k) => {
+                if (k !== "path") target.searchParams.set(k, v);
+              });
+              const upstream = await fetch(target.toString(), {
+                method: "GET",
+                headers: {
+                  accept: req.headers.accept || "application/json,*/*",
+                  "x-apikey": key,
+                  "user-agent": "HoustonTrafficSimulator/1.0 (local)",
+                },
+              });
+              res.statusCode = upstream.status;
+              res.setHeader(
+                "content-type",
+                upstream.headers.get("content-type") || "application/json",
+              );
+              res.end(await upstream.text());
+            } catch {
+              res.statusCode = 502;
+              res.setHeader("content-type", "application/json");
+              res.end(JSON.stringify({ error: "flightaware_proxy_failed" }));
+            }
+          });
         },
       },
     ],
@@ -142,17 +189,6 @@ export default defineConfig(({ mode }) => {
           target: "https://hexdb.io",
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/hexdb/, ""),
-        },
-        "/api/flightaware": {
-          target: "https://aeroapi.flightaware.com",
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/flightaware/, ""),
-          configure: (proxy) => {
-            proxy.on("proxyReq", (proxyReq) => {
-              const key = env.FLIGHTAWARE_API_KEY || process.env.FLIGHTAWARE_API_KEY;
-              if (key) proxyReq.setHeader("x-apikey", key);
-            });
-          },
         },
       },
     },

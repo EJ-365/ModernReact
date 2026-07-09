@@ -7,7 +7,7 @@ function buildQuery(event) {
   if (!q || typeof q !== "object") return "";
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(q)) {
-    if (v == null) continue;
+    if (v == null || k === "path") continue; // path is our routing param
     if (Array.isArray(v)) v.forEach((x) => params.append(k, x));
     else params.set(k, String(v));
   }
@@ -28,8 +28,11 @@ function stripPath(path, stripPrefixes) {
   return p.replace(/^\/+/, "");
 }
 
-/** Prefer original browser path (Netlify rewrite keeps event.path as the public URL). */
 function resolveIncomingPath(event, stripPrefixes) {
+  /* Explicit ?path=aeroapi/... is most reliable under Netlify rewrites. */
+  const qp = event.queryStringParameters || {};
+  if (qp.path) return String(qp.path).replace(/^\/+/, "");
+
   const candidates = [
     event.path,
     event.rawPath,
@@ -40,7 +43,9 @@ function resolveIncomingPath(event, stripPrefixes) {
 
   for (const c of candidates) {
     const stripped = stripPath(String(c), stripPrefixes);
-    if (stripped) return stripped;
+    if (stripped && stripped !== "flightaware" && !stripped.startsWith("flightaware?")) {
+      return stripped;
+    }
   }
   return "";
 }
@@ -91,8 +96,8 @@ export async function proxyRequest(event, {
       headers: headersOut,
       body: JSON.stringify({
         error: "missing_upstream_path",
-        hint: "Request must look like /api/flightaware/aeroapi/...",
-        debug: { path: event.path, rawUrl: event.rawUrl || null },
+        hint: "Call /api/flightaware?path=aeroapi/airports/KIAH/flights/departures",
+        debug: { path: event.path, query: event.queryStringParameters || null },
       }),
     };
   }
