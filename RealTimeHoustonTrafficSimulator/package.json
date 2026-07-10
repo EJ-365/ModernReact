@@ -1,7 +1,7 @@
 {
   "name": "houston-traffic-simulator",
   "private": true,
-  "version": "10.8.6",
+  "version": "10.9.0",
   "type": "module",
   "description": "Award-ready 3D Houston metro simulator + marketing site. Created by Ejay Gabriel.",
   "author": "Ejay Gabriel",
@@ -11,7 +11,10 @@
     "preview": "vite preview --port 5176 --strictPort",
     "package:win": "node scripts/package-win.mjs",
     "docs:serve": "vite --port 5176 --strictPort",
-    "ci": "npm ci && npm run build"
+    "ci": "npm ci && npm run build",
+    "roads:fetch": "node scripts/fetch-osm-roads.mjs",
+    "roads:merge": "node scripts/merge-osm-roads.mjs",
+    "roads:build": "npm run roads:fetch && npm run roads:merge"
   },
   "dependencies": {
     "three": "^0.185.1"
