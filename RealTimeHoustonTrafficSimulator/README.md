@@ -25,6 +25,8 @@ npm run dev
 | [http://localhost:5176/download.html](http://localhost:5176/download.html) | Web install + Windows download |
 | [http://localhost:5176/docs/](http://localhost:5176/docs/) | Developer handbook |
 
+**Latest progress:** [docs/PROGRESS.md](docs/PROGRESS.md) — v10.16.4 (vehicles, OSM roads, sync, hotspots, ETAs).
+
 ---
 
 ## Website

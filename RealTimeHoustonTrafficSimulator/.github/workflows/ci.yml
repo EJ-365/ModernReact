@@ -41,6 +41,9 @@ jobs:
           done
           echo "Required surfaces OK"
 
+      - name: Unit tests
+        run: npm run test
+
       - name: Production build
         run: npm run build
 

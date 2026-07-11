@@ -86,6 +86,8 @@
   #wxSrc .pulse{width:7px;height:7px;border-radius:50%;background:#3ddc74;box-shadow:0 0 6px #3ddc74;
     animation:pulse 1.6s infinite}
   #wxSrc .pulse.sim{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:none}
+  .syncClk{margin-top:6px;font-size:9px;font-weight:700;letter-spacing:.06em;color:#8aa89a;text-transform:uppercase}
+  .syncClk.stale{color:#ffb400}
   #wxLocal{display:none;margin-top:14px;padding-top:12px;border-top:1px dashed rgba(255,255,255,.2)}
   #wxLocal .wlHead{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#ffe08a;margin-bottom:5px}
   #wxLocal .wlRow{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
@@ -192,35 +194,98 @@
 
   /* ---------- Legend / stats ---------- */
   #legend{position:static;flex:0 0 auto;background:var(--panel);
-    backdrop-filter:blur(12px);border:1px solid var(--panel-line);border-radius:14px;padding:14px 15px 15px;
+    backdrop-filter:blur(12px);border:1px solid var(--panel-line);border-radius:14px;padding:12px 13px 13px;
     max-width:100%;box-shadow:0 8px 26px rgba(0,0,0,.45)}
-  #legend .legendHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px}
+  #legend .legendHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
   #legend .ttl{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin:0}
-  #trafficLiveTag{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-    color:#8fd4a8;background:#163024;border:1px solid #2c5c3f;border-radius:99px;padding:3px 8px;white-space:nowrap}
+  #trafficLiveTag{font-size:8.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    color:#8fd4a8;background:#163024;border:1px solid #2c5c3f;border-radius:99px;padding:3px 8px;white-space:nowrap;
+    max-width:58%;overflow:hidden;text-overflow:ellipsis}
   #trafficLiveTag.off{color:#8a939c;background:#1a2028;border-color:#2c333c}
   #trafficLiveTag.warn{color:#ffe08a;background:#2a2214;border-color:#5c4a22}
-  #gradBar{height:12px;border-radius:6px;overflow:hidden;border:1px solid #24303c;
+  #gradBar{height:10px;border-radius:6px;overflow:hidden;border:1px solid #24303c;
     background:linear-gradient(90deg,var(--free) 0 22%,var(--slow) 34% 48%,var(--heavy) 60% 74%,var(--jam) 86% 100%)}
-  #gradLbls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
-  #gradLbls .gl{text-align:center;min-width:0}
-  #gradLbls .gl b{display:block;font-size:10.5px;font-weight:800;line-height:1.25}
-  #gradLbls .gl span{display:block;font-size:9px;color:var(--dim);font-weight:600;font-family:'Overpass Mono',monospace;margin-top:2px}
-  #hotRow{margin-top:12px;padding:10px 11px;border-radius:10px;background:#0d1218;border:1px solid #232b35;
-    font-size:11px;color:var(--dim);font-weight:600;line-height:1.45}
-  #hotRow b{color:var(--heavy);font-weight:800}
-  #legendHint{font-size:9px;color:#8a939c;margin-top:8px;font-weight:600;letter-spacing:.03em;line-height:1.45}
-  #stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;width:100%}
-  .stat{background:#0d1218;border:1px solid #232b35;border-radius:10px;padding:10px 8px;text-align:center;min-width:0}
-  .stat .v{font-family:'Overpass Mono',monospace;font-size:15px;font-weight:700;line-height:1.2;word-break:break-word}
-  .stat .k{font-size:8.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-top:4px;line-height:1.3}
+  #gradLbls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:8px}
+  #gradLbls .gl{text-align:center;min-width:0;padding:0 1px}
+  #gradLbls .gl b{display:block;font-size:9.5px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #gradLbls .gl span{display:block;font-size:8.5px;color:var(--dim);font-weight:600;font-family:'Overpass Mono',monospace;margin-top:2px;white-space:nowrap}
+  #hotRow{margin-top:10px;padding:9px 10px;border-radius:10px;background:#0d1218;border:1px solid #232b35;
+    font-size:10.5px;color:var(--dim);font-weight:600;line-height:1.4;
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  #hotRow .hotLbl{flex:0 0 auto}
+  #hotRow b{color:var(--heavy);font-weight:800;text-align:right;min-width:0}
+  #legendHint{font-size:9px;color:#8a939c;margin-top:7px;font-weight:600;letter-spacing:.02em;line-height:1.4}
+  #stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px;width:100%}
+  .stat{background:#0d1218;border:1px solid #232b35;border-radius:10px;padding:9px 6px 8px;text-align:center;min-width:0}
+  .stat .v{font-family:'Overpass Mono',monospace;font-size:14px;font-weight:700;line-height:1.15;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat .k{font-size:8px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-top:4px;line-height:1.25}
   #stCong.busy{color:var(--heavy)} #stCong.jam{color:var(--jam)} #stCong.ok{color:var(--free)}
+  #trafficSrcLine{margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#6d7883;
+    text-transform:uppercase;line-height:1.35}
   #findPlaneBtn{margin-top:10px;width:100%;margin-bottom:10px}
+
+  /* ---------- incident alerts ---------- */
+  /* Tall enough for ~3–4 compact cards before the list scrolls */
+  #incidentPanel{flex:1 1 auto;min-height:min(440px,52vh);max-height:none;
+    display:flex;flex-direction:column;background:var(--panel);backdrop-filter:blur(12px);
+    border:1px solid var(--panel-line);border-radius:14px;overflow:hidden;
+    box-shadow:0 8px 26px rgba(0,0,0,.45);margin:0}
+  #incidentHead{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 13px 10px;border-bottom:1px solid var(--panel-line)}
+  #incidentHead .incTitle{font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  #incidentCount{font-family:'Overpass Mono',monospace;font-size:9.5px;font-weight:700;
+    letter-spacing:.03em;text-transform:none;color:#8fd4a8;background:#163024;
+    border:1px solid #2c5c3f;border-radius:99px;padding:3px 8px;white-space:nowrap}
+  #incidentCount.empty{color:#8a939c;background:#1a2028;border-color:#2c333c}
+  #alerts{position:static;flex:1 1 auto;min-height:min(380px,44vh);display:flex;flex-direction:column;gap:0;
+    overflow-y:auto;overflow-x:hidden;padding:0;
+    scrollbar-width:thin;scrollbar-color:#2e353d transparent}
+  #alerts::-webkit-scrollbar{width:6px}
+  #alerts::-webkit-scrollbar-thumb{background:#2e353d;border-radius:3px}
+  #alertsTraffic,#alertsWeather{display:flex;flex-direction:column;gap:7px;padding:10px 11px}
+  #alertsWeather{padding-top:0}
+  #alertsWeather:empty,#alertsTraffic:empty{display:none}
+  .alertSec{font-size:8.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6d7883;
+    margin:0 0 1px;padding:0 2px}
+  .alert{background:rgba(16,20,26,.92);backdrop-filter:blur(10px);border:1px solid var(--panel-line);
+    border-left:3px solid var(--jam);border-radius:10px;padding:8px 10px 9px;
+    box-shadow:0 3px 12px rgba(0,0,0,.3);animation:slideIn .35s ease;
+    flex:0 0 auto;width:100%;box-sizing:border-box}
+  .alert:hover{border-color:#3a4450}
+  .alert.clickable{cursor:pointer}
+  .alert.clickable:hover{border-color:#4a5560;background:rgba(20,26,34,.96)}
+  .alert .at{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin-bottom:0;line-height:1.25;
+    font-size:11px;font-weight:800}
+  .alert .at svg{flex:0 0 auto}
+  .alert .aMeta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+  .alert .aChip{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    color:#cfd6dd;background:#161c24;border:1px solid #2a3340;border-radius:6px;padding:2px 6px}
+  .alert .ab{font-size:11px;color:#b8c0c8;margin-top:5px;line-height:1.4;word-break:break-word;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .alert .aHint{font-size:8.5px;color:#5a646f;margin-top:4px;font-weight:700;letter-spacing:.03em}
+  .alert.work{border-left-color:#f59e0b}
+  .alert.work .at{color:#f6b64b}
+  .alert.flood{border-left-color:#4aa3ff}
+  .alert.flood .at{color:#6cb8ff}
+  .alert.event{border-left-color:#b07cf0}
+  .alert.event .at{color:#c69bf5}
+  .alert.police{border-left-color:#4a7dff}
+  .alert.police .at{color:#7da2ff}
+  .alert.clear{border-left-color:#2c5c3f}
+  .alert.clear .at{color:#8fd4a8}
+  .alert.hurricane{border-left-color:#7c3aed}
+  .alert.hurricane .at{color:#c4b5fd}
+  .alert.wildfire{border-left-color:#ea580c}
+  .alert.wildfire .at{color:#fdba74}
+  .alert.nuclear{border-left-color:#a3e635}
+  .alert.nuclear .at{color:#d9f99d}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
 
   /* ---------- Bottom dock (drive times + footer) ---------- */
   #bottomDock{position:fixed;bottom:var(--ui-pad);left:50%;transform:translateX(-50%);z-index:9;
     display:flex;flex-direction:column;align-items:center;gap:10px;
-    width:min(920px,calc(100vw - var(--rail-w) * 2 - var(--ui-pad) * 2 - 64px));
+    width:min(1040px,calc(100vw - var(--rail-w) * 2 - var(--ui-pad) * 2 - 28px));
     pointer-events:none}
   #bottomDock>*{pointer-events:auto}
   #camhint{position:static;width:100%;font-size:10px;color:#8a939c;line-height:1.55;
@@ -297,44 +362,6 @@
     border-radius:50%;font-size:11px;line-height:1;cursor:pointer;font-weight:700}
   #followChip button:hover{color:#fff;border-color:#5a646f}
 
-  /* ---------- incident alerts ---------- */
-  #incidentPanel{flex:1 1 auto;min-height:min(200px,26vh);max-height:none;
-    display:flex;flex-direction:column;background:var(--panel);backdrop-filter:blur(12px);
-    border:1px solid var(--panel-line);border-radius:14px;overflow:hidden;
-    box-shadow:0 8px 26px rgba(0,0,0,.45);margin:0}
-  #incidentHead{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
-    padding:12px 15px 10px;border-bottom:1px solid var(--panel-line);
-    font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
-  #incidentCount{font-family:'Overpass Mono',monospace;font-size:10px;font-weight:700;
-    letter-spacing:.04em;text-transform:none;color:#8fd4a8;background:#163024;
-    border:1px solid #2c5c3f;border-radius:99px;padding:3px 9px}
-  #alerts{position:static;flex:1 1 auto;min-height:96px;display:flex;flex-direction:column;gap:14px;
-    overflow-y:auto;overflow-x:hidden;padding:12px 14px 16px;
-    scrollbar-width:thin;scrollbar-color:#2e353d transparent}
-  #alerts::-webkit-scrollbar{width:6px}
-  #alerts::-webkit-scrollbar-thumb{background:#2e353d;border-radius:3px}
-  .alert{background:rgba(16,20,26,.92);backdrop-filter:blur(10px);border:1px solid var(--panel-line);
-    border-left:4px solid var(--jam);border-radius:12px;padding:14px 15px 15px;
-    box-shadow:0 4px 16px rgba(0,0,0,.35);animation:slideIn .35s ease;
-    flex:0 0 auto;width:100%;box-sizing:border-box}
-  .alert .at{display:flex;align-items:flex-start;gap:9px;margin-bottom:0;line-height:1.4}
-  .alert .at svg{flex:0 0 auto;margin-top:1px}
-  .alert .ab{font-size:12px;color:#cfd6dd;margin-top:8px;line-height:1.6;word-break:break-word}
-  .alert.work{border-left-color:#f59e0b}
-  .alert.work .at{color:#f6b64b}
-  .alert.flood{border-left-color:#4aa3ff}
-  .alert.flood .at{color:#6cb8ff}
-  .alert.event{border-left-color:#b07cf0}
-  .alert.event .at{color:#c69bf5}
-  .alert.police{border-left-color:#4a7dff}
-  .alert.police .at{color:#7da2ff}
-  .alert.hurricane{border-left-color:#7c3aed}
-  .alert.hurricane .at{color:#c4b5fd}
-  .alert.wildfire{border-left-color:#ea580c}
-  .alert.wildfire .at{color:#fdba74}
-  .alert.nuclear{border-left-color:#a3e635}
-  .alert.nuclear .at{color:#d9f99d}
-  @keyframes slideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
   #hazBtns .btn{font-size:10px;padding:8px 6px;line-height:1.25}
   #hazBtns .btn.on.hurricane{background:#4c1d95;border-color:#7c3aed}
   #hazBtns .btn.on.wildfire{background:#9a3412;border-color:#ea580c}
@@ -384,7 +411,7 @@
     body.right-collapsed #rightRailToggle svg{transform:scaleX(-1)}
     body.left-collapsed #bottomDock,
     body.right-collapsed #bottomDock{
-      width:min(960px,calc(100vw - var(--ui-pad) * 2 - 40px));
+      width:min(1100px,calc(100vw - var(--ui-pad) * 2 - 24px));
     }
     body.left-collapsed #locBtn{right:calc(var(--ui-pad) + var(--rail-w) + 10px)}
     body.right-collapsed #locBtn{right:calc(var(--ui-pad) + 10px)}
@@ -414,8 +441,9 @@
   @media (max-width:980px) and (min-width:681px){
     #leftRailToggle{left:calc(12px + min(280px,34vw) + 6px);height:48px;width:30px}
     #rightRailToggle{right:calc(12px + min(280px,34vw) + 6px);height:48px;width:30px}
-    #incidentPanel{min-height:min(160px,22vh)}
-    #alerts{gap:11px;padding:8px 10px 12px}
+    #incidentPanel{min-height:min(360px,46vh)}
+    #alerts{min-height:min(300px,38vh)}
+    #alertsTraffic,#alertsWeather{padding:8px 9px;gap:6px}
   }
   @media (max-width:680px){
     .railToggle{display:none!important}
@@ -424,22 +452,22 @@
   }
 
   /* ---------- Live drive-times bar ---------- */
-  #drivetimes{position:static;width:100%;display:flex;justify-content:center;align-items:stretch;
-    flex-wrap:wrap;gap:10px;padding:12px 14px;
+  #drivetimes{position:static;width:100%;display:flex;justify-content:stretch;align-items:stretch;
+    flex-wrap:nowrap;gap:8px;padding:8px;
     background:var(--panel);backdrop-filter:blur(12px);border:1px solid var(--panel-line);
     border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.45);
     overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
   #drivetimes::-webkit-scrollbar{display:none}
-  .dtchip{flex:1 1 120px;max-width:168px;background:#121820;
-    border:1px solid #2a3340;border-radius:11px;padding:9px 11px 8px;
+  .dtchip{flex:1 1 0;min-width:0;max-width:none;background:#121820;
+    border:1px solid #2a3340;border-radius:11px;padding:8px 9px 7px;
     transition:transform .18s ease,border-color .18s ease}
   .dtchip:hover{transform:translateY(-2px);border-color:#3a4450}
   .dtchip .r{display:flex;align-items:center;justify-content:center;gap:6px}
   .dtchip .dot2{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
-  .dtchip{min-width:0;text-align:center}
-  .dtchip .nm{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#cfd6dd;white-space:nowrap}
+  .dtchip{text-align:center}
+  .dtchip .nm{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#cfd6dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dtchip .tm{font-family:'Overpass Mono',monospace;font-size:17px;font-weight:700;margin-top:4px}
-  .dtchip .tm small{display:block;font-size:9px;color:var(--dim);font-weight:700;margin-top:2px;margin-left:0}
+  .dtchip .tm small{display:block;font-size:8.5px;color:var(--dim);font-weight:700;margin-top:2px;margin-left:0;line-height:1.35;white-space:normal}
   #flash{position:fixed;inset:0;background:#dfe9ff;opacity:0;pointer-events:none;z-index:20;transition:opacity .08s}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,.34) 100%)}
@@ -475,8 +503,9 @@
     #sign h1{font-size:22px}
     #flights{max-height:38vh;gap:16px}
     .grp{margin-bottom:28px}
-    #incidentPanel{min-height:min(180px,24vh)}
-    #alerts{gap:14px}
+    #incidentPanel{min-height:min(460px,54vh)}
+    #alerts{min-height:min(400px,46vh)}
+    #alertsTraffic,#alertsWeather{gap:7px}
   }
   /* Laptop / small desktop — keep panels readable, not crushed */
   @media (max-width:1366px) and (min-width:981px){
@@ -501,12 +530,14 @@
     #legend #stats{gap:7px}
     #legend .stat .v{font-size:13px}
     #legend .stat .k{font-size:8px;letter-spacing:.04em}
-    #incidentPanel{min-height:min(150px,22vh)}
-    #alerts{gap:11px}
-    #legend{padding:12px 13px}
-    #bottomDock{bottom:12px;width:min(560px,calc(100vw - 48px))}
-    #drivetimes{gap:8px;padding:10px 11px}
-    .dtchip{padding:7px 9px;flex-basis:108px}
+    #incidentPanel{min-height:min(340px,44vh)}
+    #alerts{min-height:min(280px,36vh)}
+    #alertsTraffic,#alertsWeather{gap:6px;padding:8px 9px}
+    #legend{padding:11px 12px}
+    #stats{gap:6px}
+    #bottomDock{bottom:12px;width:min(720px,calc(100vw - 36px))}
+    #drivetimes{gap:6px;padding:7px}
+    .dtchip{padding:7px 7px}
     #whereami{max-width:min(42vw,320px);font-size:11px}
     .grp{margin-bottom:18px}
     #flights{max-height:28vh;gap:10px}
@@ -666,7 +697,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.13.1</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.4</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -689,6 +720,7 @@
       <div class="wxs"><div class="v" id="wxUv">--</div><div class="k">UV index</div></div>
     </div>
     <div id="wxSrc"><span class="pulse sim" id="wxDot"></span><span id="wxSrcTxt">Connecting to live weather…</span></div>
+    <div id="syncClock" class="syncClk">Live sync · —</div>
     <div id="wxLocal">
       <div class="wlHead">Your location · <span id="wxLocalName">suburb</span></div>
       <div class="wlRow"><div class="wlTemp" id="wxLocalTemp">--°</div><div class="wlDesc" id="wxLocalDesc">—</div></div>
@@ -712,23 +744,30 @@
   </div>
   <div id="gradBar"></div>
   <div id="gradLbls">
-    <div class="gl"><b style="color:var(--free)">Free flow</b><span>55+ mph</span></div>
-    <div class="gl"><b style="color:var(--slow)">Slowing</b><span>35–55</span></div>
-    <div class="gl"><b style="color:var(--heavy)">Heavy</b><span>15–35</span></div>
-    <div class="gl"><b style="color:var(--jam)">Jammed</b><span>&lt;15 mph</span></div>
+    <div class="gl"><b style="color:var(--free)">Free</b><span>55+ mph</span></div>
+    <div class="gl"><b style="color:var(--slow)">Slow</b><span>35–55 mph</span></div>
+    <div class="gl"><b style="color:var(--heavy)">Heavy</b><span>15–35 mph</span></div>
+    <div class="gl"><b style="color:var(--jam)">Jam</b><span>&lt;15 mph</span></div>
   </div>
-  <div id="hotRow">Heaviest now: <b id="hotTxt">—</b></div>
-  <div id="legendHint">Orange / red rings = heavy &amp; jammed hotspots on the map</div>
+  <div id="hotRow"><span class="hotLbl">Heaviest now</span><b id="hotTxt">—</b></div>
+  <div id="legendHint">Orange / red rings = heavy &amp; jammed hotspots</div>
   <div id="stats">
     <div class="stat"><div class="v" id="stVeh">0</div><div class="k">Vehicles</div></div>
-    <div class="stat"><div class="v" id="stMph">— mph</div><div class="k">Avg speed</div></div>
+    <div class="stat"><div class="v" id="stMph">—</div><div class="k" id="stMphK">Avg mph</div></div>
     <div class="stat"><div class="v" id="stCong">—</div><div class="k" id="stTrafficK">Congestion</div></div>
   </div>
+  <div id="trafficSrcLine">Feed · waiting…</div>
 </div>
 
 <div id="incidentPanel">
-  <div id="incidentHead">Live incidents <span id="incidentCount">0 active</span></div>
-  <div id="alerts"></div>
+  <div id="incidentHead">
+    <span class="incTitle">Incident report</span>
+    <span id="incidentCount" class="empty">Clear</span>
+  </div>
+  <div id="alerts">
+    <div id="alertsTraffic"></div>
+    <div id="alertsWeather"></div>
+  </div>
 </div>
 </div>
 
@@ -887,6 +926,7 @@
     <label>Time of day</label>
     <select id="todSelect">
       <option value="live" selected>● Live — real Houston time</option>
+      <option value="preview">Time preview</option>
       <option value="dawn">Dawn (6:20 AM)</option>
       <option value="day">Midday (12:30 PM)</option>
       <option value="dusk">Dusk (8:20 PM)</option>
@@ -898,7 +938,7 @@
       <button class="btn" data-speed="1800">30 min/s</button>
     </div>
     <input type="range" id="timeSlider" min="0" max="1439" step="1" value="720">
-    <div class="hint" id="timeHint">Traffic &amp; sky follow live Houston time. Presets preview rush patterns only.</div>
+    <div class="hint" id="timeHint">Traffic &amp; sky follow live Houston time. Pick a speed for a day/night time-lapse.</div>
   </div>
   <div class="grp" id="tourWxGrp">
     <label>Weather</label>
@@ -1051,6 +1091,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="/data/roads-boot.js"></script>
+<script src="/data/roads-corridors.js"></script>
+<script type="module" src="/src/rain-bridge.js"></script>
 <script>
 /* ================================================================
    HOUSTON 3D TRAFFIC SIMULATOR — v2.5
@@ -1063,7 +1105,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.13.1 (0710-live-accuracy). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.16.4 (0711-corridor-eta). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -1084,6 +1126,11 @@ setTimeout(()=>{
   else fireHtsReady();
 },4500);
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+function fetchWithTimeout(url,opts,ms){
+  const ctl=new AbortController();
+  const t=setTimeout(()=>ctl.abort(),ms||10000);
+  return fetch(url,{...opts,signal:ctl.signal}).finally(()=>clearTimeout(t));
+}
 const lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2;
 const $=id=>document.getElementById(id);
@@ -1105,10 +1152,74 @@ function fmtFlightTime(t){
   return t?new Date(t).toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}):'—';
 }
 function icaoToDisp(code){
-  if(!code)return '—';
-  const c=String(code).trim().toUpperCase();
-  if(c.length===4&&c[0]==='K')return c.slice(1);
-  return c;
+  if(code==null||code==='')return '—';
+  let c=String(code).trim().toUpperCase();
+  if(!c||c==='—'||c==='NULL'||c==='UNK'||c==='UNKNOWN')return '—';
+  c=c.replace(/^ICAO[:\s-]*/,'').replace(/^IATA[:\s-]*/,'').replace(/[^A-Z0-9]/g,'');
+  if(c.length===4&&c[0]==='K'&&/^[A-Z]{4}$/.test(c))return c.slice(1);
+  if(/^[A-Z]{3}$/.test(c))return c;
+  /* FA sometimes sends ICAO+extra — prefer first Kxxx / xxx token */
+  const k4=c.match(/K([A-Z]{3})/);
+  if(k4)return k4[1];
+  const i3=c.match(/([A-Z]{3})/);
+  if(i3&&i3[1]!=='USA'&&i3[1]!=='THE')return i3[1];
+  return c.length<=4?c:'—';
+}
+function extractAptCode(node){
+  if(!node)return '—';
+  if(typeof node==='string')return icaoToDisp(node);
+  return icaoToDisp(
+    node.code_iata||node.code_icao||node.iata_code||node.icao_code
+    ||node.code||node.airport_code||node.iata||node.icao||''
+  );
+}
+function findBoardRouteForCallsign(f){
+  const board=window.HOUSTON_BOARD||[];
+  if(!board.length||!f)return null;
+  const cs=String(f.csIata||f.cs||'').replace(/\s+/g,'').toUpperCase();
+  const reg=String(f.reg||'').replace(/\s+/g,'').toUpperCase();
+  if(!cs&&!reg)return null;
+  const tail=cs.replace(/^[A-Z]+/,'');
+  for(const b of board){
+    if(!b)continue;
+    const bcs=String(b.csIata||b.cs||'').replace(/\s+/g,'').toUpperCase();
+    const breg=String(b.reg||'').replace(/\s+/g,'').toUpperCase();
+    const match=(cs&&bcs&&(cs===bcs||(tail&&(bcs.endsWith(tail)||cs.endsWith(bcs.replace(/^[A-Z]+/,''))))))
+      ||(reg&&breg&&reg===breg);
+    if(!match)continue;
+    const dep=icaoToDisp(b.dep),arr=icaoToDisp(b.arr);
+    if((dep&&dep!=='—')||(arr&&arr!=='—'))return {dep,arr,src:'board'};
+  }
+  return null;
+}
+/** Prefer real IATA codes on cards — fill Houston side / board match; never hide a known code behind … */
+function resolveFlightAirports(f){
+  let dep=icaoToDisp(f&&f.dep);
+  let arr=icaoToDisp(f&&f.arr);
+  const br=findBoardRouteForCallsign(f);
+  if(br){
+    if((!dep||dep==='—')&&br.dep&&br.dep!=='—')dep=br.dep;
+    if((!arr||arr==='—')&&br.arr&&br.arr!=='—')arr=br.arr;
+  }
+  const lat=Number.isFinite(f&&f._lat)?f._lat:(Number.isFinite(f&&f._tLat)?f._tLat:null);
+  const lon=Number.isFinite(f&&f._lon)?f._lon:(Number.isFinite(f&&f._tLon)?f._tLon:null);
+  const near=Number.isFinite(lat)?nearestHoustonApt(lat,lon):(f&&f.boardApt?icaoToDisp(f.boardApt):'IAH');
+  if((!dep||dep==='—')&&arr&&arr!=='—'&&!isHoustonApt(arr))dep=near;
+  if((!arr||arr==='—')&&dep&&dep!=='—'&&!isHoustonApt(dep))arr=near;
+  if(f&&f.boardApt){
+    const ba=icaoToDisp(f.boardApt);
+    if(f.boardKind==='departures'&&(!dep||dep==='—'))dep=ba;
+    if(f.boardKind==='arrivals'&&(!arr||arr==='—'))arr=ba;
+  }
+  if((!dep||dep==='—')&&(!arr||arr==='—')&&f&&f.kind==='live'&&Number.isFinite(lat)){
+    const vs=Number(f.vsFpm)||0;
+    if(vs<-250)arr=near;
+    else if(vs>250)dep=near;
+  }
+  const pending=(!dep||dep==='—')||(!arr||arr==='—');
+  if(!dep||dep==='—')dep='…';
+  if(!arr||arr==='—')arr='…';
+  return {dep,arr,pending};
 }
 const HOU_APT=new Set(['IAH','HOU','EFD','SGR','DWH','IWS','CXO']);
 const APT_DB={
@@ -1720,16 +1831,10 @@ function patchFlightCardStats(el,f){
 }
 function renderFlightCard(f){
   const verified=hasVerifiedRoute(f);
-  let depCode=icaoToDisp(f.dep);
-  let arrCode=icaoToDisp(f.arr);
-  /* Show blanks while enriching — never invent airports */
-  if(!verified){
-    if(!depCode||depCode==='—')depCode='…';
-    if(!arrCode||arrCode==='—')arrCode='…';
-  }
-  const depShow=depCode, arrShow=arrCode;
-  const d0=(depShow==='…')?{n:(f._houston===true?'Houston route':'Route enriching…'),c:''}:aptInfo(depShow);
-  const d1=(arrShow==='…')?{n:(f._houston===true?'Houston route':'Route enriching…'),c:''}:aptInfo(arrShow);
+  const route=resolveFlightAirports(f);
+  const depShow=route.dep, arrShow=route.arr;
+  const d0=(depShow==='…')?{n:'Origin pending',c:''}:aptInfo(depShow);
+  const d1=(arrShow==='…')?{n:'Destination pending',c:''}:aptInfo(arrShow);
   const cs=callsignPair(f.cs,f.csIata);
   const type=f.actype&&f.actype!=='—'?String(f.actype).toUpperCase():'';
   const phase=flightPhase(f);
@@ -1743,7 +1848,7 @@ function renderFlightCard(f){
   const spd=flightGsKts(f);
   const baro=(f.baroInHg!=null&&isFinite(f.baroInHg))?Number(f.baroInHg).toFixed(2):(typeof liveWx!=='undefined'&&liveWx&&liveWx.press!=null?Number(liveWx.press).toFixed(2):'—');
   const etaT=landedAgo?parseMaybeTime(f.ata):(verified?estimateEtaFromNow(f):parseMaybeTime(f.eta));
-  const etaTxt=etaT?fmtFlightTime(etaT):(verified?'—':'Route pending');
+  const etaTxt=etaT?fmtFlightTime(etaT):(verified?'—':(route.pending?'Route pending':'—'));
   const etaRel=etaT?(etaT>Date.now()?('in '+fmtDur(etaT-Date.now())):('landed '+fmtDur(Date.now()-etaT)+' ago')):'';
   const tim=flightTiming(f);
   const lat=Number.isFinite(f._lat)?f._lat:(Number.isFinite(f._tLat)?f._tLat:null);
@@ -1756,9 +1861,9 @@ function renderFlightCard(f){
   return '<div class="fhead"><div class="fcs">'+(fltNo||'—')+(cs.iata?'<small>'+cs.iata+'</small>':'')+'</div>'
     +'<div class="fbadge '+badgeCls+'">'+badge+'</div></div>'
     +'<div class="froutebox">'
-      +'<div class="fapt from"><div class="code">'+depShow+'</div><div class="city">'+(d0.c||(verified?'Origin':''))+'</div><div class="aname">'+d0.n+'</div></div>'
+      +'<div class="fapt from"><div class="code">'+depShow+'</div><div class="city">'+(d0.c||(depShow!=='…'?'Origin':''))+'</div><div class="aname">'+d0.n+'</div></div>'
       +'<div class="farrow">→</div>'
-      +'<div class="fapt to"><div class="code">'+arrShow+'</div><div class="city">'+(d1.c||(verified?'Destination':''))+'</div><div class="aname">'+d1.n+'</div></div>'
+      +'<div class="fapt to"><div class="code">'+arrShow+'</div><div class="city">'+(d1.c||(arrShow!=='…'?'Destination':''))+'</div><div class="aname">'+d1.n+'</div></div>'
     +'</div>'
     +'<div class="fphase '+phase.cls+'"><span class="dot"></span>'+phase.label+(type?' · '+type:'')+(srcTag?' · '+srcTag:'')+'</div>'
     +'<div class="fmeta">'
@@ -2139,6 +2244,26 @@ const LEGACY_ROAD_DEFS=[
  {id:'i45',name:'Interstate 45 — North Fwy · Gulf Fwy',short:'I-45',closed:false,width:42,lanes:4,ff:65,share:1.4,baseY:0.82,prio:7,
   pts:[[-1850,-5400],[-1550,-4550],[-1260,-3800],[-1090,-3300],[-830,-2600],[-660,-1750],[-420,-1000],[-160,-380],[40,60],[330,560],[640,1150],[880,1850],[1120,2600],[1500,3400],[1950,4400],[2300,5400],[4200,6200],[5800,6600],[7290,6804]]},
 ];
+/* Snap freeways to real Houston OSM geometry (stitched corridors). Keep hand paths if stitch is too short. */
+(function applyOsmCorridors(){
+  const pack=window.OSM_CORRIDORS&&window.OSM_CORRIDORS.corridors;
+  if(!pack){console.warn('OSM corridors missing — legacy road paths');return;}
+  let n=0;
+  for(const def of LEGACY_ROAD_DEFS){
+    const c=pack[def.id];
+    if(!c||!Array.isArray(c.pts)||c.pts.length<8||(c.length||0)<1500)continue;
+    def.pts=c.pts;
+    const a=c.pts[0],b=c.pts[c.pts.length-1];
+    const gap=Math.hypot(a[0]-b[0],a[1]-b[1]);
+    if(def.id==='i610'||def.id==='bw8'||def.id==='tx99'){
+      def.closed=gap<520;
+    }else if(gap<180&&(c.length||0)>4000){
+      def.closed=true;
+    }
+    n++;
+  }
+  console.log('%cReal Houston OSM corridors applied: '+n,'color:#7fd6a0');
+})();
 function normalizeOsmRoadDef(r){
   if(!r||!Array.isArray(r.pts)||r.pts.length<2)return null;
   return {
@@ -2281,37 +2406,69 @@ const HOTSPOTS=[
 ];
 function hotspotMult(x,z){let m=1;for(const h of HOTSPOTS){const d=Math.hypot(x-h.x,z-h.z);
   if(d<h.r)m+=h.k*(1-d/h.r);}return m;}
-/* Average live/modeled congestion inside a hotspot radius */
+/* Average live/modeled congestion inside a hotspot radius.
+   Rings must track REAL slowdowns — never invent rush-hour glow at 3 AM. */
+const _hotCongCache=new Map();
+let _hotCongAt=0;
+function congFromLiveMph(cur,ff){
+  const ratio=ff>0?clamp(cur/ff,0,1.3):1;
+  /* Free-flow deadband: 80%+ of posted is not a hotspot */
+  if(ratio>=0.80)return 0;
+  if(ratio>=0.55)return clamp((0.80-ratio)/0.25*0.48,0,0.48); /* slow → just under heavy */
+  return clamp(0.48+(0.55-ratio)/0.55*0.52,0.48,1); /* heavy → jam */
+}
 function hotspotLiveCong(hs){
+  const now=performance.now();
+  const cached=_hotCongCache.get(hs.name);
+  if(cached&&(now-_hotCongAt)<400)return cached;
   if(!window.roads||!roads.length){
-    const rush=typeof demand==='function'?demand(simH,weekend):0.5;
-    return {cong:clamp(rush*hs.k*0.9,0,1),liveShare:0,samples:0};
+    const out={cong:0,liveShare:0,samples:0,live:false};
+    _hotCongCache.set(hs.name,out);return out;
   }
-  let sum=0,n=0,liveN=0,liveSum=0,liveCnt=0;
+  let peak=0,sum=0,n=0,liveSeg=0,liveSum=0,liveMphN=0,liveMphSum=0;
   for(const road of roads){
-    if(road.def.arterial||road.def.surface)continue;
+    if(road.def.arterial||road.def.surface||road.suburbTraffic)continue;
     for(const dir of road.dirs){
       const liveKey=road.def.id+'_'+dir.sign;
-      const live=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(liveKey);
+      const flow=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(liveKey);
+      const liveOk=liveMode&&liveFlowFresh(flow);
+      const liveC=liveOk?congFromLiveMph(flow.cur,flow.ff||road.def.ff):null;
       for(let k=0;k<dir.segCong.length;k++){
         const x=road.segX[k],z=road.segZ[k];
         if(Math.hypot(x-hs.x,z-hs.z)>hs.r)continue;
-        sum+=dir.segCong[k];n++;
-        if(live){liveN++;liveSum+=live.cong;liveCnt++;}
+        let segC=dir.segCong[k];
+        if(liveC!=null){
+          segC=liveC; /* live mph is ground truth for the ring */
+          liveSeg++;liveSum+=liveC;
+          liveMphN++;liveMphSum+=flow.cur;
+        }
+        peak=Math.max(peak,segC);
+        sum+=segC;n++;
       }
     }
   }
   const avg=n?sum/n:0;
-  const liveAvg=liveCnt?liveSum/liveCnt:null;
-  /* Floor from rush demand × hotspot strength so rings stay visible when it's busy,
-     even if a free-flow TomTom sample briefly washes segment colors. */
+  const liveAvg=liveSeg?liveSum/liveSeg:null;
   const rush=(typeof demand==='function'?demand(simH,weekend):0.5);
-  const floor=clamp(rush*hs.k*0.95+wxBlend.cong*0.6,0,0.92);
-  let cong=avg;
-  if(liveAvg!=null&&liveCnt>0)cong=liveAvg;
-  else cong=Math.max(avg,floor);
-  return {cong:clamp(cong,0,1),liveShare:n?liveN/n:0,samples:n};
+  const overnight=rush<0.30; /* ~10pm–5:30am weekday / quiet weekend hours */
+  let cong=0;
+  if(liveMode&&liveAvg!=null&&liveSeg>0){
+    /* Live mode: rings follow probes only — no demand floor */
+    cong=Math.max(liveAvg,peak*0.75);
+    /* Overnight: need a real crawl before lighting a ring */
+    if(overnight&&cong<0.62)cong*=0.35;
+  }else{
+    /* Time-lapse / no live coverage: modeled segments only, soft rush accent */
+    cong=Math.max(avg,peak*0.85);
+    if(rush>0.75)cong=Math.max(cong,rush*hs.k*0.35);
+    else if(overnight)cong*=0.45;
+  }
+  const out={cong:clamp(cong,0,1),liveShare:n?liveSeg/n:0,samples:n,live:!!(liveAvg!=null&&liveSeg>0),
+    avgMph:liveMphN?Math.round(liveMphSum/liveMphN):null};
+  _hotCongCache.set(hs.name,out);
+  return out;
 }
+function flushHotCongCache(){_hotCongAt=performance.now();_hotCongCache.clear();}
 
 /* ---------------- road materials ---------------- */
 function asphaltTexture(base,noise){
@@ -2445,7 +2602,7 @@ for(const {def,s} of roadSamples){
     const g=ribbonGeom(s,def.width*0.32,0.06,lat,true,0);
     const strip=new THREE.Mesh(g,new THREE.MeshBasicMaterial({
       vertexColors:true,transparent:true,opacity:0.42,depthWrite:false,
-      polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1
+      polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4
     }));
     gRoads3D.add(strip);
     const lanes=[];for(let l=0;l<def.lanes;l++)lanes.push([]);
@@ -2537,12 +2694,12 @@ async function initOsmLod(){
     OSM_LOD.local=loc.roads||[];
     OSM_LOD.artIdx=idx.arterialIndex||null;
     OSM_LOD.locIdx=idx.localIndex||null;
-    OSM_LOD.matArt=new THREE.MeshLambertMaterial({color:0x525860,
-      polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-    OSM_LOD.matLoc=new THREE.MeshLambertMaterial({color:0x484e56,
-      polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-    OSM_LOD.matLine=new THREE.MeshBasicMaterial({color:0xe8eaee,transparent:true,opacity:0.55,depthWrite:false});
-    OSM_LOD.matYellow=new THREE.MeshBasicMaterial({color:0xe0b020,transparent:true,opacity:0.7,depthWrite:false});
+    OSM_LOD.matArt=new THREE.MeshLambertMaterial({color:0x5a6068,
+      polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+    OSM_LOD.matLoc=new THREE.MeshLambertMaterial({color:0x545a62,
+      polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+    OSM_LOD.matLine=new THREE.MeshBasicMaterial({color:0xe8eaee,transparent:true,opacity:0.62,depthWrite:false});
+    OSM_LOD.matYellow=new THREE.MeshBasicMaterial({color:0xe0b020,transparent:true,opacity:0.75,depthWrite:false});
     OSM_LOD.ready=true;
     console.log('%cOSM LOD ready: '+OSM_LOD.arterial.length+' arterials, '+OSM_LOD.local.length+' local streets','color:#7fd6a0');
   }catch(e){
@@ -2563,7 +2720,7 @@ function ensureOsmMesh(def,mat){
   try{
     const s=sampleCurve(def.pts,!!def.closed,def.layer==='local'?28:18);
     for(let i=0;i<=s.n;i++)s.py[i]=def.baseY||0.55;
-    const w=def.width||(def.layer==='local'?9:14);
+    const w=Math.max(def.width||(def.layer==='local'?11:15),def.layer==='local'?11:15);
     const grp=new THREE.Group();
     const mesh=new THREE.Mesh(ribbonGeom(s,w,0,0,false,0),mat);
     grp.add(mesh);
@@ -2589,10 +2746,7 @@ function updateOsmLod(camX,camZ,radius){
   const cell=showLoc?400:500;
   const ring=showLoc?3:4;
   const key=Math.floor(camX/cell)+':'+Math.floor(camZ/cell)+':'+(showLoc?1:0);
-  if(key===OSM_LOD.lastCell){
-    if(OSM_LOD.lastWant)syncSuburbTraffic(camX,camZ,radius,OSM_LOD.lastWant);
-    return;
-  }
+  if(key===OSM_LOD.lastCell)return; /* suburb cars disabled — no per-frame sync needed */
   OSM_LOD.lastCell=key;
 
   const want=new Set();
@@ -2639,27 +2793,58 @@ window.initOsmLod=initOsmLod;
 window.updateOsmLod=updateOsmLod;
 
 /* ---- Suburban OSM traffic: moving cars on streamed streets ---- */
-const SUBURB_TRAFFIC={active:new Map(),maxRoads:22,seedPerRoad:5,_cell:''};
+const SUBURB_TRAFFIC={active:new Map(),maxRoads:14,seedPerRoad:4,_cell:''};
+function osmPathLen(pts){
+  if(!pts||pts.length<2)return 0;
+  let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+  return L;
+}
+function osmPathNearClosed(pts,maxGap){
+  if(!pts||pts.length<3)return false;
+  const a=pts[0],b=pts[pts.length-1];
+  return Math.hypot(a[0]-b[0],a[1]-b[1])<(maxGap||100);
+}
+/** Skip cul-de-sac rings / tiny loops — they look like cars driving rectangles on grass */
+function osmDefOkForTraffic(def){
+  if(!def||!def.pts||def.pts.length<2)return false;
+  if(def.closed)return false;
+  const len=def._len||osmPathLen(def.pts);
+  if(len<160)return false;
+  if(osmPathNearClosed(def.pts,110)&&len<700)return false;
+  const hw=String(def.highway||'');
+  if(hw==='residential'){
+    if(len<380)return false;
+    if(def.pts.length<=6&&len<520)return false;
+  }
+  if(hw==='unclassified'&&len<300)return false;
+  /* Prefer named through-streets over anonymous stubs */
+  if((!def.name||/^residential$/i.test(def.name))&&hw==='residential'&&len<600)return false;
+  return true;
+}
 function buildSuburbTrafficRoad(osmDef){
-  if(!osmDef||!osmDef.pts||osmDef.pts.length<2)return null;
+  if(!osmDefOkForTraffic(osmDef))return null;
   const isLocal=osmDef.layer==='local';
-  const s=sampleCurve(osmDef.pts,!!osmDef.closed,isLocal?30:20);
-  if(s.total<90)return null;
+  const hw=String(osmDef.highway||'');
+  const isRes=hw==='residential';
+  const s=sampleCurve(osmDef.pts,false,isLocal?30:20);
+  if(s.total<160)return null;
   for(let i=0;i<=s.n;i++)s.py[i]=osmDef.baseY||0.55;
-  const lanes=Math.max(1,Math.min(3,osmDef.lanes||(isLocal?1:2)));
-  const width=osmDef.width||(isLocal?10:16);
+  const lanes=Math.max(1,Math.min(isRes?1:2,osmDef.lanes||(isLocal?1:2)));
+  const width=Math.max(osmDef.width||(isLocal?10:16),isRes?11:14);
   const def={
     id:'sub-'+osmDef.id,name:osmDef.name||osmDef.short||'Suburban st',short:osmDef.short||'Street',
-    closed:!!osmDef.closed,width,lanes,
-    ff:isLocal?30:40,share:0.06,baseY:0.55,prio:0,
-    arterial:!isLocal,surface:isLocal,suburbTraffic:true
+    closed:false,width,lanes,
+    ff:isRes?28:(isLocal?32:42),share:0.045,baseY:0.55,prio:0,
+    arterial:!isLocal&&!isRes,surface:isLocal||isRes,suburbTraffic:true,highway:hw
   };
-  const laneW=(width/2-1.6-1.2)/lanes;
+  const laneW=Math.max(2.4,(width/2-1.6-1.2)/lanes);
   const segCount=clamp(Math.round(s.total/180),4,18);
   const segX=new Float32Array(segCount),segZ=new Float32Array(segCount);
   for(let k=0;k<segCount;k++){const i=Math.min(s.n,Math.round((k+0.5)/segCount*s.n));segX[k]=s.px[i];segZ[k]=s.pz[i];}
   const road={def,s,segCount,dirs:[],laneW,segX,segZ,suburbTraffic:true};
-  for(const sign of [1,-1]){
+  /* Residential: one direction only — two-way on a 4-point loop doubles the “rectangle of cars” glitch */
+  const signs=isRes?[1]:[1,-1];
+  for(const sign of signs){
     const segMult=new Float32Array(segCount),segInb=new Float32Array(segCount),
           segCong=new Float32Array(segCount),segPhase=new Float32Array(segCount);
     for(let k=0;k<segCount;k++){
@@ -2675,16 +2860,18 @@ function buildSuburbTrafficRoad(osmDef){
   return road;
 }
 function seedSuburbVehicles(road,n){
+  const isRes=road.def&&road.def.highway==='residential';
+  const count=isRes?Math.min(n,3):n;
   for(const dir of road.dirs){
     const lanes=dir.lanes,L=road.s.total;
-    const perLane=Math.max(1,Math.ceil(n/lanes.length));
+    const perLane=Math.max(1,Math.ceil(count/lanes.length));
     const headway=L/Math.max(perLane,1);
     for(let li=0;li<lanes.length;li++){
       const lane=lanes[li];
       for(let i=0;i<perLane;i++){
         let s0=headway*(i+0.55)+rand()*headway*0.1;
-        if(!road.s.closed)s0=clamp(s0,L*0.04,L*0.96);
-        const v=makeVehicle(road,s0,road.def.ff*0.5);
+        s0=clamp(s0,L*0.06,L*0.94);
+        const v=makeVehicle(road,s0,road.def.ff*(0.45+rand()*0.25));
         v._laneI=li;
         insertVehicleSorted(lane,v);
       }
@@ -2699,58 +2886,24 @@ function removeSuburbTrafficRoad(road){
   SUBURB_TRAFFIC.active.delete(road.def.id);
 }
 function syncSuburbTraffic(camX,camZ,radius,wantMeshIds){
-  const key=Math.floor(camX/500)+':'+Math.floor(camZ/500)+':'+(radius<2800?1:0);
-  if(key===SUBURB_TRAFFIC._cell&&!SUBURB_TRAFFIC._force)return;
-  SUBURB_TRAFFIC._cell=key;SUBURB_TRAFFIC._force=false;
-  if(radius>4200){
+  /* v10.8.6-style traffic: cars only on the main freeway/arterial network.
+     OSM LOD still draws real suburb asphalt — no simulated cars on cul-de-sacs. */
+  if(SUBURB_TRAFFIC.active.size){
     for(const road of [...SUBURB_TRAFFIC.active.values()])removeSuburbTrafficRoad(road);
-    return;
-  }
-  const wantTraffic=new Set();
-  const picks=[];
-  if(OSM_LOD.artIdx&&radius<3800){
-    for(const c of osmCellsAround(camX,camZ,OSM_LOD.artIdx.cell||500,radius<2600?3:2)){
-      const list=OSM_LOD.artIdx.index[c];if(!list)continue;
-      for(const i of list){
-        const def=OSM_LOD.arterial[i];if(!def||!wantMeshIds.has(def.id))continue;
-        const mid=def.pts[def.pts.length>>1];
-        const d2=(mid[0]-camX)**2+(mid[1]-camZ)**2;
-        if(d2<3200*3200)picks.push({def,score:def.pts.length*120-d2*0.01});
-      }
-    }
-  }
-  if(OSM_LOD.locIdx&&radius<2800){
-    for(const c of osmCellsAround(camX,camZ,OSM_LOD.locIdx.cell||400,2)){
-      const list=OSM_LOD.locIdx.index[c];if(!list)continue;
-      for(const i of list){
-        const def=OSM_LOD.local[i];if(!def||!wantMeshIds.has(def.id))continue;
-        const mid=def.pts[def.pts.length>>1];
-        const d2=(mid[0]-camX)**2+(mid[1]-camZ)**2;
-        if(d2<1800*1800)picks.push({def,score:def.pts.length*80-d2*0.02});
-      }
-    }
-  }
-  picks.sort((a,b)=>b.score-a.score);
-  for(const p of picks.slice(0,SUBURB_TRAFFIC.maxRoads))wantTraffic.add('sub-'+p.def.id);
-  for(const [id,road] of SUBURB_TRAFFIC.active){
-    if(!wantTraffic.has(id))removeSuburbTrafficRoad(road);
-  }
-  for(const p of picks){
-    const sid='sub-'+p.def.id;
-    if(SUBURB_TRAFFIC.active.has(sid)||SUBURB_TRAFFIC.active.size>=SUBURB_TRAFFIC.maxRoads)continue;
-    const road=buildSuburbTrafficRoad(p.def);
-    if(!road)continue;
-    roads.push(road);
-    SUBURB_TRAFFIC.active.set(sid,road);
-    seedSuburbVehicles(road,SUBURB_TRAFFIC.seedPerRoad);
   }
 }
 function refreshIncidentCount(){
   const el=$('incidentCount');if(!el)return;
-  const n=(incidents?incidents.length:0)+(POLICE_TRAPS?POLICE_TRAPS.length:0)
-    +(window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.incidents?window.LIVE_TRAFFIC.incidents.length:0)
-    +(eventActive?1:0);
-  el.textContent=n?(n+' active'):'Clear';
+  const liveN=(window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.incidents)?window.LIVE_TRAFFIC.incidents.length:0;
+  const nwsN=(window.LIVE_NWS&&window.LIVE_NWS.count)||0;
+  const shown=Math.min(10,liveN)+Math.min(6,nwsN);
+  if(shown>0){
+    el.textContent=shown+(shown===1?' active':(' active'));
+    el.classList.remove('empty');
+  }else{
+    el.textContent='Clear';
+    el.classList.add('empty');
+  }
 }
 
 /* streetlights — arterials, surface roads, AND freeways (night glow) */
@@ -3144,14 +3297,28 @@ const rooftopGeo=new THREE.BoxGeometry(1,1,1);rooftopGeo.translate(0,0.5,0);
 const rooftopMat=new THREE.MeshLambertMaterial({color:0x3a4149});
 const parapetMat=new THREE.MeshLambertMaterial({color:0x1e2329});
 
-/* Building footprints — keep traffic from driving through structures */
+/* Building footprints — spatial grid so car/building checks stay O(nearby) */
 window.BLDG_FOOT=[];
+window.BLDG_GRID=new Map();
+const BLDG_CELL=96;
+function bldgCellKey(x,z){return Math.floor(x/BLDG_CELL)+':'+Math.floor(z/BLDG_CELL);}
 function registerBldgFoot(x,z,hw,hd){
-  BLDG_FOOT.push({x,z,hw:hw*0.55,hd:hd*0.55});
+  const b={x,z,hw:hw*0.55,hd:hd*0.55};
+  BLDG_FOOT.push(b);
+  const pad=Math.max(b.hw,b.hd)+4;
+  const x0=Math.floor((x-pad)/BLDG_CELL),x1=Math.floor((x+pad)/BLDG_CELL);
+  const z0=Math.floor((z-pad)/BLDG_CELL),z1=Math.floor((z+pad)/BLDG_CELL);
+  for(let ix=x0;ix<=x1;ix++)for(let iz=z0;iz<=z1;iz++){
+    const k=ix+':'+iz;
+    let arr=BLDG_GRID.get(k);if(!arr){arr=[];BLDG_GRID.set(k,arr);}
+    arr.push(b);
+  }
 }
 function footHitsBldg(px,pz){
-  for(let i=0;i<BLDG_FOOT.length;i++){
-    const b=BLDG_FOOT[i];
+  const arr=BLDG_GRID.get(bldgCellKey(px,pz));
+  if(!arr)return null;
+  for(let i=0;i<arr.length;i++){
+    const b=arr[i];
     if(Math.abs(px-b.x)<b.hw&&Math.abs(pz-b.z)<b.hd)return b;
   }
   return null;
@@ -3869,7 +4036,7 @@ window.FLIGHTS=[];
     let lastErr='';
     for(const url of urls){
       try{
-        const r=await fetch(url,{cache:'no-store',mode:'cors'});
+        const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
         if(!r.ok){lastErr=url+' → '+r.status;continue;}
         return await r.json();
       }catch(e){lastErr=String(e&&e.message?e.message:e);}
@@ -3902,12 +4069,15 @@ window.FLIGHTS=[];
     return {src:'OpenSky',rows:mapOpenSky(j&&j.states)};
   }
   function flightAwareUrl(aeroPath, query){
-    /* Path-based: /api/flightaware/aeroapi/... so Netlify keeps the route in event.path.
-       Query-only ?path= is often dropped by function rewrites (→ 400 missing_upstream_path). */
     const clean=String(aeroPath||'').replace(/^\/+/,'');
     const aero=clean.startsWith('aeroapi/')?clean:('aeroapi/'+clean);
     const q=new URLSearchParams(query||{});
     const qs=q.toString();
+    let proxyBase='';
+    try{proxyBase=localStorage.getItem('fa_proxy')||'';}catch(e){}
+    if(proxyBase){
+      return proxyBase.replace(/\/$/,'')+'/api/flightaware/'+aero+(qs?('?'+qs):'');
+    }
     return '/api/flightaware/'+aero+(qs?('?'+qs):'');
   }
   window.flightAwareUrl=flightAwareUrl;
@@ -3926,7 +4096,7 @@ window.FLIGHTS=[];
       if(hit.err)throw new Error(hit.err);
       return hit.data;
     }
-    const r=await fetch(flightAwareUrl('aeroapi/flights/'+encodeURIComponent(cs),{max_pages:'1'}),{cache:'no-store'});
+    const r=await fetchWithTimeout(flightAwareUrl('aeroapi/flights/'+encodeURIComponent(cs),{max_pages:'1'}),{cache:'no-store'},10000);
     if(!r.ok){
       let detail='';
       try{const j=await r.json();detail=j&&(j.error||j.hint)||'';}catch(e){}
@@ -3959,7 +4129,7 @@ window.FLIGHTS=[];
     }
     for(const url of urls){
       try{
-        const r=await fetch(url,{cache:'no-store',mode:'cors'});
+        const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
         if(!r.ok)continue;
         const j=await r.json();
         const ac=(j&&j.ac&&j.ac[0])||null;
@@ -3979,7 +4149,7 @@ window.FLIGHTS=[];
         :['https://api.adsbdb.com/v0/callsign/'+encodeURIComponent(cs),'/api/adsbdb/v0/callsign/'+encodeURIComponent(cs)];
       for(const url of urls){
         try{
-          const r=await fetch(url,{cache:'no-store',mode:'cors'});
+          const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
           if(!r.ok)continue;
           const j=await r.json();
           const fr=(j&&j.response&&j.response.flightroute)||null;
@@ -4000,7 +4170,7 @@ window.FLIGHTS=[];
         :['https://hexdb.io/api/v1/route/icao/'+encodeURIComponent(cs),'/api/hexdb/api/v1/route/icao/'+encodeURIComponent(cs)];
       for(const url of urls){
         try{
-          const r=await fetch(url,{cache:'no-store',mode:'cors'});
+          const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
           if(!r.ok)continue;
           const j=await r.json();
           const route=String(j&&j.route||'');
@@ -4025,7 +4195,7 @@ window.FLIGHTS=[];
       :['https://opensky-network.org/api/flights/aircraft?'+qs,'/api/opensky/api/flights/aircraft?'+qs];
     for(const url of urls){
       try{
-        const r=await fetch(url,{cache:'no-store',mode:'cors'});
+        const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
         if(!r.ok)continue;
         const flights=await r.json();
         if(!Array.isArray(flights)||!flights.length)continue;
@@ -4087,10 +4257,10 @@ window.FLIGHTS=[];
         if(faFlights&&faFlights.length){
           const fl=pickBestAeroFlight(faFlights,ctx);
           if(fl){
-            const dep=fl.origin&&(fl.origin.code_iata||fl.origin.code_icao||fl.origin.code);
-            const arr=fl.destination&&(fl.destination.code_iata||fl.destination.code_icao||fl.destination.code);
-            const d=dep?icaoToDisp(dep):'—';
-            const a=arr?icaoToDisp(arr):'—';
+            let d=extractAptCode(fl.origin);
+            if(d==='—')d=extractAptCode(fl.origin&&fl.origin.code);
+            let a=extractAptCode(fl.destination);
+            if(a==='—')a=extractAptCode(fl.destination&&fl.destination.code);
             const fits=(!Number.isFinite(ctx.lat))||routeFitsPosition(d,a,ctx.lat,ctx.lon,ctx.vsFpm);
             if((isHoustonApt(d)||isHoustonApt(a))&&fits){
               f.dep=d;f.arr=a;f._guessRoute=false;f._guessArr=false;
@@ -4149,13 +4319,24 @@ window.FLIGHTS=[];
         }
       }
     }
-    /* NEVER invent routes; reject non-Houston or position-mismatched pairs */
+    /* Match FlightAware airport board by callsign when ADS-B route DBs miss a leg */
+    {
+      const br=findBoardRouteForCallsign(f);
+      if(br){
+        if((!f.dep||f.dep==='—')&&br.dep&&br.dep!=='—'){f.dep=br.dep;f._guessRoute=false;}
+        if((!f.arr||f.arr==='—')&&br.arr&&br.arr!=='—'){f.arr=br.arr;f._guessArr=false;}
+        if(f.dep&&f.arr&&f.dep!=='—'&&f.arr!=='—'&&isHoustonFlight(f))f._routeVerified=true;
+      }
+    }
+    /* NEVER invent remote airports; keep Houston side if a pair fails validation */
     if(f._guessRoute||f._guessArr){f._guessRoute=false;f._guessArr=false;}
     if(f.dep&&f.arr&&f.dep!=='—'&&f.arr!=='—'&&!isHoustonFlight(f)){
       f.dep=null;f.arr=null;f._routeVerified=false;
     }
     if(f.dep&&f.arr&&f.dep!=='—'&&f.arr!=='—'&&Number.isFinite(ctx.lat)&&!routeFitsPosition(f.dep,f.arr,ctx.lat,ctx.lon,ctx.vsFpm)){
-      f.dep=null;f.arr=null;f._routeVerified=false;f._faOk=false;
+      const keepDep=isHoustonApt(f.dep)?f.dep:null;
+      const keepArr=isHoustonApt(f.arr)?f.arr:null;
+      f.dep=keepDep;f.arr=keepArr;f._routeVerified=false;f._faOk=false;
     }
     if((!f.dep||f.dep==='—')&&(!f.arr||f.arr==='—')){
       f.status=f.status||'Live ADS-B · route enriching…';
@@ -4207,6 +4388,11 @@ window.FLIGHTS=[];
       blending:THREE.NormalBlending}));
     halo.scale.set(18,18,1);halo.position.set(0,cls==='heli'?8:10,0);halo.visible=false;m.add(halo);
     m.userData.halo=halo;
+    const pickR=new THREE.Mesh(
+      new THREE.SphereGeometry(cls==='heli'?28:36,8,8),
+      new THREE.MeshBasicMaterial({visible:false}));
+    pickR.userData.flightPick=true;
+    m.add(pickR);
     m.traverse(o=>{
       if(!o||!o.isMesh||!o.material)return;
       const mats=Array.isArray(o.material)?o.material:[o.material];
@@ -4240,6 +4426,8 @@ window.FLIGHTS=[];
     scene.remove(old);
     f.m=makeLivePlane((f.icao24||'').charCodeAt(0)||0,f.actype,f.category,f.cs);
     f.m.position.copy(pos);f.m.rotation.copy(rot);f.m.visible=vis;
+    if(typeof wireFlightPick==='function')wireFlightPick(f);
+    else f.m.userData.flightRef=f;
   }
 
   let _liveFlightsInFlight=null;
@@ -4310,6 +4498,8 @@ window.FLIGHTS=[];
              _last:performance.now(),_feedAt:Date.now(),
           };
           f.m.visible=false;
+          if(typeof wireFlightPick==='function')wireFlightPick(f);
+          else{f.m.userData.flightRef=f;}
           LIVE_FLIGHTS.set(x.icao24,f);
           LIVE_FLIGHT_LIST.push(f);
           if(Number.isFinite(x.lat)&&Number.isFinite(x.lon)){
@@ -4455,7 +4645,7 @@ window.FLIGHTS=[];
     const url=(typeof window.flightAwareUrl==='function')
       ?window.flightAwareUrl(path,{max_pages:'1'})
       :('/api/flightaware/'+path+'?max_pages=1');
-    const r=await fetch(url,{cache:'no-store'});
+    const r=await fetchWithTimeout(url,{cache:'no-store'},10000);
     if(!r.ok){
       let detail='';
       try{const j=await r.json();detail=j&& (j.error||j.hint||j.title)||'';}catch(e){}
@@ -4475,8 +4665,14 @@ window.FLIGHTS=[];
   }
   function normFlight(fl,kind,apt){
     if(isStaleOrLandedAero(fl))return null;
-    const dep=fl.origin&&(fl.origin.code_iata||fl.origin.code_icao);
-    const arr=fl.destination&&(fl.destination.code_iata||fl.destination.code_icao);
+    let depRaw=extractAptCode(fl.origin);
+    if(depRaw==='—')depRaw=extractAptCode(fl.origin_code);
+    if(depRaw==='—')depRaw=icaoToDisp(fl.origin_iata||fl.origin_icao||'');
+    let arrRaw=extractAptCode(fl.destination);
+    if(arrRaw==='—')arrRaw=extractAptCode(fl.destination_code);
+    if(arrRaw==='—')arrRaw=icaoToDisp(fl.destination_iata||fl.destination_icao||'');
+    const dep=depRaw!=='—'?depRaw:(kind==='departures'?icaoToDisp(apt):'—');
+    const arr=arrRaw!=='—'?arrRaw:(kind==='arrivals'?icaoToDisp(apt):'—');
     const eta=(fl.estimated_in||fl.scheduled_in||null);
     const etd=(fl.estimated_out||fl.scheduled_out||fl.actual_out||null);
     const cs=fl.ident_iata||fl.ident||fl.ident_icao||'—';
@@ -4487,8 +4683,8 @@ window.FLIGHTS=[];
       cs:cs,
       csIata:fl.ident_iata||null,
       faFlightId:fl.fa_flight_id||null,
-      dep:dep?icaoToDisp(dep):(kind==='departures'?icaoToDisp(apt):'—'),
-      arr:arr?icaoToDisp(arr):(kind==='arrivals'?icaoToDisp(apt):'—'),
+      dep,
+      arr,
       reg:fl.registration||null,
       actype:fl.aircraft_type||'—',
       etd:etd,
@@ -4498,7 +4694,7 @@ window.FLIGHTS=[];
       status:fl.status||(kind==='arrivals'?'Arriving':'Departing'),
       gate:fl.gate_origin||fl.gate_destination||fl.terminal_origin||fl.terminal_destination||null,
       _faOk:true,
-      _routeVerified:true,
+      _routeVerified:!!(dep&&dep!=='—'&&arr&&arr!=='—'),
       _guessRoute:false,
       _guessArr:false,
     };
@@ -5579,26 +5775,30 @@ const bodyTex=(function(){const c=document.createElement('canvas');c.width=16;c.
   return new THREE.CanvasTexture(c);})();
 
 const bodyGeo=new THREE.BoxGeometry(1,1,1);bodyGeo.translate(0,0.5,0);
-const bodies=new THREE.InstancedMesh(bodyGeo,new THREE.MeshLambertMaterial({map:bodyTex}),MAX_INST);
+const bodyMat=new THREE.MeshLambertMaterial({map:bodyTex,transparent:true});
+const bodies=new THREE.InstancedMesh(bodyGeo,bodyMat,MAX_INST);
 bodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 const _white=new THREE.Color(0xffffff);
 for(let i=0;i<MAX_INST;i++)bodies.setColorAt(i,_white);
 scene.add(bodies);
 
 const cabGeo=new THREE.BoxGeometry(1,1,1);cabGeo.translate(0,0.5,0);
-const cabs=new THREE.InstancedMesh(cabGeo,new THREE.MeshLambertMaterial({map:glassTex,color:0xffffff}),MAX_INST);
+const cabMat=new THREE.MeshLambertMaterial({map:glassTex,color:0xffffff,transparent:true});
+const cabs=new THREE.InstancedMesh(cabGeo,cabMat,MAX_INST);
 cabs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 for(let i=0;i<MAX_INST;i++)cabs.setColorAt(i,_white);
 scene.add(cabs);
 
 /* wheels: 4 per vehicle */
 const extraGeo=new THREE.BoxGeometry(1,1,1);extraGeo.translate(0,0.5,0);
-const extras=new THREE.InstancedMesh(extraGeo,new THREE.MeshLambertMaterial({}),MAX_INST);
+const extraMat=new THREE.MeshLambertMaterial({transparent:true});
+const extras=new THREE.InstancedMesh(extraGeo,extraMat,MAX_INST);
 extras.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 for(let i=0;i<MAX_INST;i++)extras.setColorAt(i,new THREE.Color(0xffffff));
 scene.add(extras);
 const wheelGeo=new THREE.CylinderGeometry(0.5,0.5,0.36,10);wheelGeo.rotateZ(Math.PI/2);
-const wheels=new THREE.InstancedMesh(wheelGeo,new THREE.MeshLambertMaterial({color:0x14161a}),MAX_INST*4);
+const wheelMat=new THREE.MeshLambertMaterial({color:0x14161a,transparent:true});
+const wheels=new THREE.InstancedMesh(wheelGeo,wheelMat,MAX_INST*4);
 wheels.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(wheels);
 
 const glowGeo=new THREE.BoxGeometry(1,1,1);
@@ -5648,7 +5848,7 @@ function minBumpGap(v,ahead){
 }
 function desiredHeadway(road,dir,live,cong){
   const ff=road.def.ff||60;
-  let mph=liveFlowFresh(live)?live.cur:ff*(1-0.62*cong);
+  let mph=liveFlowFresh(live)?sanitizeLiveMph(live.cur,live.ff,road):ff*(1-0.62*cong);
   mph=clamp(mph,6,ff);
   const followSec=0.75+1.15*(mph/ff); /* tighter packs when slow — like real Houston jams */
   return Math.max(vehBumpLen({type:{len:5.2}})+6, mph*MPH*followSec);
@@ -5664,7 +5864,7 @@ function findOpenSpawnS(lane,L,closed,minGap){
   if(!closed){
     const tail=lane[lane.length-1];
     const tailGap=L-tail.s;
-    if(tailGap>bestGap){bestGap=tailGap;bestS=tail+tailGap*0.45;}
+    if(tailGap>bestGap){bestGap=tailGap;bestS=tail.s+tailGap*0.45;}
     if(lane[0].s>minGap&&lane[0].s*0.5>bestGap)bestS=0;
   }
   if(bestGap<minGap)return -1;
@@ -5756,10 +5956,23 @@ function isLocalDevHost(){
 /* Open-Meteo supports browser CORS. Prefer direct URL on Netlify/Vercel so weather
    does not depend on host proxy rewrites (which often break query strings). */
 function openMeteoHost(){
-  return isLocalDevHost()?'/api/openmeteo':'https://api.open-meteo.com';
+  /* Same-origin proxy everywhere we have one (Vite / Netlify / Vercel); direct only as last resort */
+  try{
+    if(/^https?:$/i.test(location.protocol)&&location.hostname)return '/api/openmeteo';
+  }catch(e){}
+  return 'https://api.open-meteo.com';
+}
+function nominatimHost(){
+  /* Nominatim blocks browser CORS — always use the same-origin proxy when possible */
+  try{
+    if(/^https?:$/i.test(location.protocol)&&location.hostname)return '/api/nominatim';
+  }catch(e){}
+  return 'https://nominatim.openstreetmap.org';
 }
 function openMeteoUrl(lat,lng,hourly){
-  return openMeteoHost()+'/v1/forecast?latitude='+lat+'&longitude='+lng
+  /* 5–6 decimal places ≈ neighborhood / street precision for Open-Meteo grid */
+  const la=Number(lat).toFixed(5),lo=Number(lng).toFixed(5);
+  return openMeteoHost()+'/v1/forecast?latitude='+la+'&longitude='+lo
     +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,'
     +'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
     +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation&forecast_days=2':'')
@@ -5777,19 +5990,29 @@ function parseOpenMeteo(j,extra){
 }
 /* Known Houston-metro neighborhoods (fallback when reverse-geocode is slow/offline) */
 const HOU_NEIGHBORHOODS=[
+  /* Sugar Land / Fort Bend — denser points for precise suburb labels */
   {n:'Pheasant Creek',c:'Sugar Land',lat:29.6431,lng:-95.6590},
+  {n:'Village of Oak Lakes',c:'Sugar Land',lat:29.6445,lng:-95.6515},
+  {n:'Summerfield',c:'Sugar Land',lat:29.6495,lng:-95.6640},
+  {n:'Sugar Creek',c:'Sugar Land',lat:29.6225,lng:-95.6085},
   {n:'First Colony',c:'Sugar Land',lat:29.5890,lng:-95.6280},
+  {n:'Town Center',c:'Sugar Land',lat:29.5965,lng:-95.6235},
   {n:'New Territory',c:'Sugar Land',lat:29.5900,lng:-95.6800},
   {n:'Greatwood',c:'Sugar Land',lat:29.5500,lng:-95.6750},
   {n:'Telfair',c:'Sugar Land',lat:29.5800,lng:-95.6500},
-  {n:'Sugar Creek',c:'Sugar Land',lat:29.6200,lng:-95.6100},
   {n:'Imperial',c:'Sugar Land',lat:29.6000,lng:-95.6000},
-  {n:'Avery Ranch',c:'Sugar Land',lat:29.6100,lng:-95.6400},
+  {n:'Riverstone',c:'Sugar Land',lat:29.5400,lng:-95.5700},
+  {n:'Lake Pointe',c:'Sugar Land',lat:29.5750,lng:-95.6050},
+  {n:'Avalon',c:'Sugar Land',lat:29.5650,lng:-95.6350},
+  {n:'Commonwealth',c:'Sugar Land',lat:29.6050,lng:-95.6450},
+  {n:'Settlers Park',c:'Sugar Land',lat:29.6150,lng:-95.6350},
+  {n:'Sugar Land Proper',c:'Sugar Land',lat:29.6197,lng:-95.6349},
   {n:'Mission Bend',c:'Houston',lat:29.6938,lng:-95.6669},
   {n:'Four Corners',c:'Fort Bend',lat:29.6680,lng:-95.6600},
-  {n:'Village of Oak Lakes',c:'Sugar Land',lat:29.6450,lng:-95.6500},
-  {n:'Summerfield',c:'Sugar Land',lat:29.6500,lng:-95.6650},
+  {n:'Pecan Grove',c:'Richmond',lat:29.6260,lng:-95.7310},
   {n:'Cinco Ranch',c:'Katy',lat:29.7400,lng:-95.7800},
+  {n:'Firethorne',c:'Katy',lat:29.7200,lng:-95.8500},
+  {n:'Cross Creek Ranch',c:'Fulshear',lat:29.7000,lng:-95.8700},
   {n:'Energy Corridor',c:'Houston',lat:29.7800,lng:-95.6300},
   {n:'Memorial',c:'Houston',lat:29.7700,lng:-95.5200},
   {n:'River Oaks',c:'Houston',lat:29.7500,lng:-95.4200},
@@ -5805,6 +6028,7 @@ const HOU_NEIGHBORHOODS=[
   {n:'Missouri City',c:'Missouri City',lat:29.6180,lng:-95.5370},
   {n:'Sienna',c:'Missouri City',lat:29.5200,lng:-95.5200},
   {n:'Pearland',c:'Pearland',lat:29.5630,lng:-95.2860},
+  {n:'Shadow Creek Ranch',c:'Pearland',lat:29.5400,lng:-95.3200},
   {n:'Friendswood',c:'Friendswood',lat:29.5290,lng:-95.2010},
   {n:'Clear Lake',c:'Houston',lat:29.5600,lng:-95.1000},
   {n:'League City',c:'League City',lat:29.5070,lng:-95.0950},
@@ -5868,7 +6092,7 @@ function nearestNeighborhood(lat,lng,maxMi){
     const d=miBetween(lat,lng,p.lat,p.lng);
     if(d<bd){bd=d;best=p;}
   }
-  if(!best||bd>(maxMi!=null?maxMi:4.5))return null;
+  if(!best||bd>(maxMi!=null?maxMi:3.2))return null;
   return {place:best,mi:bd};
 }
 function formatPlaceLabel(hood,city){
@@ -5900,68 +6124,75 @@ function pickNominatimPlace(j){
   if(!j||!j.address)return null;
   const a=j.address;
   const hood=a.neighbourhood||a.suburb||a.residential||a.quarter||a.hamlet||a.village
-    ||a.city_district||a.borough||null;
-  const city=a.city||a.town||a.municipality||a.county||a.state||null;
-  /* Prefer a known local neighborhood if GPS is very close (e.g. Pheasant Creek) */
-  return {hood,city,display:formatPlaceLabel(hood,city)};
+    ||a.city_district||a.borough||a.industrial||a.retail||null;
+  const city=a.city||a.town||a.municipality||a.village||a.county||null;
+  const road=a.road||a.pedestrian||a.footway||null;
+  /* Named OSM place (subdivision / HOA) often more precise than city alone */
+  const named=(j.name&&!/^\d/.test(j.name)&&j.name.length<48)?j.name:null;
+  let label=null;
+  if(hood&&city)label=formatPlaceLabel(hood,city);
+  else if(named&&city&&named.toLowerCase()!==String(city).toLowerCase())label=formatPlaceLabel(named,city);
+  else if(hood)label=hood;
+  else if(named)label=named;
+  else if(road&&city)label=formatPlaceLabel(road,city);
+  else if(city)label=city;
+  return {hood,city,road,named,display:label};
 }
 async function reverseGeocodePlace(lat,lng){
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return 'Near you';
-  /* cache ~1 mile / 30 min */
+  /* cache ~0.35 mi / 20 min — tighter so suburb moves update the label */
   if(_placeCache.name&&_placeCache.lat!=null){
-    if(miBetween(lat,lng,_placeCache.lat,_placeCache.lng)<1&&(Date.now()-_placeCache.at)<30*60*1000)
+    if(miBetween(lat,lng,_placeCache.lat,_placeCache.lng)<0.35&&(Date.now()-_placeCache.at)<20*60*1000)
       return _placeCache.name;
   }
-  /* Fast local match first — Pheasant Creek, First Colony, etc. */
-  const local=nearestNeighborhood(lat,lng,2.2);
+  /* Strong local hit (< ~0.9 mi): trust dense neighborhood DB */
+  const local=nearestNeighborhood(lat,lng,1.6);
   let localName=local?formatPlaceLabel(local.place.n,local.place.c):null;
-  /* Strong local hit (< ~1.5 mi): trust neighborhood DB over street-only OSM results */
-  if(localName&&local.mi<=1.5){
+  if(localName&&local.mi<=0.9){
     _placeCache={lat,lng,name:localName,at:Date.now()};
     return localName;
   }
   try{
-    const nomHost=isLocalDevHost()?'/api/nominatim':'https://nominatim.openstreetmap.org';
-    const url=nomHost+'/reverse?format=jsonv2&lat='+encodeURIComponent(lat)
+    const url=nominatimHost()+'/reverse?format=jsonv2&lat='+encodeURIComponent(lat)
       +'&lon='+encodeURIComponent(lng)+'&zoom=18&addressdetails=1';
     const r=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});
     if(r.ok){
       const j=await r.json();
       const picked=pickNominatimPlace(j);
-      if(picked&&(picked.hood||picked.city)){
-        const hood=picked.hood||'';
+      if(picked&&picked.display){
+        const hood=picked.hood||picked.named||'';
         const city=picked.city||'';
-        const hoodWeak=!hood||/^(sugar land|houston|katy|missouri city|fort bend|fort bend county)$/i.test(hood);
-        if(localName&&(hoodWeak||local.mi<2.0)){
+        const hoodWeak=!hood||/^(sugar land|houston|katy|missouri city|fort bend|fort bend county|harris county|texas)$/i.test(hood);
+        if(localName&&(hoodWeak||(local&&local.mi<1.25))){
           _placeCache={lat,lng,name:localName,at:Date.now()};
           return localName;
         }
-        const name=formatPlaceLabel(hood||local?.place?.n,city||local?.place?.c);
+        const name=picked.display;
         _placeCache={lat,lng,name,at:Date.now()};
         return name;
       }
       if(localName){_placeCache={lat,lng,name:localName,at:Date.now()};return localName;}
     }
-  }catch(e){ /* Nominatim often blocks browser CORS on production; neighborhood DB covers Houston */ }
+  }catch(e){ /* proxy/network — fall through to neighborhood DB */ }
   if(localName){_placeCache={lat,lng,name:localName,at:Date.now()};return localName;}
-  const soft=nearestNeighborhood(lat,lng,6);
+  const soft=nearestNeighborhood(lat,lng,4);
   if(soft){const name=formatPlaceLabel(soft.place.n,soft.place.c);_placeCache={lat,lng,name,at:Date.now()};return name;}
   return suburbNameFromGeo(lat,lng);
 }
 async function fetchWeather(){
   try{
-    const r=await fetch(openMeteoUrl(HOU_WX_LAT,HOU_WX_LNG,true),{cache:'no-store'});
+    const r=await fetchWithTimeout(openMeteoUrl(HOU_WX_LAT,HOU_WX_LNG,true),{cache:'no-store'},10000);
     if(!r.ok)throw new Error(r.status);
     liveWx=parseOpenMeteo(await r.json(),{place:'Houston · Downtown'});
   }catch(e){ liveWx=null; }
 }
 async function fetchLocalWeather(lat,lng,force){
   if(lat==null||lng==null||!isFinite(lat)||!isFinite(lng))return;
-  const latR=Math.round(lat*1e4)/1e4,lngR=Math.round(lng*1e4)/1e4;
-  /* skip tiny GPS jitter refreshes unless forced / stale */
+  const latR=+Number(lat).toFixed(5),lngR=+Number(lng).toFixed(5);
+  /* skip tiny GPS jitter unless forced / stale — ~80 m */
   if(!force&&localWx&&localWx.lat!=null){
-    const d=Math.hypot(latR-localWx.lat,lngR-localWx.lng);
-    if(d<0.004&&(Date.now()-localWx.at)<3*60*1000)return;
+    const dMi=miBetween(latR,lngR,localWx.lat,localWx.lng);
+    if(dMi<0.05&&(Date.now()-localWx.at)<2*60*1000)return;
   }
   const box=$('wxLocal');
   if(box)box.style.display='block';
@@ -5976,13 +6207,17 @@ async function fetchLocalWeather(lat,lng,force){
     if(metaEl)metaEl.textContent='Open-Meteo · your GPS · fetching…';
   }
   try{
-    /* Weather at exact GPS + place name in parallel — suburb stats are point-accurate */
+    /* Point forecast at exact GPS + precise place name in parallel */
     const [wxRes,place]=await Promise.all([
-      fetch(openMeteoUrl(latR,lngR,false),{cache:'no-store'}),
+      fetchWithTimeout(openMeteoUrl(latR,lngR,false),{cache:'no-store'},10000),
       reverseGeocodePlace(latR,lngR),
     ]);
     if(!wxRes.ok)throw new Error(wxRes.status);
-    localWx=parseOpenMeteo(await wxRes.json(),{place:place||'Near you',lat:latR,lng:lngR});
+    const acc=userGeo&&userGeo.acc!=null?userGeo.acc:null;
+    localWx=parseOpenMeteo(await wxRes.json(),{
+      place:place||'Near you',lat:latR,lng:lngR,acc,
+      gpsLat:lat,gpsLng:lng,
+    });
     if(nmEl)nmEl.textContent=localWx.place;
   }catch(e){
     if(nmEl)nmEl.textContent=(_placeCache.name)||'Near you';
@@ -5998,10 +6233,20 @@ setTimeout(()=>{if(!liveWx)fetchWeather();},12000);
 setTimeout(()=>{if(!liveWx)fetchWeather();},35000);
 setInterval(fetchWeather,3*60*1000); /* downtown: refresh every 3 min */
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'){
-    if(!liveWx||(Date.now()-liveWx.at)>4*60*1000)fetchWeather();
-    if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,false);
-  }
+  if(document.visibilityState!=='visible')return;
+  houstonNow(true);
+  syncSimCalendar();
+  if(!liveWx||(Date.now()-liveWx.at)>3*60*1000)fetchWeather();
+  if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,false);
+  /* Resume with fresh probes — tab sleep used to leave traffic hours stale */
+  try{
+    if(typeof _liveTrafficNext!=='undefined')_liveTrafficNext=0;
+    if(typeof _liveIncidentNext!=='undefined')_liveIncidentNext=0;
+    if(typeof _liveRouteNext!=='undefined')_liveRouteNext=0;
+    if(typeof _nwsNext!=='undefined')_nwsNext=0;
+    if(typeof refreshLiveTraffic==='function')refreshLiveTraffic();
+    if(typeof refreshNWSAlerts==='function')refreshNWSAlerts();
+  }catch(e){}
 });
 
 function rollWeather(h){
@@ -6020,41 +6265,61 @@ function windArrow(deg){ /* direction wind blows FROM */
 /* weather blending toward current target */
 function wxUpdate(dt){
   let targetPreset,label,rainAmt=null,cloudOv=null;
+  const fc=(!liveMode&&wxMode==='auto'&&typeof forecastAt==='function')?forecastAt(window.simOffsetSec||0):null;
   if(wxMode!=='auto'){targetPreset=wxMode;label=WX[wxMode].desc;}
-  else if(liveWx){targetPreset=liveWx.preset;label=liveWx.label;rainAmt=liveWx.rainAmt;cloudOv=liveWx.cloud;}
+  else if(!liveMode){
+    /* Time-lapse: weather follows simulated clock (forecast hour or typical pattern) */
+    if(fc&&fc.preset){
+      targetPreset=fc.preset;label=fc.label||WX[fc.preset].desc;
+      rainAmt=fc.rainAmt!=null?fc.rainAmt:null;cloudOv=fc.cloud!=null?fc.cloud:null;
+    }else{
+      if(simH>wxNextRoll||wxNextRoll-simH>6){wxCur=rollWeather(simH);wxNextRoll=(simH+1.5+rand()*2.5)%24;}
+      targetPreset=wxCur;label=WX[wxCur].desc;
+    }
+  }else if(liveWx){targetPreset=liveWx.preset;label=liveWx.label;rainAmt=liveWx.rainAmt;cloudOv=liveWx.cloud;}
   else{
     if(simH>wxNextRoll||wxNextRoll-simH>6){wxCur=rollWeather(simH);wxNextRoll=(simH+1.5+rand()*2.5)%24;}
     targetPreset=wxCur;label=WX[wxCur].desc;
   }
   wxCur=targetPreset;wxDesc=label;
-  const T=WX[targetPreset],k=clamp(dt*0.5,0,1);
+  const T=WX[targetPreset];
+  /* Time-lapse: blend fast enough that each forecast minute visibly changes the sky */
+  const k=clamp(dt*(liveMode?0.5:Math.min(4.2,0.85+timeScale/180)),0,1);
   const tgt={cloud:cloudOv!=null?Math.max(T.cloud*0.4,cloudOv):T.cloud,
              fogK:T.fogK,speed:T.speed,cong:T.cong,
              rain:rainAmt!=null?rainAmt:T.rain};
   for(const key of ['cloud','fogK','speed','cong','rain'])wxBlend[key]=lerp(wxBlend[key],tgt[key],k);
   wxBlend.storm=T.storm;wxBlend.tempD=T.tempD;
-  if(liveWx){
-    const a=(liveWx.windDir+180)*Math.PI/180; /* blows toward */
-    const str=clamp(liveWx.wind/28,0.1,1);
-    rainWindX=lerp(rainWindX,Math.sin(a)*0.55*str,k);
-    rainWindZ=lerp(rainWindZ,Math.cos(a)*0.55*str,k);
+  /* Wind slant always tracks the active weather source — never freeze in preview */
+  {
+    let wDir=null,wSpd=null;
+    if(liveMode&&liveWx){wDir=liveWx.windDir;wSpd=liveWx.wind;}
+    else if(!liveMode){
+      if(fc){wDir=fc.windDir;wSpd=fc.wind;}
+      else{wDir=(simH*15)%360;wSpd=6+8*wxBlend.cloud;}
+    }
+    if(wDir!=null){
+      const a=(wDir+180)*Math.PI/180;
+      const str=clamp((wSpd||8)/28,0.1,1);
+      rainWindX=lerp(rainWindX,Math.sin(a)*0.55*str,k);
+      rainWindZ=lerp(rainWindZ,Math.cos(a)*0.55*str,k);
+    }
   }
 }
 
-/* rain: wind-slanted streaks (line segments read as motion blur) */
-const RAIN_N=1700;
-const rainGeo=new THREE.BufferGeometry();
-const rainPos=new Float32Array(RAIN_N*2*3);
-const rainDrop=new Float32Array(RAIN_N*3); /* head x,y,z per drop */
-for(let i=0;i<RAIN_N;i++){
-  rainDrop[i*3]=(rand()-.5)*1500;rainDrop[i*3+1]=rand()*620;rainDrop[i*3+2]=(rand()-.5)*1500;}
-rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
-const rain=new THREE.LineSegments(rainGeo,
-  new THREE.LineBasicMaterial({color:0xaec8e2,transparent:true,opacity:0,depthWrite:false,fog:false}));
-scene.add(rain);
+/* rain system — src/rain.js (wind slant, splashes, puddles, wet roads, visibility fog) */
+let htsRain=null;
+function bootRainSystem(){
+  if(htsRain||!window.__htsRainInit||typeof THREE==='undefined')return;
+  htsRain=window.__htsRainInit({
+    THREE,scene,roadMats,getUnderpasses:()=>UNDERPASSES,rand,lerp,clamp,
+    getLiveWx:()=>liveWx,getWxBlend:()=>wxBlend,getCam:()=>cam,
+  });
+}
+window.__htsRainPending=bootRainSystem;
+bootRainSystem();
 let rainWindX=0.28,rainWindZ=0.12; /* slant direction, refreshed from live wind */
 
-/* ---------------- sky / lighting keyframes ---------------- */
 /* TOD keyframes = clear-sky baseline; envUpdate dims/grays them from wxBlend.cloud/rain */
 const SKY_TOP=[{t:0,v:'#040917'},{t:4.8,v:'#060c1e'},{t:6.0,v:'#1d2f5e'},{t:6.6,v:'#3a5a96'},
  {t:8,v:'#3f86d8'},{t:12,v:'#3480d6'},{t:17.5,v:'#3f78c0'},{t:19.6,v:'#4a3d78'},{t:20.4,v:'#1a1c48'},{t:21.4,v:'#070d22'}];
@@ -6078,32 +6343,74 @@ function phaseLabel(h){
   return 'Night';
 }
 
-/* forecast lookup for the predicted wall-clock hour — full stats, same shape as liveWx */
-function forecastAt(offsetSec){
-  if(!liveWx||!liveWx.hourly)return null;
+/* forecast lookup for the predicted wall-clock hour — blends into the next hour so time-lapse never sits still */
+function forecastHourIndex(offsetSec){
+  if(!liveWx||!liveWx.hourly||!liveWx.hourly.time||!liveWx.hourly.time.length)return null;
   const d=new Date(Date.now()+offsetSec*1000);
   const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',
-    year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hour12:false}).formatToParts(d);
-  const g=k=>p.find(x=>x.type===k).value;
-  const key=g('year')+'-'+g('month')+'-'+g('day')+'T'+(g('hour')==='24'?'00':g('hour'))+':00';
+    year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(d);
+  const g=k=>{const x=p.find(t=>t.type===k);return x?x.value:'00';};
+  const hour=g('hour')==='24'?'00':g('hour');
+  const key=g('year')+'-'+g('month')+'-'+g('day')+'T'+hour+':00';
   const i=liveWx.hourly.time.indexOf(key);
   if(i<0)return null;
+  const minute=clamp((+g('minute')||0)/60,0,0.999);
+  return {i,u:minute};
+}
+function forecastSample(i){
   const h=liveWx.hourly;
   const m=wmoLookup(h.weather_code[i]);
   const pressRaw=h.pressure_msl?h.pressure_msl[i]:null;
   return {
-    temp:Math.round(h.temperature_2m[i]),
-    feels:h.apparent_temperature?Math.round(h.apparent_temperature[i]):Math.round(h.temperature_2m[i]),
-    hum:Math.round(h.relative_humidity_2m[i]),
-    wind:Math.round(h.wind_speed_10m[i]),
+    temp:h.temperature_2m[i],
+    feels:h.apparent_temperature?h.apparent_temperature[i]:h.temperature_2m[i],
+    hum:h.relative_humidity_2m[i],
+    wind:h.wind_speed_10m[i],
     windDir:h.wind_direction_10m?h.wind_direction_10m[i]:(liveWx.windDir||0),
     precip:h.precipitation[i],
     cloud:h.cloud_cover[i]/100,
-    dew:h.dew_point_2m?Math.round(h.dew_point_2m[i]):Math.round(h.temperature_2m[i]-(100-h.relative_humidity_2m[i])/2.8),
-    press:pressRaw!=null?(pressRaw*0.02953).toFixed(2):liveWx.press,
-    uv:h.uv_index!=null?Math.round(h.uv_index[i]):0,
+    dew:h.dew_point_2m?h.dew_point_2m[i]:(h.temperature_2m[i]-(100-h.relative_humidity_2m[i])/2.8),
+    press:pressRaw!=null?(pressRaw*0.02953):null,
+    uv:h.uv_index!=null?h.uv_index[i]:0,
     vis:liveWx.vis,
     preset:m.preset,label:m.label,rainAmt:m.rain,at:liveWx.at,
+  };
+}
+function forecastAt(offsetSec){
+  const hit=forecastHourIndex(offsetSec);
+  if(!hit)return null;
+  const a=forecastSample(hit.i);
+  const next=hit.i+1<liveWx.hourly.time.length?forecastSample(hit.i+1):null;
+  if(!next||hit.u<0.02){
+    return {
+      temp:Math.round(a.temp),feels:Math.round(a.feels),hum:Math.round(a.hum),
+      wind:Math.round(a.wind),windDir:a.windDir,precip:a.precip,cloud:a.cloud,
+      dew:Math.round(a.dew),press:a.press!=null?a.press.toFixed(2):liveWx.press,
+      uv:Math.round(a.uv),vis:a.vis,preset:a.preset,label:a.label,rainAmt:a.rainAmt,at:a.at,
+    };
+  }
+  const u=hit.u;
+  const lerpAng=(x,y,t)=>{let d=((y-x+540)%360)-180;return (x+d*t+360)%360;};
+  const cloud=lerp(a.cloud,next.cloud,u);
+  const rainAmt=lerp(a.rainAmt,next.rainAmt,u);
+  const precip=lerp(a.precip,next.precip,u);
+  /* Prefer the wetter / stormier label while transitioning so the sky keeps evolving */
+  const pick=rainAmt>=Math.max(a.rainAmt,next.rainAmt)-0.02
+    ?(next.rainAmt>=a.rainAmt?next:a)
+    :(cloud>=Math.max(a.cloud,next.cloud)-0.02?(next.cloud>=a.cloud?next:a):a);
+  const pr=(a.press!=null&&next.press!=null)?lerp(a.press,next.press,u):(a.press!=null?a.press:null);
+  return {
+    temp:Math.round(lerp(a.temp,next.temp,u)),
+    feels:Math.round(lerp(a.feels,next.feels,u)),
+    hum:Math.round(lerp(a.hum,next.hum,u)),
+    wind:Math.round(lerp(a.wind,next.wind,u)),
+    windDir:lerpAng(a.windDir,next.windDir,u),
+    precip,cloud,
+    dew:Math.round(lerp(a.dew,next.dew,u)),
+    press:pr!=null?pr.toFixed(2):liveWx.press,
+    uv:Math.round(lerp(a.uv,next.uv,u)),
+    vis:a.vis,
+    preset:pick.preset,label:pick.label,rainAmt,at:a.at,
   };
 }
 /* ---------------- camera (custom orbit) ---------------- */
@@ -6150,6 +6457,11 @@ function allPlaneMeshes(){
   return meshes;
 }
 function findPlaneByHit(obj){
+  let o=obj;
+  while(o){
+    if(o.userData&&o.userData.flightRef)return o.userData.flightRef;
+    o=o.parent;
+  }
   const root=obj&&obj.parent===scene?obj:obj&&obj.parent?obj.parent:obj;
   if(window.LIVE_FLIGHT_LIST){
     const lf=LIVE_FLIGHT_LIST.find(fl=>fl&&fl.m&&(fl.m===root||fl.m===obj||fl.m.children.includes(obj)||fl.m.children.includes(root)));
@@ -6161,6 +6473,24 @@ function findPlaneByHit(obj){
   }
   return null;
 }
+function pickNearestFlightScreen(e){
+  if(!window.LIVE_FLIGHT_LIST||!LIVE_FLIGHT_LIST.length)return null;
+  if(typeof syncLiveFlightVisibility==='function')syncLiveFlightVisibility();
+  const mx=e.clientX,my=e.clientY;
+  let best=null,bd=1e9;
+  const hitR=clamp(5200/cam.radius,22,88);
+  for(const f of LIVE_FLIGHT_LIST){
+    if(!f||!f.m||!f.m.visible)continue;
+    const wp=f.m.position.clone();
+    wp.project(camera);
+    if(wp.z>1)continue;
+    const sx=(wp.x*0.5+0.5)*innerWidth;
+    const sy=(-wp.y*0.5+0.5)*innerHeight;
+    const d=Math.hypot(sx-mx,sy-my);
+    if(d<hitR&&d<bd){bd=d;best=f;}
+  }
+  return best;
+}
 function tryPickVehicle(e){
   if(window.HAZARD&&HAZARD.active&&HAZARD.mode==='nuclear'&&HAZARD.nukePlaceMode){
     const hit=rayGroundHit(e);
@@ -6171,10 +6501,9 @@ function tryPickVehicle(e){
   _ray.setFromCamera(_ndc,camera);
   /* planes first — lock follow + flexible chase cam (scroll to zoom above/below) */
   const pHits=_ray.intersectObjects(allPlaneMeshes(),true);
-  if(pHits.length){
-    const f=findPlaneByHit(pHits[0].object);
-    if(f){focusAircraftInSky(f);return;}
-  }
+  let f=pHits.length?findPlaneByHit(pHits[0].object):null;
+  if(!f)f=pickNearestFlightScreen(e);
+  if(f){focusAircraftInSky(f);return;}
   /* airports -> info card */
   if(window.AIRPORT_HITS&&AIRPORT_HITS.length){
     const aHits=_ray.intersectObjects(AIRPORT_HITS,false);
@@ -6246,24 +6575,45 @@ function updateUserMarker(){
     const mLocOld=document.getElementById('mLocFab');if(mLocOld)mLocOld.classList.add('on');
   }
 }
+function applyGeoPosition(pos,forceWx){
+  if(!pos||!pos.coords)return false;
+  const lat=pos.coords.latitude,lng=pos.coords.longitude;
+  const acc=Number(pos.coords.accuracy);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))return false;
+  /* Ignore very coarse IP-ish fixes when we already have a tighter fix */
+  if(userGeo&&Number.isFinite(userGeo.acc)&&Number.isFinite(acc)){
+    const moved=miBetween(userGeo.lat,userGeo.lng,lat,lng);
+    if(acc>Math.max(120,userGeo.acc*1.8)&&moved<0.2)return false;
+  }
+  const improved=!userGeo||(Number.isFinite(acc)&&(userGeo.acc==null||acc<userGeo.acc*0.85))
+    ||(userGeo&&miBetween(userGeo.lat,userGeo.lng,lat,lng)>0.04);
+  userGeo={lat,lng,acc:Number.isFinite(acc)?acc:null,at:Date.now()};
+  updateUserMarker();
+  hideGeoToast();
+  if(forceWx||improved||!localWx)fetchLocalWeather(lat,lng,!!forceWx||!localWx);
+  return true;
+}
 function requestGeo(cb){
-  if(userGeo){
+  if(userGeo&&userGeo.acc!=null&&userGeo.acc<=80){
     fetchLocalWeather(userGeo.lat,userGeo.lng,false);
     return cb&&cb();
   }
   if(!navigator.geolocation)return cb&&cb();
   geoAsked=true;
+  const opts={enableHighAccuracy:true,timeout:18000,maximumAge:0};
   navigator.geolocation.getCurrentPosition(
-    pos=>{userGeo={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      updateUserMarker();hideGeoToast();
-      fetchLocalWeather(userGeo.lat,userGeo.lng,true);
-      if(geoWatchId==null&&navigator.geolocation.watchPosition)
+    pos=>{
+      applyGeoPosition(pos,true);
+      if(geoWatchId==null&&navigator.geolocation.watchPosition){
         geoWatchId=navigator.geolocation.watchPosition(
-          p2=>{userGeo={lat:p2.coords.latitude,lng:p2.coords.longitude};updateUserMarker();
-            fetchLocalWeather(userGeo.lat,userGeo.lng,false);},
-          ()=>{},{enableHighAccuracy:true,maximumAge:30000});
-      cb&&cb();},
-    ()=>{cb&&cb();},{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+          p2=>applyGeoPosition(p2,false),
+          ()=>{},
+          {enableHighAccuracy:true,maximumAge:8000,timeout:20000});
+      }
+      cb&&cb();
+    },
+    ()=>{cb&&cb();},
+    opts);
 }
 /* first-run permission flow (deferred until after onboarding tour) */
 const geoToast=document.getElementById('geoToast');
@@ -6321,8 +6671,9 @@ const TRANSTAR_ROAD_MAP=[
 const TRANSTAR_CORRIDOR_HINTS={
   i10:[{re:/katy|barker|sh-?99|beltway 8-?west|610 west|downtown/i,ax:-3450,az:-330,bx:60,bz:-200},
        {re:/east|spur-?330|baytown|610 east/i,ax:60,az:-200,bx:3600,bz:-250}],
-  us59:[{re:/southwest|sugar|richmond|missouri/i,ax:-2900,az:2000,bx:260,bz:60},
-        {re:/eastex|kingwood|humble|airport/i,ax:260,az:60,bx:1450,bz:-4400}],
+  us59:[{re:/richmond|rosenberg|fort\s*bend/i,ax:-4600,az:3400,bx:260,bz:60},
+        {re:/southwest|sugar|missouri|stafford/i,ax:-2900,az:2000,bx:260,bz:60},
+        {re:/eastex|kingwood|humble|airport/i,ax:1320,az:-3500,bx:260,bz:60}],
   i45:[{re:/north|woodlands|conroe|tomball|hardy/i,ax:-1090,az:-3400,bx:40,bz:60},
        {re:/gulf|galveston|clear creek|nasa|webster|league/i,ax:40,az:60,bx:7290,bz:6804}],
   us290:[{re:/.*/,ax:-6861,az:-4281,bx:40,bz:-210}],
@@ -6417,6 +6768,45 @@ function parseTravelMinutes(desc){
   const m=String(desc||'').match(/travel\s*time\s*:\s*(\d+)\s*min/i)||String(desc||'').match(/(\d+)\s*minutes?/i);
   return m?Number(m[1]):null;
 }
+function sanitizeLiveMph(cur,ff,road){
+  const limit=(road&&road.def&&road.def.ff)||ff||60;
+  const isArt=road&&road.def&&(road.def.arterial||road.def.surface);
+  const cap=isArt?Math.min(limit,52):Math.min(limit*1.05,78);
+  return clamp(Math.round(cur||0),8,cap);
+}
+function corridorAbsMinMinutes(c){
+  const mi=corridorDriveMiles(c);
+  /* Suburb→downtown rarely sustains >62 mph average once you count ramps & surface */
+  const maxAvgMph=c.toDt?62:70;
+  return Math.max(8,Math.ceil(mi/maxAvgMph*60));
+}
+function saneCorridorMinutes(c,mins){
+  const usual=c.typMin||c.baseMin||c.realMi||20;
+  if(!(mins>0))return null;
+  const abs=corridorAbsMinMinutes(c);
+  const lo=Math.max(abs,c.minMin!=null?c.minMin:Math.round(usual*0.72));
+  const hi=c.maxMin!=null?c.maxMin:Math.round(usual*2.6);
+  if(mins<lo||mins>hi)return null;
+  return Math.round(mins);
+}
+function clampCorridorMinutes(c,mins){
+  const usual=c.typMin||c.baseMin||c.realMi||20;
+  const abs=corridorAbsMinMinutes(c);
+  const lo=Math.max(abs,c.minMin!=null?c.minMin:Math.round(usual*0.85));
+  const hi=c.maxMin!=null?c.maxMin:Math.round(usual*2.4);
+  return clamp(Math.round(mins>0?mins:usual),lo,hi);
+}
+function applyCorridorPad(c,mins){
+  /* e.g. Sugar Land uses BW8→DT TranStar segment + pad into town */
+  return (mins>0?mins:0)+(c.tsPadMin||0);
+}
+function corridorDriveMiles(c){
+  /* Downtown chips always show researched road miles, not sim geometry. */
+  if(c.toDt&&c.realMi)return c.realMi;
+  const anchor=c.realMi||c.miles||20;
+  const mi=c.miles||anchor;
+  return mi<anchor*0.72?anchor:mi;
+}
 function estimateCorridorMiles(road,ax,az,bx,bz){
   if(!road)return null;
   const a=nearestArc(road,ax,az),b=nearestArc(road,bx,bz);
@@ -6448,10 +6838,16 @@ function applyTranStarTravelTimes(items){
     b.mins.push(mins);b.miles.push(miles);
   }
   for(const [key,b] of buckets){
-    const sumM=b.mins.reduce((a,v)=>a+v,0);
-    const sumMi=b.miles.reduce((a,v)=>a+v,0);
-    const cur=sumMi/(sumM/60); /* mph */
     const ff=b.road.def.ff||60;
+    const mphs=[];
+    for(let i=0;i<b.mins.length;i++){
+      const mi=b.miles[i];
+      if(!(mi>0)||!(b.mins[i]>0))continue;
+      mphs.push(sanitizeLiveMph(mi/(b.mins[i]/60),ff,b.road));
+    }
+    if(!mphs.length)continue;
+    mphs.sort((a,c)=>a-c);
+    const cur=mphs[mphs.length>>1]; /* median — summing all corridors skewed cong high */
     const ratio=ff>0?clamp(cur/ff,0.08,1.25):1;
     const cong=clamp(1-ratio,0,1);
     window.LIVE_TRAFFIC.flows.set(key,{cur:Math.round(cur),ff,ratio,cong,at:Date.now(),src:'transtar'});
@@ -6471,7 +6867,7 @@ function applyTranStarSpeedJson(data){
     const road=findRoadByKey(roadId);if(!road)continue;
     const dirTxt=String(row.Direction||row.direction||title||'');
     const sign=mapTranStarDirSign(dirTxt+' '+title,roadId);
-    const cur=Number(row.AverageSpeed||row.Speed||row.speed||row.CurrentSpeed||row.avgSpeed);
+    const cur=sanitizeLiveMph(Number(row.AverageSpeed||row.Speed||row.speed||row.CurrentSpeed||row.avgSpeed),ff,road);
     if(!(cur>0))continue;
     const ff=Number(row.FreeFlowSpeed||row.PostedSpeed||road.def.ff)||road.def.ff;
     const ratio=ff>0?clamp(cur/ff,0.08,1.25):1;
@@ -6482,7 +6878,7 @@ function applyTranStarSpeedJson(data){
   return got;
 }
 async function fetchTranStarRss(name){
-  const r=await fetch('/api/transtar/data/rss/'+name,{cache:'no-store'});
+  const r=await fetchWithTimeout('/api/transtar/data/rss/'+name,{cache:'no-store'},10000);
   if(!r.ok)throw new Error('TranStar RSS '+name+' '+r.status);
   return parseRssItems(await r.text());
 }
@@ -6496,41 +6892,109 @@ async function fetchTranStarOptionalJson(path){
     return JSON.parse(text);
   }catch(e){return null;}
 }
-async function fetchTomTomFlowAt(lat,lng){
-  const zoom=10,style='relative0',fmt='json';
-  const url='/api/tomtom/traffic/services/4/flowSegmentData/'+style+'/'+zoom+'/'+fmt
-    +'?point='+lat.toFixed(6)+','+lng.toFixed(6)+'&unit=mph';
-  const r=await fetch(url,{cache:'no-store'});
+function tomtomKey(){
+  try{return localStorage.getItem('tt_key')||window.TOMTOM_KEY||'';}catch(e){return window.TOMTOM_KEY||'';}
+}
+async function tomtomFetch(pathAndQuery){
+  const clean=String(pathAndQuery||'').replace(/^\/+/,'');
+  try{
+    const r=await fetchWithTimeout('/api/tomtom/'+clean,{cache:'no-store'},10000);
+    if(r.status===401||r.status===403)window.LIVE_TRAFFIC.authOk=false;
+    if(r.ok){window.LIVE_TRAFFIC.authOk=true;return r;}
+  }catch(e){/* proxy unavailable — try direct */}
+  const key=tomtomKey();
+  if(!key)throw new Error('TomTom unauthorized — set TOMTOM_API_KEY or localStorage tt_key');
+  const sep=clean.includes('?')?'&':'?';
+  const direct='https://api.tomtom.com/'+clean+sep+'key='+encodeURIComponent(key);
+  const r=await fetchWithTimeout(direct,{cache:'no-store'},10000);
   if(r.status===401||r.status===403){
     window.LIVE_TRAFFIC.authOk=false;
     throw new Error('TomTom unauthorized ('+r.status+') — use a Traffic API key');
   }
-  if(!r.ok)throw new Error('TomTom flow '+r.status);
+  if(!r.ok)throw new Error('TomTom '+r.status);
   window.LIVE_TRAFFIC.authOk=true;
+  return r;
+}
+async function fetchTomTomFlowAt(lat,lng){
+  const zoom=10,style='relative0',fmt='json';
+  const path='traffic/services/4/flowSegmentData/'+style+'/'+zoom+'/'+fmt
+    +'?point='+lat.toFixed(6)+','+lng.toFixed(6)+'&unit=mph';
+  const r=await tomtomFetch(path);
   return await r.json();
 }
 async function fetchTomTomIncidents(){
   const minLat=28.7,minLon=-96.6,maxLat=30.6,maxLon=-94.3;
   const fields=encodeURIComponent('{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code,iconCategory},from,to,length,delay,roadNumbers,timeValidity}}}');
-  const url='/api/tomtom/traffic/services/5/incidentDetails'
+  const path='traffic/services/5/incidentDetails'
     +'?bbox='+minLon+','+minLat+','+maxLon+','+maxLat
     +'&fields='+fields
     +'&language=en-US&timeValidityFilter=present';
-  const r=await fetch(url,{cache:'no-store'});
-  if(r.status===401||r.status===403){
-    window.LIVE_TRAFFIC.authOk=false;
-    throw new Error('TomTom unauthorized ('+r.status+')');
-  }
-  if(!r.ok)throw new Error('TomTom incidents '+r.status);
+  const r=await tomtomFetch(path);
   return await r.json();
+}
+/* Traffic-aware door-to-door ETAs — fills gaps TranStar RSS doesn't cover. */
+const LIVE_ROUTE_POLL_MS=120*1000;
+let _liveRouteNext=0;
+async function fetchTomTomRouteMinutes(lat1,lng1,lat2,lng2){
+  const path='routing/1/calculateRoute/'
+    +lat1.toFixed(5)+','+lng1.toFixed(5)+':'
+    +lat2.toFixed(5)+','+lng2.toFixed(5)
+    +'/json?traffic=true&travelMode=car&routeType=fastest&vehicleEngineType=combustion';
+  const r=await tomtomFetch(path);
+  if(!r.ok)return null;
+  const j=await r.json();
+  const sum=j&&j.routes&&j.routes[0]&&j.routes[0].summary;
+  if(!sum||!(sum.travelTimeInSeconds>0))return null;
+  return {
+    mins:Math.round(sum.travelTimeInSeconds/60),
+    miles:sum.lengthInMeters?sum.lengthInMeters/1609.344:null
+  };
+}
+async function refreshTomTomCorridorRoutes(){
+  if(typeof DOWNTOWN_CORRIDORS!=='function')return 0;
+  if(!window.LIVE_TRAFFIC.corridorTimes)window.LIVE_TRAFFIC.corridorTimes=new Map();
+  const pool=DOWNTOWN_CORRIDORS();
+  const jobs=[];
+  for(const c of pool){
+    for(const outbound of [false,true]){
+      const sign=corridorTravelSign(c,outbound);
+      const key=corridorPanelKey(c,sign);
+      const existing=window.LIVE_TRAFFIC.corridorTimes.get(key);
+      /* Never replace a fresh TranStar downtown sample */
+      if(existing&&existing.src==='transtar'&&(Date.now()-existing.at)<LIVE_FLOW_STALE_MS)continue;
+      const a=worldToGeo(c.ax,c.az), b=worldToGeo(c.bx,c.bz);
+      const from=outbound?b:a, to=outbound?a:b;
+      jobs.push({c,key,from,to});
+    }
+  }
+  /* Parallel fan-out (capped) — was serial await and held the traffic lock too long */
+  const capped=jobs.slice(0,14);
+  const settled=await Promise.allSettled(capped.map(async j=>{
+    const route=await fetchTomTomRouteMinutes(j.from.lat,j.from.lng,j.to.lat,j.to.lng);
+    return {j,route};
+  }));
+  let got=0;
+  for(const r of settled){
+    if(r.status!=='fulfilled'||!r.value||!r.value.route)continue;
+    const {j,route}=r.value;
+    /* TomTom is door-to-door on corridor endpoints — do NOT add tsPadMin (that's for BW8 TranStar stubs) */
+    const okMins=saneCorridorMinutes(j.c,route.mins);
+    if(okMins==null)continue;
+    window.LIVE_TRAFFIC.corridorTimes.set(j.key,{
+      mins:okMins,at:Date.now(),src:'tomtom-route',
+      title:'TomTom traffic route',miles:route.miles,rawMins:route.mins
+    });
+    got++;
+  }
+  return got;
 }
 let _liveTrafficNext=0;
 let _liveTrafficInFlight=null;
 let _liveTrafficTimer=null;
-const LIVE_TRAFFIC_POLL_MS=60*1000; /* TranStar / TomTom flow refresh every minute */
-const LIVE_FLOW_STALE_MS=4*60*1000; /* discard probes older than 4 min */
-const LIVE_INCIDENT_POLL_MS=45*1000; /* closures / incidents refresh ~45s for map markers */
-const LIVE_TRAFFIC_RETRY_MS=90*1000;
+const LIVE_TRAFFIC_POLL_MS=45*1000; /* TranStar / TomTom flow — stay fresh */
+const LIVE_FLOW_STALE_MS=3.5*60*1000; /* discard probes older than ~3.5 min */
+const LIVE_INCIDENT_POLL_MS=40*1000; /* closures / incidents for map markers */
+const LIVE_TRAFFIC_RETRY_MS=75*1000;
 let _liveIncidentNext=0;
 let _liveIncidentEls=[];
 let _nwsAlertEls=[];
@@ -6560,9 +7024,14 @@ async function fetchNWSAlerts(){
 }
 function syncNWSAlerts(features){
   clearNwsAlertEls();
-  const alerts=document.getElementById('alerts');
-  if(!alerts||!features||!features.length)return;
-  for(const f of features){
+  const box=document.getElementById('alertsWeather')||document.getElementById('alerts');
+  if(!box||!features||!features.length)return;
+  const head=document.createElement('div');
+  head.className='alertSec';
+  head.textContent='Weather alerts · NWS';
+  box.appendChild(head);
+  _nwsAlertEls.push(head);
+  for(const f of features.slice(0,6)){
     const p=f.properties||{};
     const ev=String(p.event||'');
     const isFlood=/flood|flash flood|coastal/i.test(ev);
@@ -6570,12 +7039,15 @@ function syncNWSAlerts(features){
     const el=document.createElement('div');
     el.className='alert'+(isFlood?' flood':isStorm?' work':'');
     const headline=p.headline||ev||'Weather alert';
-    const desc=p.description?String(p.description).replace(/\s+/g,' ').slice(0,200):'';
-    el.innerHTML='<div class="at"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5 6.3 11H5.7L12 8.5z" fill="#6cb8ff"/></svg>NWS · Live</div>'
-      +'<div class="ab"><b>'+headline+'</b>'+(desc?' — '+desc+(desc.length>=200?'…':'') :'')+'</div>';
-    alerts.prepend(el);
+    const desc=p.description?String(p.description).replace(/\s+/g,' ').slice(0,160):'';
+    el.innerHTML='<div class="at"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5 6.3 11H5.7L12 8.5z" fill="#6cb8ff"/></svg>'
+      +(isFlood?'Flood':(isStorm?'Storm':'Alert'))+'</div>'
+      +'<div class="aMeta"><span class="aChip">NWS</span></div>'
+      +'<div class="ab"><b>'+headline+'</b>'+(desc?' — '+desc+(desc.length>=160?'…':'') :'')+'</div>';
+    box.appendChild(el);
     _nwsAlertEls.push(el);
   }
+  refreshIncidentCount();
 }
 async function refreshNWSAlerts(){
   if(Date.now()<_nwsNext)return;
@@ -6665,9 +7137,8 @@ function locateLiveIncident(inc){
 function syncLiveIncidentAlerts(){
   const list=(window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.incidents)||[];
   clearLiveIncidentEls();
-  const alerts=document.getElementById('alerts');
-  if(!alerts)return;
-  /* Prefer closures / work / crashes so the map + panel stay useful */
+  const box=document.getElementById('alertsTraffic')||document.getElementById('alerts');
+  if(!box)return;
   const ranked=[...list].sort((a,b)=>{
     const ka=parseIncidentKind(((a.properties&&a.properties.title)||'')+' '+((a.properties&&a.properties.description)||'')+' '+(a.kind||''),a.kind);
     const kb=parseIncidentKind(((b.properties&&b.properties.title)||'')+' '+((b.properties&&b.properties.description)||'')+' '+(b.kind||''),b.kind);
@@ -6676,13 +7147,18 @@ function syncLiveIncidentAlerts(){
   });
   const top=ranked.slice(0,10);
   const srcLabel=window.LIVE_TRAFFIC.transtar?'TranStar':(window.LIVE_TRAFFIC.tomtom?'TomTom':'Live');
+  const head=document.createElement('div');
+  head.className='alertSec';
+  head.textContent='Road incidents · '+srcLabel;
+  box.appendChild(head);
+  _liveIncidentEls.push(head);
   if(!top.length){
     const empty=document.createElement('div');
-    empty.className='alert';
-    empty.style.borderLeftColor='#2c5c3f';
-    empty.innerHTML='<div class="at" style="color:#8fd4a8">Clear · '+srcLabel+'</div>'
-      +'<div class="ab">No active incidents on Houston freeways right now.</div>';
-    alerts.appendChild(empty);
+    empty.className='alert clear';
+    empty.innerHTML='<div class="at">All clear</div>'
+      +'<div class="aMeta"><span class="aChip">'+srcLabel+'</span></div>'
+      +'<div class="ab">No active freeway incidents or lane closures right now.</div>';
+    box.appendChild(empty);
     _liveIncidentEls.push(empty);
   }
   for(const inc of top){
@@ -6692,15 +7168,20 @@ function syncLiveIncidentAlerts(){
     const roadsArr=ev.roadNumbers||props.roadNumbers||[];
     const roadTxt=loc.roadTxt||(Array.isArray(roadsArr)?roadsArr.join(' / '):String(roadsArr||props.road||''));
     const desc=loc.desc||ev.description||props.description||props.title||'Traffic incident';
+    const shortDesc=String(desc).replace(/\s+/g,' ').slice(0,120);
     const cls=loc.kind==='work'?'work':(loc.kind==='flood'?'flood':(/crash|stall|police/.test(loc.kind)?'police':''));
-    const where=loc.place?(' near '+loc.place):'';
-    const label=loc.kind==='work'?'Road closure':(loc.kind==='crash'||loc.kind==='accident'?'Crash':(loc.kind==='police'?'Police':'Incident'));
+    const label=loc.kind==='work'?'Closure':(loc.kind==='crash'||loc.kind==='accident'?'Crash':(loc.kind==='police'?'Police':(loc.kind==='stall'?'Stall':'Incident')));
     const el=document.createElement('div');
-    el.className='alert'+(cls?' '+cls:'');
-    el.innerHTML='<div class="at"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5 6.3 11H5.7L12 8.5z" fill="#ff7a6e"/><rect x="11" y="11" width="2" height="5" fill="#ff7a6e"/><rect x="11" y="17.4" width="2" height="2" fill="#ff7a6e"/></svg>'+label+' · '+srcLabel+'</div>'
-      +'<div class="ab">'+(roadTxt?roadTxt+where+' — ':'')+desc+'</div>';
+    el.className='alert'+(cls?' '+cls:'')+(loc.px!=null?' clickable':'');
+    el.innerHTML='<div class="at"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5 6.3 11H5.7L12 8.5z" fill="currentColor"/></svg>'+label+'</div>'
+      +'<div class="aMeta">'
+      +(roadTxt?'<span class="aChip">'+roadTxt+'</span>':'')
+      +(loc.place?'<span class="aChip">'+loc.place+'</span>':'')
+      +'<span class="aChip">'+srcLabel+'</span>'
+      +'</div>'
+      +'<div class="ab">'+shortDesc+(String(desc).length>120?'…':'')+'</div>'
+      +(loc.px!=null?'<div class="aHint">Click to fly there</div>':'');
     if(loc.px!=null){
-      el.style.cursor='pointer';
       el.title='Click to fly to incident';
       el.addEventListener('click',()=>{
         stopFollow();
@@ -6708,7 +7189,7 @@ function syncLiveIncidentAlerts(){
         camGoal.radius=280;camGoal.phi=1.05;
       });
     }
-    alerts.appendChild(el);
+    box.appendChild(el);
     _liveIncidentEls.push(el);
   }
   syncLiveIncidentMeshes(ranked);
@@ -6765,8 +7246,11 @@ async function refreshTomTomFallback(missingKeys){
     if(rr.status!=='fulfilled')continue;
     const f=rr.value&&rr.value.flowSegmentData;
     if(!f)continue;
-    const cur=f.currentSpeed||0;
-    const ff=f.freeFlowSpeed||0;
+    const roadId=s.key.split('_')[0];
+    const road=findRoadByKey(roadId);
+    const ff=f.freeFlowSpeed||road?.def?.ff||60;
+    const cur=sanitizeLiveMph(f.currentSpeed||0,ff,road);
+    if(!(cur>0))continue;
     const ratio=ff>0?clamp(cur/ff,0,1.2):1;
     const cong=clamp(1-ratio,0,1);
     window.LIVE_TRAFFIC.flows.set(s.key,{cur,ff,ratio,cong,at:Date.now(),src:'tomtom'});
@@ -6858,6 +7342,14 @@ async function refreshLiveTraffic(){
               syncLiveIncidentAlerts();
             }
           }catch(ie2){}
+        }
+        /* 5) TomTom traffic-aware routes for suburb↔downtown (beyond TranStar segment titles) */
+        if(now>_liveRouteNext){
+          _liveRouteNext=now+LIVE_ROUTE_POLL_MS;
+          try{
+            const rn=await refreshTomTomCorridorRoutes();
+            if(rn>0){usedTomTom=true;window.LIVE_TRAFFIC.tomtom=true;}
+          }catch(re){}
         }
       }catch(ttErr){
         /* TomTom optional */
@@ -7359,35 +7851,97 @@ for(const p of FACILITY_POIS){
 
 /* ---------------- simulation clock ---------------- */
 let liveMode=true,timeScale=60,simH=12,weekend=false,scrubbing=false;
-function houstonNow(){
-  try{
-    const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'numeric',second:'numeric',hour12:false,weekday:'short'}).formatToParts(new Date());
-    const g=k=>p.find(x=>x.type===k).value;
-    const wd=g('weekday');weekend=(wd==='Sat'||wd==='Sun');
-    return (+g('hour')%24)+(+g('minute'))/60+(+g('second'))/3600;
-  }catch(e){const d=new Date();weekend=(d.getDay()===0||d.getDay()===6);return d.getHours()+d.getMinutes()/60;}
+const CHI_TZ='America/Chicago';
+let _houClock={at:0,h:12,weekend:false};
+let _calSyncT=0;
+function chicagoParts(d){
+  return new Intl.DateTimeFormat('en-US',{
+    timeZone:CHI_TZ,hour:'numeric',minute:'numeric',second:'numeric',hour12:false,weekday:'short'
+  }).formatToParts(d);
 }
-simH=houstonNow();
+function partsToHourWeekend(p){
+  const g=k=>{const f=p.find(x=>x.type===k);return f?f.value:'0';};
+  const wd=g('weekday');
+  return {
+    h:(+g('hour')%24)+(+g('minute'))/60+(+g('second'))/3600,
+    we:(wd==='Sat'||wd==='Sun')
+  };
+}
+/* Cached America/Chicago clock — Intl is expensive; extrapolate between samples */
+function houstonNow(force){
+  const t=typeof performance!=='undefined'?performance.now():Date.now();
+  if(!force&&_houClock.at&&(t-_houClock.at)<450){
+    return (_houClock.h+((t-_houClock.at)/1000)/3600)%24;
+  }
+  try{
+    const r=partsToHourWeekend(chicagoParts(new Date()));
+    _houClock={at:t,h:r.h,weekend:r.we};
+    if(liveMode)weekend=r.we;
+    return r.h;
+  }catch(e){
+    const d=new Date();
+    const we=(d.getDay()===0||d.getDay()===6);
+    const h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
+    _houClock={at:t,h,weekend:we};
+    if(liveMode)weekend=we;
+    return h;
+  }
+}
+/* Weekend/date pattern always matches the HUD sim instant (live OR time-lapse) */
+function syncSimCalendar(){
+  try{
+    const d=liveMode?new Date():new Date(Date.now()+(window.simOffsetSec||0)*1000);
+    const r=partsToHourWeekend(chicagoParts(d));
+    weekend=r.we;
+    return r;
+  }catch(e){
+    const d=liveMode?new Date():new Date(Date.now()+(window.simOffsetSec||0)*1000);
+    weekend=(d.getDay()===0||d.getDay()===6);
+    return null;
+  }
+}
+simH=houstonNow(true);
+syncSimCalendar();
 
 /* ---------------- drive-time corridors ---------------- */
-/* realMi / typMin calibrated to actual Houston drives (TxDOT/typical figures);
-   live congestion model scales around these anchors */
+/* Downtown dock: TranStar "… to Downtown" titles + researched miles.
+   minMin must respect physics (mi ÷ ~62 mph avg) — never claim 13 min for Sugar Land. */
 const CORRIDORS=[
- {road:'i10',  label:'I-10 · Katy',       ax:-3450,az:-330, bx:60,  bz:-200, realMi:26, typMin:26},
- {road:'us290',label:'US-290 · Cypress',  ax:-2950,az:-2380,bx:40,  bz:-210, realMi:24, typMin:25},
- {road:'i45',  label:'I-45 · Woodlands',  ax:-1090,az:-3400,bx:40,  bz:60,   realMi:29, typMin:31},
- {road:'us59', label:'US-59 · Sugar Land',ax:-2900,az:2000, bx:260, bz:60,   realMi:20, typMin:22},
- {road:'sh288',label:'SH-288 · Pearland', ax:380,  az:2600, bx:1127, bz:3036,  realMi:15, typMin:17},
- {road:'i10',  label:'I-10 · Baytown',    ax:3600, az:-250, bx:60,  bz:-200, realMi:26, typMin:27},
- {road:'us59', label:'US-59 · Richmond',  ax:-4600,az:3400, bx:260, bz:60,   realMi:31, typMin:34},
- {road:'tx99', label:'TX-99 · Cypress',   ax:-5653,az:-181, bx:-4031,bz:-2905,realMi:18, typMin:20},
- {road:'tx99', label:'TX-99 · Kingwood',  ax:-760, az:-5078,bx:1881, bz:-3774,realMi:22, typMin:24},
- {road:'westpark',label:'Westpark · Katy', ax:-5414,az:428,  bx:-1045,bz:555,  realMi:24, typMin:26},
- {road:'fm1093',label:'FM 1093 · Richmond',ax:-5666,az:-296,bx:-4785,bz:1442, realMi:14, typMin:16},
- {road:'i45',  label:'I-45 · Galveston',  ax:2300, az:5400, bx:7290, bz:6804, realMi:42, typMin:48},
- {road:'us290',label:'US-290 · Waller',   ax:-5400,az:-4050,bx:-6861,bz:-4281,realMi:18, typMin:20},
- {road:'sh146',label:'SH-146 · Baytown',  ax:2900, az:3320, bx:5152, bz:428,  realMi:16, typMin:18},
+ {road:'i10',  label:'I-10 · Katy',       ax:-3450,az:-330, bx:60,  bz:-200, realMi:26, typMin:32, minMin:24, maxMin:85, toDt:true,
+  tsIn:/IH-10\s+Katy\s+Eastbound\s+from\s+SH-99\s+Grand Parkway\s+to\s+Downtown/i,
+  tsOut:/IH-10\s+Katy\s+Westbound\s+from\s+Downtown\s+to\s+SH-99\s+Grand Parkway/i},
+ {road:'us290',label:'US-290 · Cypress',  ax:-2950,az:-2380,bx:40,  bz:-210, realMi:28, typMin:36, minMin:26, maxMin:90, toDt:true,
+  tsIn:/US-290\s+Northwest\s+Eastbound\s+from\s+Barker-Cypress\s+to\s+Downtown/i,
+  tsOut:/US-290\s+Northwest\s+Westbound\s+from\s+Downtown\s+to\s+Barker-Cypress/i},
+ {road:'i45',  label:'I-45 · Woodlands',  ax:-1090,az:-3400,bx:40,  bz:60,   realMi:30, typMin:38, minMin:28, maxMin:90, toDt:true,
+  tsIn:/IH-45\s+North\s+Southbound\s+from\s+SH-242\s+to\s+Downtown/i,
+  tsOut:/IH-45\s+North\s+Northbound\s+from\s+Downtown\s+to\s+SH-242/i},
+ /* TranStar only publishes BW8-West→Downtown for this corridor; pad ~8 min for Sugar Land proper. */
+ {road:'us59', label:'US-59 · Sugar Land',ax:-2900,az:2000, bx:260, bz:60,   realMi:22, typMin:30, minMin:22, maxMin:80, toDt:true, tsPadMin:8,
+  tsIn:/IH-69\s+Southwest\s+Northbound\s+from\s+Beltway\s+8-West\s+to\s+Downtown/i,
+  tsOut:/IH-69\s+Southwest\s+Southbound\s+from\s+Downtown\s+to\s+Beltway\s+8-West/i},
+ {road:'sh288',label:'SH-288 · Pearland', ax:380,  az:2600, bx:40,  bz:60,   realMi:18, typMin:24, minMin:17, maxMin:65, toDt:true,
+  tsIn:/SH-288\s+Northbound\s+from\s+FM-518\s+to\s+Downtown/i,
+  tsOut:/SH-288\s+Southbound\s+from\s+Downtown\s+to\s+FM-518/i},
+ {road:'i10',  label:'I-10 · Baytown',    ax:3600, az:-250, bx:60,  bz:-200, realMi:27, typMin:34, minMin:24, maxMin:85, toDt:true,
+  tsIn:/IH-10\s+East\s+Westbound\s+from\s+Spur-330\s+to\s+Downtown/i,
+  tsOut:/IH-10\s+East\s+Eastbound\s+from\s+Downtown\s+to\s+Spur-330/i},
+ /* Richmond→Downtown = IH-69 SW from SH-99 GP (not FM 1093). */
+ {road:'us59', label:'US-59 · Richmond',  ax:-4600,az:3400, bx:260, bz:60,   realMi:29, typMin:40, minMin:28, maxMin:95, toDt:true,
+  tsIn:/IH-69\s+Southwest\s+Northbound\s+from\s+SH-99\s+Grand Parkway\s+to\s+Downtown/i,
+  tsOut:/IH-69\s+Southwest\s+Southbound\s+from\s+Downtown\s+to\s+SH-99\s+Grand Parkway/i},
+ {road:'us59', label:'US-59 · Kingwood',  ax:1320, az:-3500,bx:260, bz:60,   realMi:26, typMin:34, minMin:24, maxMin:85, toDt:true,
+  tsIn:/IH-69\s+Eastex\s+Southbound\s+from\s+Loop-494\s+to\s+Downtown/i,
+  tsOut:/IH-69\s+Eastex\s+Northbound\s+from\s+Downtown\s+to\s+(?:FM-1960|Loop-494|Beltway\s+8-North)/i},
+ {road:'tx99', label:'TX-99 · Cypress',   ax:-5653,az:-181, bx:-4031,bz:-2905,realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
+ {road:'tx99', label:'TX-99 · Kingwood',  ax:-760, az:-5078,bx:1881, bz:-3774,realMi:22, typMin:26, minMin:18, maxMin:55, toDt:false},
+ {road:'westpark',label:'Westpark · Katy', ax:-5414,az:428,  bx:-1045,bz:555,  realMi:24, typMin:28, minMin:20, maxMin:60, toDt:false},
+ {road:'fm1093',label:'FM 1093 · Katy',  ax:-5666,az:-296, bx:-1045,bz:555,  realMi:22, typMin:28, minMin:22, maxMin:65, toDt:false},
+ {road:'i45',  label:'I-45 · Galveston',  ax:2300, az:5400, bx:7290, bz:6804, realMi:42, typMin:48, minMin:38, maxMin:90, toDt:false},
+ {road:'us290',label:'US-290 · Waller',   ax:-5400,az:-4050,bx:-6861,bz:-4281,realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
+ {road:'sh146',label:'SH-146 · Baytown',  ax:2900, az:3320, bx:5152, bz:428,  realMi:16, typMin:20, minMin:14, maxMin:45, toDt:false},
 ];
+const DOWNTOWN_CORRIDORS=()=>CORRIDORS.filter(c=>c.toDt);
 for(const c of CORRIDORS){
   c.roadObj=findRoadByKey(c.road);
   if(!c.roadObj){c.aArc=0;c.bArc=1;c.baseMin=c.typMin||20;c.miles=c.realMi||20;continue;}
@@ -7395,14 +7949,21 @@ for(const c of CORRIDORS){
   c.bArc=nearestArc(c.roadObj,c.bx,c.bz);
   const miles=Math.abs(c.bArc-c.aArc)/UNITS_PER_MILE;
   c.baseMin=miles/(c.roadObj.def.ff*0.92)*60;
-  c.miles=miles;
+  /* Prefer researched road miles for display / sanity — sim geometry can shrink after OSM snap */
+  c.miles=c.realMi||miles;
 }
 function corridorTime(c,outbound){
+  /* Downtown: scale researched typical by rush/weather — avoid road-wide mph shortcuts. */
+  if(c.toDt){
+    const rush=(typeof demand==='function'?demand(simH,weekend):0.45);
+    const wx=(window.wxBlend&&wxBlend.cong)||0;
+    const factor=clamp(0.72+rush*0.85+wx*0.35,0.7,2.1);
+    return clampCorridorMinutes(c,(c.typMin||30)*factor);
+  }
   const road=c.roadObj||findRoadByKey(c.road);
   if(!road||!road.dirs||!road.dirs.length)return c.typMin||c.baseMin||20;
   if(!c.roadObj)c.roadObj=road;
   const lo=Math.min(c.aArc,c.bArc),hi=Math.max(c.aArc,c.bArc);
-  /* travel direction: increasing arc = dirs[0] (sign +1), decreasing = dirs[1] */
   const incTravel=outbound?(c.aArc>c.bArc):(c.bArc>c.aArc);
   const dir=road.dirs[incTravel?0:1]||road.dirs[0];
   if(!dir||!dir.segCong)return c.typMin||c.baseMin||20;
@@ -7412,14 +7973,29 @@ function corridorTime(c,outbound){
     const s0=k/segN*L,s1=(k+1)/segN*L;
     const ov=Math.min(hi,s1)-Math.max(lo,s0);
     if(ov<=0)continue;
-    const mph=Math.max(9, road.def.ff*(1-0.74*dir.segCong[k])*wxBlend.speed);
+    const liveKey=road.def.id+'_'+dir.sign;
+    const flow=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(liveKey);
+    let mph;
+    if(liveFlowFresh(flow))mph=sanitizeLiveMph(flow.cur,flow.ff,road);
+    else mph=Math.max(9, road.def.ff*(1-0.74*dir.segCong[k])*wxBlend.speed);
     t+=(ov/UNITS_PER_MILE)/mph*60;
   }
-  return t||c.typMin||20;
+  const anchor=corridorDriveMiles(c);
+  const mi=c.miles||anchor;
+  if(mi>0.5&&mi<anchor*0.8)t*=anchor/mi;
+  return clampCorridorMinutes(c,t||c.typMin||20);
 }
 function corridorPanelKey(c,sign){return c.road+'|'+c.ax+','+c.az+'|'+c.bx+','+c.bz+'|'+sign;}
 function findCorridorForTranStarItem(title,roadId){
   const t=String(title||'');
+  const tl=t.toLowerCase();
+  /* Prefer destination name match first (Richmond ≠ Sugar Land on the same freeway). */
+  for(const c of CORRIDORS){
+    if(c.road!==roadId)continue;
+    const dest=(c.label.split(' · ')[1]||'').toLowerCase();
+    const token=dest.split(/[\s/]+/)[0];
+    if(token.length>2&&tl.includes(token))return c;
+  }
   const hints=TRANSTAR_CORRIDOR_HINTS[roadId];
   if(hints){
     for(const h of hints){
@@ -7429,11 +8005,6 @@ function findCorridorForTranStarItem(title,roadId){
         if(Math.abs(c.ax-h.ax)<900&&Math.abs(c.az-h.az)<900&&Math.abs(c.bx-h.bx)<900&&Math.abs(c.bz-h.bz)<900)return c;
       }
     }
-  }
-  for(const c of CORRIDORS){
-    if(c.road!==roadId)continue;
-    const dest=(c.label.split(' · ')[1]||'').toLowerCase();
-    if(dest.length>2&&t.toLowerCase().includes(dest.split(/[\s/]+/)[0]))return c;
   }
   return null;
 }
@@ -7445,61 +8016,194 @@ function corridorTravelSign(c,outbound){
 }
 function indexTranStarCorridorTimes(items){
   if(!window.LIVE_TRAFFIC.corridorTimes)window.LIVE_TRAFFIC.corridorTimes=new Map();
-  for(const it of items||[]){
-    const roadId=mapTranStarRoadId(it.title);if(!roadId)continue;
+  const list=items||[];
+  /* Exact suburb→Downtown TranStar titles beat fuzzy road matching. Skip HOV (often bogus). */
+  for(const c of CORRIDORS){
+    if(!c.toDt)continue;
+    for(const outbound of [false,true]){
+      const re=outbound?c.tsOut:c.tsIn;
+      if(!re)continue;
+      let best=null;
+      for(const it of list){
+        const title=String(it.title||'');
+        if(/\bHOV\b/i.test(title))continue;
+        if(!re.test(title))continue;
+        const mins=parseTravelMinutes(it.desc);
+        if(!(mins>0))continue;
+        if(!best||mins<best.mins)best={mins,title};
+      }
+      if(!best)continue;
+      const okMins=saneCorridorMinutes(c,applyCorridorPad(c,best.mins));
+      if(okMins==null)continue;
+      const sign=corridorTravelSign(c,outbound);
+      window.LIVE_TRAFFIC.corridorTimes.set(corridorPanelKey(c,sign),{
+        mins:okMins,at:Date.now(),src:'transtar',title:best.title.trim(),
+        rawMins:best.mins,pad:c.tsPadMin||0
+      });
+    }
+  }
+  /* Fallback fuzzy index for non-downtown / unmatched */
+  for(const it of list){
+    const title=String(it.title||'');
+    if(/\bHOV\b/i.test(title))continue;
+    const roadId=mapTranStarRoadId(title);if(!roadId)continue;
     const mins=parseTravelMinutes(it.desc);if(!(mins>0))continue;
-    const corr=findCorridorForTranStarItem(it.title,roadId);if(!corr)continue;
-    const sign=mapTranStarDirSign(it.title,roadId);
-    window.LIVE_TRAFFIC.corridorTimes.set(corridorPanelKey(corr,sign),{
-      mins,at:Date.now(),src:'transtar',title:String(it.title||'').trim()
+    const corr=findCorridorForTranStarItem(title,roadId);if(!corr)continue;
+    if(corr.toDt&&(corr.tsIn||corr.tsOut))continue; /* already exact-matched */
+    const okMins=saneCorridorMinutes(corr,applyCorridorPad(corr,mins));if(okMins==null)continue;
+    const sign=mapTranStarDirSign(title,roadId);
+    const key=corridorPanelKey(corr,sign);
+    if(window.LIVE_TRAFFIC.corridorTimes.has(key))continue;
+    window.LIVE_TRAFFIC.corridorTimes.set(key,{
+      mins:okMins,at:Date.now(),src:'transtar',title:title.trim()
     });
   }
 }
-function corridorLiveMinutes(c,outbound){
+function corridorLiveEntry(c,outbound){
   const ct=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.corridorTimes;
   if(!ct)return null;
   const sign=corridorTravelSign(c,outbound);
   const live=ct.get(corridorPanelKey(c,sign))||ct.get(corridorPanelKey(c,-sign));
-  if(live&&live.mins>0&&(Date.now()-live.at)<LIVE_FLOW_STALE_MS)return live.mins;
+  if(live&&live.mins>0&&(Date.now()-live.at)<LIVE_FLOW_STALE_MS){
+    const ok=saneCorridorMinutes(c,live.mins);
+    if(ok!=null)return {mins:ok,src:live.src||'transtar',title:live.title||'',miles:live.miles};
+  }
   return null;
 }
+function corridorLiveMinutes(c,outbound){
+  const e=corridorLiveEntry(c,outbound);
+  return e?e.mins:null;
+}
 function corridorMinutesFromFlow(c,outbound){
+  /* Road-wide mph is too coarse for suburb→downtown chips — skip for toDt. */
+  if(c.toDt)return null;
   const road=c.roadObj||findRoadByKey(c.road);
   if(!road)return null;
   const sign=corridorTravelSign(c,outbound);
   const flow=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(road.def.id+'_'+sign);
   if(!liveFlowFresh(flow)||!(flow.cur>5))return null;
-  const mi=c.miles||c.realMi||20;
-  return mi/flow.cur*60;
+  const mi=corridorDriveMiles(c);
+  const mph=sanitizeLiveMph(flow.cur,flow.ff,road);
+  const t=mi/mph*60;
+  return saneCorridorMinutes(c,t)||clamp(t,(c.typMin||20)*0.75,(c.typMin||20)*2.4);
 }
 function corridorPanelMinutes(c,outbound){
   const live=corridorLiveMinutes(c,outbound);
-  if(live!=null)return live;
-  const fromFlow=corridorMinutesFromFlow(c,outbound);
-  if(fromFlow!=null)return fromFlow;
+  if(live!=null)return live; /* TranStar or TomTom route — already sanity-checked */
+  if(!c.toDt){
+    const fromFlow=corridorMinutesFromFlow(c,outbound);
+    if(fromFlow!=null)return clampCorridorMinutes(c,fromFlow);
+  }
   return corridorTime(c,outbound);
 }
-function liveFreewayPanelStats(){
-  const flows=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows;
-  if(!flows||!flows.size)return null;
-  let mphN=0,mphSum=0,congSum=0,congN=0,worstC=-1,worstName='';
-  for(const [key,flow] of flows){
-    if(!liveFlowFresh(flow))continue;
-    if(flow.cur>0){mphSum+=flow.cur;mphN++;}
-    congSum+=flow.cong;congN++;
-    if(flow.cong>worstC){
-      worstC=flow.cong;
-      const rid=key.slice(0,key.lastIndexOf('_'));
-      const road=findRoadByKey(rid);
-      worstName=road?(road.def.short||road.def.name):rid;
+/* mph shown on chip must match displayed miles ÷ minutes (no mismatched road-wide speed). */
+function corridorChipMph(c,mins){
+  const mi=corridorDriveMiles(c);
+  const t=Math.max(1,mins||c.typMin||20);
+  return clamp(Math.round(mi/(t/60)),8,85);
+}
+/* Hard floor: researched suburban ETAs must never collapse to arterial shortcuts (e.g. Richmond≠FM 1093). */
+function assertCorridorSanity(){
+  const rich=CORRIDORS.find(c=>/Richmond/i.test(c.label));
+  if(!rich)return;
+  if(rich.road!=='us59')console.warn('[corridor] Richmond must use US-59, got',rich.road);
+  if(!(rich.realMi>=28&&rich.realMi<=32))console.warn('[corridor] Richmond miles off research (~29):',rich.realMi);
+  if(!(rich.typMin>=35&&rich.typMin<=45))console.warn('[corridor] Richmond typMin off research (~40):',rich.typMin);
+  const bad=clampCorridorMinutes(rich,12);
+  if(bad<28)console.warn('[corridor] Richmond clamp failed; 12min became',bad);
+  const cyp=CORRIDORS.find(c=>c.toDt&&/Cypress/i.test(c.label));
+  if(cyp&&cyp.road!=='us290')console.warn('[corridor] Cypress→Downtown must use US-290, got',cyp.road);
+  const sugar=CORRIDORS.find(c=>/Sugar Land/i.test(c.label));
+  if(sugar){
+    if(!(sugar.minMin>=22))console.warn('[corridor] Sugar Land minMin too low:',sugar.minMin);
+    const tooFast=saneCorridorMinutes(sugar,13);
+    if(tooFast!=null)console.warn('[corridor] Sugar Land wrongly accepts 13 min');
+    const padded=saneCorridorMinutes(sugar,applyCorridorPad(sugar,13));
+    if(padded==null||padded<21)console.warn('[corridor] Sugar Land BW8 pad failed:',padded);
+  }
+}
+assertCorridorSanity();
+function visibleTrafficStats(renderedN,renderedSpeedSum){
+  const cx=cam.target.x,cz=cam.target.z,viewR=4200;
+  const lt=window.LIVE_TRAFFIC;
+  const flows=lt&&lt.flows;
+  let worstC=-1,worstName='';
+
+  /* LIVE mode: Traffic Flow panel is feed-only (TranStar/TomTom freeways).
+     Never average simulated car speeds — those crawl on arterials/suburbs and look “fishy” at midnight. */
+  if(liveMode&&flows&&flows.size){
+    let localMphN=0,localMphSum=0,localCongN=0,localCongSum=0;
+    let metroMphN=0,metroMphSum=0,metroCongN=0,metroCongSum=0;
+    for(const road of roads){
+      if(road.def.arterial||road.def.surface)continue; /* freeways / tollways only */
+      const mid=road.segCount>>1;
+      const near=((road.segX[mid]-cx)**2+(road.segZ[mid]-cz)**2)<viewR*viewR;
+      for(const dir of road.dirs){
+        const flow=flows.get(road.def.id+'_'+dir.sign);
+        if(!liveFlowFresh(flow))continue;
+        const cur=sanitizeLiveMph(flow.cur,flow.ff,road);
+        metroMphSum+=cur;metroMphN++;
+        metroCongSum+=flow.cong;metroCongN++;
+        if(near){
+          localMphSum+=cur;localMphN++;
+          localCongSum+=flow.cong;localCongN++;
+        }
+        if(flow.cong>worstC){worstC=flow.cong;worstName=road.def.short||road.def.name;}
+      }
+    }
+    const useLocal=localMphN>=2;
+    const mphN=useLocal?localMphN:metroMphN;
+    const mphSum=useLocal?localMphSum:metroMphSum;
+    const congN=useLocal?localCongN:metroCongN;
+    const congSum=useLocal?localCongSum:metroCongSum;
+    const src=lt.transtar?'TranStar':(lt.tomtom?'TomTom':(lt.src||'Live'));
+    if(mphN>0){
+      return {
+        veh:renderedN,
+        mph:Math.round(mphSum/mphN),
+        congPct:congN>0?Math.round(congSum/congN*100):0,
+        congSrc:src+(useLocal?'':' · metro'),
+        hot:worstC>=0.42?worstName+(worstC>=0.68?' · jammed':' · heavy'):null,
+        live:true,
+        mphLabel:'Avg mph · '+src,
+      };
+    }
+    /* Feed connected but no fresh freeway samples yet */
+    return {
+      veh:renderedN,
+      mph:null,
+      congPct:null,
+      congSrc:'Waiting',
+      hot:null,
+      live:false,
+      mphLabel:'Avg mph',
+    };
+  }
+
+  /* Time-lapse / offline: modeled freeway congestion near camera (labeled Predicted) */
+  let congSum=0,congN=0,mphSum=0,mphN=0;
+  for(const road of roads){
+    if(road.def.arterial||road.def.surface)continue;
+    const mid=road.segCount>>1;
+    const d2=(road.segX[mid]-cx)**2+(road.segZ[mid]-cz)**2;
+    if(d2>viewR*viewR)continue;
+    for(const dir of road.dirs){
+      const avg=dir.segCong.reduce((a,b)=>a+b,0)/Math.max(1,dir.segCong.length);
+      congSum+=avg;congN++;
+      const ff=road.def.ff||60;
+      mphSum+=Math.max(8,ff*(1-0.78*avg)*((window.wxBlend&&wxBlend.speed)||1));
+      mphN++;
+      if(avg>worstC){worstC=avg;worstName=road.def.short||road.def.name;}
     }
   }
-  if(!mphN)return null;
   return {
-    avgMph:Math.round(mphSum/mphN),
-    congPct:Math.round((congN?congSum/congN:0)*100),
+    veh:renderedN,
+    mph:mphN>0?Math.round(mphSum/mphN):(renderedN>0?Math.round(renderedSpeedSum/renderedN/MPH):null),
+    congPct:congN>0?Math.round(congSum/congN*100):null,
+    congSrc:congN>0?'Predicted':'',
     hot:worstC>=0.42?worstName+(worstC>=0.68?' · jammed':' · heavy'):null,
-    live:true
+    live:false,
+    mphLabel:congN>0?'Avg mph · predicted':'Avg mph',
   };
 }
 function mphTier(mph){
@@ -7565,12 +8269,36 @@ function mapMat(color){
     }
   }
 })();
-let mapT=0;
+let mapT=0,vehFade=1;
+let _fpsDt=0,_fpsN=0,_fpsAvg=58;
 
 /* ---------------- traffic incidents ---------------- */
 const incidents=[];
 const _ip={px:0,pz:0,py:0,tx:0,tz:0};
 const liveIncidentMeshes=new Map(); /* guid -> {grp,red,blue,road,dir,arc,k,kind} */
+let _incidentCache=null;
+function buildIncidentCache(){
+  const list=[];
+  for(const inc of incidents)list.push(inc);
+  for(const inc of liveIncidentMeshes.values())list.push(inc);
+  const byRoad=new Map();
+  for(const inc of list){
+    if(!inc.road||!inc.road.def)continue;
+    const id=inc.road.def.id;
+    if(!byRoad.has(id))byRoad.set(id,[]);
+    byRoad.get(id).push(inc);
+  }
+  return {list,byRoad};
+}
+function roadIncidents(road,dir){
+  if(!_incidentCache)return [];
+  const arr=_incidentCache.byRoad.get(road.def.id);
+  if(!arr)return [];
+  if(!dir)return arr;
+  const out=[];
+  for(const inc of arr)if(inc.dir===dir)out.push(inc);
+  return out;
+}
 function nearestDistrictName(x,z){
   let best='Houston',bd=1e18;
   for(const d of DISTRICTS){const dd=Math.hypot(x-d.x,z-d.z);if(dd<bd){bd=dd;best=d.n;}}
@@ -8495,7 +9223,11 @@ function eventLevel(h){
 function updateEvent(){
   const lv=eventLevel(simH);
   const on=lv>0.18;
-  if(Math.floor(simH)===4&&lastRollDay!==Math.floor(simClock/1000)){eventDay=rand()<0.65;lastRollDay=Math.floor(simClock/1000);}
+  /* Roll event day once per sim calendar day (not RAF wall clock) */
+  const dayKey=liveMode
+    ? Math.floor(Date.now()/86400000)
+    : Math.floor((Date.now()+(window.simOffsetSec||0)*1000)/86400000);
+  if(Math.floor(simH)===4&&lastRollDay!==dayKey){eventDay=rand()<0.65;lastRollDay=dayKey;}
   if(on&&!eventActive){
     eventActive=true;
     eventEl=document.createElement('div');eventEl.className='alert event';
@@ -8525,8 +9257,7 @@ function liveFlowFresh(flow){
 function liveSegCongBump(road,dir,k,base){
   let c=base;
   const segN=dir.segCong.length;
-  for(const inc of [...incidents,...liveIncidentMeshes.values()]){
-    if(inc.road!==road||inc.dir!==dir)continue;
+  for(const inc of roadIncidents(road,dir)){
     const ki=inc.arc/road.s.total*segN;
     const upstream=dir.sign>0?(k<=ki):(k>=ki);
     const age=inc.sim?Math.min(1,inc.t/25):1;
@@ -8541,6 +9272,7 @@ function liveSegCongBump(road,dir,k,base){
   return clamp(c,0,1);
 }
 function trafficTick(dt){
+  _incidentCache=buildIncidentCache();
   const vol=demand(simH,weekend);
   const dirBias=volumeMode==='auto'?keyNum(DIRB_KEYS,simH):0;
   const evLv=updateEvent();
@@ -8551,7 +9283,10 @@ function trafficTick(dt){
     const mid=road.segCount>>1;
     const d2=(road.segX[mid]-cx)**2+(road.segZ[mid]-cz)**2;
     const nearR=road.suburbTraffic?2400:3400;
-    road._near=d2<nearR*nearR;
+    /* Hysteresis — stop pop-in/out when mid-road sits on the cull edge */
+    const farR=nearR*1.22;
+    if(road._near)road._near=d2<farR*farR;
+    else road._near=d2<nearR*nearR;
     const isArt=road.def.arterial||road.def.surface;
     for(const dir of road.dirs){
       if(!road._near){dir.target=0;continue;}
@@ -8559,7 +9294,8 @@ function trafficTick(dt){
       const live=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(liveKey);
       const liveCong=live?live.cong:null;
       let dsum=0;
-      if(liveFlowFresh(live)){
+      /* Time-lapse: ignore live probes — congestion follows simulated rush hour + forecast weather */
+      if(liveMode&&liveFlowFresh(live)){
         /* Live TranStar / TomTom probe — use measured speed/congestion only */
         for(let k=0;k<dir.segCong.length;k++){
           dir.segCong[k]=liveSegCongBump(road,dir,k,live.cong);
@@ -8575,8 +9311,7 @@ function trafficTick(dt){
         d+=hazardCongBoost();
         d+=hazardNukeRoadBoost(road,(k+0.5)/dir.segCong.length*road.s.total);
         d+=0.05*Math.sin(simClock*0.00025+dir.segPhase[k]);
-        for(const inc of [...incidents,...liveIncidentMeshes.values()]){
-          if(inc.road!==road||inc.dir!==dir)continue;
+        for(const inc of roadIncidents(road,dir)){
           const ki=inc.arc/road.s.total*dir.segCong.length;
           const upstream=dir.sign>0?(k<=ki):(k>=ki);
           const age=inc.sim?Math.min(1,inc.t/25):1;
@@ -8602,7 +9337,7 @@ function trafficTick(dt){
         let modeled=clamp((d-0.22)/0.95,0,1);
         if(isArt)modeled=Math.min(modeled,0.82);
         let blended;
-        if(liveCong!=null){
+        if(liveMode&&liveCong!=null){
           blended=clamp(lerp(modeled,liveCong,0.9),0,1);
         }else blended=modeled;
         dir.segCong[k]=blended;
@@ -8632,30 +9367,40 @@ function trafficTick(dt){
       const artScale=isArt?(road.suburbTraffic?1.2:0.88):1;
       const suburbMul=road.suburbTraffic?clamp(1.8-vol*0.35,0.75,1.6):1;
       const avgCong=dsum/Math.max(1,dir.segCong.length);
-      const headway=desiredHeadway(road,dir,live,avgCong);
+      const headway=desiredHeadway(road,dir,liveMode?live:null,avgCong);
       const densityCap=Math.round((road.s.total/headway)*dir.lanes.length*clamp(vol,0.2,1));
       const modelTarget=Math.round(TOTAL_TARGET*share*0.5*clamp(vol*1.35,0.06,1.15)*clamp(dBias,0.6,1.4)*artScale*suburbMul);
-      dir.target=clamp(Math.min(densityCap,modelTarget),road.suburbTraffic?2:3,road.suburbTraffic?26:95);
+      dir.target=clamp(Math.min(densityCap,modelTarget),road.suburbTraffic?2:3,road.suburbTraffic?(road.def.highway==='residential'?10:18):95);
     }
   }
   overallCong=congN?congSum/congN:0;
-  /* adjust populations — spawn into largest gaps, never stack at mile 0 */
+  /* adjust populations — v10.8.6 style: spawn into gaps, cull far cars */
   for(const road of roads)for(const dir of road.dirs){
-    for(const lane of dir.lanes){if(lane.length>1)lane.sort((a,b)=>a.s-b.s);}
+    for(const lane of dir.lanes){
+      if(lane.length>1)lane.sort((a,b)=>a.s-b.s);
+      for(let pi=lane.length-1;pi>=0;pi--){
+        if(!Number.isFinite(lane[pi].s))lane.splice(pi,1);
+      }
+    }
     let cur=0;for(const l of dir.lanes)cur+=l.length;
     if(cur<dir.target){
-      const add=Math.min(2,dir.target-cur);
+      const add=Math.min(3,dir.target-cur);
       for(let i=0;i<add;i++){
         const li=Math.floor(rand()*dir.lanes.length);
         const lane=dir.lanes[li];
         const L=road.s.total;
-        const minG=vehBumpLen({type:{len:5.2}})+8;
-        const s0=findOpenSpawnS(lane,L,road.s.closed,minG);
-        if(s0<0)continue;
+        const s0=road.s.closed?rand()*L:0;
+        let idx=0;while(idx<lane.length&&lane[idx].s<s0)idx++;
+        const nxt=lane.length?lane[idx%lane.length]:null;
+        const prv=lane.length?lane[(idx-1+lane.length)%lane.length]:null;
+        let ok=true;
+        if(nxt&&Math.abs(((nxt.s-s0)+L)%L)<42&&Math.abs(nxt.s-s0)<L*0.5)ok=false;
+        if(prv&&Math.abs(((s0-prv.s)+L)%L)<42&&Math.abs(s0-prv.s)<L*0.5)ok=false;
+        if(!ok)continue;
         const liveKey=road.def.id+'_'+dir.sign;
         const live=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(liveKey);
         const seg=clamp(Math.floor(s0/L*dir.segCong.length),0,dir.segCong.length-1);
-        const mph=liveFlowFresh(live)?live.cur:road.def.ff*(1-0.55*dir.segCong[seg]);
+        const mph=(liveMode&&liveFlowFresh(live))?sanitizeLiveMph(live.cur,live.ff,road):road.def.ff*(1-0.55*dir.segCong[seg])*wxBlend.speed;
         const v=makeVehicle(road,s0,clamp(mph,8,road.def.ff));
         v._laneI=li;
         insertVehicleSorted(lane,v);
@@ -8665,7 +9410,7 @@ function trafficTick(dt){
       for(const lane of dir.lanes){
         if(removed>=2)break;
         for(let i=lane.length-1;i>=0;i--){
-          if(lane[i].police)continue; /* never cull roaming patrols */
+          if(lane[i].police)continue;
           roadPos(road,dir.sign>0?lane[i].s:road.s.total-lane[i].s,_rp);
           const dx=_rp.px-cam.target.x,dz=_rp.pz-cam.target.z;
           if(dx*dx+dz*dz>1200000){lane.splice(i,1);removed++;break;}
@@ -8675,23 +9420,54 @@ function trafficTick(dt){
   }
 }
 const _rp={px:0,pz:0,tx:0,tz:0,py:0};
-function vehicleWorldPos(road,dir,li,laneW,sPos){
+/* Shared by trafficTick + moveVehicles — must stay module-scope (wrap used to throw ReferenceError) */
+function vehicleCullR(){return Math.max(1100,cam.radius*1.08+280);}
+function vehicleCullR2(){const r=vehicleCullR();return r*r;}
+function arcDist2(road,dir,s){
+  roadPos(road,dir.sign>0?s:road.s.total-s,_rp);
+  const dx=_rp.px-cam.target.x,dz=_rp.pz-cam.target.z;
+  return dx*dx+dz*dz;
+}
+function arcOffScreen(road,dir,s){return arcDist2(road,dir,s)>vehicleCullR2();}
+function vehicleWorldPos(road,dir,li,laneW,sPos,v){
   roadPos(road,dir.sign>0?sPos:road.s.total-sPos,_rp);
   const rx=-_rp.tz,rz=_rp.tx;
   const maxLat=Math.max(2.2,road.def.width*0.5-1.35);
   const lat=clamp(dir.sign*(1.7+(li+0.5)*laneW),-maxLat,maxLat);
   let px=_rp.px+rx*lat,pz=_rp.pz+rz*lat;
-  let hitB=footHitsBldg(px,pz);
-  if(hitB){
-    for(const shrink of [0.65,0.35,0]){
-      const tryLat=lat*shrink;
-      px=_rp.px+rx*tryLat;pz=_rp.pz+rz*tryLat;
-      hitB=footHitsBldg(px,pz);
-      if(!hitB)break;
-    }
-    if(hitB){px=_rp.px;pz=_rp.pz;}
+  /* Ground footprints only affect surface streets — elevated freeways ignore them */
+  const onDeck=_rp.py>=12||(!road.def.arterial&&!road.def.surface);
+  if(!onDeck){
+    let hitB=footHitsBldg(px,pz);
+    if(hitB){
+      /* Prefer last clear lateral over shrinking toward centerline (downtown jitter) */
+      if(v&&v._latOk!=null&&Number.isFinite(v._latOk)){
+        px=_rp.px+rx*v._latOk;pz=_rp.pz+rz*v._latOk;
+        if(!footHitsBldg(px,pz)){
+          const hd=Math.atan2(_rp.tx*dir.sign,_rp.tz*dir.sign);
+          return {px,pz,py:_rp.py+0.05,hd,fx:_rp.tx*dir.sign,fz:_rp.tz*dir.sign};
+        }
+      }
+      let cleared=false,useLat=lat;
+      for(const shrink of [0.72,0.55,0.38]){
+        useLat=lat*shrink;
+        px=_rp.px+rx*useLat;pz=_rp.pz+rz*useLat;
+        if(!footHitsBldg(px,pz)){cleared=true;break;}
+      }
+      if(!cleared)return null; /* skip draw this frame — better than centerline snap */
+      if(v)v._latOk=useLat;
+    }else if(v)v._latOk=lat;
   }
-  return {px,pz,py:_rp.py+0.05,hd:Math.atan2(_rp.tx*dir.sign,_rp.tz*dir.sign),fx:_rp.tx*dir.sign,fz:_rp.tz*dir.sign};
+  const hd=Math.atan2(_rp.tx*dir.sign,_rp.tz*dir.sign);
+  return {px,pz,py:_rp.py+0.05,hd,fx:_rp.tx*dir.sign,fz:_rp.tz*dir.sign};
+}
+function smoothHeading(v,hd,dt){
+  if(v._hdSm==null||!Number.isFinite(v._hdSm)){v._hdSm=hd;return hd;}
+  let d=hd-v._hdSm;
+  while(d>Math.PI)d-=TAU;while(d<-Math.PI)d+=TAU;
+  v._hdSm+=d*clamp(dt*10,0,1);
+  while(v._hdSm>Math.PI)v._hdSm-=TAU;while(v._hdSm<-Math.PI)v._hdSm+=TAU;
+  return v._hdSm;
 }
 
 /* ---------------- vehicle movement + instancing ---------------- */
@@ -8710,9 +9486,9 @@ function tryMerge(dir,li,lane,i,v){
 }
 const _col=new THREE.Color();
 function moveVehicles(dt,nightF){
-  let idx=0;speedSum=0;totalVeh=0;
+  let idx=0,renderedSpeedSum=0,renderedVeh=0;
   const brakeGlow=clamp(0.35+nightF*0.65,0,1);
-  const cx=cam.target.x,cz=cam.target.z;
+  /* v10.8.6 motion: no off-screen teleport respawns, smooth lane lerp, simple wrap */
   for(const road of roads){
     if(road._near===false)continue;
     const s=road.s,L=s.total,def=road.def,laneW=road.laneW;
@@ -8723,31 +9499,31 @@ function moveVehicles(dt,nightF){
         const len=lane.length;
         for(let i=Math.min(len,lane.length)-1;i>=0;i--){
           const v=lane[i];
-          if(!v)continue; /* lane shrank behind us (merge-out) */
+          if(!v||v._dead)continue;
           const sPos=dir.sign>0?v.s:L-v.s;
           const seg=clamp(Math.floor(sPos/L*segN),0,segN-1);
           const cong=dir.segCong[seg];
           const liveKey=def.id+'_'+dir.sign;
           const liveFlow=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(liveKey);
-          const liveOk=liveFlowFresh(liveFlow);
+          const liveOk=liveMode&&liveFlowFresh(liveFlow);
           let vmax;
           if(liveOk){
-            /* Real mph from TranStar / TomTom — 1 game second = 1 real second */
-            vmax=liveFlow.cur*MPH*(v.aggr||1);
+            const capMph=sanitizeLiveMph(liveFlow.cur,liveFlow.ff,road);
+            vmax=capMph*MPH*(v.aggr||1);
           }else{
-            vmax=def.ff*v.type.ffk*(v.aggr||1)*(1-0.78*cong)*wxBlend.speed*MPH;
-            if(liveFlow&&liveFlow.cur>5)vmax=lerp(vmax,liveFlow.cur*MPH,0.85);
+            vmax=def.ff*v.type.ffk*(v.aggr||1)*(1-0.82*cong)*wxBlend.speed*MPH;
+            if(liveMode&&liveFlow&&liveFlow.cur>5)vmax=lerp(vmax,sanitizeLiveMph(liveFlow.cur,liveFlow.ff,road)*MPH,0.75);
+            else vmax*=1.02;
           }
           if(v.police)vmax=Math.max(vmax,def.ff*0.92*MPH);
           if(!liveOk){
-            if(cong>0.58)vmax=Math.min(vmax,(cong>0.82?8:18)*MPH*(0.6+0.4*(v.aggr||1)));
-            if(cong>0.75&&(v._jamLock||rand()<0.008)){
+            if(cong>0.55)vmax=Math.min(vmax,(cong>0.78?6:14)*MPH*(0.55+0.45*(v.aggr||1)));
+            if(cong>0.72&&(v._jamLock||rand()<0.012)){
               v._jamLock=(v._jamLock||0)+dt;
-              if(v._jamLock<5+rand()*10)vmax=Math.min(vmax,(2+rand()*4)*MPH);
+              if(v._jamLock<8+rand()*18)vmax=Math.min(vmax,(0.4+rand()*2.2)*MPH);
               else v._jamLock=0;
-            }else if(cong<0.52)v._jamLock=0;
+            }else if(cong<0.5)v._jamLock=0;
           }else v._jamLock=0;
-          /* hazard speed caps: work zones, floods, rubbernecking */
           let mergedOut=false;
           for(const w of workZones){
             if(w.road!==road||w.dir!==dir)continue;
@@ -8764,7 +9540,7 @@ function moveVehicles(dt,nightF){
               }
             }
           }
-          if(mergedOut)continue; /* vehicle now lives in the adjacent lane */
+          if(mergedOut)continue;
           for(const f of floods){
             if(f.roadObj===road&&Math.abs(sPos-f.arc)<95)
               vmax=Math.min(vmax,(14-9*f.level)*MPH);
@@ -8772,13 +9548,12 @@ function moveVehicles(dt,nightF){
           for(const tr of POLICE_TRAPS){
             if(tr.road!==road||tr.dir!==dir)continue;
             const ahead2=dir.sign>0?(tr.arc-sPos):(sPos-tr.arc);
-            if(ahead2>0&&ahead2<150)vmax*=0.8; /* everyone taps the brakes */
+            if(ahead2>0&&ahead2<150)vmax*=0.8;
           }
-          for(const inc of [...incidents,...liveIncidentMeshes.values()]){
-            if(inc.road===road&&inc.dir===dir&&Math.abs(sPos-inc.arc)<70)
+          for(const inc of roadIncidents(road,dir)){
+            if(Math.abs(sPos-inc.arc)<70)
               vmax=Math.min(vmax,(inc.kind==='crash'||inc.kind==='accident'?22:38)*MPH);
           }
-          /* car following + HARD no-overlap clamp */
           let tv=vmax,ahead=null,gap=1e9;
           const lv=lane.length;
           const closed=s.closed;
@@ -8787,32 +9562,32 @@ function moveVehicles(dt,nightF){
             ahead=closed?lane[(i+1)%lv]:lane[i+1];
             gap=ahead.s-v.s;if(gap<=0&&closed)gap+=L;
             if(gap<=0)gap=0;
-            const minGap=minBumpGap(v,ahead);
+            const minGap=(v.type.len+ahead.type.len)*0.5*VS+2.4;
             gap-=minGap;
             const safe=6+v.v*0.55;
             if(gap<safe){
-              /* follow leader; in jams allow full stop, otherwise keep a crawl */
-              const jamHard=cong>0.72&&!liveOk;
-              const crawl=jamHard?0:(gap>1.2?3.5*MPH:0);
-              const follow=Math.max(ahead.v*(jamHard?0.88:0.94),crawl);
-              tv=Math.min(tv,follow*clamp(gap/Math.max(2.5,safe*0.55),0.04,1));
-              if(gap<1.5&&ahead.v<1.5)tv=Math.min(tv,jamHard?0:0.8);
-              if(jamHard&&gap<3)tv=Math.min(tv,1.2*MPH);
+              const jamHard=cong>0.62&&!liveOk;
+              const crawl=jamHard?0:(gap>1.2?2.2*MPH:0);
+              const follow=Math.max(ahead.v*(jamHard?0.85:0.92),crawl);
+              tv=Math.min(tv,follow*clamp(gap/Math.max(2.5,safe*0.55),0.02,1));
+              if(gap<1.5&&ahead.v<1.5)tv=Math.min(tv,jamHard?0:0.4);
+              if(jamHard&&gap<4)tv=Math.min(tv,0.15);
+              if(dir.lanes.length>1&&v.v<vmax*0.66&&cong<0.7&&simClock>(v._lcCd||0)){
+                v._lcCd=simClock+700+rand()*900;
+                if(tryMerge(dir,li,lane,i,v))mergedOut=true;
+              }
             }
             if(mergedOut)continue;
-            /* No artificial crawl when live probe drives this road */
             if(!liveOk){
               if(!(def.arterial||def.surface)&&cong<0.58&&tv<4*MPH&&gap>8)tv=Math.max(tv,8*MPH*(1-0.5*cong));
-              if((def.arterial||def.surface)&&cong<0.62&&tv<3*MPH&&gap>10)tv=Math.max(tv,6*MPH*(1-0.45*cong));
             }
             v.brake=tv<v.v*0.9||(cong>0.65&&tv<6*MPH);
             v.v+=(tv-v.v)*clamp(dt*(tv<v.v?3.8:1.25),0,1);
             if(v.v<0)v.v=0;
             let ns=v.s+v.v*dt;
-            const maxS=v.s+Math.max(0,gap);       /* can never pass bumper line */
+            const maxS=v.s+Math.max(0,gap);
             if(ns>maxS){ns=maxS;v.v=Math.min(v.v,Math.max(0,ahead.v));}
-            /* anti-stuck: only nudge when NOT in a real jam and there's clear room */
-            if(cong<0.6&&v.v<1.2&&gap>12){v.v=Math.max(v.v,4*MPH);ns=v.s+v.v*dt;}
+            if(!liveOk&&cong<0.55&&v.v<0.8&&gap>14){v.v=Math.max(v.v,3.5*MPH);ns=v.s+v.v*dt;}
             v.s=ns;
           }else{
             v.brake=false;
@@ -8821,33 +9596,47 @@ function moveVehicles(dt,nightF){
             v.s+=v.v*dt;
           }
           if(v.s>=L){
-            if(closed){v.s-=L;lane.splice(i,1);insertVehicleSorted(lane,v);}
+            if(closed){v.s-=L;lane.splice(i,1);lane.unshift(v);}
             else if(v.police){
-              lane.splice(i,1);v.s=0;v.v=Math.max(v.v,12);insertVehicleSorted(lane,v);v._dead=false;
+              lane.splice(i,1);v.s=0;v.v=Math.max(v.v,12);lane.unshift(v);v._dead=false;
             }else{
+              /* re-enter at start if room — no off-screen teleport (that caused glitches) */
               lane.splice(i,1);
-              const minG=minBumpGap(v,lane[0]||null);
-              const s0=findOpenSpawnS(lane,L,false,minG);
-              if(s0>=0){
-                v.s=s0;v.v=Math.min(v.v,road.def.ff*0.55*MPH);
-                insertVehicleSorted(lane,v);
-              }else v._dead=true;
+              const first=lane[0];
+              const room=(v.type.len+(first?first.type.len:0))*0.5*VS+6;
+              if(!first||first.s>room){v.s=0;v.v=Math.min(v.v,10);lane.unshift(v);}
+              else continue;
             }
           }
-          speedSum+=v.v;totalVeh++;
           if(idx>=MAX_INST)continue;
-          const wp=vehicleWorldPos(road,dir,li,laneW,sPos);
-          const deckY=wp.py;
-          const px=wp.px,pz=wp.pz;
-          const fx=wp.fx,fz=wp.fz;
-          const heading=wp.hd;
+          /* ---- place instances (v10.8.6 lane lerp + soft building push) ---- */
+          roadPos(road,dir.sign>0?v.s:L-v.s,_rp);
+          const deckY=_rp.py+0.05;
+          const rx=-_rp.tz,rz=_rp.tx;
+          if(v._laneF==null||v._laneF===undefined)v._laneF=li;
+          v._laneF+=(li-v._laneF)*Math.min(1,dt*3.4);
+          const off=dir.sign*(1.7+(v._laneF+0.5)*laneW);
+          const fx=_rp.tx*dir.sign,fz=_rp.tz*dir.sign;
+          let px=_rp.px+rx*off,pz=_rp.pz+rz*off;
+          const onDeck=_rp.py>=12||(!def.arterial&&!def.surface);
+          if(!onDeck){
+            const hitB=footHitsBldg(px,pz);
+            if(hitB){
+              const side=Math.sign(rx*(px-hitB.x)+rz*(pz-hitB.z))||1;
+              px=_rp.px+rx*(off+side*(hitB.hw+hitB.hd)*0.15);
+              pz=_rp.pz+rz*(off+side*(hitB.hw+hitB.hd)*0.15);
+              if(footHitsBldg(px,pz)){v.v*=0.4;continue;}
+              v.v=Math.min(v.v,12*MPH);
+            }
+          }
+          const heading=Math.atan2(fx,fz);
+          renderedSpeedSum+=v.v;renderedVeh++;
           vehRef[idx]=v;
           v._px=px;v._pz=pz;v._py=deckY;v._hd=heading;v._laneI=li;
           const t=v.type;
           const isSemi=t.id==='semi',isTall=isSemi||t.id==='box'||t.id==='bus'||t.id==='van';
           const isTwoWheel=t.id==='moto'||t.id==='scooter'||t.id==='bike';
-          /* body */
-          if(isSemi){ /* trailer — front third overlaps the tractor's fifth wheel */
+          if(isSemi){
             dummy.position.set(px-fx*t.len*VS*0.08,deckY+0.72,pz-fz*t.len*VS*0.08);
             dummy.rotation.set(0,heading,0);
             dummy.scale.set(t.w*VS,t.h*VS*0.82,t.len*VS*0.74);
@@ -8866,8 +9655,7 @@ function moveVehicles(dt,nightF){
           dummy.updateMatrix();
           bodies.setMatrixAt(idx,dummy.matrix);
           bodies.setColorAt(idx,_col);
-          /* glasshouse / tractor */
-          if(isSemi){ /* tall cab sits behind the hood */
+          if(isSemi){
             dummy.position.set(px+fx*t.len*VS*0.32,deckY,pz+fz*t.len*VS*0.32);
             dummy.scale.set(t.w*VS,3.15*VS,t.len*VS*0.15);
             _col.setHex(v.col);
@@ -8887,40 +9675,39 @@ function moveVehicles(dt,nightF){
             const front=t.id==='pickup'?0.1:0;
             dummy.position.set(px+fx*t.len*VS*front,deckY+t.h*VS*0.56,pz+fz*t.len*VS*front);
             dummy.scale.set(t.w*VS*0.84,t.h*VS*0.5,t.len*VS*(t.id==='pickup'?0.34:0.52));
-            _col.setHex(v.police?0xf2f4f6:v.col); /* patrols: white roof over black body */
+            _col.setHex(v.police?0xf2f4f6:v.col);
           }
           dummy.rotation.set(0,heading,0);dummy.updateMatrix();
           cabs.setMatrixAt(idx,dummy.matrix);
           cabs.setColorAt(idx,_col);
-          /* per-type accent part */
           {
             let ex=0,ey=0,ez=0,sx2=0,sy2=0,sz2=0;
-            if(v.police){ /* lightbar — fast red/blue flash while moving */
+            if(v.police){
               const on=Math.floor(simClock*0.014)%2;
               ex=0;ey=t.h*VS*0.62+0.42;sx2=t.w*VS*0.66;sy2=0.34;sz2=1.1;
               _col.setHex(on?0xff2a1e:0x2a6bff);
-            }else if(isSemi){ /* engine hood ahead of the cab */
+            }else if(isSemi){
               ex=t.len*VS*0.435;ey=0;sx2=t.w*VS*0.9;sy2=1.85*VS;sz2=t.len*VS*0.13;
               _col.setHex(v.col);
-            }else if(t.id==='pickup'){ /* open bed cavity */
+            }else if(t.id==='pickup'){
               ex=-t.len*VS*0.26;ey=t.h*VS*0.34;sx2=t.w*VS*0.78;sy2=0.5;sz2=t.len*VS*0.36;
               _col.set(0x191c21);
-            }else if(t.id==='bus'){ /* long window band */
+            }else if(t.id==='bus'){
               ex=0;ey=t.h*VS*0.55;sx2=t.w*VS*1.02;sy2=t.h*VS*0.26;sz2=t.len*VS*0.8;
               _col.set(0x121820);
-            }else if(t.id==='van'){ /* high roof slab */
+            }else if(t.id==='van'){
               ex=0;ey=t.h*VS*0.72;sx2=t.w*VS*0.92;sy2=0.55;sz2=t.len*VS*0.7;
               _col.setHex(v.col);
-            }else if(t.id==='taxi'){ /* roof light */
+            }else if(t.id==='taxi'){
               ex=0;ey=t.h*VS*0.72+0.35;sx2=0.7;sy2=0.35;sz2=0.55;
               _col.setHex(0xf5c542);
-            }else if(t.id==='moto'||t.id==='scooter'){ /* rider torso + helmet */
+            }else if(t.id==='moto'||t.id==='scooter'){
               ex=-t.len*VS*0.08;ey=t.h*VS*0.5;sx2=0.62;sy2=1.05;sz2=0.55;
               _col.setHex([0xc23a2c,0x2b5ea8,0xd9a91f,0xe8e8ea,0x1d7a4f][((v.col>>>4)%5+5)%5]);
-            }else if(t.id==='bike'){ /* cyclist torso */
+            }else if(t.id==='bike'){
               ex=-t.len*VS*0.05;ey=t.h*VS*0.55;sx2=0.5;sy2=0.95;sz2=0.4;
               _col.setHex([0x2b5ea8,0xc23a2c,0x1d7a4f,0xe8e8ea][((v.col>>>8)%4+4)%4]);
-            }else if(t.id==='box'){ /* colored cab on the box truck */
+            }else if(t.id==='box'){
               ex=t.len*VS*0.43;ey=0;sx2=t.w*VS*0.96;sy2=1.7*VS;sz2=t.len*VS*0.15;
               _col.setHex(v.col);
             }else{sx2=0.0001;sy2=0.0001;sz2=0.0001;}
@@ -8930,9 +9717,8 @@ function moveVehicles(dt,nightF){
             extras.setMatrixAt(idx,dummy.matrix);
             extras.setColorAt(idx,_col);
           }
-          /* wheels — 2 for bikes/motos, 4 for cars */
           const wy=deckY+t.wr*VS,wsc=t.wr*VS/0.5;
-          const rrx=fz,rrz=-fx; /* right vector */
+          const rrx=fz,rrz=-fx;
           const halfW=isTwoWheel?0:t.w*VS*0.5-0.12;
           const axFront=(t.axf||0.31)*t.len*VS,axRear=(t.axr||0.31)*t.len*VS;
           const nWheels=isTwoWheel?2:4;
@@ -8950,7 +9736,6 @@ function moveVehicles(dt,nightF){
             dW.updateMatrix();
             wheels.setMatrixAt(idx*4+wq,dW.matrix);
           }
-          /* lights — bikes get tiny hidden lights; motos/scooters/cars get real ones */
           if(t.id==='bike'){
             dLight.position.set(0,-80,0);dLight.scale.set(0.001,0.001,0.001);dLight.updateMatrix();
             heads2.setMatrixAt(idx,dLight.matrix);tails.setMatrixAt(idx,dLight.matrix);
@@ -8965,7 +9750,6 @@ function moveVehicles(dt,nightF){
             dLight.scale.set(t.w*VS*(isTwoWheel?0.5:0.74),0.5,0.4);dLight.updateMatrix();
             tails.setMatrixAt(idx,dLight.matrix);
             tails.setColorAt(idx,v.brake?_brakeRed:_dimRed);
-            /* headlight pool ahead on the pavement */
             dLight.position.set(px+fx*(hl+5.5),deckY+0.12,pz+fz*(hl+5.5));
             dLight.rotation.set(0,heading,0);
             dLight.scale.set(t.w*VS*(isTwoWheel?1.4:2.5),1,isTwoWheel?6:10.5);dLight.updateMatrix();
@@ -8977,10 +9761,11 @@ function moveVehicles(dt,nightF){
     }
   }
   bodies.count=idx;cabs.count=idx;heads2.count=idx;tails.count=idx;wheels.count=idx*4;pools.count=idx;extras.count=idx;
+  speedSum=renderedSpeedSum;totalVeh=renderedVeh;
   extras.instanceMatrix.needsUpdate=true;
   if(extras.instanceColor)extras.instanceColor.needsUpdate=true;
   pools.instanceMatrix.needsUpdate=true;
-  poolMat.opacity=clamp(nightF*0.26,0,0.26)*(bodies.visible?1:0);
+  poolMat.opacity=clamp(nightF*0.26,0,0.26)*vehFade;
   bodies.instanceMatrix.needsUpdate=true;cabs.instanceMatrix.needsUpdate=true;
   heads2.instanceMatrix.needsUpdate=true;tails.instanceMatrix.needsUpdate=true;
   wheels.instanceMatrix.needsUpdate=true;
@@ -9017,10 +9802,14 @@ function envUpdate(dt,h){
   _fc.lerp(_gb,cl*0.78+rainF*0.12);
   skyUni.haze.value.copy(_fc).lerp(skyUni.bot.value,0.4);
   scene.fog.color.copy(_fc);
-  /* Night: readable downtown — dark but not crushed black; soft windows */
-  const vis=lerp(2600,16000,wxBlend.fogK)*lerp(1,0.82,rainF);
-  scene.fog.far=lerp(scene.fog.far,vis*lerp(1,1.05,nightF),0.04);
-  scene.fog.near=scene.fog.far*lerp(0.08,0.12,nightF);
+  const baseFogFar=lerp(2600,16000,wxBlend.fogK)*lerp(1,0.82,rainF);
+  if(htsRain)htsRain.updateFog(scene.fog,wxBlend,liveWx,baseFogFar,nightF);
+  else{
+    const vis=baseFogFar*lerp(1,1.05,nightF);
+    const fogLerp=liveMode?0.04:clamp(0.08+timeScale/6000,0.08,0.35);
+    scene.fog.far=lerp(scene.fog.far,vis,fogLerp);
+    scene.fog.near=scene.fog.far*lerp(0.08,0.12,nightF);
+  }
   const A=clamp(x,-0.2,1.2)*Math.PI;
   const sx=Math.cos(A),sy=Math.sin(A);
   const sp=new THREE.Vector3(sx*15000,Math.max(sy,-0.25)*9000+180,4200);
@@ -9093,30 +9882,16 @@ function envUpdate(dt,h){
         lerp(lerp(0.42,1,dayN), lerp(1.0,_sc.r*1.05,0.75), lowSun2*dayN),
         lerp(lerp(0.46,1,dayN), lerp(0.86,_sc.g*0.9,0.75),  lowSun2*dayN),
         lerp(lerp(0.6,1,dayN),  lerp(0.9,_sc.b*0.95,0.6),   lowSun2*dayN));
-      c.position.x+=c.userData.vx*dt;
+      c.position.x+=c.userData.vx*dt*(liveMode?1:clamp(1+timeScale/70,1,48));
       if(c.position.x>11000)c.position.x=-11000;
+      /* Soft vertical bob so the deck never looks frozen during time-lapse */
+      if(!liveMode){
+        c.position.y+=(Math.sin(simClock*0.0011+c.position.x*0.0002)*c.userData.vx*0.02)*dt*clamp(timeScale/90,1,20);
+      }
     }
   }
-  rain.material.opacity=wxBlend.rain*0.8;
-  /* wet pavement darkens */
-  const wet=clamp(wxBlend.rain*1.3,0,1);
-  for(const m of roadMats){m.color.setScalar(1-0.3*wet);m.emissiveIntensity=nightF*0.22;}
-  if(wxBlend.rain>0.02){
-    rain.position.set(cam.target.x,0,cam.target.z);
-    const p=rainGeo.getAttribute('position');
-    const fall=dt*(260+190*wxBlend.rain);
-    const len=6+11*wxBlend.rain;
-    for(let i=0;i<RAIN_N;i++){
-      let y=rainDrop[i*3+1]-fall;
-      let x=rainDrop[i*3]+rainWindX*fall*0.9;
-      let z=rainDrop[i*3+2]+rainWindZ*fall*0.9;
-      if(y<2){y=500+rand()*180;x=(rand()-.5)*1500;z=(rand()-.5)*1500;}
-      rainDrop[i*3]=x;rainDrop[i*3+1]=y;rainDrop[i*3+2]=z;
-      p.setXYZ(i*2,x,y,z);
-      p.setXYZ(i*2+1,x-rainWindX*len*1.7,y+len,z-rainWindZ*len*1.7);
-    }
-    p.needsUpdate=true;
-  }
+  if(htsRain)htsRain.update(dt,nightF,wxBlend,rainWindX,rainWindZ,liveWx);
+  else bootRainSystem();
   if(wxBlend.storm){
     lightningT-=dt;
     if(lightningT<=0&&rand()<dt*0.25){
@@ -9135,6 +9910,7 @@ const dtWrap=$('drivetimes');
 for(const c of CORRIDORS){
   const el=document.createElement('div');el.className='dtchip';
   el.innerHTML='<div class="r"><span class="dot2"></span><span class="nm"></span></div><div class="tm"></div>';
+  if(!c.toDt)el.style.display='none';
   dtWrap.appendChild(el);c.el=el;
 }
 function fmtMin(t){
@@ -9142,36 +9918,41 @@ function fmtMin(t){
   if(m<60)return m+' min';
   return Math.floor(m/60)+' hr '+(m%60?String(m%60)+' min':'');
 }
-let _chipPick=0;
+let _chipPick=-1;
 function updateDriveTimes(){
   const outbound=keyNum(DIRB_KEYS,simH)<-0.25;
+  const pool=DOWNTOWN_CORRIDORS();
   if(simClock>_chipPick){
     _chipPick=simClock+12000;
-    const ranked=[...CORRIDORS].map(c=>{
+    const ranked=pool.map(c=>{
       const t=corridorPanelMinutes(c,outbound);
       const r=clamp(t/c.typMin,0.7,4);
       return {c,score:r};
     }).sort((a,b)=>b.score-a.score);
     const show=new Set(ranked.slice(0,4).map(x=>x.c));
-    for(const c of CORRIDORS)c.el.style.display=show.has(c)?'':'none';
+    for(const c of CORRIDORS)c.el.style.display=(c.toDt&&show.has(c))?'':'none';
   }
-  for(const c of CORRIDORS){
-    const liveMin=corridorLiveMinutes(c,outbound);
-    const fromFlow=liveMin==null?corridorMinutesFromFlow(c,outbound):null;
+  for(const c of pool){
+    if(c.el.style.display==='none')continue;
+    const entry=corridorLiveEntry(c,outbound);
+    const fromFlow=entry==null?corridorMinutesFromFlow(c,outbound):null;
     const t=corridorPanelMinutes(c,outbound);
+    const mi=corridorDriveMiles(c);
     const usual=c.typMin;
     const ratio=clamp(t/usual,0.7,4);
+    const chipMph=corridorChipMph(c,t);
     const road=c.roadObj||findRoadByKey(c.road);
     const sign=corridorTravelSign(c,outbound);
     const flow=road&&window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(road.def.id+'_'+sign);
-    const liveMph=liveFlowFresh(flow)?flow.cur:null;
+    const liveMph=liveFlowFresh(flow)?sanitizeLiveMph(flow.cur,flow.ff,road):null;
     const col=liveMph!=null?mphTier(liveMph):(ratio<1.15?'var(--free)':ratio<1.45?'var(--slow)':ratio<1.9?'var(--heavy)':'var(--jam)');
     c.el.querySelector('.dot2').style.background=col;
     const [sub,dtn]=c.label.split(' · ');
     c.el.querySelector('.nm').textContent=outbound?('Downtown → '+dtn):(dtn+' → Downtown');
-    const src=liveMin!=null?'TranStar':(fromFlow!=null?'live mph':'modeled');
-    const mphNote=liveMph!=null?(' · '+liveMph+' mph'):'';
-    c.el.querySelector('.tm').innerHTML=fmtMin(t)+'<small>'+sub+' · '+c.realMi+' mi · usually '+fmtMin(usual)+' · '+src+ mphNote+'</small>';
+    const src=entry
+      ?(entry.src==='tomtom-route'?'TomTom':'TranStar')
+      :(fromFlow!=null?'live mph':'modeled');
+    c.el.querySelector('.tm').innerHTML=fmtMin(t)+'<small>'+sub+' · '+mi.toFixed(0)+' mi · usually '+fmtMin(usual)+' · '+src+' · '+chipMph+' mph</small>';
   }
 }
 function placeNameAt(x,z){
@@ -9201,9 +9982,14 @@ function nearestRoadLabel(x,z){
   return br;
 }
 function updateWhereAmI(){
-  /* Prefer what the pointer is hovering; otherwise the camera look-at point */
+  /* Prefer GPS suburb label when the camera is near you; else hover / look-at place */
   let name=null,road=null,kind=null;
-  if(hoverPlace&&hoverPlace.n&&(performance.now()-(hoverPlace.at||0)<900)){
+  const nearYou=userGeo&&userWorld&&Math.hypot(cam.target.x-userWorld.x,cam.target.z-userWorld.z)<520;
+  if(nearYou&&(localWx&&localWx.place||_placeCache.name)){
+    name=(localWx&&localWx.place)||_placeCache.name;
+    road='your location';
+    kind='you';
+  }else if(hoverPlace&&hoverPlace.n&&(performance.now()-(hoverPlace.at||0)<900)){
     name=hoverPlace.n;road=hoverPlace.road||null;kind=hoverPlace.kind||null;
   }else{
     const x=cam.target.x,z=cam.target.z;
@@ -9214,7 +10000,11 @@ function updateWhereAmI(){
   }
   $('waDist').textContent=name||'Greater Houston';
   let roadTxt='—';
-  if(kind==='airport')roadTxt='airport';
+  if(kind==='you'){
+    const acc=userGeo&&userGeo.acc!=null?Math.round(userGeo.acc):null;
+    roadTxt=acc!=null?('GPS ±'+acc+' m'):'your GPS';
+  }
+  else if(kind==='airport')roadTxt='airport';
   else if(kind==='bay'||kind==='lake'||kind==='reservoir'||kind==='bayou'||kind==='river'||kind==='water')roadTxt=kind;
   else if(road)roadTxt='near '+road;
   else roadTxt='open country';
@@ -9228,85 +10018,105 @@ function updateHUD(nightF,skyH){
   $('clock').textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
   const mTime=$('mHudTime');if(mTime)mTime.textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
   const mPhase=$('mHudPhase');if(mPhase)mPhase.textContent=$('phase')?$('phase').textContent:'';
-  $('phase').textContent=phaseLabel(skyH)+(liveMode?' · LIVE traffic':' · time preview');
-  const now=new Date();
-  $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:'America/Chicago'})+(weekend?' · weekend pattern':' · weekday pattern');
-  /* weather card — all stats from one Open-Meteo source (live or forecast hour) */
+  $('phase').textContent=phaseLabel(simH)+(liveMode?' · LIVE traffic':' · time-lapse');
+  const now=(!liveMode&&window.simOffsetSec)
+    ?new Date(Date.now()+window.simOffsetSec*1000)
+    :new Date();
+  $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:CHI_TZ})+(weekend?' · weekend pattern':' · weekday pattern');
+  /* weather card — live in liveMode; forecast/sim hour during time-lapse */
   const P=WX[wxCur];
-  const useLive=!!liveWx; /* numeric stats always prefer Open-Meteo when available */
-  const fc=(useLive&&wxMode==='auto'&&!liveMode&&window.simOffsetSec>600)?forecastAt(simOffsetSec):null;
-  const wxSrc=fc||liveWx;
+  const fc=(!liveMode&&wxMode==='auto'&&liveWx)?forecastAt(window.simOffsetSec||0):null;
+  const wxSrc=fc||(liveMode?liveWx:null);
+  const statsLive=!!wxSrc;
   /* When scrubbing forecast, drive sky description from that hour too */
   if(fc&&wxMode==='auto'){wxDesc=fc.label;wxCur=fc.preset;}
   const iconKey=nightF>0.6?(WX[wxCur]?WX[wxCur].nIcon:P.nIcon):(WX[wxCur]?WX[wxCur].icon:P.icon);
   if($('wxIcon').dataset.k!==iconKey){$('wxIcon').innerHTML=ICONS[iconKey];$('wxIcon').dataset.k=iconKey;}
-  const temp=useLive?wxSrc.temp:tempFsim(simH,P);
-  const feels=useLive?(wxSrc.feels!=null?wxSrc.feels:wxSrc.temp):temp+(temp>88?4:0);
-  const hum=useLive?wxSrc.hum:humiditySim(simH);
-  const windDir=useLive?(wxSrc.windDir!=null?wxSrc.windDir:liveWx.windDir):0;
+  const temp=statsLive?wxSrc.temp:tempFsim(simH,P);
+  const feels=statsLive?(wxSrc.feels!=null?wxSrc.feels:wxSrc.temp):temp+(temp>88?4:0);
+  const hum=statsLive?wxSrc.hum:humiditySim(simH);
+  const windDir=statsLive?(wxSrc.windDir!=null?wxSrc.windDir:0):0;
   $('wxTemp').textContent=temp+'°';
-  $('wxDesc').textContent=(wxMode==='auto'&&useLive)?(wxSrc.label||wxDesc):wxDesc;
+  $('wxDesc').textContent=(wxMode==='auto'&&statsLive)?(wxSrc.label||wxDesc):wxDesc;
   const mTemp=$('mHudTemp');if(mTemp)mTemp.textContent=temp+'°';
   const mDesc=$('mHudDesc');if(mDesc)mDesc.textContent=$('wxDesc').textContent;
   $('wxFeels').textContent='feels like '+feels+'°';
   $('wxHum').textContent=hum+'%';
-  $('wxWind').textContent=useLive?(wxSrc.wind+' '+windArrow(windDir)):(6+Math.round(6*wxBlend.cloud))+' mph';
-  $('wxPrec').textContent=(useLive?(wxSrc.precip||0):wxBlend.rain*0.22).toFixed(2)+'"';
-  const dew=useLive?(wxSrc.dew!=null?wxSrc.dew:liveWx.dew):Math.round(temp-(100-hum)/2.8);
+  $('wxWind').textContent=statsLive?(wxSrc.wind+' '+windArrow(windDir)):(6+Math.round(6*wxBlend.cloud))+' mph';
+  $('wxPrec').textContent=(statsLive?(wxSrc.precip||0):wxBlend.rain*0.22).toFixed(2)+'"';
+  const dew=statsLive?(wxSrc.dew!=null?wxSrc.dew:Math.round(temp-(100-hum)/2.8)):Math.round(temp-(100-hum)/2.8);
   $('wxDew').textContent=dew+'°';
-  $('wxPress').textContent=(useLive?(wxSrc.press!=null?wxSrc.press:liveWx.press):(29.92+0.06*Math.sin(simH/24*TAU)).toFixed(2))+'"';
+  $('wxPress').textContent=(statsLive?(wxSrc.press!=null?wxSrc.press:(liveWx&&liveWx.press)):(29.92+0.06*Math.sin(simH/24*TAU)).toFixed(2))+'"';
   const uvSim=Math.max(0,Math.round(9*Math.sin((simH-6.4)/(20.4-6.4)*Math.PI)*(1-wxBlend.cloud*0.7)));
-  const uvVal=useLive?(wxSrc.uv!=null?wxSrc.uv:liveWx.uv):uvSim;
+  const uvVal=statsLive?(wxSrc.uv!=null?wxSrc.uv:uvSim):uvSim;
   const isNight=nightF>0.55||(simH<6.2||simH>20.2);
-  $('wxUv').textContent=(useLive&&isNight&&(!uvVal||uvVal===0))?'Night':uvVal;
+  $('wxUv').textContent=(statsLive&&isNight&&(!uvVal||uvVal===0))?'Night':uvVal;
   const ageMin=liveWx?Math.max(0,Math.round((Date.now()-liveWx.at)/60000)):null;
+  const wxStale=liveWx&&(Date.now()-liveWx.at)>20*60*1000;
   const dot=$('wxDot'),src=$('wxSrcTxt');
-  if(wxMode!=='auto'){dot.className=useLive?'pulse':'pulse sim';
-    src.textContent=useLive?('Sky override · stats live · '+(ageMin===0?'just now':ageMin+' min ago')):'Manual override';}
-  else if(fc){dot.className='pulse';
-    src.textContent='Forecast · Open-Meteo · '+houClock(0,false);}
-  else if(liveWx){dot.className='pulse';
-    src.textContent='Houston live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
+  function feedAgeMin(at){
+    if(!at)return '—';
+    const m=Math.max(0,Math.round((Date.now()-at)/60000));
+    return m<=0?'just now':m+'m';
+  }
+  const sc=$('syncClock');
+  if(sc){
+    const lt=window.LIVE_TRAFFIC||{};
+    const fs=window.LIVE_FLIGHT_STATUS||{};
+    sc.textContent='Wx '+feedAgeMin(liveWx&&liveWx.at)
+      +' · Traffic '+feedAgeMin(lt.at)
+      +' · Flights '+feedAgeMin(fs.at);
+    sc.className=wxStale?'syncClk stale':'syncClk';
+  }
+  if(wxMode!=='auto'){dot.className=statsLive?'pulse':'pulse sim';
+    src.textContent=statsLive?('Sky override · stats live · '+(ageMin===0?'just now':ageMin+' min ago')):'Manual override';}
+  else if(!liveMode&&fc){dot.className='pulse';
+    src.textContent='Time-lapse forecast · Open-Meteo · '+houClock(0,false);}
+  else if(!liveMode){dot.className='pulse sim';
+    src.textContent='Time-lapse · '+phaseLabel(simH)+' pattern';}
+  else if(liveWx){dot.className=wxStale?'pulse sim':'pulse';
+    src.textContent=(wxStale?'Stale · ':'')+'Houston live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
   else{dot.className='pulse sim';src.textContent='Typical July pattern · retrying live feed…';}
   /* suburb / locate-me weather — full live stats under Houston */
   const locBox=$('wxLocal');
   if(locBox){
-    if(localWx){
+    if(localWx&&userGeo){
+      const nearDt=miBetween(userGeo.lat,userGeo.lng,HOU_WX_LAT,HOU_WX_LNG)<2.2;
       locBox.style.display='block';
-      const nm=$('wxLocalName');if(nm)nm.textContent=localWx.place||'suburb';
+      const nm=$('wxLocalName');if(nm)nm.textContent=localWx.place||'Near you';
       const lt=$('wxLocalTemp');if(lt)lt.textContent=localWx.temp+'°';
       const ld=$('wxLocalDesc');if(ld)ld.textContent=localWx.label||'—';
       const lm=$('wxLocalMeta');
       const lage=Math.max(0,Math.round((Date.now()-localWx.at)/60000));
-      if(lm)lm.textContent='Open-Meteo live at your GPS · feels '+localWx.feels+'° · '+localWx.hum+'% humidity · wind '
-        +localWx.wind+' '+windArrow(localWx.windDir)+' · dew '+localWx.dew+'° · '+localWx.press+'" · UV '
-        +(localWx.uv!=null?localWx.uv:'—')+' · '+(lage===0?'just now':lage+' min ago');
+      if(lm)lm.textContent=(nearDt?'Near downtown · ':'')+'Open-Meteo at your GPS'
+        +(localWx.acc!=null?(' ±'+Math.round(localWx.acc)+'m'):'')
+        +' · '+localWx.lat.toFixed(4)+', '+localWx.lng.toFixed(4)
+        +' · feels '+localWx.feels+'° · '
+        +localWx.hum+'% · wind '+localWx.wind+' '+windArrow(localWx.windDir)
+        +' · dew '+localWx.dew+'° · '+localWx.press+'" · UV '+(localWx.uv!=null?localWx.uv:'—')
+        +' · '+(lage===0?'just now':lage+' min ago');
     }else if(userGeo){
       locBox.style.display='block';
       const nm=$('wxLocalName');if(nm)nm.textContent='Locating…';
       const lt=$('wxLocalTemp');if(lt)lt.textContent='--°';
       const ld=$('wxLocalDesc');if(ld)ld.textContent='Loading…';
-      const lm=$('wxLocalMeta');if(lm)lm.textContent='Fetching local conditions…';
+      const lm=$('wxLocalMeta');if(lm)lm.textContent='Open-Meteo · your GPS · fetching…';
+    }else{
+      locBox.style.display='none';
     }
   }
-  /* stats — prefer live TranStar / TomTom freeway probes when available */
-  $('stVeh').textContent=fmt(totalVeh);
-  const liveStats=liveFreewayPanelStats();
-  const simMph=totalVeh?Math.round(speedSum/totalVeh/MPH):0;
-  const hasLiveFlows=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.size>0;
-  if(liveStats){
-    $('stMph').textContent=liveStats.avgMph+' mph · live';
-  }else if(liveMode&&hasLiveFlows){
-    $('stMph').textContent='— mph';
-  }else{
-    $('stMph').textContent=simMph+' mph';
-  }
+  /* stats — one consistent source: rendered vehicles + visible freeway live probes */
+  const panelStats=visibleTrafficStats(totalVeh,speedSum);
+  $('stVeh').textContent=fmt(panelStats.veh);
+  $('stMph').textContent=panelStats.mph!=null?String(panelStats.mph):'—';
+  const mphK=$('stMphK');
+  if(mphK)mphK.textContent=panelStats.mphLabel||(panelStats.live?'Avg mph · live':'Avg mph');
   const cEl=$('stCong');
-  const pct=liveStats?liveStats.congPct:Math.round(overallCong*100);
-  cEl.textContent=pct+'%';
-  cEl.className='v '+(pct>62?'jam':pct>42?'busy':'ok');
-  const stK=$('stTrafficK');if(stK)stK.textContent=liveStats?'Congestion · live':'Congestion';
-  $('hotTxt').textContent=(liveStats&&liveStats.hot)||hotLabel;
+  cEl.textContent=panelStats.congPct!=null?(panelStats.congPct+'%'):'—';
+  cEl.className='v '+(panelStats.congPct==null?'':(panelStats.congPct>62?'jam':panelStats.congPct>42?'busy':'ok'));
+  const stK=$('stTrafficK');
+  if(stK)stK.textContent=panelStats.congSrc?('Congestion · '+panelStats.congSrc):'Congestion';
+  $('hotTxt').textContent=panelStats.hot||hotLabel;
   if(!scrubbing)$('timeSlider').value=Math.round(simH*60);
   updateDriveTimes();
   updateWhereAmI();
@@ -9403,34 +10213,35 @@ function updateHUD(nightF,skyH){
     }
   }
   const tlt=$('trafficLiveTag');
+  const tsl=$('trafficSrcLine');
   if(tlt){
     const lt=window.LIVE_TRAFFIC;
     tlt.classList.remove('off','warn');
-    if(lt&&lt.ok&&lt.flows&&lt.flows.size>0){
+    if(!liveMode){
+      tlt.textContent='Predicted · time-lapse';
+      if(tsl)tsl.textContent='Feed · modeled rush + forecast weather · '+phaseLabel(simH);
+    }else if(lt&&lt.ok&&lt.flows&&lt.flows.size>0){
       const src=lt.src||(lt.transtar?'TranStar':(lt.tomtom?'TomTom':'live'));
-      const ct=lt.corridorTimes?lt.corridorTimes.size:0;
-      tlt.textContent=src+' live · '+lt.flows.size+' dirs'+(ct?(' · '+ct+' corridors'):'');
+      tlt.textContent='Live · '+src;
+      if(tsl)tsl.textContent='Feed · '+src+' · '+lt.flows.size+' directions'
+        +(lt.corridorTimes&&lt.corridorTimes.size?(' · '+lt.corridorTimes.size+' corridor ETAs'):'');
     }else if(lt&&lt.incidents&&lt.incidents.length){
       tlt.classList.add('warn');
-      tlt.textContent='Incidents · mapping flow…';
+      tlt.textContent='Incidents only';
+      if(tsl)tsl.textContent='Feed · incidents live · mapping flow…';
     }else if(lt&&lt.authOk===false&&!lt.transtar){
       tlt.classList.add('warn');
-      tlt.textContent='Connecting TranStar…';
+      tlt.textContent='Connecting…';
+      if(tsl)tsl.textContent='Feed · waiting on TranStar…';
     }else if(lt&&lt.err){
       tlt.classList.add('warn');
-      tlt.textContent='Modeled · '+String(lt.err).slice(0,36);
+      tlt.textContent='Modeled';
+      if(tsl)tsl.textContent='Feed · modeled · '+String(lt.err).slice(0,42);
     }else{
       tlt.classList.add('off');
       tlt.textContent='Connecting…';
+      if(tsl)tsl.textContent='Feed · waiting…';
     }
-  }
-  const tk=$('stTrafficK');
-  if(tk){
-    const lt=window.LIVE_TRAFFIC;
-    /* Keep label short so the 3 stats stay on one line */
-    if(lt&&lt.ok&&lt.flows&&lt.flows.size>0)tk.textContent='Congestion';
-    else if(lt&&lt.incidents&&lt.incidents.length)tk.textContent='Congestion';
-    else tk.textContent='Congestion';
   }
   if(typeof window.renderAirportBoard==='function')window.renderAirportBoard();
 }
@@ -9524,8 +10335,9 @@ window.renderAirportBoard=function(force){
   el.innerHTML='';
   const show=rows.filter(f=>isBoardFlightCurrent(f)).slice(0,14);
   for(const f of show){
-    const other=ui.kind==='departures'?f.arr:f.dep;
-    const otherInfo=aptInfo(other);
+    const route=resolveFlightAirports(f);
+    const other=ui.kind==='departures'?route.arr:route.dep;
+    const otherInfo=other==='…'?{n:'Updating…',c:''}:aptInfo(other);
     const when=ui.kind==='departures'
       ?(parseMaybeTime(f.atd)||parseMaybeTime(f.etd))
       :(parseMaybeTime(f.eta)||parseMaybeTime(f.ata));
@@ -9573,27 +10385,56 @@ function shuffleTraffic(){
   trafficTick(0.5);
 }
 const TOD={dawn:6.33,day:12.5,dusk:20.33,night:23.25};
+function enterTimePreview(fromLive){
+  liveMode=false;
+  if(fromLive){
+    simH=houstonNow(true);
+  }
+  const sel=$('todSelect');
+  if(sel)sel.value='preview';
+  window.simOffsetSec=((simH-houstonNow()+24)%24)*3600;
+  syncSimCalendar();
+  const sl=$('timeSlider');
+  if(sl&&!scrubbing)sl.value=Math.round(simH*60);
+  const hint=$('timeHint');
+  if(hint){
+    const spd=timeScale>=1800?'30 min/s':(timeScale>=300?'5 min/s':(timeScale>=60?'1 min/s':(Math.round(timeScale)+'×')));
+    hint.textContent='Time-lapse '+spd+' — slider, sky, lights & weather follow the simulated clock.';
+  }
+}
 $('todSelect').addEventListener('change',e=>{
   const v=e.target.value;
   if(v==='live'){
-    liveMode=true;simH=houstonNow();window.simOffsetSec=0;
+    liveMode=true;simH=houstonNow(true);window.simOffsetSec=0;syncSimCalendar();
     document.querySelectorAll('#speedBtns .btn').forEach(x=>x.classList.remove('on'));
+    timeScale=60;
+    const hint=$('timeHint');
+    if(hint)hint.textContent='Traffic & sky follow live Houston time. Pick a speed for a day/night time-lapse.';
+  }else if(v==='preview'){
+    liveMode=false;syncSimCalendar();
+    const hint=$('timeHint');
+    if(hint)hint.textContent='Time-lapse preview — use 1 / 5 / 30 min/s. Sky & weather track the slider.';
   }else{
-    liveMode=false;simH=TOD[v];window.simOffsetSec=((simH-houstonNow()+24)%24)*3600;
+    liveMode=false;simH=TOD[v];window.simOffsetSec=((simH-houstonNow(true)+24)%24)*3600;syncSimCalendar();
+    const sl=$('timeSlider');if(sl)sl.value=Math.round(simH*60);
+    const hint=$('timeHint');
+    if(hint)hint.textContent='Jumped to '+e.target.options[e.target.selectedIndex].textContent.replace(/^[^·]+·\s*/,'')+'. Hit 5 or 30 min/s to run the time-lapse.';
   }
   shuffleTraffic();
 });
 document.querySelectorAll('#speedBtns .btn').forEach(b=>b.addEventListener('click',()=>{
-  if($('todSelect').value==='live')return; /* live Houston = real-time; no fast-forward */
+  enterTimePreview($('todSelect').value==='live'||$('todSelect').value==='preview');
   document.querySelectorAll('#speedBtns .btn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');timeScale=+b.dataset.speed;
-  liveMode=false;
+  const sl=$('timeSlider');if(sl)sl.value=Math.round(simH*60);
+  const hint=$('timeHint');
+  if(hint)hint.textContent='Time-lapse '+b.textContent+' — watch dawn → day → dusk → night. Drag slider to scrub.';
 }));
 const slider=$('timeSlider');
 slider.addEventListener('input',()=>{scrubbing=true;
-  if(liveMode){liveMode=false;}
-  $('todSelect').selectedIndex=-1;
-  simH=+slider.value/60;});
+  if(liveMode)enterTimePreview(true);
+  const sel=$('todSelect');if(sel)sel.value='preview';
+  simH=+slider.value/60;window.simOffsetSec=((simH-houstonNow()+24)%24)*3600;});
 slider.addEventListener('change',()=>{scrubbing=false;shuffleTraffic();});
 $('wxSelect').addEventListener('change',e=>{wxMode=e.target.value;});
 document.querySelectorAll('#volBtns .btn').forEach(b=>b.addEventListener('click',()=>{
@@ -9776,19 +10617,49 @@ function frame(now){
   const dt=Math.min((now-last)/1000,0.08);last=now;
   const inOSM=!!window.osmMode;
   simClock=now;
-  const skyH=houstonNow(); /* sun / moon / stars always track real Houston clock */
-  /* Live traffic / flights / boards poll on setInterval — never from rAF */
+  const skyH=houstonNow();
+  /* Live = real clock; preview = simulated clock drives sky, lights, weather, slider */
   if(liveMode){
     simH=skyH;
     window.simOffsetSec=0;
+    weekend=_houClock.weekend;
   }else{
     if(!scrubbing)simH=(simH+dt*timeScale/3600)%24;
     window.simOffsetSec=((simH-skyH+24)%24)*3600;
+    const sl=$('timeSlider');
+    if(sl&&!scrubbing)sl.value=Math.round(simH*60);
   }
+  /* Keep weekday/weekend pattern locked to the same instant as HUD date */
+  _calSyncT-=dt;
+  if(_calSyncT<=0){syncSimCalendar();_calSyncT=liveMode?2.5:0.75;}
   wxUpdate(dt);
-  congTimer-=dt;
+  congTimer-=dt*(liveMode?1:clamp(timeScale/90,1,12));
   if(congTimer<=0){trafficTick(dt);congTimer=0.5;}
-  const nightF=envUpdate(dt,skyH);
+  /* Reseed density when the simulated rush hour shifts so traffic never sits at one pattern */
+  if(!liveMode){
+    const rushBucket=Math.floor(simH*2); /* every 30 sim-minutes */
+    if(window._lapseRush!==rushBucket){
+      window._lapseRush=rushBucket;
+      for(const road of roads)for(const dir of road.dirs){
+        /* nudge targets only — moveVehicles keeps cars flowing without a hard wipe */
+        if(dir.target>0)dir.target=Math.max(2,Math.round(dir.target*(0.92+0.16*demand(simH,weekend))));
+      }
+    }
+  }
+  /* Day/night + sun/moon follow simH (same as early builds) so 5/30 min/s is a real time-lapse */
+  const nightF=envUpdate(dt,simH);
+  {
+    const tTarget=inOSM?0:clamp((cam.radius-4200)/3200,0,1);
+    mapT+=(tTarget-mapT)*0.07;
+    _fpsN++;_fpsDt+=dt;
+    if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;}
+    const perfBinary=_fpsAvg<42&&totalVeh>2200;
+    if(mapT<=0.3||perfBinary){
+      vehFade=mapT>0.78?0:1;
+    }else{
+      vehFade=!inOSM?clamp(1-(mapT-0.4)/0.34,0,1):0;
+    }
+  }
   moveVehicles(dt,nightF);
   updateIncidents(dt);
   updateFloods(dt);
@@ -9816,22 +10687,23 @@ function frame(now){
     if(ok)patrolBadges[i].position.set(v._px,(v._py||1)+22,v._pz);
   }
   {
-    /* Hotspot rings: orange (heavy) + red (jammed) only — hide free/slow */
+    /* Hotspot rings: only when traffic is actually heavy — not a rush-hour decoration */
+    if(performance.now()-_hotCongAt>400)flushHotCongCache();
     const pulse=0.9+0.1*Math.sin(simClock*0.004);
     let worst=null,worstC=-1;
     for(const hr of HOTRINGS){
       const info=hotspotLiveCong(hr.hs);
       const cong=(typeof info==='object'&&info)?info.cong:0;
-      hr.cong=lerp(hr.cong||0,cong,0.16);
-      const show=hr.cong>=0.48; /* heavy+ / orange+red */
-      const tier=hr.cong>=0.68?'jam':'heavy';
+      hr.cong=lerp(hr.cong||0,cong,0.22);
+      const show=hr.cong>=0.52; /* heavy+ only */
+      const tier=hr.cong>=0.72?'jam':'heavy';
       if(show&&tier!==hr.tier){
         hr.tier=tier;
         hr.mat.map=hr.TEX[tier];
         hr.mat.needsUpdate=true;
       }
       const op=show
-        ? clamp((hr.cong-0.48)/0.4,0.16,0.48)*pulse*clamp(1-mapT*0.85,0.2,1)*(inOSM?0:1)
+        ? clamp((hr.cong-0.52)/0.4,0.14,0.46)*pulse*clamp(1-mapT*0.85,0.2,1)*(inOSM?0:1)
         : 0;
       hr.mat.opacity=op;
       hr.mesh.visible=op>0.08&&!inOSM;
@@ -9843,8 +10715,10 @@ function frame(now){
       }
       if(hr.cong>worstC){worstC=hr.cong;worst=hr;}
     }
-    if(worst&&worstC>=0.48&&worst.hs&&worst.hs.name){
-      hotLabel=worst.hs.name+(worstC>=0.68?' · jammed':' · heavy');
+    if(worst&&worstC>=0.52&&worst.hs&&worst.hs.name){
+      hotLabel=worst.hs.name+(worstC>=0.72?' · jammed':' · heavy');
+    }else if(demand(simH,weekend)<0.35){
+      hotLabel='Clear overnight';
     }
   }
   FERRIS.rotation.z+=dt*0.25;
@@ -9882,8 +10756,6 @@ function frame(now){
   if(typeof skyRoot!=='undefined')skyRoot.position.set(cam.target.x,0,cam.target.z);
 
   /* map-mode: gentle crossfade — keep 3D city tiny + clouds, avoid white flash */
-  const tTarget=inOSM?0:clamp((cam.radius-4200)/3200,0,1);
-  mapT+=(tTarget-mapT)*0.07;
   const on=mapT>0.04;
   if(gMap.visible!==on)gMap.visible=on;
   /* Cap map opacity so fogged 3D + sky still read; mute bright roads */
@@ -9894,9 +10766,19 @@ function frame(now){
   const showDetail=!inOSM&&mapT<0.98;
   if(gDetail.visible!==showDetail)gDetail.visible=showDetail;
   /* Roads should remain visible whenever vehicles are visible, otherwise cars look like they're "on the grass". */
-  const vShow=!inOSM&&mapT<0.78;
+  const vFade=vehFade;
+  const vShow=vFade>0.01;
+  const perfBinary=_fpsAvg<42&&totalVeh>2200;
   const showRoads=!inOSM&&(mapT<0.92||vShow);
   if(gRoads3D.visible!==showRoads)gRoads3D.visible=showRoads;
+  if(vShow){
+    const op=perfBinary?1:vFade;
+    bodyMat.opacity=op;cabMat.opacity=op;extraMat.opacity=op;wheelMat.opacity=op;
+    bodyMat.transparent=!perfBinary&&mapT>0.3;
+    cabMat.transparent=bodyMat.transparent;
+    extraMat.transparent=bodyMat.transparent;
+    wheelMat.transparent=bodyMat.transparent;
+  }
   if(bodies.visible!==vShow){bodies.visible=vShow;cabs.visible=vShow;wheels.visible=vShow;heads2.visible=vShow;tails.visible=vShow;extras.visible=vShow;}
   /* Congestion tint: softer when zoomed in so asphalt + lane lines stay clear */
   const stripO=inOSM?0:0.55*clamp((cam.radius-40)/420,0.35,1)*clamp(1-mapT*1.2,0,1);
@@ -9923,8 +10805,10 @@ function frame(now){
   renderer.render(scene,camera);
   hudT-=dt;
   if(hudT<=0){
-    try{updateHUD(nightF,skyH);}catch(e){console.warn('[HTS] HUD',e&&e.message?e.message:e);}
-    hudT=0.3;
+    try{updateHUD(nightF,simH);}catch(e){console.warn('[HTS] HUD',e&&e.message?e.message:e);}
+    hudT=liveMode
+      ?(_fpsAvg<42?0.45:0.32)
+      :clamp(0.28/Math.max(1,timeScale/60),0.06,0.28);
   }
 }
 requestAnimationFrame(frame);

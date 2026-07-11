@@ -7,7 +7,8 @@
     { "source": "/api/adsblol/:path*", "destination": "https://api.adsb.lol/:path*" },
     { "source": "/api/adsbdb/:path*", "destination": "https://api.adsbdb.com/:path*" },
     { "source": "/api/hexdb/:path*", "destination": "https://hexdb.io/:path*" },
-    { "source": "/api/transtar/:path*", "destination": "https://traffic.houstontranstar.org/:path*" }
+    { "source": "/api/transtar/:path*", "destination": "https://traffic.houstontranstar.org/:path*" },
+    { "source": "/api/tomtom/:path*", "destination": "https://api.tomtom.com/:path*" }
   ],
   "headers": [
     {
