@@ -7052,9 +7052,9 @@ function applyTranStarSpeedJson(data){
     const road=findRoadByKey(roadId);if(!road)continue;
     const dirTxt=String(row.Direction||row.direction||title||'');
     const sign=mapTranStarDirSign(dirTxt+' '+title,roadId);
+    const ff=Number(row.FreeFlowSpeed||row.PostedSpeed||road.def.ff)||road.def.ff;
     const cur=sanitizeLiveMph(Number(row.AverageSpeed||row.Speed||row.speed||row.CurrentSpeed||row.avgSpeed),ff,road);
     if(!(cur>0))continue;
-    const ff=Number(row.FreeFlowSpeed||row.PostedSpeed||road.def.ff)||road.def.ff;
     const ratio=ff>0?clamp(cur/ff,0.08,1.25):1;
     const cong=clamp(1-ratio,0,1);
     window.LIVE_TRAFFIC.flows.set(roadId+'_'+sign,{cur:Math.round(cur),ff,ratio,cong,at:Date.now(),src:'transtar-json'});
