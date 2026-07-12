@@ -24,7 +24,15 @@ test('transtar adapter', async (t) => {
     assert.equal(transtarAdapter.supports({ id: 'austin', feeds: { primaryTraffic: 'tomtom' } }), false);
   });
   await t.test('refresh returns a snapshot shape', async () => {
-    const snap = await transtarAdapter.refresh(houstonManifest);
+    const fakeFetch = async () => ({
+      ok: true,
+      status: 200,
+      text: async () => '<?xml version="1.0"?><rss><channel></channel></rss>',
+      headers: { get: () => 'application/xml' },
+    });
+    const snap = await transtarAdapter.refresh(houstonManifest, {
+      fetchWithTimeout: fakeFetch,
+    });
     assert.ok(snap.at > 0);
     assert.ok(snap.flows instanceof Map);
     assert.ok(Array.isArray(snap.incidents));

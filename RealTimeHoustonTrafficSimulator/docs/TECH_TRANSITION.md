@@ -1,8 +1,9 @@
 # Tech transition — research & stack decision
 
-**Status:** Foundation phase (no multi-city yet)  
-**Date:** 2026-07-11  
-**Do not rewrite the vehicle kernel** — it already works (v10.8.6 / v10.16.x).
+**Status:** Phase 2 — Three unified on Vite 0.185; TranStar adapter owns map/RSS/apply/index  
+**Date:** 2026-07-12  
+**Do not rewrite the vehicle kernel** — it already works (v10.8.6 / v10.16.x).  
+**Do not commit/push unless asked.**
 
 ---
 
@@ -19,8 +20,8 @@ Do **not** fork `app.html` per city. Do **not** jump straight to React Three Fib
 | Piece | Today |
 |--------|--------|
 | Build | Vite 7 MPA |
-| 3D | Three.js `^0.185` (CDN r128 still loaded in `app.html` — migrate later) |
-| Sim | ~11k-line `app.html` monolith |
+| 3D | **Three.js Vite-bundled `^0.185`** via `src/three-bridge.js` + `src/boot.js` (CDN r128 removed) |
+| Sim | `src/app-main.js` (extracted from `app.html`) + thin HTML shell |
 | Extracted | Rain (`src/rain.js`), corridor stitch scripts |
 | Deploy | Netlify + Vercel proxies |
 | Tests | One spawn unit test |
@@ -64,10 +65,11 @@ src/
     types.js              # LiveTrafficAdapter contract
     transtar.js           # Houston adapter (thin → grow)
     tomtom.js             # Shared fallback
-  core/                   # Phase 2: clock, geo math, motion
-  render/                 # Phase 2: scene, vehicles, roads
+  core/                   # Phase 2 ✅ clock parts, geo, corridor ETA
+    math.js / geo.js / clock.js / corridor-eta.js
+  render/                 # Phase 2+: scene, vehicles, roads
   rain.js                 # Already extracted
-app.html                  # Shell + HUD; thins over time
+app.html                  # Shell + HUD; thins via window.HTS_CORE
 public/data/cities/<id>/  # Road JSON packs
 ```
 
@@ -82,14 +84,20 @@ public/data/cities/<id>/  # Road JSON packs
 - [x] Scaffold `CityManifest` + Houston manifest  
 - [x] Scaffold feed adapter types  
 - [x] Bridge `window.HTS_CITY` for gradual adoption  
-- [x] Weather report UI (full brief + 12-hour strip) before deeper migrate  
-- [ ] Add TypeScript (`allowJs`) without blocking build  
+- [x] NWS weather alerts popup (alerts only; conditions stay on card)  
+- [x] Add TypeScript (`allowJs`) without blocking build  
 
 ### Phase 2 — Extract without behavior change
-- Move clock / geo / corridor ETA helpers into `src/core/`  
-- Move TranStar mapping into `src/feeds/transtar.js`  
-- Point `app.html` at modules; Houston still only city  
-- Expand tests (ETA floors, cong-from-mph, spawn)  
+- [x] Move clock / geo / corridor ETA helpers into `src/core/`  
+- [x] Move TranStar mapping into `src/feeds/transtar-map.js` (+ adapter surface)  
+- [x] Move TranStar RSS parse/fetch into `src/feeds/transtar-rss.js` (adapter `refresh` / `pullPublicFeeds`)  
+- [x] Move applyTravelTimes / speed JSON apply into `src/feeds/transtar-apply.js` (road-graph via deps)  
+- [x] Move corridor-time index into `src/feeds/transtar-corridor-index.js`  
+- [x] Point `app.html` at modules via `window.HTS_CORE` / `HTS_FEEDS` (call-time; Houston still only city)  
+- [x] Expand tests (ETA floors, geo, clock, TranStar, RSS, apply, corridor index, Three rev)  
+- [x] Unify Three (drop CDN r128 → Vite-bundled 0.185 via `boot.js` / `app-main.js`)  
+- [ ] Optional: Vitest runner (still on `node:test`)  
+- [ ] Extract more render/motion modules under `src/render/`  
 
 ### Phase 3 — Second city (thin)
 - One more manifest (e.g. Austin) with TomTom-only traffic  
@@ -104,7 +112,7 @@ public/data/cities/<id>/  # Road JSON packs
 
 ## CDN Three vs npm Three
 
-`app.html` still loads **Three r128 from CDN** while `package.json` has **0.185**. Phase 2 should use **one** Three (Vite-bundled) so rain + sim share the same API.
+**Done (Phase 2):** `app.html` loads `src/boot.js` → Vite Three **0.185** + compat shims (`outputEncoding` → `outputColorSpace`). Rain and sim share `window.THREE`. Legacy CDN r128 removed.
 
 ---
 

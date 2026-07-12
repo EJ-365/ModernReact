@@ -1,8 +1,8 @@
 # Progress log — Houston Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.16.6** (2026-07-12)  
-**SW cache:** `hts-shell-v65`
+**Current build:** **v10.16.7** (2026-07-12) — local migration (not committed)  
+**SW cache:** `hts-shell-v66`
 
 This note captures the work from the late **v10.8.x / v10.9** baseline through **v10.16.6**, ahead of the multi-city migration.
 
@@ -30,6 +30,7 @@ This note captures the work from the late **v10.8.x / v10.9** baseline through *
 | **v10.16.4** | Suburb→downtown ETA sanity (Sugar Land never shows impossible 13 min) |
 | **v10.16.5** | Full weather report (brief + 12-hour strip) before deeper migrate |
 | **v10.16.6** | Weather report leads with live NWS warnings (tornado/hurricane/heat/etc.) |
+| **v10.16.7** | Phase 2: Vite Three 0.185 + TranStar adapter (map/RSS/apply/index) |
 
 ---
 
