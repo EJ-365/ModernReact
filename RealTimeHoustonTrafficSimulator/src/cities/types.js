@@ -60,4 +60,5 @@ export function isCityManifest(m) {
   );
 }
 
-export const CITY_IDS = Object.freeze(['houston']);
+export const CITY_IDS = Object.freeze(['houston', 'austin']);
+

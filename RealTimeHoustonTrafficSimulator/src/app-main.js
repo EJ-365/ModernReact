@@ -13,7 +13,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.16.7 (0712-three-vite). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.16.8 (0712-austin-pack). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){

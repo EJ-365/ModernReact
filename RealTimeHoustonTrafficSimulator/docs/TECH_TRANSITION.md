@@ -1,6 +1,6 @@
 # Tech transition — research & stack decision
 
-**Status:** Phase 2 — Three unified on Vite 0.185; TranStar adapter owns map/RSS/apply/index  
+**Status:** Phase 3 started — Austin thin pack registered (Houston still default sim)  
 **Date:** 2026-07-12  
 **Do not rewrite the vehicle kernel** — it already works (v10.8.6 / v10.16.x).  
 **Do not commit/push unless asked.**
@@ -58,8 +58,10 @@ Do **not** fork `app.html` per city. Do **not** jump straight to React Three Fib
 ```
 src/
   cities/
-    types.js              # CityManifest shape
+    types.js              # CityManifest shape + CITY_IDS
+    registry.js           # resolveCity / activeCity (?city= / localStorage)
     houston/manifest.js   # Houston pack (origin, feeds, ids)
+    austin/manifest.js    # Austin thin pack (TomTom-only)
     <city>/manifest.js    # Future packs
   feeds/
     types.js              # LiveTrafficAdapter contract
@@ -100,8 +102,11 @@ public/data/cities/<id>/  # Road JSON packs
 - [ ] Extract more render/motion modules under `src/render/`  
 
 ### Phase 3 — Second city (thin)
-- One more manifest (e.g. Austin) with TomTom-only traffic  
-- Prove adapter swap; don’t polish landmarks yet  
+- [x] Austin manifest (`src/cities/austin/manifest.js`) — TomTom-only traffic  
+- [x] City registry + `?city=austin` / `localStorage hts-city` (Houston remains default)  
+- [x] Prove adapter swap in tests (TranStar rejects Austin; TomTom supports it)  
+- [ ] Austin road corridor pack / landmarks (later)  
+- [ ] Switch live sim geometry to Austin origin when city≠houston  
 
 ### Phase 4 — Scale
 - Generalize OSM stitch → `roads:stitch --city=houston`  
