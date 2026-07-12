@@ -44,14 +44,13 @@ test('applyTranStarSpeedJson initializes free-flow speed before sanitizing segme
   const count = context.applyTranStarSpeedJson([
     { RoadwayName: 'I-45', Direction: 'Northbound', AverageSpeed: 32 },
   ]);
+  const flow = context.window.LIVE_TRAFFIC.flows.get('ih45_1');
 
   assert.equal(count, 1);
-  assert.deepEqual(context.window.LIVE_TRAFFIC.flows.get('ih45_1'), {
-    cur: 32,
-    ff: 65,
-    ratio: 32 / 65,
-    cong: 1 - 32 / 65,
-    at: context.window.LIVE_TRAFFIC.flows.get('ih45_1').at,
-    src: 'transtar-json',
-  });
+  assert.equal(flow.cur, 32);
+  assert.equal(flow.ff, 65);
+  assert.equal(flow.ratio, 32 / 65);
+  assert.equal(flow.cong, 1 - 32 / 65);
+  assert.equal(flow.src, 'transtar-json');
+  assert.ok(Number.isFinite(flow.at));
 });
