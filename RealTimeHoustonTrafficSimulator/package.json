@@ -1,7 +1,7 @@
 {
   "name": "houston-traffic-simulator",
   "private": true,
-  "version": "10.16.4",
+  "version": "10.16.6",
   "type": "module",
   "description": "Award-ready 3D Houston metro simulator + marketing site. Created by Ejay Gabriel.",
   "author": "Ejay Gabriel",
@@ -16,7 +16,8 @@
     "roads:fetch": "node scripts/fetch-osm-roads.mjs",
     "roads:merge": "node scripts/merge-osm-roads.mjs",
     "roads:stitch": "node scripts/stitch-houston-corridors.mjs && node -e \"const fs=require('fs');const j=fs.readFileSync('public/data/roads-corridors.json');fs.writeFileSync('public/data/roads-corridors.js','window.OSM_CORRIDORS='+j+'\\n')\"",
-    "roads:build": "npm run roads:fetch && npm run roads:merge && npm run roads:stitch"
+    "roads:build": "npm run roads:fetch && npm run roads:merge && npm run roads:stitch",
+    "transition:check": "node --test tests/city-manifest.test.js"
   },
   "dependencies": {
     "three": "^0.185.1"

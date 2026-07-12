@@ -1,10 +1,10 @@
 # Progress log — Houston Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.16.4** (2026-07-11)  
-**SW cache:** `hts-shell-v62`
+**Current build:** **v10.16.6** (2026-07-12)  
+**SW cache:** `hts-shell-v65`
 
-This note captures the work from the late **v10.8.x / v10.9** baseline through **v10.16.4**, ahead of the multi-city migration.
+This note captures the work from the late **v10.8.x / v10.9** baseline through **v10.16.6**, ahead of the multi-city migration.
 
 ---
 
@@ -28,6 +28,8 @@ This note captures the work from the late **v10.8.x / v10.9** baseline through *
 | **v10.16.2** | Clock/weekend sync, fresher polls, building spatial grid, rain/OSM perf |
 | **v10.16.3** | Hotspot rings only when traffic is actually heavy (no fake overnight “rush”) |
 | **v10.16.4** | Suburb→downtown ETA sanity (Sugar Land never shows impossible 13 min) |
+| **v10.16.5** | Full weather report (brief + 12-hour strip) before deeper migrate |
+| **v10.16.6** | Weather report leads with live NWS warnings (tornado/hurricane/heat/etc.) |
 
 ---
 
@@ -92,7 +94,7 @@ npm run dev
 
 Open `http://localhost:5176/app.html`, hard-refresh, confirm console:
 
-`build v10.16.4`
+`build v10.16.6`
 
 Checks:
 
@@ -100,6 +102,7 @@ Checks:
 - Sugar Land → Downtown chip → **not** under ~22 minutes.
 - Vehicles stay on asphalt; no rectangular grass clumps.
 - LIVE vs time-lapse: clock, weekend label, and weather stay consistent.
+- Weather card → **NWS weather alerts** opens live warnings only (no duplicate conditions).
 
 ---
 
@@ -129,4 +132,4 @@ Keep Houston’s TranStar-specific mapping behind a city adapter so other metros
 
 ---
 
-*Updated 2026-07-11 for the v10.16.4 release.*
+*Updated 2026-07-12 for the v10.16.6 NWS alerts popup.*

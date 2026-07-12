@@ -95,6 +95,57 @@
   #wxLocal .wlDesc{font-size:11px;font-weight:700;color:#cfe0d4}
   #wxLocal .wlMeta{font-size:9.5px;color:#b9d2c1;margin-top:3px;font-weight:600}
   #wxPlace{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9ec9b0;margin-bottom:4px}
+  #wxReportBtn{margin-top:10px;width:100%;font-family:inherit;font-size:10px;font-weight:800;letter-spacing:.08em;
+    text-transform:uppercase;padding:9px 10px;border-radius:9px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.35);color:#e8f5ee}
+  #wxReportBtn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.35)}
+  #wxReportScrim{display:none;position:fixed;inset:0;z-index:40;background:rgba(4,8,12,.62);border:0;padding:0;cursor:pointer}
+  #wxReportScrim.on{display:block}
+  #wxReport{display:none;position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(440px,calc(100vw - 28px));max-height:min(78vh,720px);overflow:auto;
+    background:#10161d;border:1px solid #2a3542;border-radius:16px;padding:18px 16px 16px;
+    box-shadow:0 18px 48px rgba(0,0,0,.55);scrollbar-width:thin;scrollbar-color:#2e353d transparent}
+  #wxReport.on{display:block}
+  #wxReport .wrHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+  #wxReport .wrTitle{font-size:15px;font-weight:800;letter-spacing:.02em}
+  #wxReport .wrSub{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8aa89a;margin-top:4px}
+  #wxReport .wrClose{flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid #2c3642;
+    background:#151c24;color:#d5dde4;font-size:18px;line-height:1;cursor:pointer}
+  #wxReport .wrClose:hover{background:#1c2630}
+  #wxReport .wrSec{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#7fd6a0;margin:0 0 8px}
+  #wxReport .wrFoot{font-size:9.5px;color:#6d7883;font-weight:600;letter-spacing:.04em;margin-top:4px}
+  #wxReport .wrWarnHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px}
+  #wxReport .wrWarnHead .wrSec{margin:0}
+  #wxReport .wrWarnCount{font-size:10px;font-weight:800;color:#98a2ad;letter-spacing:.04em}
+  #wxReport .wrWarns{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  #wxReport .wrWarn{border-radius:12px;border:1px solid #2a3542;background:#0d1218;padding:10px 11px;
+    border-left-width:4px}
+  #wxReport .wrWarn .tag{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:800;
+    letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+  #wxReport .wrWarn .ev{font-size:13px;font-weight:800;line-height:1.25;margin:0 0 4px;color:#f2f5f7}
+  #wxReport .wrWarn .area{font-size:10px;font-weight:700;color:#8aa89a;margin:0 0 6px}
+  #wxReport .wrWarn .body{font-size:11px;line-height:1.4;color:#b8c0c8;margin:0}
+  #wxReport .wrWarn .until{font-size:9.5px;font-weight:700;color:#6d7883;margin-top:7px}
+  #wxReport .wrWarn.tornado{border-left-color:#ef4444}#wxReport .wrWarn.tornado .tag{color:#fca5a5}
+  #wxReport .wrWarn.hurricane{border-left-color:#7c3aed}#wxReport .wrWarn.hurricane .tag{color:#c4b5fd}
+  #wxReport .wrWarn.heat{border-left-color:#f97316}#wxReport .wrWarn.heat .tag{color:#fdba74}
+  #wxReport .wrWarn.winter{border-left-color:#38bdf8}#wxReport .wrWarn.winter .tag{color:#7dd3fc}
+  #wxReport .wrWarn.flood{border-left-color:#2563eb}#wxReport .wrWarn.flood .tag{color:#93c5fd}
+  #wxReport .wrWarn.severe{border-left-color:#eab308}#wxReport .wrWarn.severe .tag{color:#fde047}
+  #wxReport .wrWarn.fire{border-left-color:#ea580c}#wxReport .wrWarn.fire .tag{color:#fdba74}
+  #wxReport .wrWarn.fog,#wxReport .wrWarn.wind,#wxReport .wrWarn.air,#wxReport .wrWarn.other{border-left-color:#64748b}
+  #wxReport .wrWarn.fog .tag,#wxReport .wrWarn.wind .tag,#wxReport .wrWarn.air .tag,#wxReport .wrWarn.other .tag{color:#94a3b8}
+  #wxReport .wrWarn.extreme{box-shadow:inset 0 0 0 1px rgba(239,68,68,.35)}
+  #wxReport .wrWarnEmpty{border-radius:12px;border:1px dashed #2a3542;background:#0c1218;padding:12px;
+    font-size:12px;line-height:1.45;color:#98a2ad;font-weight:600}
+  #wxReport .wrWarnEmpty b{color:#cfe0d4;font-weight:800}
+  #wxReport .wrWatch{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  #wxReport .wrWatch span{font-size:8.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    padding:4px 7px;border-radius:999px;border:1px solid #2a3542;color:#8aa89a;background:#10161d}
+  @media(max-width:720px){
+    #wxReport{top:auto;bottom:0;left:0;right:0;transform:none;width:auto;max-width:none;
+      max-height:min(82vh,640px);border-radius:16px 16px 0 0;padding-bottom:calc(16px + var(--m-safe-b,0px))}
+  }
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
   /* ---------- Control panel ---------- */
@@ -697,7 +748,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.4</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.6</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -726,6 +777,7 @@
       <div class="wlRow"><div class="wlTemp" id="wxLocalTemp">--°</div><div class="wlDesc" id="wxLocalDesc">—</div></div>
       <div class="wlMeta" id="wxLocalMeta">—</div>
     </div>
+    <button type="button" id="wxReportBtn">NWS weather alerts</button>
   </div>
   <div class="shields">
     <div class="shield"><svg viewBox="0 0 34 30"><path d="M17 1 C12 4 6 4.6 1.5 4.2 C1.5 16 6 25 17 29 C28 25 32.5 16 32.5 4.2 C28 4.6 22 4 17 1 Z" fill="#003f87" stroke="#fff" stroke-width="1.6"/><path d="M2 4.4 L32 4.4 L32 9.5 L2 9.5 Z" fill="#c8102e"/></svg><span>10</span></div>
@@ -1069,6 +1121,23 @@
 <span>Use your location for accurate ETAs, directions &amp; a "you are here" marker?</span>
 <button id="gtYes">Enable</button><button id="gtNo">Not now</button></div>
 
+<button type="button" id="wxReportScrim" aria-label="Close weather alerts"></button>
+<div id="wxReport" role="dialog" aria-modal="true" aria-labelledby="wrTitle" hidden>
+  <div class="wrHead">
+    <div>
+      <div class="wrTitle" id="wrTitle">Weather alerts</div>
+      <div class="wrSub" id="wrSub">Houston metro · NWS</div>
+    </div>
+    <button type="button" class="wrClose" id="wrClose" aria-label="Close">×</button>
+  </div>
+  <div class="wrWarnHead">
+    <div class="wrSec">Active alerts</div>
+    <div class="wrWarnCount" id="wrWarnCount">—</div>
+  </div>
+  <div class="wrWarns" id="wrWarns"></div>
+  <div class="wrFoot" id="wrFoot">—</div>
+</div>
+
 <div id="flash"></div>
 
 <div id="tourRoot" aria-hidden="true">
@@ -1092,6 +1161,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="/data/roads-boot.js"></script>
 <script src="/data/roads-corridors.js"></script>
+<script type="module" src="/src/platform-bridge.js"></script>
 <script type="module" src="/src/rain-bridge.js"></script>
 <script>
 /* ================================================================
@@ -1105,7 +1175,7 @@
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.16.4 (0711-corridor-eta). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cHouston Traffic Simulator — build v10.16.6 (0712-nws-alerts-only). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -6262,6 +6332,121 @@ function windArrow(deg){ /* direction wind blows FROM */
   return dirs[Math.round(((deg%360)/45))%8];
 }
 
+/* ---------- NWS weather alerts popup ---------- */
+function escHtml(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function classifyNwsEvent(ev){
+  const e=String(ev||'').toLowerCase();
+  if(/tornado/.test(e))return {key:'tornado',label:'Tornado'};
+  if(/hurricane|tropical storm|tropical depression|storm surge|typhoon/.test(e))return {key:'hurricane',label:'Hurricane / tropical'};
+  if(/excessive heat|heat advisory|heat warning|heat/.test(e))return {key:'heat',label:'Heat'};
+  if(/blizzard|winter storm|ice storm|heavy snow|lake effect|snow squall|freezing rain|wind chill|hard freeze|freeze|frost|sleet|wintry/.test(e))return {key:'winter',label:'Winter / snow'};
+  if(/flash flood|coastal flood|flood|hydrologic/.test(e))return {key:'flood',label:'Flood'};
+  if(/severe thunder|thunderstorm|damaging wind|hail/.test(e))return {key:'severe',label:'Severe thunderstorm'};
+  if(/red flag|fire weather|wildfire/.test(e))return {key:'fire',label:'Fire weather'};
+  if(/dense fog|fog/.test(e))return {key:'fog',label:'Fog'};
+  if(/high wind|wind advisory|gale|extreme wind/.test(e))return {key:'wind',label:'High wind'};
+  if(/air quality|smoke|dust/.test(e))return {key:'air',label:'Air quality'};
+  return {key:'other',label:'Weather alert'};
+}
+function nwsSeverityRank(sev){
+  const s=String(sev||'').toLowerCase();
+  if(s==='extreme')return 4;
+  if(s==='severe')return 3;
+  if(s==='moderate')return 2;
+  if(s==='minor')return 1;
+  return 0;
+}
+function fmtNwsUntil(iso){
+  if(!iso)return '';
+  try{
+    const d=new Date(iso);
+    if(!isFinite(d.getTime()))return '';
+    return d.toLocaleString('en-US',{timeZone:CHI_TZ,weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  }catch(e){return '';}
+}
+function renderWeatherWarnings(features){
+  const box=$('wrWarns'),countEl=$('wrWarnCount');
+  if(!box)return;
+  const feats=Array.isArray(features)?features.slice():[];
+  feats.sort((a,b)=>{
+    const pa=a.properties||{},pb=b.properties||{};
+    return nwsSeverityRank(pb.severity)-nwsSeverityRank(pa.severity);
+  });
+  if(countEl){
+    if(!(window.LIVE_NWS&&window.LIVE_NWS.ok)&&!feats.length&&window.LIVE_NWS&&window.LIVE_NWS.err)
+      countEl.textContent='NWS unreachable';
+    else countEl.textContent=feats.length?(feats.length+' active'):'None active';
+  }
+  if(!feats.length){
+    const err=window.LIVE_NWS&&window.LIVE_NWS.err;
+    box.innerHTML='<div class="wrWarnEmpty"><b>'+(err?'Could not reach NWS right now.':'No active NWS warnings for the Houston metro.')+'</b><br>'
+      +(err?'Will retry on the next poll. ':'')
+      +'We watch for tornado, hurricane/tropical, heat, winter/snow, flood, severe thunderstorm, and fire-weather alerts.'
+      +'<div class="wrWatch"><span>Tornado</span><span>Hurricane</span><span>Heat</span><span>Winter</span><span>Flood</span><span>Severe</span><span>Fire</span></div></div>';
+    return;
+  }
+  box.innerHTML=feats.slice(0,8).map(f=>{
+    const p=f.properties||{};
+    const ev=p.event||'Weather alert';
+    const cls=classifyNwsEvent(ev);
+    const sev=String(p.severity||'Unknown');
+    const urg=String(p.urgency||'');
+    const extreme=/extreme|severe/i.test(sev)?' extreme':'';
+    const headline=p.headline||ev;
+    const area=p.areaDesc?String(p.areaDesc).replace(/\s+/g,' ').slice(0,120):'';
+    const desc=p.description?String(p.description).replace(/\s+/g,' ').slice(0,220):'';
+    const until=fmtNwsUntil(p.ends||p.expires);
+    const instruction=p.instruction?String(p.instruction).replace(/\s+/g,' ').slice(0,160):'';
+    return '<div class="wrWarn '+cls.key+extreme+'">'
+      +'<div class="tag">'+escHtml(cls.label)+(sev&&sev!=='Unknown'?' · '+escHtml(sev):'')
+      +(urg&&urg!=='Unknown'?' · '+escHtml(urg):'')+'</div>'
+      +'<div class="ev">'+escHtml(ev)+'</div>'
+      +(area?'<div class="area">'+escHtml(area)+(String(p.areaDesc||'').length>120?'…':'')+'</div>':'')
+      +'<p class="body"><b>'+escHtml(headline)+'</b>'
+      +(desc?' — '+escHtml(desc)+(String(p.description||'').length>220?'…':'') :'')
+      +(instruction?'<br><br>'+escHtml(instruction)+(String(p.instruction||'').length>160?'…':'') :'')
+      +'</p>'
+      +(until?'<div class="until">In effect until '+escHtml(until)+' CT</div>':'')
+      +'</div>';
+  }).join('');
+}
+function openWeatherReport(){
+  const panel=$('wxReport'),scrim=$('wxReportScrim');
+  if(!panel||!scrim)return;
+  $('wrSub').textContent='Houston metro · National Weather Service';
+  renderWeatherWarnings((window.LIVE_NWS&&window.LIVE_NWS.features)||[]);
+  if(typeof refreshNWSAlerts==='function'){
+    _nwsNext=0;
+    Promise.resolve(refreshNWSAlerts()).then(()=>{
+      if(!($('wxReport')&&$('wxReport').classList.contains('on')))return;
+      renderWeatherWarnings((window.LIVE_NWS&&window.LIVE_NWS.features)||[]);
+      const nwsAge=window.LIVE_NWS&&window.LIVE_NWS.at?Math.max(0,Math.round((Date.now()-window.LIVE_NWS.at)/60000)):null;
+      if($('wrFoot'))$('wrFoot').textContent='Official NWS alerts for Houston-area counties'
+        +(nwsAge==null?' · fetching…':(nwsAge<=0?' · updated just now':' · updated '+nwsAge+' min ago'));
+    }).catch(()=>{});
+  }
+  const nwsAge=window.LIVE_NWS&&window.LIVE_NWS.at?Math.max(0,Math.round((Date.now()-window.LIVE_NWS.at)/60000)):null;
+  $('wrFoot').textContent='Official NWS alerts for Houston-area counties'
+    +(nwsAge==null?' · fetching…':(nwsAge<=0?' · updated just now':' · updated '+nwsAge+' min ago'));
+  panel.hidden=false;panel.classList.add('on');scrim.classList.add('on');
+}
+function closeWeatherReport(){
+  const panel=$('wxReport'),scrim=$('wxReportScrim');
+  if(panel){panel.classList.remove('on');panel.hidden=true;}
+  if(scrim)scrim.classList.remove('on');
+}
+(function wireWeatherReport(){
+  const btn=$('wxReportBtn'),scrim=$('wxReportScrim'),close=$('wrClose');
+  if(btn)btn.addEventListener('click',()=>{openWeatherReport();});
+  if(scrim)scrim.addEventListener('click',closeWeatherReport);
+  if(close)close.addEventListener('click',closeWeatherReport);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&$('wxReport')&&$('wxReport').classList.contains('on'))closeWeatherReport();
+  });
+})();
+
 /* weather blending toward current target */
 function wxUpdate(dt){
   let targetPreset,label,rainAmt=null,cloudOv=null;
@@ -7009,7 +7194,7 @@ function clearNwsAlertEls(){
 const HOU_MSA_COUNTIES=/\b(Harris|Fort Bend|Montgomery|Brazoria|Galveston|Chambers|Liberty|Waller|Austin|San Jacinto)\b/i;
 const NWS_POLL_MS=2*60*1000;
 let _nwsNext=0;
-window.LIVE_NWS={ok:false,at:0,count:0,err:''};
+window.LIVE_NWS={ok:false,at:0,count:0,err:'',features:[]};
 async function fetchNWSAlerts(){
   const hdr={'Accept':'application/geo+json','User-Agent':'HoustonTrafficSimulator/1.0 (educational; contact via github.com/EJ-365/ModernReact)'};
   const r=await fetch('https://api.weather.gov/alerts/active?area=TX',{headers:hdr,cache:'no-store'});
@@ -7020,7 +7205,7 @@ async function fetchNWSAlerts(){
     if(p.status!=='Actual')return false;
     const area=String(p.areaDesc||'')+' '+String(p.event||'')+' '+String(p.headline||'');
     return HOU_MSA_COUNTIES.test(area)||/Houston|Galveston Bay|Clear Lake|Woodlands|Sugar Land|Katy|Brazoria|Conroe/i.test(area);
-  }).slice(0,10);
+  }).sort((a,b)=>nwsSeverityRank((b.properties||{}).severity)-nwsSeverityRank((a.properties||{}).severity)).slice(0,12);
 }
 function syncNWSAlerts(features){
   clearNwsAlertEls();
@@ -7034,16 +7219,22 @@ function syncNWSAlerts(features){
   for(const f of features.slice(0,6)){
     const p=f.properties||{};
     const ev=String(p.event||'');
-    const isFlood=/flood|flash flood|coastal/i.test(ev);
-    const isStorm=/severe|thunder|tornado|hurricane|wind/i.test(ev);
+    const kind=typeof classifyNwsEvent==='function'?classifyNwsEvent(ev):{key:'other',label:'Alert'};
+    const railCls=kind.key==='flood'?' flood'
+      :(kind.key==='hurricane'?' hurricane'
+      :(kind.key==='tornado'||kind.key==='severe'||kind.key==='heat'||kind.key==='fire'?' work'
+      :(kind.key==='winter'?' flood':'')));
     const el=document.createElement('div');
-    el.className='alert'+(isFlood?' flood':isStorm?' work':'');
+    el.className='alert'+railCls+(typeof openWeatherReport==='function'?' clickable':'');
     const headline=p.headline||ev||'Weather alert';
     const desc=p.description?String(p.description).replace(/\s+/g,' ').slice(0,160):'';
+    const sev=p.severity&&p.severity!=='Unknown'?(' · '+p.severity):'';
     el.innerHTML='<div class="at"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5 6.3 11H5.7L12 8.5z" fill="#6cb8ff"/></svg>'
-      +(isFlood?'Flood':(isStorm?'Storm':'Alert'))+'</div>'
-      +'<div class="aMeta"><span class="aChip">NWS</span></div>'
-      +'<div class="ab"><b>'+headline+'</b>'+(desc?' — '+desc+(desc.length>=160?'…':'') :'')+'</div>';
+      +escHtml(kind.label)+'</div>'
+      +'<div class="aMeta"><span class="aChip">NWS'+escHtml(sev)+'</span></div>'
+      +'<div class="ab"><b>'+escHtml(headline)+'</b>'+(desc?' — '+escHtml(desc)+(desc.length>=160?'…':'') :'')+'</div>'
+      +(typeof openWeatherReport==='function'?'<div class="aHint">Tap for alert details</div>':'');
+    if(typeof openWeatherReport==='function')el.addEventListener('click',()=>openWeatherReport());
     box.appendChild(el);
     _nwsAlertEls.push(el);
   }
@@ -7054,10 +7245,15 @@ async function refreshNWSAlerts(){
   _nwsNext=Date.now()+NWS_POLL_MS;
   try{
     const feats=await fetchNWSAlerts();
+    window.LIVE_NWS.features=feats;
     syncNWSAlerts(feats);
     window.LIVE_NWS.ok=true;window.LIVE_NWS.count=feats.length;window.LIVE_NWS.err='';window.LIVE_NWS.at=Date.now();
+    if($('wxReport')&&$('wxReport').classList.contains('on')&&typeof renderWeatherWarnings==='function')
+      renderWeatherWarnings(feats);
   }catch(e){
     window.LIVE_NWS.ok=false;window.LIVE_NWS.err=String(e&&e.message?e.message:e);window.LIVE_NWS.at=Date.now();
+    if($('wxReport')&&$('wxReport').classList.contains('on')&&typeof renderWeatherWarnings==='function')
+      renderWeatherWarnings(window.LIVE_NWS.features||[]);
   }
 }
 function parseIncidentKind(text,forcedKind){
