@@ -1,6 +1,6 @@
 /**
- * Austin city pack — Phase 3 thin proof (TomTom-only traffic, no TranStar).
- * Not wired as the default sim city yet; select via ?city=austin or localStorage hts-city.
+ * Austin city pack — researched metro content (roads, districts, airports, POIs).
+ * Select via ?city=austin or localStorage hts-city. Houston remains default.
  */
 import { isCityManifest } from '../types.js';
 
@@ -26,10 +26,10 @@ export const austinManifest = {
     weatherProvider: 'open-meteo',
     timezone: 'America/Chicago',
   },
-  /* Road packs not stitched yet — Houston geometry remains until Phase 4 OSM generalize */
-  airportCodes: ['AUS'],
+  airportCodes: ['AUS', 'EDC'],
   boardAirports: {
     AUS: 'Austin-Bergstrom International',
+    EDC: 'Austin Executive',
   },
 };
 

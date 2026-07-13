@@ -1,8 +1,8 @@
 # Progress log — Houston Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.16.8** (2026-07-12) — Austin thin city pack  
-**SW cache:** `hts-shell-v67`
+**Current build:** **v10.16.9** (2026-07-12) — Austin researched content pack  
+**SW cache:** `hts-shell-v68`
 
 This note captures the work from the late **v10.8.x / v10.9** baseline through **v10.16.6**, ahead of the multi-city migration.
 
@@ -32,6 +32,7 @@ This note captures the work from the late **v10.8.x / v10.9** baseline through *
 | **v10.16.6** | Weather report leads with live NWS warnings (tornado/hurricane/heat/etc.) |
 | **v10.16.7** | Phase 2: Vite Three 0.185 + TranStar adapter (map/RSS/apply/index) |
 | **v10.16.8** | Phase 3: Austin manifest + city registry (`?city=austin`); Houston still default |
+| **v10.16.9** | Austin researched pack: roads, jumps, airports, weather, TomTom-only traffic |
 
 ---
 

@@ -1,6 +1,6 @@
 # Tech transition — research & stack decision
 
-**Status:** Phase 3 started — Austin thin pack registered (Houston still default sim)  
+**Status:** Phase 3 — Austin full content pack (Houston default; `?city=austin`)  
 **Date:** 2026-07-12  
 **Do not rewrite the vehicle kernel** — it already works (v10.8.6 / v10.16.x).  
 **Do not commit/push unless asked.**
@@ -101,15 +101,17 @@ public/data/cities/<id>/  # Road JSON packs
 - [ ] Optional: Vitest runner (still on `node:test`)  
 - [ ] Extract more render/motion modules under `src/render/`  
 
-### Phase 3 — Second city (thin)
+### Phase 3 — Second city (thin → content)
 - [x] Austin manifest (`src/cities/austin/manifest.js`) — TomTom-only traffic  
 - [x] City registry + `?city=austin` / `localStorage hts-city` (Houston remains default)  
 - [x] Prove adapter swap in tests (TranStar rejects Austin; TomTom supports it)  
-- [ ] Austin road corridor pack / landmarks (later)  
-- [ ] Switch live sim geometry to Austin origin when city≠houston  
+- [x] Austin researched content pack (roads, districts, airports, POIs, corridors, NWS)  
+- [x] Switch live sim origin + HUD info when city≠houston (Austin pack roads; Houston OSM LOD skipped)  
+- [ ] Austin OSM stitch / LOD packs (later — Phase 4 generalize)
 
 ### Phase 4 — Scale
 - Generalize OSM stitch → `roads:stitch --city=houston`  
+- [x] OSM CBD building extrusions (`npm run buildings:fetch` → `public/data/cities/<id>/buildings-cbd.json`) — F4-style footprints, traffic intact  
 - Optional R3F for *new* UI only; keep sim canvas vanilla  
 - Align Netlify/Vercel proxy behavior  
 

@@ -1,4 +1,6 @@
 /* Extracted from app.html — loaded via src/boot.js after Three Vite bridge */
+import { loadOsmCbdBuildings } from './render/osm-buildings.js';
+import { createCinematic } from './render/cinematic.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -13,7 +15,16 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cHouston Traffic Simulator — build v10.16.8 (0712-austin-pack). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.17 (0713-airfield-cars). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+const HTS_PACK=window.HTS_PACK||null;
+const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
+const HTS_IS_AUS=HTS_CITY_ID==='austin';
+const CITY_NAME=(window.HTS_CITY&&window.HTS_CITY.name)||'Houston';
+const METRO_NAME=HTS_IS_AUS?'Greater Austin':'Greater Houston';
+const AREA_NAME=HTS_IS_AUS?'Austin-area':'Houston-area';
+const METRO_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
+const METRO_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lng)||-95.3698;
+const DEFAULT_APT=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts[0])||'IAH';
 /* Failsafe: never leave the loading screen stuck if a later error occurs. */
 let htsReadyFired=false;
 function fireHtsReady(){
@@ -25,7 +36,7 @@ window.addEventListener('error',(ev)=>{
   console.error('[HTS]',ev.message,ev.filename,ev.lineno);
   try{
     const l=document.getElementById('loading');
-    if(l)l.innerHTML='<div class="lsign">Houston</div><div class="lsub" style="color:#ff8a7a;text-transform:none;letter-spacing:0;max-width:420px;line-height:1.4">Boot error — open DevTools console.<br><span style="color:#aeb7c0;font-size:10px">'+(ev.message||'unknown')+'</span></div>';
+    if(l)l.innerHTML='<div class="lsign">Traffic Simulator</div><div class="lsub" style="color:#ff8a7a;letter-spacing:.08em;text-transform:none;max-width:420px;line-height:1.45">Boot error — open DevTools console.<br><span style="color:#aeb7c0;font-size:10px">'+(ev.message||'unknown')+'</span></div>';
   }catch(e){}
 });
 setTimeout(()=>{
@@ -113,7 +124,7 @@ function resolveFlightAirports(f){
   }
   const lat=Number.isFinite(f&&f._lat)?f._lat:(Number.isFinite(f&&f._tLat)?f._tLat:null);
   const lon=Number.isFinite(f&&f._lon)?f._lon:(Number.isFinite(f&&f._tLon)?f._tLon:null);
-  const near=Number.isFinite(lat)?nearestHoustonApt(lat,lon):(f&&f.boardApt?icaoToDisp(f.boardApt):'IAH');
+  const near=Number.isFinite(lat)?nearestHoustonApt(lat,lon):(f&&f.boardApt?icaoToDisp(f.boardApt):DEFAULT_APT);
   if((!dep||dep==='—')&&arr&&arr!=='—'&&!isHoustonApt(arr))dep=near;
   if((!arr||arr==='—')&&dep&&dep!=='—'&&!isHoustonApt(dep))arr=near;
   if(f&&f.boardApt){
@@ -131,11 +142,16 @@ function resolveFlightAirports(f){
   if(!arr||arr==='—')arr='…';
   return {dep,arr,pending};
 }
-const HOU_APT=new Set(['IAH','HOU','EFD','SGR','DWH','IWS','CXO']);
+const HOU_APT=new Set(
+  (HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts.length)
+    ?HTS_PACK.boardApts
+    :['IAH','HOU','EFD','SGR','DWH','IWS','CXO']
+);
 const APT_DB={
   IAH:{n:'George Bush Intercontinental',c:'Houston'},HOU:{n:'William P. Hobby',c:'Houston'},
   EFD:{n:'Ellington Field',c:'Houston'},SGR:{n:'Sugar Land Regional',c:'Sugar Land'},
   DWH:{n:'David Wayne Hooks',c:'Spring'},IWS:{n:'West Houston',c:'Houston'},CXO:{n:'Conroe North Houston',c:'Conroe'},
+  AUS:{n:'Austin-Bergstrom International',c:'Austin'},EDC:{n:'Austin Executive',c:'Austin'},
   LAS:{n:'Harry Reid International',c:'Las Vegas'},DEN:{n:'Denver International',c:'Denver'},
   DFW:{n:'Dallas/Fort Worth International',c:'Dallas'},ATL:{n:'Hartsfield-Jackson Atlanta',c:'Atlanta'},
   LAX:{n:'Los Angeles International',c:'Los Angeles'},ORD:{n:"O'Hare International",c:'Chicago'},
@@ -183,9 +199,9 @@ function aptInfo(code){
 function isHoustonApt(c){return HOU_APT.has(String(c||'').toUpperCase());}
 function isHoustonFlight(f){return isHoustonApt(f.dep)||isHoustonApt(f.arr);}
 function nearestHoustonApt(lat,lon){
-  if(!Number.isFinite(lat)||!Number.isFinite(lon))return 'IAH';
-  let best='IAH',bd=1e9;
-  for(const code of ['IAH','HOU','EFD','SGR','DWH','IWS','CXO']){
+  if(!Number.isFinite(lat)||!Number.isFinite(lon))return DEFAULT_APT;
+  let best=DEFAULT_APT,bd=1e9;
+  for(const code of HOU_APT){
     const a=APT_COORDS[code];if(!a)continue;
     const d=Math.hypot((a.lat-lat)*69,(a.lng-lon)*59.9*Math.cos(lat*Math.PI/180));
     if(d<bd){bd=d;best=code;}
@@ -393,16 +409,16 @@ function routeFitsPosition(dep,arr,lat,lon,vsFpm){
   const dDep=aptDistMi(dep,lat,lon);
   const dArr=aptDistMi(arr,lat,lon);
   if(dDep==null&&dArr==null)return true;
-  const nearHou=Math.hypot((29.76-lat)*69,(-95.37-lon)*59.9)<90;
-  /* Plane near Houston must be on a Houston in/out leg */
-  if(nearHou&&!(isHoustonApt(dep)||isHoustonApt(arr)))return false;
+  const nearMetro=Math.hypot((METRO_LAT-lat)*69,(METRO_LNG-lon)*59.9)<90;
+  /* Plane near this metro must be on a local-airport in/out leg */
+  if(nearMetro&&!(isHoustonApt(dep)||isHoustonApt(arr)))return false;
   /* If far from both ends of the pair, it's the wrong leg (e.g. SDF→SAT while over Houston) */
   const closest=Math.min(dDep==null?1e9:dDep,dArr==null?1e9:dArr);
   if(closest>450)return false;
   /* Descending near dest / climbing near origin is a strong fit */
   if(vsFpm!=null&&vsFpm<-200&&dArr!=null&&dArr<120)return true;
   if(vsFpm!=null&&vsFpm>200&&dDep!=null&&dDep<120)return true;
-  return closest<320||nearHou;
+  return closest<320||nearMetro;
 }
 function pickBestAeroFlight(flights,ctx){
   if(!Array.isArray(flights)||!flights.length)return null;
@@ -430,15 +446,15 @@ function pickBestAeroFlight(flights,ctx){
     else if(out&&Math.abs(now-out)<8*3600000)s+=60;
     if(ctx&&ctx.reg&&fl.registration&&String(fl.registration).replace(/\s+/g,'').toUpperCase()===String(ctx.reg).replace(/\s+/g,'').toUpperCase())s+=160;
     if(ctx&&Number.isFinite(ctx.lat)&&Number.isFinite(ctx.lon)){
-      const nearHou=Math.hypot((29.76-ctx.lat)*69,(-95.37-ctx.lon)*59.9)<80;
+      const nearMetro=Math.hypot((METRO_LAT-ctx.lat)*69,(METRO_LNG-ctx.lon)*59.9)<80;
       const dArr=aptDistMi(arr,ctx.lat,ctx.lon);
       const dDep=aptDistMi(dep,ctx.lat,ctx.lon);
-      if(nearHou&&ctx.vsFpm!=null&&ctx.vsFpm<-200&&isHoustonApt(arr))s+=90;
-      if(nearHou&&ctx.vsFpm!=null&&ctx.vsFpm>200&&isHoustonApt(dep))s+=90;
+      if(nearMetro&&ctx.vsFpm!=null&&ctx.vsFpm<-200&&isHoustonApt(arr))s+=90;
+      if(nearMetro&&ctx.vsFpm!=null&&ctx.vsFpm>200&&isHoustonApt(dep))s+=90;
       if(dArr!=null&&dArr<80)s+=40;
       if(dDep!=null&&dDep<80)s+=35;
-      if(nearHou&&isHoustonApt(arr))s+=30;
-      if(nearHou&&isHoustonApt(dep))s+=30;
+      if(nearMetro&&isHoustonApt(arr))s+=30;
+      if(nearMetro&&isHoustonApt(dep))s+=30;
     }
     if(fl.actual_out&&!fl.actual_in)s+=40;
     if(fl.fa_flight_id)s+=10;
@@ -474,7 +490,7 @@ const APT_COORDS={
   SGR:{lat:29.6223,lng:-95.6565},DWH:{lat:30.0619,lng:-95.5528},IWS:{lat:29.8182,lng:-95.6726},
   CXO:{lat:30.3518,lng:-95.4145},BMT:{lat:29.9508,lng:-94.0207},DEN:{lat:39.8561,lng:-104.6737},
   ATL:{lat:33.6407,lng:-84.4277},LAX:{lat:33.9416,lng:-118.4085},ORD:{lat:41.9742,lng:-87.9073},
-  DFW:{lat:32.8998,lng:-97.0403},AUS:{lat:30.1975,lng:-97.6664},SAT:{lat:29.5337,lng:-98.4698},
+  DFW:{lat:32.8998,lng:-97.0403},AUS:{lat:30.1945,lng:-97.6699},EDC:{lat:30.3975,lng:-97.5664},SAT:{lat:29.5337,lng:-98.4698},
   MSY:{lat:29.9934,lng:-90.2580},DAL:{lat:32.8471,lng:-96.8518},PHX:{lat:33.4373,lng:-112.0078},
   LAS:{lat:36.0840,lng:-115.1537},MIA:{lat:25.7959,lng:-80.2870},JFK:{lat:40.6413,lng:-73.7781},
   SEA:{lat:47.4502,lng:-122.3088},CUN:{lat:21.0365,lng:-86.8771},MEX:{lat:19.4361,lng:-99.0719},
@@ -578,7 +594,7 @@ function estimateEtaFromNow(f){
   if(known&&known>Date.now()-30*60000)return known;
   const dest=icaoToDisp(f.arr);
   const origin=icaoToDisp(f.dep);
-  const apt=APT_COORDS[dest]||(isHoustonApt(dest)?APT_COORDS.IAH:null);
+  const apt=APT_COORDS[dest]||(isHoustonApt(dest)?APT_COORDS[DEFAULT_APT]:null);
   const lat=Number.isFinite(f._lat)?f._lat:(Number.isFinite(f._tLat)?f._tLat:null);
   const lon=Number.isFinite(f._lon)?f._lon:(Number.isFinite(f._tLon)?f._tLon:null);
   if(apt&&Number.isFinite(lat)&&Number.isFinite(lon)){
@@ -615,7 +631,7 @@ function flightVerifyUrl(f){
   /* No reliable flight number — open ADS-B track, not a wrong FA search */
   if(f.icao24)return 'https://globe.adsb.lol/?icao='+encodeURIComponent(String(f.icao24).toLowerCase());
   if(f.reg)return 'https://www.flightaware.com/live/flight/'+encodeURIComponent(String(f.reg).replace(/\s+/g,''));
-  return 'https://globe.adsb.lol/?lat=29.76&lon=-95.37&zoom=9';
+  return 'https://globe.adsb.lol/?lat='+METRO_LAT+'&lon='+METRO_LNG+'&zoom=9';
 }
 function flightLinkLabel(f){
   if(f.faFlightId||(f.csIata&&/[A-Z0-9]{2,}\d/i.test(f.csIata))||(f.cs&&/^[A-Z]{2,3}\d/i.test(String(f.cs))))return 'Track on FlightAware ↗';
@@ -817,8 +833,8 @@ const scene=new THREE.Scene();
 scene.fog=new THREE.Fog(0xc5d8ea,1400,18000);
 const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,2,42000);
 
-const hemi=new THREE.HemisphereLight(0xd0e4ff,0x4a5a3a,0.88);scene.add(hemi);
-const sun=new THREE.DirectionalLight(0xfff5e6,1.05);scene.add(sun);
+const hemi=new THREE.HemisphereLight(HTS_IS_AUS?0xe8f0ff:0xd0e4ff,HTS_IS_AUS?0x6a7a50:0x4a5a3a,HTS_IS_AUS?0.95:0.88);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff5e6,HTS_IS_AUS?1.15:1.05);scene.add(sun);
 const nightAmb=new THREE.AmbientLight(0x1a2438,0.0);scene.add(nightAmb);
 const cityFill=new THREE.HemisphereLight(0x5a4838,0x10141c,0.0);scene.add(cityFill); /* soft warm CBD bounce */
 /* LOD groups: full-detail 3D vs zoom-out map mode */
@@ -931,38 +947,71 @@ const clouds=new THREE.Group();skyRoot.add(clouds);
   }
 })();
 
-/* ---------------- ground — Houston St. Augustine / soil (readable under ACES) ---------------- */
+/* ---------------- ground — Houston lawn / Austin prairie (same green family) ---------------- */
 const groundTex=(function(){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
-  x.fillStyle='#3f5a32';x.fillRect(0,0,512,512);
-  for(let i=0;i<3200;i++){const r=rand();
-    x.fillStyle=r<.28?'#4a6a38':(r<.52?'#385830':(r<.72?'#557848':(r<.88?'#2f4a28':'#5a7040')));
+  /* Both cities: green turf. Austin slightly warmer olive, never beige clay. */
+  x.fillStyle=HTS_IS_AUS?'#3f6a34':'#3f5a32';x.fillRect(0,0,512,512);
+  for(let i=0;i<(HTS_IS_AUS?3000:3200);i++){const r=rand();
+    if(HTS_IS_AUS){
+      x.fillStyle=r<.28?'#4a7a3c':(r<.52?'#356830':(r<.72?'#5a8848':(r<.88?'#2e5828':'#6a9050')));
+    }else{
+      x.fillStyle=r<.28?'#4a6a38':(r<.52?'#385830':(r<.72?'#557848':(r<.88?'#2f4a28':'#5a7040')));
+    }
     x.globalAlpha=.2+rand()*.38;
     x.fillRect(rand()*512,rand()*512,2+rand()*12,2+rand()*12);}
-  /* warm soil patches between lawns */
-  for(let i=0;i<160;i++){
-    x.fillStyle=rand()<.5?'#6e5e42':'#5a4e38';x.globalAlpha=.14+rand()*.22;
-    x.beginPath();x.ellipse(rand()*512,rand()*512,18+rand()*40,10+rand()*28,rand()*TAU,0,TAU);x.fill();
+  for(let i=0;i<(HTS_IS_AUS?100:160);i++){
+    /* sparse dirt patches only — keep them small so the plane stays green */
+    x.fillStyle=HTS_IS_AUS?(rand()<.5?'#5a6840':'#4a5e38'):(rand()<.5?'#6e5e42':'#5a4e38');
+    x.globalAlpha=HTS_IS_AUS?(.08+rand()*.12):(.14+rand()*.22);
+    x.beginPath();x.ellipse(rand()*512,rand()*512,12+rand()*28,8+rand()*20,rand()*TAU,0,TAU);x.fill();
   }
   x.globalAlpha=1;
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(14,14);t.anisotropy=MAXAN;return t;})();
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(24000,24000),
-  new THREE.MeshLambertMaterial({map:groundTex,color:0xb4c890,
+  new THREE.MeshLambertMaterial({map:groundTex,color:HTS_IS_AUS?0xb8d090:0xb4c890,
     polygonOffset:true,polygonOffsetFactor:2,polygonOffsetUnits:4}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-1.6;scene.add(ground);
-ground.userData.baseColor=new THREE.Color(0xb4c890);
+ground.userData.baseColor=new THREE.Color(HTS_IS_AUS?0xb8d090:0xb4c890);
+/* Cinematic: soft shadows + env (Austin = prairie; Houston = glassy PBR-ish) */
+const htsCinematic=createCinematic({renderer,scene,camera,sun,ground,isAus:HTS_IS_AUS});
+window.HTS_CINEMATIC=htsCinematic;
 
 /* ---------------- water & greenery (distinct nature palettes) ---------------- */
 window.EXCLUDES=[]; /* circles where nothing may be built: water, airfields, stadium bowls */
-const matWater=new THREE.MeshPhongMaterial({color:0x2a6a88,shininess:110,specular:0xa8d0e8});
-const matBayou=new THREE.MeshPhongMaterial({color:0x2a6a58,shininess:70,specular:0x8ab8a0});
-const matLake =new THREE.MeshPhongMaterial({color:0x2e78a0,shininess:100,specular:0xb0d8f0});
-const matBay  =new THREE.MeshPhongMaterial({color:0x246080,shininess:90,specular:0x90c0d8});
-/* Real Houston greens — darker so ACES + sun don't wash them white */
-const matForest=new THREE.MeshLambertMaterial({color:0x2f5a2c});
-const matPark=new THREE.MeshLambertMaterial({color:0x3f6e34});
-const matLawn =new THREE.MeshLambertMaterial({color:0x4a7a3a});
-const matScrub =new THREE.MeshLambertMaterial({color:0x456038});
-const matPlaza =new THREE.MeshLambertMaterial({color:0x3a6832});
+/* Austin water: flat F4 blue + ripple map (Lambert). Houston keeps reflective PBR. */
+const matWater=HTS_IS_AUS
+  ?new THREE.MeshLambertMaterial({color:0x2a8ab8})
+  :new THREE.MeshStandardMaterial({color:0x2a6a88,metalness:0.55,roughness:0.18,envMapIntensity:1.2});
+const matBayou=new THREE.MeshStandardMaterial({color:0x2a6a58,metalness:0.25,roughness:0.35,envMapIntensity:0.7});
+const matLake =HTS_IS_AUS
+  ?new THREE.MeshLambertMaterial({color:0x2488b8})
+  :new THREE.MeshStandardMaterial({color:0x2e78a0,metalness:0.62,roughness:0.12,envMapIntensity:1.35});
+const matBay  =new THREE.MeshStandardMaterial({color:0x246080,metalness:0.5,roughness:0.22,envMapIntensity:1.0});
+if(htsCinematic&&htsCinematic.envMap&&!HTS_IS_AUS){
+  for(const m of [matWater,matBayou,matLake,matBay])m.envMap=htsCinematic.envMap;
+}
+/* F4-style soft water ripple (repeating) */
+if(HTS_IS_AUS)(function(){
+  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+  x.fillStyle='#2a8ab8';x.fillRect(0,0,128,128);
+  for(let i=0;i<18;i++){
+    x.strokeStyle='rgba(255,255,255,'+(0.06+rand()*0.1)+')';
+    x.lineWidth=1+rand()*1.5;
+    const y=8+i*6.5+(rand()-0.5)*3;
+    x.beginPath();
+    for(let px=0;px<=128;px+=4)x.lineTo(px,y+Math.sin(px*0.12+i)*2.2);
+    x.stroke();
+  }
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(14,14);
+  matLake.map=t;matLake.needsUpdate=true;
+  matWater.map=t;
+})();
+/* Parks: Austin F4 flat greens; Houston darker so ACES doesn't wash them */
+const matForest=new THREE.MeshLambertMaterial({color:HTS_IS_AUS?0x4a8a3a:0x2f5a2c});
+const matPark=new THREE.MeshLambertMaterial({color:HTS_IS_AUS?0x5a9a42:0x3f6e34});
+const matLawn =new THREE.MeshLambertMaterial({color:HTS_IS_AUS?0x68a84a:0x4a7a3a});
+const matScrub =new THREE.MeshLambertMaterial({color:HTS_IS_AUS?0x5a8a42:0x456038});
+const matPlaza =new THREE.MeshLambertMaterial({color:HTS_IS_AUS?0x5a9848:0x3a6832});
 for(const m of [matForest,matPark,matLawn,matScrub,matPlaza])m.userData.baseColor=m.color.clone();
 function blobShape(r,irr,n){
   const sh=new THREE.Shape();
@@ -975,10 +1024,11 @@ function blobShape(r,irr,n){
 function blob(cx,cz,r,irr,mat,y){
   const m=new THREE.Mesh(new THREE.ShapeGeometry(blobShape(r,irr,26)),mat);
   m.rotation.x=-Math.PI/2;m.position.set(cx,y,cz);gDetail.add(m);
-  if(mat===matWater||mat===matLake||mat===matBay||mat===matBayou)EXCLUDES.push({x:cx,z:cz,r:r*1.12});
+  if(mat===matWater||mat===matLake||mat===matBay||mat===matBayou)EXCLUDES.push({x:cx,z:cz,r:r*1.12,water:true});
   return m;
 }
 /* Parks, forests, and neighborhood lawns — visible from altitude */
+if(!HTS_IS_AUS){
 blob(-1140,-3620,520,.3,matForest,0.02);    /* Woodlands pines */
 blob(1500,-3700,480,.3,matForest,0.02);     /* Kingwood woods */
 blob(-2650,-780,360,.3,matScrub,0.018);     /* Addicks land */
@@ -1004,17 +1054,112 @@ blob(-2650,-780,170,.4,matWater,0.035);     /* Addicks pool */
 blob(-2850,300,180,.4,matWater,0.035);      /* Barker pool */
 blob(7150,2700,3300,.22,matBay,0.03);       /* Galveston Bay */
 blob(2699,-1383,160,.4,matLake,0.03);       /* Sheldon Lake */
-/* Buffalo Bayou + other Houston bayous / rivers */
-const BAYOU=[[-2300,-120],[-1500,-60],[-900,-140],[-400,-40],[0,-90],[420,-20],[900,40],[1600,-30],[2400,80],[3300,220],[4200,520]];
-const BRAYS=[[-2400,1520],[-1600,1160],[-800,900],[-200,720],[300,540],[720,400]];
-const WHITEOAK=[[-2200,-1800],[-1600,-1200],[-900,-700],[-400,-350],[0,-120],[90,10],[177,0]];
-const SIMS=[[-400,2800],[200,2400],[800,2000],[1400,1700],[2000,1500],[2600,1400]];
-const GREENS=[[800,-2800],[1400,-2200],[2000,-1600],[2600,-1100],[3200,-700],[3800,-400]];
-const SANJAC=[[2400,-3200],[2800,-2600],[3400,-1800],[4200,-800],[5200,400],[6200,1600]];
-window.ALL_BAYOUS=[BAYOU,BRAYS,WHITEOAK,SIMS,GREENS,SANJAC];
+}else{
+  /* Austin — Balcones edge: flat east prairie, greenbelt + lakes west/central */
+  const dtLawn=geoToWorld(30.2672,-97.7431);
+  blob(dtLawn.x,dtLawn.z,70,.4,matLawn,0.022);
+  /* Republic Square / Wooldridge / Brush Square pocket greens */
+  for(const [lat,lng,r] of [[30.2678,-97.7475,45],[30.2712,-97.7468,50],[30.2660,-97.7398,40]]){
+    const p=geoToWorld(lat,lng);blob(p.x,p.z,r,.4,matPlaza,0.026);
+  }
+  const zilker=geoToWorld(30.2685,-97.7729); /* keep park mass north of Lady Bird */
+  blob(zilker.x,zilker.z,260,.28,matPark,0.03);
+  const barton=geoToWorld(30.2648,-97.7715);
+  blob(barton.x,barton.z,110,.35,matPark,0.032);
+  /* Auditorium Shores / Butler Park — south bank lawn (photo: bright green park) */
+  const audShore=geoToWorld(30.263,-97.753);
+  blob(audShore.x,audShore.z,160,.3,matPark,0.03);
+  const butler=geoToWorld(30.26,-97.76);
+  blob(butler.x,butler.z,140,.32,matLawn,0.028);
+  /* Barton Creek greenbelt west of Zilker */
+  for(const [lat,lng,r] of [[30.258,-97.795,140],[30.248,-97.805,160],[30.238,-97.818,150]]){
+    const p=geoToWorld(lat,lng);blob(p.x,p.z,r,.35,matForest,0.02);
+  }
+  const capG=geoToWorld(30.2747,-97.7404);
+  blob(capG.x,capG.z,200,.25,matLawn,0.028); /* Capitol grounds — big green lawn */
+  const utG=geoToWorld(30.28565,-97.73921);
+  blob(utG.x,utG.z,90,.26,matLawn,0.022); /* Tower plaza lawn — not fused with DKR */
+  /* Pease Park · Shoal Creek corridor */
+  const pease=geoToWorld(30.284,-97.752);
+  blob(pease.x,pease.z,130,.35,matPark,0.03);
+  for(const [lat,lng,r] of [[30.295,-97.755,90],[30.305,-97.758,85],[30.315,-97.76,80]]){
+    const p=geoToWorld(lat,lng);blob(p.x,p.z,r,.4,matForest,0.02);
+  }
+  /* Walnut Creek · Emma Long · McKinney Falls · Mueller lake park */
+  const mueller=geoToWorld(30.298,-97.704);blob(mueller.x,mueller.z,140,.35,matPark,0.028);
+  const walnut=geoToWorld(30.38,-97.67);blob(walnut.x,walnut.z,240,.3,matForest,0.02);
+  const emma=geoToWorld(30.36,-97.84);blob(emma.x,emma.z,220,.32,matForest,0.02);
+  const mckinney=geoToWorld(30.185,-97.722);blob(mckinney.x,mckinney.z,200,.35,matPark,0.025);
+  /* Lady Bird shore — green belt outside the wide channel (both banks) */
+  for(const [lat,lng,r] of [
+    [30.268,-97.775,55],[30.267,-97.768,50],[30.266,-97.76,48],[30.265,-97.752,45],
+    [30.2645,-97.745,42],[30.263,-97.74,42],[30.260,-97.738,48],[30.256,-97.736,48],
+    [30.253,-97.73,50],[30.252,-97.72,48],
+    /* south bank */
+    [30.260,-97.775,55],[30.258,-97.765,50],[30.256,-97.755,48],[30.254,-97.748,45],
+    [30.252,-97.742,48],[30.249,-97.736,45],
+  ]){
+    const p=geoToWorld(lat,lng);blob(p.x,p.z,r,.4,matPark,0.026);
+  }
+  const domain=geoToWorld(30.402,-97.725);
+  blob(domain.x,domain.z,200,.3,matLawn,0.02);
+  /* Suburb neighborhood greens */
+  for(const [lat,lng,r] of [
+    [30.505,-97.82,180],[30.508,-97.679,200],[30.439,-97.62,160],
+    [30.633,-97.678,170],[30.579,-97.853,150],[30.085,-97.84,140],
+    [29.989,-97.877,150],[30.309,-97.945,160],[30.367,-97.98,170],
+  ]){
+    const p=geoToWorld(lat,lng);blob(p.x,p.z,r,.35,matLawn,0.02);
+  }
+  /* Lady Bird ribbon draws the reservoir — small widenings at Zilker bend only */
+  const lblWide=[
+    [30.266,-97.785,55],[30.264,-97.775,50],
+  ];
+  for(const [lat,lng,r] of lblWide){
+    const p=geoToWorld(lat,lng);
+    blob(p.x,p.z,r,.4,matLake,0.032);
+  }
+  const lakeAus=geoToWorld(30.32,-97.84);
+  blob(lakeAus.x,lakeAus.z,380,.4,matLake,0.03);
+  const travis=geoToWorld(30.41,-97.91);
+  blob(travis.x,travis.z,480,.35,matLake,0.028);
+  /* Hill Country scrub west of MoPac — olive green, not tan dirt */
+  for(const [lat,lng,r] of [[30.30,-97.81,280],[30.34,-97.86,320],[30.28,-97.83,240],[30.38,-97.88,300],[30.25,-97.86,260],[30.42,-97.82,280]]){
+    const p=geoToWorld(lat,lng);
+    blob(p.x,p.z,r,.4,matForest,0.02);
+  }
+}
+/* Buffalo Bayou + other Houston bayous / rivers (Austin uses Lady Bird + creek corridors) */
+const BAYOU=HTS_IS_AUS?[]:[[-2300,-120],[-1500,-60],[-900,-140],[-400,-40],[0,-90],[420,-20],[900,40],[1600,-30],[2400,80],[3300,220],[4200,520]];
+const BRAYS=HTS_IS_AUS?[]:[[-2400,1520],[-1600,1160],[-800,900],[-200,720],[300,540],[720,400]];
+const WHITEOAK=HTS_IS_AUS?[]:[[-2200,-1800],[-1600,-1200],[-900,-700],[-400,-350],[0,-120],[90,10],[177,0]];
+const SIMS=HTS_IS_AUS?[]:[[-400,2800],[200,2400],[800,2000],[1400,1700],[2000,1500],[2600,1400]];
+const GREENS=HTS_IS_AUS?[]:[[800,-2800],[1400,-2200],[2000,-1600],[2600,-1100],[3200,-700],[3800,-400]];
+const SANJAC=HTS_IS_AUS?[]:[[2400,-3200],[2800,-2600],[3400,-1800],[4200,-800],[5200,400],[6200,1600]];
+const LADYBIRD=(HTS_PACK&&HTS_PACK.ladyBird&&HTS_PACK.ladyBird.length>=2)
+  ?HTS_PACK.ladyBird.slice()
+  :(HTS_IS_AUS?(function(){
+  const pts=[[30.2685,-97.805],[30.267,-97.79],[30.2652,-97.78],[30.2635,-97.77],[30.2620,-97.76],[30.2612,-97.752],[30.2608,-97.745],[30.2585,-97.74],[30.2545,-97.7375],[30.2508,-97.7365],[30.2498,-97.725],[30.2505,-97.71],[30.2520,-97.698],[30.2545,-97.685]];
+  return pts.map(([lat,lng])=>{const w=geoToWorld(lat,lng);return [w.x,w.z];});
+})():[]);
+/* Austin creeks — tree banks + thin water ribbons (Shoal · Waller · Barton · Onion) */
+function ausCreek(ptsLatLng){
+  return ptsLatLng.map(([lat,lng])=>{const w=geoToWorld(lat,lng);return [w.x,w.z];});
+}
+const SHOAL=HTS_IS_AUS?ausCreek([[30.32,-97.76],[30.31,-97.755],[30.295,-97.752],[30.284,-97.751],[30.275,-97.749],[30.268,-97.748],[30.262,-97.747]]):[];
+const WALLER=HTS_IS_AUS?ausCreek([[30.285,-97.735],[30.278,-97.736],[30.272,-97.737],[30.267,-97.738],[30.262,-97.739]]):[];
+const BARTON_CK=HTS_IS_AUS?ausCreek([[30.245,-97.81],[30.252,-97.795],[30.258,-97.782],[30.263,-97.774],[30.265,-97.771]]):[];
+const ONION=HTS_IS_AUS?ausCreek([[30.15,-97.78],[30.17,-97.76],[30.185,-97.74],[30.20,-97.72],[30.22,-97.70]]):[];
+window.ALL_BAYOUS=HTS_IS_AUS?[LADYBIRD,SHOAL,WALLER,BARTON_CK,ONION]:[BAYOU,BRAYS,WHITEOAK,SIMS,GREENS,SANJAC];
 
 /* ---------------- curve & ribbon builders (elevation-aware) ---------------- */
 function sampleCurve(pts2,closed,step){
+  if(!pts2||pts2.length<2){
+    /* Safe empty ribbon — callers must not treat total===0 as a real path */
+    const px=new Float32Array(1),pz=new Float32Array(1),tx=new Float32Array(1),tz=new Float32Array(1),
+          cum=new Float32Array(1),py=new Float32Array(1);
+    tx[0]=1;return {px,pz,tx,tz,cum,py,total:0,n:0,closed:!!closed,empty:true};
+  }
   const v=pts2.map(p=>new THREE.Vector3(p[0],0,p[1]));
   const curve=new THREE.CatmullRomCurve3(v,closed,'catmullrom',closed?0.5:0.35);
   const len=curve.getLength();const n=Math.max(24,Math.round(len/step));
@@ -1154,8 +1299,16 @@ const LEGACY_ROAD_DEFS=[
  {id:'i45',name:'Interstate 45 — North Fwy · Gulf Fwy',short:'I-45',closed:false,width:42,lanes:4,ff:65,share:1.4,baseY:0.82,prio:7,
   pts:[[-1850,-5400],[-1550,-4550],[-1260,-3800],[-1090,-3300],[-830,-2600],[-660,-1750],[-420,-1000],[-160,-380],[40,60],[330,560],[640,1150],[880,1850],[1120,2600],[1500,3400],[1950,4400],[2300,5400],[4200,6200],[5800,6600],[7290,6804]]},
 ];
+/* City pack roads (Austin) replace Houston legacy before OSM snap. */
+(function applyCityPackRoads(){
+  if(!HTS_PACK||!HTS_PACK.roads||!HTS_PACK.roads.length)return;
+  LEGACY_ROAD_DEFS.length=0;
+  for(const r of HTS_PACK.roads)LEGACY_ROAD_DEFS.push(r);
+  console.log('%c'+HTS_CITY_ID+' road pack applied: '+LEGACY_ROAD_DEFS.length+' corridors','color:#7fd6a0');
+})();
 /* Snap freeways to real Houston OSM geometry (stitched corridors). Keep hand paths if stitch is too short. */
 (function applyOsmCorridors(){
+  if(HTS_PACK&&HTS_PACK.skipOsmCorridors){console.log('%cOSM corridors skipped — city pack roads','color:#7fd6a0');return;}
   const pack=window.OSM_CORRIDORS&&window.OSM_CORRIDORS.corridors;
   if(!pack){console.warn('OSM corridors missing — legacy road paths');return;}
   let n=0;
@@ -1285,6 +1438,27 @@ for(let ri=0;ri<byPrio.length;ri++){
     }
   }
 }
+/* Austin: lift I-35 / MoPac / Congress / Lamar decks over Lady Bird (shore roads stay at grade) */
+if(HTS_IS_AUS&&LADYBIRD&&LADYBIRD.length>=2)(function(){
+  const lake=sampleCurve(LADYBIRD,false,36);
+  if(!lake||lake.empty||!lake.total)return;
+  const BRIDGE=new Set(['i35','mopac','congress','lamar']);
+  const HALF=48; /* wide Lady Bird channel — bridges span the river in the middle */
+  for(const {def,s} of roadSamples){
+    if(!BRIDGE.has(def.id))continue;
+    for(let i=0;i<=s.n;i++){
+      let best=1e9;
+      for(let j=0;j<=lake.n;j+=2){
+        const d=Math.hypot(s.px[i]-lake.px[j],s.pz[i]-lake.pz[j]);
+        if(d<best)best=d;
+      }
+      if(best>=HALF)continue;
+      const k=0.5+0.5*Math.cos(Math.PI*best/HALF);
+      const y=def.baseY+12*k;
+      if(y>s.py[i])s.py[i]=y;
+    }
+  }
+})();
 
 /* congestion hotspots — choke points; rings driven by live/modeled congestion nearby */
 const HOTSPOTS=[
@@ -1314,6 +1488,10 @@ const HOTSPOTS=[
  {x:7290,z:6804,r:380,k:0.22,name:'I-45 Galveston'},
  {x:-3842,z:-2253,r:320,k:0.24,name:'FM 1960 Cypress'},
 ];
+if(HTS_PACK&&HTS_PACK.hotspots&&HTS_PACK.hotspots.length){
+  HOTSPOTS.length=0;
+  for(const h of HTS_PACK.hotspots)HOTSPOTS.push(h);
+}
 function hotspotMult(x,z){let m=1;for(const h of HOTSPOTS){const d=Math.hypot(x-h.x,z-h.z);
   if(d<h.r)m+=h.k*(1-d/h.r);}return m;}
 /* Average live/modeled congestion inside a hotspot radius.
@@ -1397,39 +1575,50 @@ const matAsphaltArt=new THREE.MeshLambertMaterial({map:asphaltTexture('#34383e',
    so nothing coplanar can ever z-fight, and lines are properly dashed */
 const _skinCache={};window.roadMats=[];
 function roadSkinMat(def){
-  const key=def.lanes+'_'+Math.round(def.width)+'_'+(def.arterial?1:0);
+  const key=(HTS_IS_AUS?'a':'h')+'_'+def.lanes+'_'+Math.round(def.width)+'_'+(def.arterial?1:0);
   if(!_skinCache[key]){
     const W=256,H=128,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-    x.fillStyle=def.arterial?'#4a4f56':'#42474e';x.fillRect(0,0,W,H);
-    for(let i=0;i<1600;i++){x.fillStyle=rand()<0.5?'rgba(255,255,255,.05)':'rgba(0,0,0,.07)';
-      x.fillRect(rand()*W,rand()*H,1.5,1.5);}
-    const u=off=>(off/def.width+0.5)*W;
-    const laneW=(def.width/2-2.0-1.7)/def.lanes;
-    /* shoulders */
-    x.fillStyle='rgba(0,0,0,.22)';
-    x.fillRect(0,0,u(-(def.width/2-1.0)),H);
-    x.fillRect(u(def.width/2-1.0),0,W-u(def.width/2-1.0),H);
-    /* tire polish per lane */
-    x.fillStyle='rgba(0,0,0,.13)';
-    for(const sg of [1,-1])for(let l=0;l<def.lanes;l++){
-      const cU=u(sg*(1.7+(l+0.5)*laneW));
-      const halfLanePx=laneW/def.width*W*0.22;
-      const wpx=Math.max(3,halfLanePx*0.9);
-      x.fillRect(cU-halfLanePx-wpx/2,0,wpx,H);
-      x.fillRect(cU+halfLanePx-wpx/2,0,wpx,H);
-    }
-    /* solid white edge lines — thicker so they read when zoomed in */
-    x.fillStyle='#f5f7fa';
-    for(const sg of [1,-1]){const eU=u(sg*(def.width/2-1.4));x.fillRect(eU-2.8,0,5.6,H);}
-    /* double yellow center */
-    x.fillStyle='#e8bc28';
-    x.fillRect(u(-1.15)-1.8,0,3.6,H);
-    x.fillRect(u(1.15)-1.8,0,3.6,H);
-    /* dashed white separators */
-    x.fillStyle='#f0f2f5';
-    for(const sg of [1,-1])for(let l=1;l<def.lanes;l++){
-      const dU=u(sg*(1.7+l*laneW));
-      for(let y=4;y<H;y+=26)x.fillRect(dU-2.2,y,4.4,12);
+    if(HTS_IS_AUS){
+      /* F4: flat gray pavement + dark edge (no busy lane paint) */
+      x.fillStyle=def.arterial?'#9a9ea4':'#8e9298';x.fillRect(0,0,W,H);
+      for(let i=0;i<600;i++){x.fillStyle=rand()<0.5?'rgba(255,255,255,.04)':'rgba(0,0,0,.05)';
+        x.fillRect(rand()*W,rand()*H,1.5,1.5);}
+      x.fillStyle='rgba(30,32,36,.55)';
+      x.fillRect(0,0,10,H);x.fillRect(W-10,0,10,H);
+      x.fillStyle='rgba(40,44,48,.28)';
+      x.fillRect(W*0.48,0,W*0.04,H);
+    }else{
+      x.fillStyle=def.arterial?'#4a4f56':'#42474e';x.fillRect(0,0,W,H);
+      for(let i=0;i<1600;i++){x.fillStyle=rand()<0.5?'rgba(255,255,255,.05)':'rgba(0,0,0,.07)';
+        x.fillRect(rand()*W,rand()*H,1.5,1.5);}
+      const u=off=>(off/def.width+0.5)*W;
+      const laneW=(def.width/2-2.0-1.7)/def.lanes;
+      /* shoulders */
+      x.fillStyle='rgba(0,0,0,.22)';
+      x.fillRect(0,0,u(-(def.width/2-1.0)),H);
+      x.fillRect(u(def.width/2-1.0),0,W-u(def.width/2-1.0),H);
+      /* tire polish per lane */
+      x.fillStyle='rgba(0,0,0,.13)';
+      for(const sg of [1,-1])for(let l=0;l<def.lanes;l++){
+        const cU=u(sg*(1.7+(l+0.5)*laneW));
+        const halfLanePx=laneW/def.width*W*0.22;
+        const wpx=Math.max(3,halfLanePx*0.9);
+        x.fillRect(cU-halfLanePx-wpx/2,0,wpx,H);
+        x.fillRect(cU+halfLanePx-wpx/2,0,wpx,H);
+      }
+      /* solid white edge lines — thicker so they read when zoomed in */
+      x.fillStyle='#f5f7fa';
+      for(const sg of [1,-1]){const eU=u(sg*(def.width/2-1.4));x.fillRect(eU-2.8,0,5.6,H);}
+      /* double yellow center */
+      x.fillStyle='#e8bc28';
+      x.fillRect(u(-1.15)-1.8,0,3.6,H);
+      x.fillRect(u(1.15)-1.8,0,3.6,H);
+      /* dashed white separators */
+      x.fillStyle='#f0f2f5';
+      for(const sg of [1,-1])for(let l=1;l<def.lanes;l++){
+        const dU=u(sg*(1.7+l*laneW));
+        for(let y=4;y<H;y+=26)x.fillRect(dU-2.2,y,4.4,12);
+      }
     }
     const t=new THREE.CanvasTexture(c);
     t.wrapS=THREE.ClampToEdgeWrapping;t.wrapT=THREE.RepeatWrapping;
@@ -1437,7 +1626,7 @@ function roadSkinMat(def){
     _skinCache[key]=t;
   }
   const m=new THREE.MeshLambertMaterial({map:_skinCache[key],
-    emissive:new THREE.Color(0x232529),emissiveIntensity:0,
+    emissive:new THREE.Color(HTS_IS_AUS?0x6a6e74:0x232529),emissiveIntensity:0,
     polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
   roadMats.push(m);return m;
 }
@@ -1491,7 +1680,7 @@ for(const {def,s} of roadSamples){
   }
   const laneW=(def.width/2-2.0-1.7)/def.lanes;
 
-  for(let i=0;i<=s.n;i+=3)roadSamplePts.push([s.px[i],s.pz[i],def.short,def.width/2+26]);
+  for(let i=0;i<=s.n;i+=3)roadSamplePts.push([s.px[i],s.pz[i],def.short,def.width/2+26,!def.arterial&&!def.surface]);
 
   const segCount=clamp(Math.round(s.total/300),6,34);
   const segX=new Float32Array(segCount),segZ=new Float32Array(segCount);
@@ -1542,19 +1731,60 @@ console.log('%cRoad network ready: '+roads.length+' corridors','color:#7fd6a0');
     d.updateMatrix();m.setMatrixAt(i,d.matrix);}
   gRoads3D.add(m);
 })();
-/* bayous & rivers — grassy banks + channel water (real Houston greenways) */
+/* bayous & rivers — grassy banks + channel water */
 (function(){
   const bankMat=new THREE.MeshLambertMaterial({color:0x4a7a3a});
   const bankOuter=new THREE.MeshLambertMaterial({color:0x5a8a42});
-  const specs=[
-    [BAYOU,52,34,matBayou],[BRAYS,36,22,matBayou],[WHITEOAK,40,24,matBayou],
-    [SIMS,34,20,matBayou],[GREENS,36,22,matBayou],[SANJAC,58,38,matWater]
-  ];
+    /* Austin: Lady Bird is a wide river through downtown (not a thin creek) */
+    const specs=HTS_IS_AUS
+    ?[[LADYBIRD,110,92,matLake],[SHOAL,14,10,matBayou],[WALLER,10,7,matBayou],[BARTON_CK,12,8,matBayou],[ONION,16,11,matBayou]]
+    :[[BAYOU,52,34,matBayou],[BRAYS,36,22,matBayou],[WHITEOAK,40,24,matBayou],
+      [SIMS,34,20,matBayou],[GREENS,36,22,matBayou],[SANJAC,58,38,matWater]];
   for(const [pts,bw,ww,wmat] of specs){
-    const s=sampleCurve(pts,false,30);
-    gDetail.add(new THREE.Mesh(ribbonGeom(s,bw*1.55,0.015,0,false,0),bankOuter));
-    gDetail.add(new THREE.Mesh(ribbonGeom(s,bw,0.02,0,false,0),bankMat));
+    if(!pts||pts.length<2)continue;
+    const s=sampleCurve(pts,false,HTS_IS_AUS?22:30);
+    if(!HTS_IS_AUS){
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,bw*1.55,0.015,0,false,0),bankOuter));
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,bw,0.02,0,false,0),bankMat));
+    }else if(pts===LADYBIRD){
+      /* Green banks outside the wide blue channel */
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,14,0.028,52,false,0),bankMat));
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,14,0.028,-52,false,0),bankMat));
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,10,0.022,62,false,0),bankOuter));
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,10,0.022,-62,false,0),bankOuter));
+    }else{
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,10,0.025,22,false,0),bankMat));
+      gDetail.add(new THREE.Mesh(ribbonGeom(s,10,0.025,-22,false,0),bankMat));
+    }
     gDetail.add(new THREE.Mesh(ribbonGeom(s,ww,0.055,0,false,0),wmat));
+  }
+  /* Austin: keep channel clear — half-width ~46 so towers/trees stay on shore */
+  if(HTS_IS_AUS&&LADYBIRD&&LADYBIRD.length>=2){
+    const s=sampleCurve(LADYBIRD,false,18);
+    for(let i=0;i<=s.n;i++)EXCLUDES.push({x:s.px[i],z:s.pz[i],r:48,water:true});
+  }
+})();
+
+/* Austin Hill Country relief — Balcones west of MoPac (Houston stays flat prairie) */
+if(HTS_IS_AUS)(function(){
+  const hillMat=new THREE.MeshLambertMaterial({color:0x6e7858});
+  const limMat=new THREE.MeshLambertMaterial({color:0x9a9484});
+  const hills=[
+    [30.321,-97.773,160,62],  /* Mount Bonnell */
+    [30.298,-97.807,200,48],  /* West Lake Hills */
+    [30.28,-97.82,180,40],
+    [30.34,-97.86,240,52],
+    [30.37,-97.90,260,55],
+    [30.41,-97.88,220,45],
+    [30.26,-97.81,150,35],
+    [30.31,-97.85,190,42],
+  ];
+  for(const [lat,lng,r,h] of hills){
+    const p=geoToWorld(lat,lng);
+    const g=new THREE.SphereGeometry(1,20,12,0,TAU,0,Math.PI*0.52);
+    const m=new THREE.Mesh(g,rand()<.35?limMat:hillMat);
+    m.scale.set(r,h,r*0.88);m.position.set(p.x,-2,p.z);gDetail.add(m);
+    EXCLUDES.push({x:p.x,z:p.z,r:r*0.55});
   }
 })();
 
@@ -1591,6 +1821,7 @@ const OSM_LOD={
   _lodSkip:0
 };
 async function initOsmLod(){
+  if(HTS_PACK&&HTS_PACK.skipOsmLod)return;
   if(OSM_LOD.loading||OSM_LOD.ready)return;
   OSM_LOD.loading=true;
   try{
@@ -1977,12 +2208,18 @@ const DISTRICT_R_PATCH={
 };
 const DISTRICTS=DISTRICTS_CORE.concat(DISTRICTS_MORE);
 for(const d of DISTRICTS){if(DISTRICT_R_PATCH[d.id]!=null)d.r=DISTRICT_R_PATCH[d.id];}
+if(HTS_PACK&&HTS_PACK.districts&&HTS_PACK.districts.length){
+  DISTRICTS.length=0;
+  for(const d of HTS_PACK.districts)DISTRICTS.push(d);
+}
 
 function textSprite(txt,scaleK){
-  const pad=26,fs=64;
+  const pad=26,fs=HTS_IS_AUS?56:64;
   const c=document.createElement('canvas');const x=c.getContext('2d');
+  const label=String(txt||'').toUpperCase();
   x.font='900 '+fs+'px Overpass, sans-serif';
-  const w=Math.ceil(x.measureText(txt.toUpperCase()).width)+pad*2;
+  if(x.letterSpacing!=null)x.letterSpacing=HTS_IS_AUS?'0.04em':'0.02em';
+  const w=Math.ceil(x.measureText(label).width)+pad*2;
   c.width=Math.max(w,200);c.height=104;
   const g=x.createLinearGradient(0,0,0,c.height);
   g.addColorStop(0,'rgba(9,13,19,.9)');g.addColorStop(1,'rgba(9,13,19,.74)');
@@ -1995,13 +2232,15 @@ function textSprite(txt,scaleK){
   x.strokeStyle='rgba(255,255,255,.35)';x.lineWidth=3;x.stroke();
   x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
   x.font='900 '+fs+'px Overpass, sans-serif';
-  x.fillText(txt.toUpperCase(),c.width/2,c.height/2+2);
+  if(x.letterSpacing!=null)x.letterSpacing=HTS_IS_AUS?'0.04em':'0.02em';
+  x.fillText(label,c.width/2,c.height/2+2);
   const t=new THREE.CanvasTexture(c);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,fog:false}));
   sp.scale.set(c.width*0.55*scaleK,c.height*0.55*scaleK,1);
   return sp;
 }
 /* Lakes / reservoirs / bay — labels + later hover hit volumes */
+const waterSprites=[];
 const WATERS=[
  {n:'Lake Houston',x:2150,z:-3850,r:520,tag:'lake'},
  {n:'Clear Lake',x:2050,z:3020,r:280,tag:'lake'},
@@ -2016,14 +2255,22 @@ const WATERS=[
  {n:'Lake Conroe',x:-1680,z:-5200,r:480,tag:'lake'},
  {n:'Trinity Bay',x:5200,z:-1200,r:420,tag:'bay'},
 ];
+if(HTS_PACK&&HTS_PACK.waters&&HTS_PACK.waters.length){
+  WATERS.length=0;
+  for(const w of HTS_PACK.waters)WATERS.push(w);
+}
 for(const w of WATERS){
-  const sp=textSprite(w.n,0.5);
-  sp.material.opacity=0.88;sp.position.set(w.x,46,w.z);gDetail.add(sp);
+  const sp=textSprite(w.n,0.32);
+  sp.material.opacity=0;sp.position.set(w.x,42,w.z);gDetail.add(sp);
+  waterSprites.push(sp);
 }
 const districtSprites=[];
 for(const d of DISTRICTS){
-  const sp=textSprite(d.n,0.9);
-  sp.position.set(d.x,130,d.z);
+  /* Skip downtown — landmarks cover it; smaller mid-zoom-only labels */
+  if(d.id==='downtown')continue;
+  const sp=textSprite(d.n,0.38);
+  sp.material.opacity=0;
+  sp.position.set(d.x,110,d.z);
   scene.add(sp);districtSprites.push(sp);
 }
 
@@ -2097,6 +2344,12 @@ function nearRoad(x,z,extra){
   for(let i=0;i<roadSamplePts.length;i++){const p=roadSamplePts[i];
     const lim=p[3]+extra;
     const dx=x-p[0],dz=z-p[1];if(dx*dx+dz*dz<lim*lim)return true;}return false;}
+/* Freeways only — arterials must not wipe CBD tower footprints */
+function nearFreeway(x,z,extra){
+  for(let i=0;i<roadSamplePts.length;i++){const p=roadSamplePts[i];
+    if(!p[4])continue;
+    const lim=p[3]+extra;
+    const dx=x-p[0],dz=z-p[1];if(dx*dx+dz*dz<lim*lim)return true;}return false;}
 /* ---- airports registry (hoisted so placement can avoid them); repositioned clear of roads ---- */
 const AIRPORTS=[
  /* NOTE: airport pads are decorative; keep them clear of freeway ribbons */
@@ -2129,19 +2382,45 @@ const AIRPORTS=[
   note:'Montgomery County · GA & regional · gateway to The Woodlands / Conroe',
   addr:'1 Airport Rd, Conroe, TX 77303'},
 ];
-for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?540:320});
+if(HTS_PACK&&HTS_PACK.airports&&HTS_PACK.airports.length){
+  AIRPORTS.length=0;
+  for(const a of HTS_PACK.airports)AIRPORTS.push(a);
+}
+for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?540:320,airfield:true});
+/* Keep cars off runway/apron pads even if a road polyline clips the field */
+window.AIRFIELDS=AIRPORTS.map(a=>({x:a.x,z:a.z,r:a.intl?420:260}));
+function inAirfield(x,z){
+  for(const a of AIRFIELDS){
+    const dx=x-a.x,dz=z-a.z;
+    if(dx*dx+dz*dz<a.r*a.r)return a;
+  }
+  return null;
+}
+if(!HTS_IS_AUS){
 EXCLUDES.push({x:-455,z:1157,r:140});  /* NRG Stadium */
 EXCLUDES.push({x:-245,z:1140,r:110});  /* Astrodome (east of NRG, clear gap) */
 EXCLUDES.push({x:240,z:105,r:130});   /* Daikin Park (EaDo) */
 EXCLUDES.push({x:157,z:199,r:120});   /* Toyota Center (EaDo / Polk) */
 EXCLUDES.push({x:2900,z:3320,r:170}); /* Kemah */
 EXCLUDES.push({x:89,z:8,r:90});      /* Downtown Aquarium */
+}
 /* keep suburban houses out of the dense downtown core */
-EXCLUDES.push({x:60,z:60,r:520});     /* Downtown core */
+(function(){
+  const dt=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
+  EXCLUDES.push({x:dt.x,z:dt.z,r:520});
+})();
 function blocked(x,z,extra){
   for(const e of EXCLUDES){const dx=x-e.x,dz=z-e.z;
     if(dx*dx+dz*dz<e.r*e.r)return true;}
   return nearRoad(x,z,extra);
+}
+function inWater(x,z){
+  for(const e of EXCLUDES){
+    if(!e.water)continue;
+    const dx=x-e.x,dz=z-e.z;
+    if(dx*dx+dz*dz<e.r*e.r)return true;
+  }
+  return false;
 }
 
 /* high-detail tower skins: floor bands + mullions + clustered night lights */
@@ -2192,6 +2471,7 @@ const SKINS=[
   towerTextures('#93897a','#5d6a78','#4d5a68','#7c7263',0.40),  /* tan stone */
   towerTextures('#a9abaf','#5f7188','#516074','#8e9094',0.36),  /* white modern */
 ];
+/* Same windowed day/night skins for both cities */
 const towerMats=[
   new THREE.MeshPhongMaterial({map:SKINS[0].map,emissiveMap:SKINS[0].emissive,emissive:new THREE.Color(0xe8d4b0),emissiveIntensity:0,shininess:70,specular:0x668,}),
   new THREE.MeshPhongMaterial({map:SKINS[1].map,emissiveMap:SKINS[1].emissive,emissive:new THREE.Color(0xe0cca8),emissiveIntensity:0,shininess:90,specular:0x557}),
@@ -2262,30 +2542,111 @@ function addTowers(cx,cz,count,rad,hmin,hmax,cylP){
   for(let i=0;i<count;i++){
     const a=rand()*TAU,r=Math.sqrt(rand())*rad;
     const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
-    if(blocked(x,z,28))continue; /* keep towers clear of road corridors */
+    /* Houston: restore pre-Austin placement (blocked + downtown EXCLUDE = landmark CBD).
+       Austin: nearRoad only so geo-pinned towers can sit in the core. */
+    if(HTS_IS_AUS){if(nearRoad(x,z,28))continue;}
+    else{if(blocked(x,z,28))continue;}
     const w=26+rand()*34,dep=26+rand()*34,h=hmin+Math.pow(rand(),1.6)*(hmax-hmin);
     tower(x,z,w,dep,h,Math.floor(rand()*4),rand()<0.7?0:rand()*0.5,rand()<(cylP||0));
   }
 }
 window.PICK_TOWERS=[];
-addTowers(60,60,72,380,70,345,0.14);   /* downtown (denser / taller) */
-addTowers(60,50,32,220,140,325,0.16);  /* dense supertall core */
-addTowers(40,80,24,180,100,280,0.12); /* east downtown */
-addTowers(-40,-60,20,160,80,220,0.08); /* west downtown */
-addTowers(70,40,18,140,90,220,0.10);   /* mid-rise ring */
-addTowers(120,-60,14,150,60,150,0);    /* east-side mid-rises */
-addTowers(-980,180,13,220,55,200,0.1); /* Galleria */
-(function(){const wt=tower(-1010,150,34,34,285,1,0,false);
-  wt.userData.info={n:'Williams Tower',d:'901 ft · 64 floors · 1983 · tallest US skyscraper outside a downtown'};
-  PICK_TOWERS.push(wt);})();
-addTowers(-290,800,17,230,50,180,0.08); /* Med Center */
-addTowers(-680,470,8,160,40,120,0);    /* Greenway */
-addTowers(-420,-1180,6,150,35,95,0);   /* Greenspoint */
-addTowers(-1860,-380,10,200,30,85,0);  /* Energy Corridor */
-addTowers(-1140,-3620,10,260,25,110,0);/* Woodlands */
-addTowers(-3050,2260,8,230,20,70,0);   /* Sugar Land */
-addTowers(1750,2820,7,200,20,60,0);    /* Clear Lake / NASA area */
-const LANDMARK_TOWERS=[
+window.HTS_AUS_LANDMARK_SKIP=[];
+if(HTS_IS_AUS){
+  /*
+   * Proven approach (before spacing experiments): Houston-style landmark towers at
+   * real lat/lng + OSM mid-rise fabric around them. No OSM skyscraper fighting.
+   */
+  (function placeAusLandmarks(){
+    /* Reserve Capitol / UT / Congress Bridge BEFORE pockets so nothing stacks on them */
+    const cap0=geoToWorld(30.2747,-97.7404);
+    const ut0=geoToWorld(30.28565,-97.73921);
+    const br0=geoToWorld(30.2614,-97.7450);
+    HTS_AUS_LANDMARK_SKIP.push({x:cap0.x,z:cap0.z,r:170}); /* full Capitol grounds */
+    HTS_AUS_LANDMARK_SKIP.push({x:ut0.x,z:ut0.z,r:55});
+    HTS_AUS_LANDMARK_SKIP.push({x:br0.x,z:br0.z,r:60});
+    EXCLUDES.push({x:cap0.x,z:cap0.z,r:160});
+    EXCLUDES.push({x:ut0.x,z:ut0.z,r:50});
+
+    const AUS_LANDMARKS=[
+      {n:'Sixth and Guadalupe',lat:30.269687,lng:-97.746691,w:34,d:34,h:280,s:1,info:'875 ft · 66 floors · 2023'},
+      {n:'The Independent',lat:30.267850,lng:-97.751192,w:30,d:30,h:250,s:0,info:'694 ft · 58 floors · 2019'},
+      {n:'The Republic',lat:30.266790,lng:-97.747762,w:32,d:28,h:230,s:1,info:'58 floors · Republic Square'},
+      {n:'The Austonian',lat:30.264730,lng:-97.744511,w:28,d:28,h:240,s:3,info:'683 ft · 56 floors · 2010'},
+      {n:'Fairmont Austin',lat:30.262227,lng:-97.738289,w:40,d:34,h:180,s:2,info:'37 floors · 2018'},
+      {n:'360 Condominiums',lat:30.267418,lng:-97.749682,w:28,d:28,h:205,s:1,info:'581 ft · 44 floors · 2008'},
+      {n:'Frost Bank Tower',lat:30.266500,lng:-97.742847,w:30,d:28,h:175,s:2,info:'516 ft · 33 floors · 2004'},
+      {n:'Indeed Tower',lat:30.269093,lng:-97.744427,w:28,d:32,h:190,s:0,info:'36 floors · 2021'},
+      {n:'One American Center',lat:30.268618,lng:-97.743259,w:30,d:28,h:155,s:2,info:'32 floors'},
+      {n:'415 Colorado',lat:30.267058,lng:-97.744308,w:26,d:26,h:210,s:0,info:'47 floors'},
+      {n:'Block 185',lat:30.26695,lng:-97.74555,w:32,d:30,h:165,s:1,info:'Google Tower · 2015'},
+      {n:'JW Marriott Austin',lat:30.2639,lng:-97.7426,w:36,d:32,h:145,s:2,info:'34 floors · 2015'},
+      {n:'One Congress Plaza',lat:30.2649,lng:-97.7436,w:28,d:28,h:140,s:0,info:'30 floors'},
+      {n:'Spring Condo',lat:30.2634,lng:-97.7408,w:26,d:24,h:155,s:3,info:'Rainey skyline'},
+    ];
+    for(const L of AUS_LANDMARKS){
+      const p=geoToWorld(L.lat,L.lng);
+      /* Never plant a skyscraper on Capitol grounds */
+      if(Math.hypot(p.x-cap0.x,p.z-cap0.z)<160)continue;
+      const m=tower(p.x,p.z,L.w,L.d,L.h,L.s,0,false);
+      m.userData.info={n:L.n,d:L.info};
+      PICK_TOWERS.push(m);
+      HTS_AUS_LANDMARK_SKIP.push({x:p.x,z:p.z,r:Math.max(L.w,L.d)*0.75+18});
+    }
+    /* CBD mid-rise pockets — keep clear of Capitol View / grounds */
+    const dt=geoToWorld(30.2672,-97.7431);
+    const rainey=geoToWorld(30.258,-97.738);
+    const soco=geoToWorld(30.248,-97.749);
+    const east=geoToWorld(30.262,-97.72);
+    function pocket(cx,cz,n,rad,hmin,hmax){
+      let got=0;
+      for(let t=0;t<n*8&&got<n;t++){
+        const a=rand()*TAU,r=Math.sqrt(rand())*rad;
+        const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+        if(nearFreeway(x,z,16))continue;
+        if(typeof inWater==='function'&&inWater(x,z))continue;
+        if(Math.hypot(x-cap0.x,z-cap0.z)<170)continue;
+        let near=false;
+        for(const s of HTS_AUS_LANDMARK_SKIP){if(Math.hypot(x-s.x,z-s.z)<(s.r||40)){near=true;break;}}
+        if(near)continue;
+        const w=22+rand()*18,dep=22+rand()*18;
+        const h=hmin+Math.pow(rand(),1.5)*(hmax-hmin);
+        tower(x,z,w,dep,h,Math.floor(rand()*4),rand()*0.35,false);
+        HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(w,dep)*0.55+12});
+        got++;
+      }
+    }
+    pocket(dt.x,dt.z,28,180,55,150); /* tighter radius — stay south of Capitol */
+    pocket(rainey.x,rainey.z,12,140,70,160);
+    pocket(soco.x,soco.z,10,120,35,95);
+    pocket(east.x,east.z,8,130,30,80);
+    console.log('%cAustin skyline: '+AUS_LANDMARKS.length+' landmarks + CBD pockets (Capitol cleared)','color:#7fd6a0');
+  })();
+  window.__htsPlaceAusSkylineFallback=function(){ /* landmarks already placed */ };
+}else{
+  /* Houston skyline — original denser clusters (Galleria / Med Center / …) + landmark CBD */
+  addTowers(60,60,72,380,70,345,0.14);   /* downtown (denser / taller) */
+  addTowers(60,50,32,220,140,325,0.16);  /* dense supertall core */
+  addTowers(40,80,24,180,100,280,0.12); /* east downtown */
+  addTowers(-40,-60,20,160,80,220,0.08); /* west downtown */
+  addTowers(70,40,18,140,90,220,0.10);   /* mid-rise ring */
+  addTowers(120,-60,14,150,60,150,0);    /* east-side mid-rises */
+  addTowers(-980,180,13,220,55,200,0.1); /* Galleria */
+  (function(){const wt=tower(-1010,150,34,34,285,1,0,false);
+    wt.userData.info={n:'Williams Tower',d:'901 ft · 64 floors · 1983 · tallest US skyscraper outside a downtown'};
+    PICK_TOWERS.push(wt);})();
+  addTowers(-290,800,17,230,50,180,0.08); /* Med Center */
+  addTowers(-680,470,8,160,40,120,0);    /* Greenway */
+  addTowers(-420,-1180,6,150,35,95,0);   /* Greenspoint */
+  addTowers(-1860,-380,10,200,30,85,0);  /* Energy Corridor */
+  addTowers(-1140,-3620,10,260,25,110,0);/* Woodlands */
+  addTowers(-3050,2260,8,230,20,70,0);   /* Sugar Land */
+  addTowers(1750,2820,7,200,20,60,0);    /* Clear Lake / NASA area */
+}
+if(window.HTS_CINEMATIC&&HTS_CINEMATIC.markShadowCasters){
+  try{HTS_CINEMATIC.markShadowCasters(gDetail);}catch(e){}
+}
+const LANDMARK_TOWERS=HTS_IS_AUS?[]:[
  /* Offsets keep towers beside freeways, not sitting in the travel lanes */
  {n:'JPMorgan Chase Tower',x:105,z:25,w:40,d:40,h:335,s:0,info:'1,002 ft · 75 floors · 1982 · tallest in Texas until 2019'},
  {n:'Wells Fargo Plaza',x:-55,z:155,w:38,d:30,h:330,s:0,info:'992 ft · 71 floors · 1983 · all-glass twin quarter-cylinders'},
@@ -2314,14 +2675,14 @@ for(const L of LANDMARK_TOWERS){
   m.userData.info={n:L.n,d:L.info};
   PICK_TOWERS.push(m);
 }
-(function(){const g=new THREE.CylinderGeometry(0.7,1.1,70,5);g.translate(0,35,0);
+if(!HTS_IS_AUS)(function(){const g=new THREE.CylinderGeometry(0.7,1.1,70,5);g.translate(0,35,0);
   const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0x8a9098}));
   m.position.set(60,330,60);gDetail.add(m);})();
 /* Invisible pick volume helper for landmark hover / Wikipedia cards */
 function registerLandmarkHit(x,y,z,sx,sy,sz,info,poi){
   const hit=new THREE.Mesh(
     new THREE.BoxGeometry(sx,sy,sz),
-    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
+    new THREE.MeshBasicMaterial({visible:false})
   );
   hit.position.set(x,y,z);
   hit.userData.info=info;
@@ -2337,21 +2698,101 @@ function registerLandmarkHit(x,y,z,sx,sy,sz,info,poi){
     const tag=w.tag==='bay'?'Bay':w.tag==='reservoir'?'Flood-control reservoir':w.tag==='bayou'?'Bayou':w.tag==='river'?'River':'Lake';
     const r=Math.min(w.r||200,420);
     registerLandmarkHit(w.x,8,w.z,r*1.6,24,r*1.6,
-      {n:w.n,d:tag+' · Greater Houston — hover for a fun fact'},
-      {n:w.n,x:w.x,z:w.z,addr:tag+' · Greater Houston'});
+      {n:w.n,d:tag+' · '+METRO_NAME+' — hover for a fun fact'},
+      {n:w.n,x:w.x,z:w.z,addr:tag+' · '+METRO_NAME});
   }
-  /* Suburbs / districts — skip tiny downtown label (landmarks cover it) */
+  /* Suburbs / districts — skip places that have real landmark meshes */
   for(const d of DISTRICTS){
-    if(d.id==='downtown')continue;
+    if(d.id==='downtown'||d.id==='ut'||d.id==='capitol')continue;
     const s=Math.min(Math.max(d.r*0.9,160),380);
     registerLandmarkHit(d.x,20,d.z,s,40,s,
-      {n:d.n,d:'Houston-area suburb / district — hover for a fun fact'},
-      {n:d.n,x:d.x,z:d.z,addr:'Greater Houston · '+d.n});
+      {n:d.n,d:AREA_NAME+' suburb / district — hover for a fun fact'},
+      {n:d.n,x:d.x,z:d.z,addr:METRO_NAME+' · '+d.n});
   }
 })();
 /* --- downtown landmarks --- */
 window.crownMats=[];
 (function(){
+  if(HTS_IS_AUS){
+    /* Texas State Capitol — pink granite on hilltop north of Congress */
+    const cap=geoToWorld(30.2747,-97.7404);
+    const granite=new THREE.MeshLambertMaterial({color:0xc48a72}); /* Sunset Red granite */
+    const domeMat=new THREE.MeshLambertMaterial({color:0xd4a080});
+    /* raised grounds — lush Capitol lawn */
+    const grounds=new THREE.Mesh(new THREE.CylinderGeometry(110,125,8,24),
+      new THREE.MeshLambertMaterial({color:0x4a9a3a}));
+    grounds.position.set(cap.x,4,cap.z);grounds.receiveShadow=true;gDetail.add(grounds);
+    const base=new THREE.Mesh(towerGeo,granite);
+    base.scale.set(85,36,70);base.position.set(cap.x,8,cap.z);base.castShadow=true;base.receiveShadow=true;gDetail.add(base);
+    const wingL=new THREE.Mesh(towerGeo,granite);
+    wingL.scale.set(55,22,40);wingL.position.set(cap.x-55,8,cap.z);wingL.castShadow=true;gDetail.add(wingL);
+    const wingR=new THREE.Mesh(towerGeo,granite);
+    wingR.scale.set(55,22,40);wingR.position.set(cap.x+55,8,cap.z);wingR.castShadow=true;gDetail.add(wingR);
+    const drum=new THREE.Mesh(new THREE.CylinderGeometry(18,20,28,16),granite);
+    drum.position.set(cap.x,52,cap.z);drum.castShadow=true;gDetail.add(drum);
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(26,20,14),domeMat);
+    dome.scale.set(1,0.78,1);dome.position.set(cap.x,72,cap.z);dome.castShadow=true;gDetail.add(dome);
+    const god=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.8,18,6),
+      new THREE.MeshLambertMaterial({color:0xb8a070}));
+    god.position.set(cap.x,92,cap.z);gDetail.add(god);
+    registerLandmarkHit(cap.x,50,cap.z,120,100,110,
+      {n:'Texas State Capitol',d:'1888 · pink granite · Capitol View Corridors protect this dome'},
+      {n:'Texas State Capitol',x:cap.x,z:cap.z,addr:'1100 Congress Ave — Texas State Capitol'});
+    registerBldgFoot(cap.x,cap.z,90,75);
+    /* UT Tower — Main Building lantern (tall, unmistakable campus anchor) */
+    const ut=geoToWorld(30.28565,-97.73921);
+    (function buildUtTower(){
+      const stone=new THREE.MeshLambertMaterial({color:0xe8e0d0});
+      const trim=new THREE.MeshLambertMaterial({color:0xc8b8a0});
+      const orange=new THREE.MeshLambertMaterial({color:0xbf5700}); /* burnt orange */
+      const geo=new THREE.BoxGeometry(1,1,1);geo.translate(0,0.5,0);
+      function b(x,z,w,h,d,mat,y0){
+        const m=new THREE.Mesh(geo,mat);
+        m.scale.set(w,h,d);m.position.set(x,y0||0,z);m.frustumCulled=false;gDetail.add(m);return m;
+      }
+      /* Main Building podium */
+      b(ut.x,ut.z,52,18,40,stone);
+      b(ut.x-28,ut.z,22,14,32,stone);
+      b(ut.x+28,ut.z,22,14,32,stone);
+      /* Tower shaft — ~307 ft → tall landmark */
+      b(ut.x,ut.z,22,150,22,stone,16);
+      b(ut.x,ut.z,28,18,28,trim,166);
+      b(ut.x,ut.z,16,14,16,orange,184); /* lantern glow block */
+      /* Academic halls immediately around the Tower */
+      const halls=[
+        [-38,-28,30,16,22],[38,-26,28,14,20],[-36,30,26,12,24],[36,28,24,14,20],
+        [-52,8,20,10,28],[50,6,20,10,26],[0,-42,36,12,18],[0,44,34,11,18],
+      ];
+      for(const [dx,dz,w,h,d] of halls)b(ut.x+dx,ut.z+dz,w,h,d,stone);
+      registerLandmarkHit(ut.x,80,ut.z,70,200,70,
+        {n:'UT Tower',d:'Main Building · University of Texas at Austin · 307 ft'},
+        {n:'UT Tower',x:ut.x,z:ut.z,addr:'University of Texas — Main Building'});
+      registerLandmarkHit(ut.x,30,ut.z,120,60,120,
+        {n:'University of Texas at Austin',d:'Flagship campus · Tower · DKR · Moody · LBJ'},
+        {n:'University of Texas at Austin',x:ut.x,z:ut.z,addr:'UT Austin Main Campus'});
+      registerBldgFoot(ut.x,ut.z,56,44);
+      EXCLUDES.push({x:ut.x,z:ut.z,r:70});
+      HTS_AUS_LANDMARK_SKIP.push({x:ut.x,z:ut.z,r:75});
+      console.log('%cUT Tower campus at '+ut.x.toFixed(0)+','+ut.z.toFixed(0),'color:#bf5700');
+    })();
+    /* Congress Ave Bridge bats — deck over Lady Bird */
+    const br=geoToWorld(30.2614,-97.7450);
+    const deck=new THREE.Mesh(new THREE.BoxGeometry(28,3,110),new THREE.MeshLambertMaterial({color:0x5a6068}));
+    deck.position.set(br.x,14,br.z);gDetail.add(deck);
+    for(const sx of [-12,12]){
+      const pier=new THREE.Mesh(new THREE.BoxGeometry(4,14,6),new THREE.MeshLambertMaterial({color:0x6a7078}));
+      pier.position.set(br.x+sx,7,br.z);gDetail.add(pier);
+    }
+    registerLandmarkHit(br.x,16,br.z,40,30,100,
+      {n:'Congress Avenue Bridge',d:'Home of the famous Austin bat colony · Lady Bird Lake'},
+      {n:'Congress Avenue Bridge',x:br.x,z:br.z,addr:'Congress Ave over Lady Bird Lake'});
+    /* Keep OSM from double-stacking Capitol / UT / bridge props (already reserved above) */
+    HTS_AUS_LANDMARK_SKIP.push({x:cap.x,z:cap.z,r:170});
+    HTS_AUS_LANDMARK_SKIP.push({x:ut.x,z:ut.z,r:75});
+    HTS_AUS_LANDMARK_SKIP.push({x:br.x,z:br.z,r:60});
+    /* No street pods on Capitol grounds */
+    return;
+  }
   const dark=towerMats[1];
   /* twin trapezoid prisms (Pennzoil Place) */
   function trapezoid(x,z,rot){
@@ -2422,7 +2863,42 @@ const houseTex=(function(){
 })();
 const HOUSE_COLS=[0xcabfa8,0xb8a88e,0xc9c2b6,0x9aa0a4,0xa8836b,0xb7b1a2,0xd8cfc0];
 const ROOF_COLS=[0x4e4a44,0x5a4a3c,0x44484e,0x5f544a];
-const houseClusters=[
+const houseClusters=HTS_IS_AUS?[
+ /* Austin suburbs — world coords from researched district centers */
+ ...(function(){
+   const ids=[
+     [30.2671,-97.7729,420,220], /* Zilker */
+     [30.292,-97.768,380,200], /* Tarrytown */
+     [30.306,-97.727,360,190], /* Hyde Park */
+     [30.298,-97.704,400,210], /* Mueller */
+     [30.402,-97.725,480,240], /* Domain */
+     [30.358,-97.752,440,220], /* NW Hills */
+     [30.505,-97.82,560,280], /* Cedar Park */
+     [30.508,-97.679,600,300], /* Round Rock */
+     [30.439,-97.62,520,250], /* Pflugerville */
+     [30.633,-97.678,500,240], /* Georgetown */
+     [30.579,-97.853,460,220], /* Leander */
+     [30.309,-97.945,420,200], /* Bee Cave */
+     [30.367,-97.98,440,210], /* Lakeway */
+     [30.298,-97.807,300,140], /* West Lake Hills */
+     [30.085,-97.84,420,200], /* Buda */
+     [29.989,-97.877,440,210], /* Kyle */
+     [29.883,-97.941,480,230], /* San Marcos */
+     [30.19,-98.087,360,160], /* Dripping Springs */
+     [30.24,-97.72,360,170], /* Riverside */
+     [30.24,-97.69,320,150], /* Montopolis */
+     [30.252,-97.788,340,160], /* Barton Hills */
+     [30.248,-97.749,300,140], /* SoCo */
+     [30.341,-97.557,380,170], /* Manor */
+     [30.21,-97.65,360,160], /* Del Valle */
+     [30.275,-97.79,280,120], /* Rollingwood */
+     [30.34,-97.74,320,150], /* Allandale */
+     [30.345,-97.725,320,150], /* Crestview */
+     [30.262,-97.72,340,160], /* East Austin */
+   ];
+   return ids.map(([lat,lng,rad,cnt])=>{const w=geoToWorld(lat,lng);return [w.x,w.z,rad,cnt];});
+ })()
+]:[
  [-3520,-120,700,300],[-3050,2260,760,320],[-2280,2520,620,270],[-2520,1780,380,150],
  [-4550,3300,640,260],[-1140,-3620,780,270],[-950,-2950,560,220],[-1600,-4950,640,240],
  [430,3420,680,290],[-3020,-2420,700,270],[-2650,-3250,560,220],[-1650,-1520,380,160],
@@ -2435,25 +2911,71 @@ const houseClusters=[
 ];
 (function(){
   let N=0;for(const c of houseClusters)N+=c[3];
+  if(HTS_IS_AUS)N=Math.max(N,3200);
   const bodyG=new THREE.BoxGeometry(1,1,1);bodyG.translate(0,0.5,0);
   const bodies=new THREE.InstancedMesh(bodyG,new THREE.MeshLambertMaterial({map:houseTex}),N);
   const roofs=new THREE.InstancedMesh(prismGeom(),new THREE.MeshLambertMaterial({}),N);
   const d=new THREE.Object3D(),col=new THREE.Color();
   let idx=0;
-  for(const [cx,cz,rad,cnt] of houseClusters){
-    let placed=0,tries=0;
-    while(placed<cnt&&tries<cnt*8){tries++;
-      const a=rand()*TAU,r=(0.22+0.78*Math.sqrt(rand()))*rad;
-      const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
-  if(blocked(x,z,14))continue; /* houses clear of road edges */
-      const w=9+rand()*8,dep=10+rand()*9,h=4.5+rand()*3.5,ry=Math.floor(rand()*4)*(Math.PI/2)+(rand()-.5)*0.2;
-      d.position.set(x,0,z);d.rotation.set(0,ry,0);d.scale.set(w,h,dep);d.updateMatrix();
-      bodies.setMatrixAt(idx,d.matrix);
-      col.setHex(HOUSE_COLS[Math.floor(rand()*HOUSE_COLS.length)]);bodies.setColorAt(idx,col);
-      d.position.set(x,h,z);d.scale.set(w*1.08,3+rand()*2,dep*1.08);d.updateMatrix();
-      roofs.setMatrixAt(idx,d.matrix);
-      col.setHex(ROOF_COLS[Math.floor(rand()*ROOF_COLS.length)]);roofs.setColorAt(idx,col);
-      idx++;placed++;
+  function placeHouse(x,z,facing){
+    if(idx>=N)return false;
+    for(const e of EXCLUDES){
+      const dx=x-e.x,dz=z-e.z;
+      if(dx*dx+dz*dz<(e.r+8)*(e.r+8))return false;
+    }
+    if(typeof inWater==='function'&&inWater(x,z))return false;
+    const w=9+rand()*8,dep=10+rand()*9,h=4.5+rand()*3.5;
+    const ry=(facing!=null?facing:Math.floor(rand()*4)*(Math.PI/2))+(rand()-.5)*0.12;
+    d.position.set(x,0,z);d.rotation.set(0,ry,0);d.scale.set(w,h,dep);d.updateMatrix();
+    bodies.setMatrixAt(idx,d.matrix);
+    col.setHex(HOUSE_COLS[Math.floor(rand()*HOUSE_COLS.length)]);bodies.setColorAt(idx,col);
+    d.position.set(x,h,z);d.scale.set(w*1.08,3+rand()*2,dep*1.08);d.updateMatrix();
+    roofs.setMatrixAt(idx,d.matrix);
+    col.setHex(ROOF_COLS[Math.floor(rand()*ROOF_COLS.length)]);roofs.setColorAt(idx,col);
+    idx++;return true;
+  }
+  if(HTS_IS_AUS){
+    /* Sit houses beside arterials/surface roads so suburbs follow the road network */
+    const dt=geoToWorld(30.2672,-97.7431);
+    for(const {def,s} of roadSamples){
+      if(!(def.arterial||def.surface))continue;
+      const step=Math.max(2,Math.floor(18/(def.width||16)));
+      for(let i=0;i<=s.n;i+=step){
+        if(Math.hypot(s.px[i]-dt.x,s.pz[i]-dt.z)<380)continue; /* CBD / Capitol View */
+        const rx=-s.tz[i],rz=s.tx[i];
+        const face=Math.atan2(s.tx[i],s.tz[i]); /* face along street */
+        for(const sg of [1,-1]){
+          if(rand()>0.55)continue;
+          const setback=(def.width||18)*0.55+10+rand()*14;
+          const along=(rand()-0.5)*10;
+          const x=s.px[i]+rx*sg*setback+s.tx[i]*along;
+          const z=s.pz[i]+rz*sg*setback+s.tz[i]*along;
+          /* Face the street (inward toward centerline) */
+          placeHouse(x,z,face+Math.PI/2*(sg>0?1:-1));
+        }
+      }
+    }
+    /* Fill remaining quota in district rings (still avoid water / CBD) */
+    for(const [cx,cz,rad,cnt] of houseClusters){
+      let placed=0,tries=0;
+      while(placed<Math.min(80,cnt*0.28)&&tries<cnt*5&&idx<N){tries++;
+        const a=rand()*TAU,r=(0.35+0.65*Math.sqrt(rand()))*rad;
+        const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+        if(Math.hypot(x-dt.x,z-dt.z)<400)continue;
+        if(nearRoad(x,z,10))continue;
+        if(placeHouse(x,z,null))placed++;
+      }
+    }
+    console.log('%cAustin houses along roads: '+idx,'color:#7fd6a0');
+  }else{
+    for(const [cx,cz,rad,cnt] of houseClusters){
+      let placed=0,tries=0;
+      while(placed<cnt&&tries<cnt*8){tries++;
+        const a=rand()*TAU,r=(0.22+0.78*Math.sqrt(rand()))*rad;
+        const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+        if(blocked(x,z,14))continue;
+        if(placeHouse(x,z,Math.floor(rand()*4)*(Math.PI/2)+(rand()-.5)*0.2))placed++;
+      }
     }
   }
   bodies.count=idx;roofs.count=idx;
@@ -2487,9 +3009,11 @@ const houseClusters=[
   const N=760;const mesh=new THREE.InstancedMesh(g,mat,N);
   const _sc2=new THREE.Color();
   const d=new THREE.Object3D();let placed=0,tries=0;
+  const dtSprawl=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
+  const dtClear=HTS_IS_AUS?480:380;
   while(placed<N&&tries<7000){tries++;
     const x=(rand()-.5)*9000,z=(rand()-.5)*9000;
-    if(Math.hypot(x-60,z-60)<380)continue;
+    if(Math.hypot(x-dtSprawl.x,z-dtSprawl.z)<dtClear)continue;
     if(blocked(x,z,22))continue;
     d.position.set(x,0,z);d.rotation.y=rand()*Math.PI;
     d.scale.set(16+rand()*24,5+rand()*15,16+rand()*24);d.updateMatrix();
@@ -2524,7 +3048,7 @@ function canopyGeom(){
   return merged;
 }
 (function(){
-  const N=4200;
+  const N=HTS_IS_AUS?6200:4200;
   const trunkG=new THREE.CylinderGeometry(0.45,0.62,1,5);trunkG.translate(0,0.5,0);
   const trunks=new THREE.InstancedMesh(trunkG,new THREE.MeshLambertMaterial({color:0x5a4030}),N);
   const canG=canopyGeom();
@@ -2533,11 +3057,14 @@ function canopyGeom(){
   const pines=new THREE.InstancedMesh(pineG,new THREE.MeshLambertMaterial({}),900);
   const d=new THREE.Object3D(),col=new THREE.Color();
   /* Live-oak / pine greens — saturated but not neon under ACES */
-  const GREENS=[0x2f6a28,0x356e2c,0x3a7830,0x2a5e24,0x427a34,0x285820];
+  const GREENS=HTS_IS_AUS
+    ?[0x2a6e28,0x348028,0x3a882e,0x246820,0x4a9034,0x2e7424]
+    :[0x2f6a28,0x356e2c,0x3a7830,0x2a5e24,0x427a34,0x285820];
   const PINEG=[0x1e4a28,0x285830,0x1a4022];
   let idx=0,pidx=0;
   function put(x,z,pine){
     if(blocked(x,z,4))return;
+    if(typeof inWater==='function'&&inWater(x,z))return;
     const h=7+rand()*9;
     if(pine){
       if(pidx>=900)return;
@@ -2548,33 +3075,81 @@ function canopyGeom(){
     }
     if(idx>=N)return;
     d.position.set(x,0,z);d.rotation.y=0;d.scale.set(1,h,1);d.updateMatrix();trunks.setMatrixAt(idx,d.matrix);
-    const cw=8+rand()*7;
+    const cw=(HTS_IS_AUS?10:8)+rand()*(HTS_IS_AUS?9:7);
     d.position.set(x,h*0.72,z);d.rotation.y=rand()*TAU;d.scale.set(cw,cw*0.9,cw);d.updateMatrix();cans.setMatrixAt(idx,d.matrix);
     col.setHex(GREENS[Math.floor(rand()*GREENS.length)]);cans.setColorAt(idx,col);
     idx++;
   }
-  /* Bayou corridors — denser canopy like real Buffalo / Brays / White Oak */
-  for(const pts of ALL_BAYOUS)for(const p of pts)for(let k=0;k<(pts===BAYOU?10:6);k++)
-    put(p[0]+(rand()-.5)*160,p[1]+(rand()-.5)*140,false);
-  for(let k=0;k<280;k++){const a=rand()*TAU,r=Math.sqrt(rand())*480;
-    put(-1140+Math.cos(a)*r,-3620+Math.sin(a)*r,true);}
-  for(let k=0;k<220;k++){const a=rand()*TAU,r=Math.sqrt(rand())*420;
-    put(1500+Math.cos(a)*r,-3700+Math.sin(a)*r,true);}
-  for(let k=0;k<120;k++){const a=rand()*TAU,r=Math.sqrt(rand())*340;
-    put(-1600+Math.cos(a)*r,-4950+Math.sin(a)*r,true);}
-  for(let k=0;k<180;k++){const a=rand()*TAU,r=Math.sqrt(rand())*280;
-    put(-230+Math.cos(a)*r,805+Math.sin(a)*r,false);} /* Hermann */
-  for(let k=0;k<140;k++){const a=rand()*TAU,r=Math.sqrt(rand())*360;
-    put(-880+Math.cos(a)*r,-130+Math.sin(a)*r,false);} /* Memorial */
-  for(let k=0;k<80;k++){put(165+(rand()-.5)*200,28+(rand()-.5)*180,false);}
-  for(let k=0;k<120;k++){put(-350+(rand()-.5)*220,-72+(rand()-.5)*180,false);}
-  for(let k=0;k<70;k++){const a=rand()*TAU,r=Math.sqrt(rand())*180;
-    put(2699+Math.cos(a)*r,-1383+Math.sin(a)*r,false);}
-  for(const [cx,cz,rad] of houseClusters)for(let k=0;k<22;k++){
+  /* Water corridors — denser canopy on BANKS (not mid-channel) */
+  for(const pts of ALL_BAYOUS){
+    if(!pts||pts.length<2)continue;
+    const s=sampleCurve(pts,false,HTS_IS_AUS&&pts===LADYBIRD?22:40);
+    if(!s||!s.total)continue;
+    /* Austin Lady Bird: thick dual-bank canopy like the real hike-and-bike belt */
+    const isLb=HTS_IS_AUS&&pts===LADYBIRD;
+    const side=isLb?58:HTS_IS_AUS?42:70;
+    for(let i=0;i<=s.n;i++){
+      const nPut=isLb?4:(HTS_IS_AUS?2:(pts===BAYOU?3:2));
+      for(let k=0;k<nPut;k++){
+        const sg=rand()<0.5?1:-1;
+        const lat=side+(isLb?rand()*22:(rand()-0.5)*10);
+        const tx=s.px[i]-s.tz[i]*sg*lat, tz=s.pz[i]+s.tx[i]*sg*lat;
+        put(tx,tz,false);
+      }
+    }
+  }
+  if(!HTS_IS_AUS){
+    for(let k=0;k<280;k++){const a=rand()*TAU,r=Math.sqrt(rand())*480;
+      put(-1140+Math.cos(a)*r,-3620+Math.sin(a)*r,true);}
+    for(let k=0;k<220;k++){const a=rand()*TAU,r=Math.sqrt(rand())*420;
+      put(1500+Math.cos(a)*r,-3700+Math.sin(a)*r,true);}
+    for(let k=0;k<120;k++){const a=rand()*TAU,r=Math.sqrt(rand())*340;
+      put(-1600+Math.cos(a)*r,-4950+Math.sin(a)*r,true);}
+    for(let k=0;k<180;k++){const a=rand()*TAU,r=Math.sqrt(rand())*280;
+      put(-230+Math.cos(a)*r,805+Math.sin(a)*r,false);} /* Hermann */
+    for(let k=0;k<140;k++){const a=rand()*TAU,r=Math.sqrt(rand())*360;
+      put(-880+Math.cos(a)*r,-130+Math.sin(a)*r,false);} /* Memorial */
+    for(let k=0;k<80;k++){put(165+(rand()-.5)*200,28+(rand()-.5)*180,false);}
+    for(let k=0;k<120;k++){put(-350+(rand()-.5)*220,-72+(rand()-.5)*180,false);}
+    for(let k=0;k<70;k++){const a=rand()*TAU,r=Math.sqrt(rand())*180;
+      put(2699+Math.cos(a)*r,-1383+Math.sin(a)*r,false);}
+  }else{
+    /* Photo refs: urban forest — dense parks + Capitol oaks + south-bank shores */
+    const parks=[
+      [30.2671,-97.7729,300,420], /* Zilker */
+      [30.2648,-97.7715,140,120], /* Barton Springs */
+      [30.263,-97.753,180,220], /* Auditorium Shores */
+      [30.26,-97.76,160,180], /* Butler Park */
+      [30.321,-97.773,180,140], /* Mount Bonnell */
+      [30.284,-97.752,160,140], /* Pease */
+      [30.2747,-97.7404,200,220], /* Capitol grounds — tree canopy like photos */
+      [30.271,-97.741,120,80], /* Congress / Capitol approach */
+      [30.28565,-97.73921,90,80], /* UT Tower plaza */
+      [30.298,-97.704,160,110], /* Mueller */
+      [30.38,-97.67,220,160], /* Walnut Creek */
+      [30.36,-97.84,200,140], /* Emma Long */
+      [30.185,-97.722,180,120], /* McKinney Falls */
+      [30.248,-97.805,160,110], /* Barton greenbelt */
+      [30.402,-97.725,140,80], /* Domain */
+      [30.292,-97.768,200,140], /* Tarrytown canopy */
+      [30.306,-97.727,180,130], /* Hyde Park canopy */
+    ];
+    for(const [lat,lng,rad,cnt] of parks){
+      const p=geoToWorld(lat,lng);
+      for(let k=0;k<cnt;k++){
+        const a=rand()*TAU,r=Math.sqrt(rand())*rad;
+        put(p.x+Math.cos(a)*r,p.z+Math.sin(a)*r,false);
+      }
+    }
+  }
+  /* Suburbs: Austin = dense urban forest canopy (houses under oaks) */
+  const yardTrees=HTS_IS_AUS?55:22;
+  for(const [cx,cz,rad] of houseClusters)for(let k=0;k<yardTrees;k++){
     const a=rand()*TAU,r=Math.sqrt(rand())*rad;
     put(cx+Math.cos(a)*r,cz+Math.sin(a)*r,false);}
   let tries=0;
-  while(idx<N-1&&tries++<9000)put((rand()-.5)*10000,(rand()-.5)*10000,false);
+  const fillMax=HTS_IS_AUS?14000:9000;
+  while(idx<N-1&&tries++<fillMax)put((rand()-.5)*10000,(rand()-.5)*10000,false);
   trunks.count=idx;cans.count=idx;pines.count=pidx;
   gDetail.add(trunks);gDetail.add(cans);gDetail.add(pines);
 })();
@@ -2589,6 +3164,7 @@ function canopyGeom(){
   let idx=0,tries=0;
   function shrub(x,z){
     if(idx>=N||blocked(x,z,3))return;
+    if(typeof inWater==='function'&&inWater(x,z))return;
     d.position.set(x,0,z);
     const s2=1.8+rand()*2.8;
     d.scale.set(s2,s2*(0.7+rand()*0.4),s2);
@@ -2606,6 +3182,7 @@ function canopyGeom(){
 
 /* ---------------- ship-channel industry ---------------- */
 (function(){
+  if(HTS_IS_AUS)return;
   const spots=[];
   for(let i=0;i<28;i++)spots.push([2050+rand()*1300,140+rand()*600]);
   for(let i=0;i<18;i++)spots.push([3550+rand()*680,-580+rand()*440]);
@@ -2625,16 +3202,43 @@ function canopyGeom(){
   }
 })();
 
-/* downtown street grid */
+/* downtown street grid — Houston CBD + quiet Austin Congress-aligned fabric */
 (function(){
   const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-  x.strokeStyle='#2c2f34';x.lineWidth=7;
-  for(let i=0;i<=8;i++){const p=i*32;x.beginPath();x.moveTo(p,0);x.lineTo(p,256);x.stroke();
-    x.beginPath();x.moveTo(0,p);x.lineTo(256,p);x.stroke();}
+  if(HTS_IS_AUS){
+    /* Dim clay-city blocks — Congress-aligned N–S / E–W fabric */
+    x.fillStyle='#4a463c';
+    x.fillRect(0,0,256,256);
+    x.strokeStyle='#6a6558';x.lineWidth=4;
+    /* finer north–south streets (Congress cadence) */
+    for(let i=0;i<=12;i++){
+      const p=i*(256/12);
+      x.beginPath();x.moveTo(p,0);x.lineTo(p,256);x.stroke();
+    }
+    x.strokeStyle='#5c584c';x.lineWidth=5;
+    for(let i=0;i<=8;i++){
+      const p=i*(256/8);
+      x.beginPath();x.moveTo(0,p);x.lineTo(256,p);x.stroke();
+    }
+    /* Congress Ave highlight down the center */
+    x.strokeStyle='#8a8470';x.lineWidth=9;
+    x.beginPath();x.moveTo(128,0);x.lineTo(128,256);x.stroke();
+  }else{
+    x.strokeStyle='#2c2f34';x.lineWidth=7;
+    for(let i=0;i<=8;i++){const p=i*32;x.beginPath();x.moveTo(p,0);x.lineTo(p,256);x.stroke();
+      x.beginPath();x.moveTo(0,p);x.lineTo(256,p);x.stroke();}
+  }
   const t=new THREE.CanvasTexture(c);
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(720,720),
-    new THREE.MeshBasicMaterial({map:t,transparent:true,opacity:0.9,depthWrite:false}));
-  m.rotation.x=-Math.PI/2;m.rotation.z=0.12;m.position.set(60,0.1,60);gDetail.add(m);
+  const dt=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(HTS_IS_AUS?620:720,HTS_IS_AUS?640:720),
+    new THREE.MeshLambertMaterial({
+      map:t,transparent:true,opacity:HTS_IS_AUS?0.38:0.55,depthWrite:false,
+    }));
+  m.rotation.x=-Math.PI/2;
+  /* Austin streets roughly N–S / E–W; Houston grid is slightly rotated */
+  m.rotation.z=HTS_IS_AUS?0:0.12;
+  m.position.set(dt.x,0.12,dt.z);
+  gDetail.add(m);
 })();
 
 /* ---------------- airports & aviation ---------------- */
@@ -2897,7 +3501,8 @@ window.FLIGHTS=[];
   window.LIVE_FLIGHT_STATUS={ok:false,err:'',at:0};
 
   function bbox(){
-    /* Houston-ish bounding box */
+    const b=window.HTS_CITY&&window.HTS_CITY.bbox;
+    if(b)return {lamin:b.south,lamax:b.north,lomin:b.west,lomax:b.east};
     return {lamin:28.7,lamax:30.6,lomin:-96.6,lomax:-94.3};
   }
   function mapAdsbLol(ac){
@@ -2958,7 +3563,7 @@ window.FLIGHTS=[];
        adsb.lol / OpenSky often 429 from shared Netlify egress IPs. */
     const radiusNm=75;
     const local=typeof isLocalDevHost==='function'?isLocalDevHost():/localhost|127\.0\.0\.1/.test(location.hostname);
-    const pointPath='/v2/point/29.7604/-95.3698/'+radiusNm;
+    const pointPath='/v2/point/'+METRO_LAT+'/'+METRO_LNG+'/'+radiusNm;
     const adHosts=[
       {src:'airplanes.live', direct:'https://api.airplanes.live'+pointPath, proxy:'/api/airplanes'+pointPath},
       {src:'adsb.lol', direct:'https://api.adsb.lol'+pointPath, proxy:'/api/adsblol'+pointPath},
@@ -3497,8 +4102,10 @@ window.FLIGHTS=[];
   window.HOUSTON_BOARD_STATUS={ok:false,err:'',at:0};
   window.HOUSTON_BOARD=[];
   window.HOUSTON_BOARDS={}; /* apt -> {departures:[], arrivals:[]} */
-  window.BOARD_UI={apt:'IAH',kind:'departures'};
-  const BOARD_APTS=['IAH','HOU','EFD','SGR','DWH','IWS','CXO'];
+  const BOARD_APTS=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts.length)
+    ?HTS_PACK.boardApts.slice()
+    :['IAH','HOU','EFD','SGR','DWH','IWS','CXO'];
+  window.BOARD_UI={apt:BOARD_APTS[0]||'IAH',kind:'departures'};
   /* Was 14 FA calls/min (7 apts × 2). Now: only the selected airport, every 5 min. */
   const BOARD_TTL_MS=5*60*1000;
   const BOARD_POLL_MS=5*60*1000;
@@ -3676,13 +4283,15 @@ window.FLIGHTS=[];
     return refreshBoard(force?apt:null);
   };
   loadBoardDisk();
-  refreshBoard('IAH');
+  refreshBoard(BOARD_APTS[0]||DEFAULT_APT);
   boardRefreshTimer=setInterval(()=>refreshBoard(null),BOARD_POLL_MS);
 })();
 /* Simulated airport-cycle / cruise planes removed — sky is live ADS-B only.
    FLIGHTS stays as an empty array so click/follow helpers remain safe. */
 (function(){ window.FLIGHTS = window.FLIGHTS || []; })();
 /* ---------------- stadiums & arenas ---------------- */
+let ASTRO={x:0,z:0};
+if(!HTS_IS_AUS){
 /* Real NRG Stadium @ 1 NRG Pkwy — rectangular glass bowl, translucent PTFE roof,
    twin burgundy-red longitudinal supertrusses (signature silhouette from I-610). */
 const NRG=geoToWorld(29.6847,-95.4107);
@@ -3821,7 +4430,7 @@ const NRG=geoToWorld(29.6847,-95.4107);
     {n:'Toyota Center',x:cx,z:cz,addr:'1510 Polk St — Houston Rockets · concerts'});
 })();
 /* Astrodome — east of NRG with a clear plaza gap (real sites are neighbors; sim scale needs space) */
-const ASTRO={x:NRG.x+210,z:NRG.z-18};
+ASTRO={x:NRG.x+210,z:NRG.z-18};
 (function(){
   const cx=ASTRO.x,cz=ASTRO.z;
   const domeMat=new THREE.MeshLambertMaterial({color:0xc9c4b8});
@@ -3881,7 +4490,257 @@ const ASTRO={x:NRG.x+210,z:NRG.z-18};
     {n:'Waterwall Park',d:'Gerald D. Hines Waterwall · 64 ft fountain · 1985 · faces Williams Tower'},
     {n:'Waterwall Park',x:wx,z:wz,addr:'2800 Post Oak Blvd · Gerald D. Hines Waterwall'});
 })();
+} /* end Houston-only stadiums / monuments */
 
+/* ---------------- Austin attractions — one building per place, real size + coords ---------------- */
+if(HTS_IS_AUS)(function placeAusAttractions(){
+  /* Map scale: ~210 units/mile. A football stadium footprint ≈ 45×35, not 110. */
+  const conc=new THREE.MeshLambertMaterial({color:0xb8b4ac});
+  const glass=new THREE.MeshLambertMaterial({color:0x8ab0c8,transparent:true,opacity:0.78});
+  const steel=new THREE.MeshLambertMaterial({color:0x6a727a});
+  const turf=new THREE.MeshLambertMaterial({color:0x2f7a38});
+  const dark=new THREE.MeshLambertMaterial({color:0x3a4048});
+  const cream=new THREE.MeshLambertMaterial({color:0xd8d0c0});
+  const waterPool=new THREE.MeshLambertMaterial({color:0x3a9aba});
+
+  function pad(x,z,w,d){
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshLambertMaterial({color:0x5a6068}));
+    m.rotation.x=-Math.PI/2;m.position.set(x,0.08,z);gDetail.add(m);
+  }
+  function box(x,z,w,h,d,mat,y0){
+    const m=new THREE.Mesh(towerGeo,mat);
+    m.scale.set(w,h,d);m.position.set(x,y0||0,z);gDetail.add(m);return m;
+  }
+  function label(){ /* no floating name tags — hover cards + Where am I cover places */ }
+  function clear(x,z,r){EXCLUDES.push({x,z,r});HTS_AUS_LANDMARK_SKIP.push({x,z,r});}
+
+  /* ---- Stadium: Q2 (Austin FC) — North Burnet, far from UT ---- */
+  (function(){
+    const p=geoToWorld(30.3878,-97.7195);const cx=p.x,cz=p.z;
+    clear(cx,cz,55);pad(cx,cz,70,58);
+    box(cx,cz,52,8,42,conc);
+    box(cx,cz,48,14,38,steel,6);
+    const field=new THREE.Mesh(new THREE.PlaneGeometry(36,24),turf);
+    field.rotation.x=-Math.PI/2;field.position.set(cx,20.2,cz);gDetail.add(field);
+    for(const [dx,dz] of [[26,20],[26,-20],[-26,20],[-26,-20]])box(cx+dx,cz+dz,2.5,28,2.5,steel);
+    label('Q2 Stadium',cx,cz,38,0.4);
+    registerLandmarkHit(cx,16,cz,60,40,50,
+      {n:'Q2 Stadium',d:'Austin FC · MLS · opened 2021'},
+      {n:'Q2 Stadium',x:cx,z:cz,addr:'10414 McKalla Pl — Austin FC'});
+  })();
+
+  /* ---- Stadium: DKR–Texas Memorial (east of Tower — own building) ---- */
+  (function(){
+    const p=geoToWorld(30.28361,-97.73252);const cx=p.x,cz=p.z;
+    clear(cx,cz,55);
+    const geo=new THREE.BoxGeometry(1,1,1);geo.translate(0,0.5,0);
+    function b(x,z,w,h,d,mat,y0){
+      const m=new THREE.Mesh(geo,mat);
+      m.scale.set(w,h,d);m.position.set(x,y0||0,z);m.frustumCulled=false;gDetail.add(m);
+    }
+    pad(cx,cz,70,58);
+    b(cx,cz,56,12,44,conc);              /* podium */
+    b(cx,cz,50,22,38,dark,10);           /* seating bowl */
+    b(cx,cz+20,48,14,8,steel,20);        /* upper N */
+    b(cx,cz-20,48,14,8,steel,20);        /* upper S */
+    b(cx+26,cz,8,18,36,steel,12);        /* east stands */
+    b(cx-26,cz,8,18,36,steel,12);        /* west stands */
+    const field=new THREE.Mesh(new THREE.PlaneGeometry(36,20),turf);
+    field.rotation.x=-Math.PI/2;field.position.set(cx,28.2,cz);field.frustumCulled=false;gDetail.add(field);
+    /* goal posts */
+    for(const dz of [-12,12]){
+      b(cx,cz+dz,1.2,18,1.2,steel,28);
+      b(cx,cz+dz,10,1.2,1.2,steel,44);
+    }
+    registerLandmarkHit(cx,22,cz,65,50,55,
+      {n:'DKR–Texas Memorial Stadium',d:'Texas Longhorns football'},
+      {n:'DKR–Texas Memorial Stadium',x:cx,z:cz,addr:'405 E 23rd St'});
+    console.log('%cDKR Stadium at '+cx.toFixed(0)+','+cz.toFixed(0),'color:#bf5700');
+  })();
+
+  /* ---- Arena: Moody Center — south of DKR ---- */
+  (function(){
+    const p=geoToWorld(30.2806,-97.7323);const cx=p.x,cz=p.z;
+    clear(cx,cz,42);pad(cx,cz,50,46);
+    const geo=new THREE.BoxGeometry(1,1,1);geo.translate(0,0.5,0);
+    const base=new THREE.Mesh(geo,conc);
+    base.scale.set(42,10,38);base.position.set(cx,0,cz);base.frustumCulled=false;gDetail.add(base);
+    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(20,24,18,16),glass);
+    bowl.position.set(cx,19,cz);bowl.frustumCulled=false;gDetail.add(bowl);
+    const roof=new THREE.Mesh(new THREE.SphereGeometry(22,16,10,0,TAU,0,Math.PI*0.48),steel);
+    roof.scale.set(1,0.35,1);roof.position.set(cx,30,cz);roof.frustumCulled=false;gDetail.add(roof);
+    registerLandmarkHit(cx,18,cz,48,40,44,
+      {n:'Moody Center',d:'UT arena · basketball · concerts'},
+      {n:'Moody Center',x:cx,z:cz,addr:'2001 Robert Dedman Dr'});
+  })();
+
+  /* (UT Tower + academic halls are built with Capitol landmarks above) */
+  /* ---- Museum: LBJ Library — east of DKR on Red River (own building) ---- */
+  (function(){
+    const p=geoToWorld(30.2857,-97.7292);const cx=p.x,cz=p.z;
+    clear(cx,cz,28);pad(cx,cz,36,30);
+    box(cx,cz,28,22,22,cream);
+    box(cx,cz,20,5,16,dark,22);
+    label('LBJ Library',cx,cz,36,0.3);
+    registerLandmarkHit(cx,14,cz,35,30,30,
+      {n:'LBJ Presidential Library',d:'LBJ Library & Museum · UT campus'},
+      {n:'LBJ Presidential Library',x:cx,z:cz,addr:'2313 Red River St'});
+  })();
+
+  /* ---- Theater: ACL Live (downtown — not on campus) ---- */
+  (function(){
+    const p=geoToWorld(30.2654,-97.7497);const cx=p.x,cz=p.z;
+    clear(cx,cz,28);
+    box(cx,cz,32,16,26,dark);
+    box(cx,cz,28,6,22,glass,16);
+    label('ACL Live',cx,cz,32,0.3);
+    registerLandmarkHit(cx,12,cz,35,28,30,
+      {n:'ACL Live · Moody Theater',d:'Austin City Limits studio'},
+      {n:'ACL Live · Moody Theater',x:cx,z:cz,addr:'310 Willie Nelson Blvd'});
+  })();
+
+  /* ---- Museum: Bullock — north of Capitol ---- */
+  (function(){
+    const p=geoToWorld(30.2803,-97.739);const cx=p.x,cz=p.z;
+    clear(cx,cz,32);pad(cx,cz,40,34);
+    box(cx,cz,34,14,28,cream);
+    box(cx+6,cz,16,10,16,glass,14);
+    label('Bullock Museum',cx,cz,32,0.3);
+    registerLandmarkHit(cx,12,cz,38,28,32,
+      {n:'Bullock Texas History Museum',d:'Texas history · IMAX'},
+      {n:'Bullock Texas History Museum',x:cx,z:cz,addr:'1800 Congress Ave'});
+  })();
+
+  /* ---- Pool: Barton Springs ---- */
+  (function(){
+    const p=geoToWorld(30.264,-97.771);const cx=p.x,cz=p.z;
+    clear(cx,cz,32);
+    const deck=new THREE.Mesh(new THREE.PlaneGeometry(48,20),new THREE.MeshLambertMaterial({color:0xc8c0b0}));
+    deck.rotation.x=-Math.PI/2;deck.position.set(cx,0.12,cz);gDetail.add(deck);
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(36,12),waterPool);
+    pool.rotation.x=-Math.PI/2;pool.position.set(cx,0.2,cz);gDetail.add(pool);
+    box(cx-20,cz,8,5,16,conc);
+    label('Barton Springs',cx,cz,22,0.28);
+    registerLandmarkHit(cx,6,cz,40,16,24,
+      {n:'Barton Springs Pool',d:'Spring-fed pool · Zilker'},
+      {n:'Barton Springs Pool',x:cx,z:cz,addr:'2131 William Barton Dr'});
+  })();
+
+  /* ---- Performing arts: Long Center ---- */
+  (function(){
+    const p=geoToWorld(30.2607,-97.7513);const cx=p.x,cz=p.z;
+    clear(cx,cz,30);pad(cx,cz,38,32);
+    box(cx,cz,32,12,26,cream);
+    box(cx,cz,24,7,18,glass,12);
+    label('Long Center',cx,cz,28,0.28);
+    registerLandmarkHit(cx,10,cz,36,24,30,
+      {n:'Long Center',d:'Performing arts · Auditorium Shores'},
+      {n:'Long Center',x:cx,z:cz,addr:'701 W Riverside Dr'});
+  })();
+
+  /* ---- Retail campus: The Domain ---- */
+  (function(){
+    const p=geoToWorld(30.402,-97.725);const cx=p.x,cz=p.z;
+    clear(cx,cz,70);pad(cx,cz,90,80);
+    for(const [dx,dz,w,d,h] of [[-22,-16,22,16,28],[20,-14,20,14,24],[-18,20,24,14,22],[22,18,18,16,20],[0,0,26,18,32]]){
+      box(cx+dx,cz+dz,w,h,d,rand()<.5?glass:cream);
+    }
+    registerLandmarkHit(cx,16,cz,80,40,70,
+      {n:'The Domain',d:'North Austin mixed-use'},
+      {n:'The Domain',x:cx,z:cz,addr:'Domain Dr · North Austin'});
+  })();
+
+  /* ---- Park: Zilker — Great Lawn + Hillside Theater shell ---- */
+  (function(){
+    const p=geoToWorld(30.2671,-97.7729);const cx=p.x,cz=p.z;
+    clear(cx,cz,40);
+    const lawn=new THREE.Mesh(new THREE.CircleGeometry(36,20),new THREE.MeshLambertMaterial({color:0x3f8a3a}));
+    lawn.rotation.x=-Math.PI/2;lawn.position.set(cx,0.1,cz);gDetail.add(lawn);
+    box(cx+18,cz-10,22,6,14,cream); /* Zilker Clubhouse */
+    /* Hillside Theater — open stage shell */
+    const shell=new THREE.Mesh(new THREE.CylinderGeometry(10,14,8,10,1,true,0,Math.PI),conc);
+    shell.position.set(cx-12,4,cz+14);shell.rotation.y=0.4;gDetail.add(shell);
+    registerLandmarkHit(cx,8,cz,50,24,50,
+      {n:'Zilker Park',d:'Great Lawn · Hillside Theater · Trail of Lights'},
+      {n:'Zilker Park',x:cx,z:cz,addr:'2100 Barton Springs Rd'});
+  })();
+
+  /* ---- Overlook: Mount Bonnell ---- */
+  (function(){
+    const p=geoToWorld(30.321,-97.773);const cx=p.x,cz=p.z;
+    clear(cx,cz,28);
+    const hill=new THREE.Mesh(new THREE.CylinderGeometry(18,28,14,12),new THREE.MeshLambertMaterial({color:0x4a7a3a}));
+    hill.position.set(cx,7,cz);gDetail.add(hill);
+    box(cx,cz,14,4,10,cream,14); /* pavilion on summit */
+    registerLandmarkHit(cx,14,cz,32,28,32,
+      {n:'Mount Bonnell',d:'Covert Park overlook · Lake Austin views'},
+      {n:'Mount Bonnell',x:cx,z:cz,addr:'3800 Mount Bonnell Rd'});
+  })();
+
+  /* ---- Park: Pease — pavilion by Shoal Creek ---- */
+  (function(){
+    const p=geoToWorld(30.284,-97.752);const cx=p.x,cz=p.z;
+    clear(cx,cz,28);
+    box(cx,cz,18,5,12,cream);
+    box(cx,cz,20,2,14,dark,5);
+    registerLandmarkHit(cx,6,cz,30,18,28,
+      {n:'Pease Park',d:'Shoal Creek greenbelt · Kingsbury Commons'},
+      {n:'Pease Park',x:cx,z:cz,addr:'1100 Kingsbury St'});
+  })();
+
+  /* ---- Parks: visitor buildings at metro parks ---- */
+  for(const [lat,lng,name,addr] of [
+    [30.38,-97.67,'Walnut Creek Metro Park','12138 N Lamar Blvd'],
+    [30.36,-97.84,'Emma Long Metropolitan Park','1600 City Park Rd'],
+    [30.185,-97.722,'McKinney Falls State Park','5808 McKinney Falls Pkwy'],
+  ]){
+    const p=geoToWorld(lat,lng);const cx=p.x,cz=p.z;
+    clear(cx,cz,26);
+    box(cx,cz,20,6,14,cream);
+    box(cx+10,cz,8,4,10,conc);
+    registerLandmarkHit(cx,6,cz,28,16,26,{n:name,d:'Austin metro park'},{n:name,x:cx,z:cz,addr:addr});
+  }
+
+  /* ---- Sixth Street entertainment row ---- */
+  (function(){
+    const p=geoToWorld(30.2675,-97.7395);const cx=p.x,cz=p.z;
+    clear(cx,cz,36);
+    for(let i=-3;i<=3;i++){
+      box(cx+i*10,cz-8,8,10+((i*i)%5),10,i%2?dark:cream);
+      box(cx+i*10,cz+8,8,8+((i*i)%4),10,i%2?cream:dark);
+    }
+    registerLandmarkHit(cx,10,cz,42,24,30,
+      {n:'Sixth Street',d:'Historic entertainment district'},
+      {n:'Sixth Street',x:cx,z:cz,addr:'E 6th St · Downtown Austin'});
+  })();
+
+  /* ---- Rainey Street bungalow bars ---- */
+  (function(){
+    const p=geoToWorld(30.258,-97.738);const cx=p.x,cz=p.z;
+    clear(cx,cz,32);
+    for(const [dx,dz] of [[-14,-6],[-4,4],[8,-4],[16,6],[-10,10]]){
+      box(cx+dx,cz+dz,10,5,8,cream);
+      box(cx+dx,cz+dz,11,2,9,dark,5);
+    }
+    registerLandmarkHit(cx,6,cz,36,18,32,
+      {n:'Rainey Street',d:'Bungalow bars · east of Congress'},
+      {n:'Rainey Street',x:cx,z:cz,addr:'Rainey St · Downtown Austin'});
+  })();
+
+  /* ---- Lady Bird shore pavilion (Zilker bank — not mid-lake) ---- */
+  (function(){
+    const p=geoToWorld(30.2648,-97.7725);const cx=p.x,cz=p.z;
+    clear(cx,cz,22);
+    box(cx,cz,16,4,10,cream);
+    const dock=new THREE.Mesh(new THREE.PlaneGeometry(20,6),conc);
+    dock.rotation.x=-Math.PI/2;dock.position.set(cx,0.15,cz+8);gDetail.add(dock);
+    registerLandmarkHit(cx,5,cz,28,14,28,
+      {n:'Lady Bird Lake',d:'Colorado River reservoir · boardwalk & trails'},
+      {n:'Lady Bird Lake',x:cx,z:cz,addr:'Lady Bird Lake · Zilker shore'});
+  })();
+
+  console.log('%cAustin attractions: one landmark building per site','color:#7fd6a0');
+})();
 /* ---------------- points of interest ---------------- */
 function poiBadge(kind){
   const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
@@ -3965,6 +4824,24 @@ const PLACE_HISTORY={
   'Houston City Hall':{wiki:'Houston_City_Hall',blurb:'1939 Art Deco city hall by Joseph Finger, with a reflecting pool and historic downtown civic axis.'},
   'Kemah Boardwalk':{wiki:'Kemah_Boardwalk',blurb:'Landry’s waterfront entertainment district on Galveston Bay — rides, restaurants, and Gulf Coast views.'},
   'Moody Gardens':{wiki:'Moody_Gardens',blurb:'Galveston attraction complex known for its Aquarium, Rainforest, and Palm Beach pyramids.'},
+  'Q2 Stadium':{wiki:'Q2_Stadium',blurb:'Opened 2021 as home of Austin FC (MLS) in the North Burnet district near The Domain.'},
+  'Moody Center':{wiki:'Moody_Center',blurb:'Opened 2022 on the UT Austin campus — basketball, concerts, and major events beside DKR Stadium.'},
+  'DKR–Texas Memorial Stadium':{wiki:'Darrell_K_Royal–Texas_Memorial_Stadium',blurb:'Home of the Texas Longhorns. One of the largest stadiums in college football, on the UT campus.'},
+  'DKR Stadium':{wiki:'Darrell_K_Royal–Texas_Memorial_Stadium',blurb:'Home of the Texas Longhorns. One of the largest stadiums in college football, on the UT campus.'},
+  'ACL Live · Moody Theater':{wiki:'Moody_Theater',blurb:'Downtown Austin venue and home studio for Austin City Limits — live music on Willie Nelson Blvd.'},
+  'ACL Live':{wiki:'Moody_Theater',blurb:'Downtown Austin venue and home studio for Austin City Limits — live music on Willie Nelson Blvd.'},
+  'LBJ Presidential Library':{wiki:'Lyndon_Baines_Johnson_Library_and_Museum',blurb:'Presidential library of Lyndon B. Johnson on the UT Austin campus.'},
+  'LBJ Library':{wiki:'Lyndon_Baines_Johnson_Library_and_Museum',blurb:'Presidential library of Lyndon B. Johnson on the UT Austin campus.'},
+  'Bullock Texas History Museum':{wiki:'Bullock_Texas_State_History_Museum',blurb:'Texas history museum north of the Capitol with exhibits and an IMAX theater.'},
+  'Bullock Museum':{wiki:'Bullock_Texas_State_History_Museum',blurb:'Texas history museum north of the Capitol with exhibits and an IMAX theater.'},
+  'Barton Springs Pool':{wiki:'Barton_Springs',blurb:'Spring-fed pool in Zilker Park — a defining Austin swimming spot fed by the Edwards Aquifer.'},
+  'Barton Springs':{wiki:'Barton_Springs',blurb:'Spring-fed pool in Zilker Park — a defining Austin swimming spot fed by the Edwards Aquifer.'},
+  'Long Center':{wiki:'Long_Center_for_the_Performing_Arts',blurb:'Performing arts center on the south shore of Lady Bird Lake at Auditorium Shores.'},
+  'The Domain':{wiki:'The_Domain_(Austin,_Texas)',blurb:'North Austin mixed-use district with shops, offices, and apartments near US-183.'},
+  'Texas State Capitol':{wiki:'Texas_State_Capitol',blurb:'1888 pink-granite capitol. Capitol View Corridors protect the dome’s skyline presence.'},
+  'UT Tower':{wiki:'Main_Building_(University_of_Texas_at_Austin)',blurb:'Main Building lantern of the University of Texas at Austin — the iconic UT Tower.'},
+  'Zilker Park':{wiki:'Zilker_Park',blurb:'351-acre park west of downtown — Barton Springs, ACL Festival grounds, and Lady Bird Lake trails.'},
+  'University of Texas at Austin':{wiki:'University_of_Texas_at_Austin',blurb:'Flagship UT campus north of the Capitol — Tower, DKR Stadium, Moody Center, and LBJ Library.'},
   'Lone Star Flight Museum':{wiki:'Lone_Star_Flight_Museum',blurb:'Aviation museum at Ellington Field with flying historic aircraft and Texas aviation heritage exhibits.'},
   'Shell Energy Stadium':{wiki:'Shell_Energy_Stadium',blurb:'Opened 2012 as BBVA Stadium. Home of Houston Dynamo FC and the Houston Dash in EaDo.'},
   'Downtown Aquarium':{wiki:'Downtown_Aquarium,_Houston',blurb:'Landry’s aquarium-restaurant complex with a Ferris wheel and shark tunnel near Buffalo Bayou.'},
@@ -4284,6 +5161,18 @@ const POIS=[
  poiAt('Buc-ee\'s Katy','fuel',29.7825,-95.8245,'27700 Katy Fwy','World-famous Texas travel stop'),
  poiAt('CityCentre','shop',29.7825,-95.5605,'800 Town & Country Blvd','Mixed-use district in the Energy Corridor'),
 ];
+if(HTS_PACK&&HTS_PACK.pois&&HTS_PACK.pois.length){
+  POIS.length=0;
+  for(const p of HTS_PACK.pois){
+    const n=p.n||'';
+    let k='sight';
+    if(/park|springs|zilker|pease|walnut|emma|mckinney|lady.?bird|mount bonnell/i.test(n))k='park';
+    else if(/stadium|q2|moody center|acl|theater|domain/i.test(n))k='fun';
+    else if(/ut |university|school|college|lbj|library/i.test(n))k='school';
+    else if(/capitol|museum|bullock/i.test(n))k='sight';
+    POIS.push({n,k,x:p.x,z:p.z,addr:p.addr||n,lat:p.lat,lng:p.lng,id:p.id});
+  }
+}
 const poiSprites=[];
 for(const p of POIS){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:poiBadge(p.k),transparent:true,depthWrite:false,opacity:0}));
@@ -4292,6 +5181,7 @@ for(const p of POIS){
 }
 /* NASA Johnson Space Center campus pad (visual landmark near Space Center Houston) */
 (function(){
+  if(HTS_IS_AUS)return;
   const jsc=geoToWorld(29.5593,-95.0899);
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(280,220),new THREE.MeshLambertMaterial({color:0x4a5560}));
   pad.rotation.x=-Math.PI/2;pad.position.set(jsc.x,0.12,jsc.z);gDetail.add(pad);
@@ -4309,6 +5199,7 @@ for(const p of POIS){
 })();
 /* Kemah: boardwalk pad + working ferris wheel */
 window.FERRIS=(function(){
+  if(HTS_IS_AUS)return null;
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(220,140),new THREE.MeshLambertMaterial({color:0x8a7a5e}));
   pad.rotation.x=-Math.PI/2;pad.position.set(2900,0.1,3330);gDetail.add(pad);
   const g=new THREE.Group();
@@ -4334,6 +5225,7 @@ window.FERRIS=(function(){
 
 /* Downtown Aquarium — Landry’s complex on Buffalo Bayou (410 Bagby) */
 (function buildDowntownAquarium(){
+  if(HTS_IS_AUS)return;
   const ax=89, az=8;
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(95,70),new THREE.MeshLambertMaterial({color:0x6a7068}));
   pad.rotation.x=-Math.PI/2;pad.position.set(ax,0.08,az);gDetail.add(pad);
@@ -4380,7 +5272,20 @@ window.FERRIS=(function(){
    Visible characters ≈ outdoor foot traffic, not total population. */
 window.updateCrowds=(function(){
   /* dens = relative outdoor foot-traffic weight (1 = quiet park path) */
-  const PED_HUBS=[
+  const dtAus=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):null;
+  const PED_HUBS=HTS_IS_AUS?[
+    {x:dtAus.x,z:dtAus.z,r:160,dens:9.5,kind:'core'},
+    {x:geoToWorld(30.2675,-97.7395).x,z:geoToWorld(30.2675,-97.7395).z,r:90,dens:7.0,kind:'core'}, /* 6th */
+    {x:geoToWorld(30.258,-97.738).x,z:geoToWorld(30.258,-97.738).z,r:70,dens:5.5,kind:'venue'}, /* Rainey — south shore */
+    {x:geoToWorld(30.2671,-97.7729).x,z:geoToWorld(30.2671,-97.7729).z,r:140,dens:4.5,kind:'park'}, /* Zilker */
+    {x:geoToWorld(30.2747,-97.7404).x,z:geoToWorld(30.2747,-97.7404).z,r:100,dens:4.0,kind:'core'}, /* Capitol grounds */
+    {x:geoToWorld(30.28565,-97.73921).x,z:geoToWorld(30.28565,-97.73921).z,r:70,dens:4.0,kind:'school'}, /* UT Tower plaza only */
+    /* Skip lake-tagged POIs — those centers sit in open water */
+    ...(HTS_PACK&&HTS_PACK.pois?HTS_PACK.pois.filter(p=>{
+      const id=(p.id||'')+(p.n||'');
+      return !/lady.?bird|lake travis|lake austin/i.test(id);
+    }).slice(0,8).map(p=>({x:p.x,z:p.z,r:Math.min(p.r||120,140),dens:3.5,kind:'venue'})):[])
+  ]:[
     /* Downtown core — densest outdoor streets (Main / tunnels steal some) */
     {x:60,z:60,r:200,dens:9.5,kind:'core'},
     {x:95,z:75,r:140,dens:8.5,kind:'core'},   /* Main St / transit */
@@ -4474,19 +5379,22 @@ window.updateCrowds=(function(){
   })();
   const bikes=new THREE.InstancedMesh(bikeGeom,new THREE.MeshLambertMaterial({}),NB);
   scene.add(bikes);
-  const bikeTrails=[
-    sampleCurve(BAYOU,false,30),
-    sampleCurve(WHITEOAK,false,30),
-    sampleCurve(BRAYS,false,30)
-  ];
+  const bikeTrails=(HTS_IS_AUS?[LADYBIRD,SHOAL,BARTON_CK]:[BAYOU,WHITEOAK,BRAYS])
+    .filter(pts=>pts&&pts.length>=2)
+    .map(pts=>sampleCurve(pts,false,30))
+    .filter(t=>t&&t.total>1);
+  /* Houston bayou trail ≈ ±52; Austin Lady Bird trail outside wide channel half-width */
+  const bikeSide=HTS_IS_AUS?58:52;
   const bikeList=[];
   for(let i=0;i<NB;i++){
+    if(!bikeTrails.length)break;
     const trail=bikeTrails[Math.floor(rand()*bikeTrails.length)];
-    bikeList.push({trail,s:rand()*trail.total,v:10+rand()*8,side:rand()<0.5?52:-52,wake:rand()});
+    bikeList.push({trail,s:rand()*trail.total,v:10+rand()*8,side:rand()<0.5?bikeSide:-bikeSide,wake:rand()});
     col.setHex(PCOLS[Math.floor(rand()*PCOLS.length)]);bikes.setColorAt(i,col);
   }
+  bikes.count=bikeList.length;
   return function(dt,camRadius,hour){
-    const on=camRadius<2800&&!window.osmMode;
+    const on=camRadius<(HTS_IS_AUS?1600:2800)&&!window.osmMode;
     if(peds.visible!==on){peds.visible=on;bikes.visible=on;}
     if(!on)return;
     const h=(hour==null?12:hour);
@@ -4499,20 +5407,33 @@ window.updateCrowds=(function(){
         peds.setMatrixAt(i,d.matrix);continue;
       }
       p.a+=p.sp*dt*60*0.016;
-      const x=p.hub.x+Math.cos(p.a)*p.rr,z=p.hub.z+Math.sin(p.a)*p.rr;
+      let x=p.hub.x+Math.cos(p.a)*p.rr,z=p.hub.z+Math.sin(p.a)*p.rr;
+      /* Keep feet dry — nudge off lake / reservoir excludes */
+      if(typeof inWater==='function'&&inWater(x,z)){
+        for(let t=0;t<6;t++){
+          p.a+=0.7;
+          x=p.hub.x+Math.cos(p.a)*p.rr;z=p.hub.z+Math.sin(p.a)*p.rr;
+          if(!inWater(x,z))break;
+        }
+        if(inWater(x,z)){
+          d.position.set(0,-40,0);d.scale.setScalar(0.001);d.updateMatrix();
+          peds.setMatrixAt(i,d.matrix);continue;
+        }
+      }
       d.position.set(x,0.05,z);
       d.rotation.set(0,Math.atan2(-Math.sin(p.a)*Math.sign(p.sp),Math.cos(p.a)*Math.sign(p.sp)),0);
       d.scale.setScalar(p.sc);d.updateMatrix();peds.setMatrixAt(i,d.matrix);
     }
     peds.instanceMatrix.needsUpdate=true;
     const bikeAct=clamp(act*1.1,0.12,1);
-    for(let i=0;i<NB;i++){
+    for(let i=0;i<bikeList.length;i++){
       const b=bikeList[i];
       if(b.wake>bikeAct){
         d.position.set(0,-40,0);d.scale.setScalar(0.001);d.updateMatrix();
         bikes.setMatrixAt(i,d.matrix);continue;
       }
       const trail=b.trail;
+      if(!trail||!trail.total)continue;
       b.s=(b.s+b.v*dt)%trail.total;
       let lo=0,hi=trail.n;
       while(lo<hi){const m2=(lo+hi)>>1;if(trail.cum[m2]<b.s)lo=m2+1;else hi=m2;}
@@ -4559,8 +5480,8 @@ window.HOTRINGS=[];
     sp.renderOrder=2;
     scene.add(sp);
     /* floating label */
-    const lbl=textSprite(hs.name||'Hotspot',1.6);
-    lbl.position.set(hs.x,36,hs.z);
+    const lbl=textSprite(hs.name||'Hotspot',0.55);
+    lbl.position.set(hs.x,48,hs.z);
     lbl.material.opacity=0;
     lbl.material.depthWrite=false;
     lbl.renderOrder=3;
@@ -4572,7 +5493,7 @@ window.HOTRINGS=[];
 
 /* ---------------- METRORail Red Line (Downtown <-> Med Center) ---------------- */
 const _rpRail={px:0,pz:0,py:0,tx:0,tz:0};
-window.RAIL=(function(){
+window.RAIL=HTS_IS_AUS?null:(function(){
   const pts=[[95,10],[60,190],[-10,390],[-90,570],[-190,705],[-272,812]];
   const s=sampleCurve(pts,false,12);
   gDetail.add(new THREE.Mesh(ribbonGeom(s,5.5,0.86,0,false,0),
@@ -4600,6 +5521,7 @@ window.RAIL=(function(){
 })();
 window.updateRail=function(dt){
   const R=RAIL;
+  if(!R)return;
   if(R.dwell>0){R.dwell-=dt;return;}
   R.pos+=R.dir*16*dt;
   if(R.pos>=R.s.total){R.pos=R.s.total;R.dir=-1;R.dwell=5;}
@@ -4611,6 +5533,7 @@ window.updateRail=function(dt){
 };
 /* ---------------- Port of Houston container cranes ---------------- */
 (function(){
+  if(HTS_IS_AUS)return;
   const craneMat=new THREE.MeshLambertMaterial({color:0xc94b3a});
   for(let k=0;k<4;k++){
     const x=3050+k*130,z=520;
@@ -4844,7 +5767,8 @@ let wxMode='auto',wxCur='clear',wxDesc='Clear',wxBlend={...WX.clear},wxNextRoll=
    falls back to a simulated typical Gulf-Coast pattern if blocked/offline) */
 let liveWx=null; /* Houston downtown — always drives sky/sim */
 let localWx=null; /* user suburb / locate-me weather (shown alongside Houston) */
-const HOU_WX_LAT=29.7604,HOU_WX_LNG=-95.3698;
+const HOU_WX_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
+const HOU_WX_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lng)||-95.3698;
 const WMO_MAP=[
   [[0],'clear','Clear',0],[[1],'partly','Mostly clear',0],[[2],'partly','Partly cloudy',0],
   [[3],'overcast','Overcast',0],[[45,48],'fog','Fog',0],
@@ -5091,9 +6015,10 @@ async function reverseGeocodePlace(lat,lng){
 }
 async function fetchWeather(){
   try{
+    const place=(HTS_PACK&&HTS_PACK.wxPlace)||(CITY_NAME+' · Downtown');
     const r=await fetchWithTimeout(openMeteoUrl(HOU_WX_LAT,HOU_WX_LNG,true),{cache:'no-store'},10000);
     if(!r.ok)throw new Error(r.status);
-    liveWx=parseOpenMeteo(await r.json(),{place:'Houston · Downtown'});
+    liveWx=parseOpenMeteo(await r.json(),{place});
   }catch(e){ liveWx=null; }
 }
 async function fetchLocalWeather(lat,lng,force){
@@ -5221,7 +6146,7 @@ function renderWeatherWarnings(features){
   }
   if(!feats.length){
     const err=window.LIVE_NWS&&window.LIVE_NWS.err;
-    box.innerHTML='<div class="wrWarnEmpty"><b>'+(err?'Could not reach NWS right now.':'No active NWS warnings for the Houston metro.')+'</b><br>'
+    box.innerHTML='<div class="wrWarnEmpty"><b>'+(err?'Could not reach NWS right now.':((HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.empty)||('No active NWS warnings for the '+CITY_NAME+' metro.')))+'</b><br>'
       +(err?'Will retry on the next poll. ':'')
       +'We watch for tornado, hurricane/tropical, heat, winter/snow, flood, severe thunderstorm, and fire-weather alerts.'
       +'<div class="wrWatch"><span>Tornado</span><span>Hurricane</span><span>Heat</span><span>Winter</span><span>Flood</span><span>Severe</span><span>Fire</span></div></div>';
@@ -5255,7 +6180,7 @@ function renderWeatherWarnings(features){
 function openWeatherReport(){
   const panel=$('wxReport'),scrim=$('wxReportScrim');
   if(!panel||!scrim)return;
-  $('wrSub').textContent='Houston metro · National Weather Service';
+  $('wrSub').textContent=((window.HTS_CITY&&window.HTS_CITY.name)||'Houston')+' metro · National Weather Service';
   renderWeatherWarnings((window.LIVE_NWS&&window.LIVE_NWS.features)||[]);
   if(typeof refreshNWSAlerts==='function'){
     _nwsNext=0;
@@ -5263,12 +6188,12 @@ function openWeatherReport(){
       if(!($('wxReport')&&$('wxReport').classList.contains('on')))return;
       renderWeatherWarnings((window.LIVE_NWS&&window.LIVE_NWS.features)||[]);
       const nwsAge=window.LIVE_NWS&&window.LIVE_NWS.at?Math.max(0,Math.round((Date.now()-window.LIVE_NWS.at)/60000)):null;
-      if($('wrFoot'))$('wrFoot').textContent='Official NWS alerts for Houston-area counties'
+      if($('wrFoot'))$('wrFoot').textContent=((HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.foot)||('Official NWS alerts for '+AREA_NAME+' counties'))
         +(nwsAge==null?' · fetching…':(nwsAge<=0?' · updated just now':' · updated '+nwsAge+' min ago'));
     }).catch(()=>{});
   }
   const nwsAge=window.LIVE_NWS&&window.LIVE_NWS.at?Math.max(0,Math.round((Date.now()-window.LIVE_NWS.at)/60000)):null;
-  $('wrFoot').textContent='Official NWS alerts for Houston-area counties'
+  $('wrFoot').textContent=((HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.foot)||('Official NWS alerts for '+AREA_NAME+' counties'))
     +(nwsAge==null?' · fetching…':(nwsAge<=0?' · updated just now':' · updated '+nwsAge+' min ago'));
   panel.hidden=false;panel.classList.add('on');scrim.classList.add('on');
 }
@@ -5945,15 +6870,30 @@ async function fetchTranStarOptionalJson(path){
 function tomtomKey(){
   try{return localStorage.getItem('tt_key')||window.TOMTOM_KEY||'';}catch(e){return window.TOMTOM_KEY||'';}
 }
+function trafficPrimary(){
+  return (window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.primaryTraffic)||'transtar';
+}
 async function tomtomFetch(pathAndQuery){
   const clean=String(pathAndQuery||'').replace(/^\/+/,'');
   try{
     const r=await fetchWithTimeout('/api/tomtom/'+clean,{cache:'no-store'},10000);
     if(r.status===401||r.status===403)window.LIVE_TRAFFIC.authOk=false;
     if(r.ok){window.LIVE_TRAFFIC.authOk=true;return r;}
+    /* Proxy may return 500 when TOMTOM_API_KEY is missing — mark auth so UI doesn’t hang on Connecting */
+    if(r.status>=400){
+      try{
+        const body=await r.clone().json();
+        if(body&&/TOMTOM_API_KEY|missing|unauthorized/i.test(JSON.stringify(body))){
+          window.LIVE_TRAFFIC.authOk=false;
+        }
+      }catch(_e){/* ignore */}
+    }
   }catch(e){/* proxy unavailable — try direct */}
   const key=tomtomKey();
-  if(!key)throw new Error('TomTom unauthorized — set TOMTOM_API_KEY or localStorage tt_key');
+  if(!key){
+    window.LIVE_TRAFFIC.authOk=false;
+    throw new Error('TomTom unauthorized — set TOMTOM_API_KEY or localStorage tt_key');
+  }
   const sep=clean.includes('?')?'&':'?';
   const direct='https://api.tomtom.com/'+clean+sep+'key='+encodeURIComponent(key);
   const r=await fetchWithTimeout(direct,{cache:'no-store'},10000);
@@ -5973,7 +6913,8 @@ async function fetchTomTomFlowAt(lat,lng){
   return await r.json();
 }
 async function fetchTomTomIncidents(){
-  const minLat=28.7,minLon=-96.6,maxLat=30.6,maxLon=-94.3;
+  const b=window.HTS_CITY&&window.HTS_CITY.bbox;
+  const minLat=b?b.south:28.7,minLon=b?b.west:-96.6,maxLat=b?b.north:30.6,maxLon=b?b.east:-94.3;
   const fields=encodeURIComponent('{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code,iconCategory},from,to,length,delay,roadNumbers,timeValidity}}}');
   const path='traffic/services/5/incidentDetails'
     +'?bbox='+minLon+','+minLat+','+maxLon+','+maxLat
@@ -6056,7 +6997,10 @@ function clearNwsAlertEls(){
   for(const el of _nwsAlertEls){try{el.remove();}catch(e){}}
   _nwsAlertEls=[];
 }
-const HOU_MSA_COUNTIES=/\b(Harris|Fort Bend|Montgomery|Brazoria|Galveston|Chambers|Liberty|Waller|Austin|San Jacinto)\b/i;
+const HOU_MSA_COUNTIES=(HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.counties)
+  ||/\b(Harris|Fort Bend|Montgomery|Brazoria|Galveston|Chambers|Liberty|Waller|Austin|San Jacinto)\b/i;
+const HOU_MSA_PLACES=(HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.places)
+  ||/Houston|Galveston Bay|Clear Lake|Woodlands|Sugar Land|Katy|Brazoria|Conroe/i;
 const NWS_POLL_MS=2*60*1000;
 let _nwsNext=0;
 window.LIVE_NWS={ok:false,at:0,count:0,err:'',features:[]};
@@ -6069,7 +7013,7 @@ async function fetchNWSAlerts(){
     const p=f.properties||{};
     if(p.status!=='Actual')return false;
     const area=String(p.areaDesc||'')+' '+String(p.event||'')+' '+String(p.headline||'');
-    return HOU_MSA_COUNTIES.test(area)||/Houston|Galveston Bay|Clear Lake|Woodlands|Sugar Land|Katy|Brazoria|Conroe/i.test(area);
+    return HOU_MSA_COUNTIES.test(area)||HOU_MSA_PLACES.test(area);
   }).sort((a,b)=>nwsSeverityRank((b.properties||{}).severity)-nwsSeverityRank((a.properties||{}).severity)).slice(0,12);
 }
 function syncNWSAlerts(features){
@@ -6191,7 +7135,7 @@ function locateLiveIncident(inc){
   if(road)sign=mapTranStarDirSign(blob,road.def.id)||1;
   const forced=inc.kind||props.kind||'';
   const kind=parseIncidentKind(blob+' '+(props.iconCategory||'')+' '+forced,forced);
-  const roadTxt=road?road.def.short:(props.road||roadId||'Houston');
+  const roadTxt=road?road.def.short:(props.road||roadId||CITY_NAME);
   const place=px!=null?nearestDistrictName(px,pz):'';
   return {road,roadId,arc,sign,px,pz,kind,roadTxt,place,title:title||desc,desc,src:inc.source||props.source||'live'};
 }
@@ -6331,7 +7275,10 @@ async function refreshLiveTraffic(){
     if(doFlow)_liveTrafficNext=now+LIVE_TRAFFIC_POLL_MS;
 
     if(doFlow){
+      const primary=trafficPrimary();
+      const useTranStar=primary==='transtar';
       /* 1) Optional authenticated TranStar speed JSON */
+      if(useTranStar){
       const speedJson=await fetchTranStarOptionalJson('speed.json');
       if(speedJson){
         const n=applyTranStarSpeedJson(speedJson);
@@ -6344,6 +7291,7 @@ async function refreshLiveTraffic(){
         if(typeof indexTranStarCorridorTimes==='function')indexTranStarCorridorTimes(tt);
         if(n>0){flowGot+=n;usedTranStar=true;}
       }catch(te){ /* keep going */ }
+      }
     }else{
       /* Keep last known flow count for status */
       flowGot=window.LIVE_TRAFFIC.flows?window.LIVE_TRAFFIC.flows.size:0;
@@ -6353,6 +7301,7 @@ async function refreshLiveTraffic(){
     refreshNWSAlerts();
     if(now>_liveIncidentNext){
       _liveIncidentNext=now+LIVE_INCIDENT_POLL_MS;
+      if(trafficPrimary()==='transtar'){
       try{
         const [incItems,closeItems]=await Promise.all([
           fetchTranStarRss('incidents_rss.xml'),
@@ -6370,6 +7319,7 @@ async function refreshLiveTraffic(){
           usedTranStar=true;
         }
       }catch(ie){ /* TomTom fallback below */ }
+      }
     }
 
     /* 4) TomTom fills missing segments / incidents when key works (flow cadence) */
@@ -6427,9 +7377,16 @@ async function refreshLiveTraffic(){
       if(flowGot===0)window.LIVE_TRAFFIC.err='Incidents live · waiting on travel-time mapping';
     }else{
       window.LIVE_TRAFFIC.ok=false;
-      window.LIVE_TRAFFIC.err=(window.LIVE_TRAFFIC.authOk===false)
-        ? 'TranStar RSS failed · TomTom key has no Traffic API access'
-        : 'No live traffic samples yet';
+      const primary=trafficPrimary();
+      if(window.LIVE_TRAFFIC.authOk===false){
+        window.LIVE_TRAFFIC.err=primary==='tomtom'
+          ? 'TomTom Traffic API key missing or denied'
+          : 'TranStar offline · TomTom key has no Traffic API access';
+      }else if(primary==='tomtom'){
+        window.LIVE_TRAFFIC.err='Waiting on TomTom flow samples';
+      }else{
+        window.LIVE_TRAFFIC.err='No live traffic samples yet';
+      }
       window.LIVE_TRAFFIC.at=Date.now();
     }
   }catch(e){
@@ -6644,7 +7601,7 @@ canvas.addEventListener('pointermove',e=>{
     if(ah.length&&ah[0].object.userData.airport){
       const a=ah[0].object.userData.airport;
       html='<div class="tn">'+a.code+' · '+a.name+'</div>'
-        +'<div class="ts">'+(a.city||'Houston')+(a.elev?' · elev '+a.elev:'')+(a.intl?' · International':' · General aviation')
+        +'<div class="ts">'+(a.city||CITY_NAME)+(a.elev?' · elev '+a.elev:'')+(a.intl?' · International':' · General aviation')
         +'<br>'+(a.note||'')+'</div>'
         +historyTipHtml(a.name)
         +'<div class="te">'+(a.addr||'')+' — click for directions / Wikipedia</div>';
@@ -6681,7 +7638,7 @@ canvas.addEventListener('pointermove',e=>{
       const gp=gHits[0].point;
       const p=placeNameAt(gp.x,gp.z);
       const road=nearestRoadLabel(gp.x,gp.z);
-      placeHint={n:p?p.n:'Greater Houston',road:road?('near '+road):null,kind:p?p.kind:'area',at:now};
+      placeHint={n:p?p.n:METRO_NAME,road:road?('near '+road):null,kind:p?p.kind:'area',at:now};
     }
   }
   if(placeHint){hoverPlace=placeHint;updateWhereAmI();}
@@ -6822,13 +7779,17 @@ canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches)touches.d
   if(touches.size<2){pinchD=0;pinchMid=null;}},{passive:false});
 
 const CAM_VIEWS={
-  city:{theta:-0.65,phi:0.78,radius:4300,target:[-250,-50]},
-  freeway:{theta:-1.2,phi:1.34,radius:150,target:[-980,-255]},
+  city:{theta:-0.65,phi:0.78,radius:HTS_IS_AUS?1550:4300,target:HTS_IS_AUS?(function(){const d=geoToWorld(30.2672,-97.7431);return [d.x,d.z];})():[-250,-50]},
+  freeway:{theta:-1.2,phi:1.34,radius:150,target:HTS_IS_AUS?(function(){const d=geoToWorld(30.2672,-97.7431);return [d.x+80,d.z+40];})():[-980,-255]},
 };
-const INNER=new Set(['downtown','galleria','medcenter','greenway','heights','montrose','riveroaks','bellaire','midtown','eastend','fifthward','memorial','westu','meyerland','westchase','sharpstown','gulfton']);
-for(const d of DISTRICTS)
-  CAM_VIEWS[d.id]={theta:-0.9+rand()*1.8,phi:0.98,radius:INNER.has(d.id)?560:920,target:[d.x,d.z]};
-const FACILITIES={fac_rice:[-342,683],fac_uh:[390.9,635.2],fac_tsu:[183.1,630.5],fac_lamar:[-842,327],
+const INNER=new Set(['downtown','galleria','medcenter','greenway','heights','montrose','riveroaks','bellaire','midtown','eastend','fifthward','memorial','westu','meyerland','westchase','sharpstown','gulfton','capitol','ut','eastaustin','southcongress','zilker','hydepark','mueller','rainey','riverside']);
+for(const d of DISTRICTS){
+  let rad=INNER.has(d.id)?560:920;
+  if(d.id==='ut')rad=320;
+  if(d.id==='capitol')rad=360;
+  CAM_VIEWS[d.id]={theta:-0.9+rand()*1.8,phi:0.98,radius:rad,target:[d.x,d.z]};
+}
+const FACILITIES=HTS_IS_AUS?{}:{fac_rice:[-342,683],fac_uh:[390.9,635.2],fac_tsu:[183.1,630.5],fac_lamar:[-842,327],
   fac_bellairehs:[-1102,892],fac_lakewood:[-545,455],fac_cocathedral:[55,240],
   fac_isgh:[-682,401],fac_bethisrael:[-914,1129]};
 for(const k in FACILITIES)
@@ -6837,6 +7798,17 @@ for(const a of AIRPORTS)
   CAM_VIEWS[a.id]={theta:-0.7,phi:1.02,radius:a.intl?860:500,target:[a.x,a.z]};
 /* fly-to shortcuts for major attractions (geo-accurate) */
 (function(){
+  if(HTS_PACK&&HTS_PACK.pois&&HTS_PACK.pois.length){
+    for(const p of HTS_PACK.pois){
+      CAM_VIEWS[p.id]={theta:-0.85,phi:1.02,radius:p.r||400,target:[p.x,p.z]};
+    }
+    if(HTS_PACK.camExtras){
+      for(const c of HTS_PACK.camExtras){
+        CAM_VIEWS[c.id]={theta:-0.85,phi:1.02,radius:c.radius||360,target:c.target};
+      }
+    }
+    return;
+  }
   const spots={
     poi_nasa:[29.5593,-95.0899,720],
     poi_sch:[29.5518,-95.0981,520],
@@ -6856,6 +7828,21 @@ for(const a of AIRPORTS)
     CAM_VIEWS[id]={theta:-0.85,phi:1.02,radius:r,target:[w.x,w.z]};
   }
 })();
+
+/* Austin: ensure Fly-to Attractions list is city-correct (not Houston leftovers) */
+if(HTS_IS_AUS&&HTS_PACK&&HTS_PACK.jumpGroups){(function applyAusJumpSelect(){
+  const sel=document.getElementById('locSelect');
+  if(!sel)return;
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const parts=['<option value="city" selected>Full metro view</option>'];
+  for(const g of HTS_PACK.jumpGroups){
+    parts.push('<optgroup label="'+esc(g.label)+'">');
+    for(const [val,label] of g.options)parts.push('<option value="'+esc(val)+'">'+esc(label)+'</option>');
+    parts.push('</optgroup>');
+  }
+  if(HTS_PACK.freewayJumpLabel)parts.push('<option value="freeway">'+esc(HTS_PACK.freewayJumpLabel)+'</option>');
+  sel.innerHTML=parts.join('');
+})();}
 
 /* ---------------- facility buildings (schools / worship) ---------------- */
 function facilityBuilding(kind,x,z){
@@ -6891,7 +7878,23 @@ function facilityBuilding(kind,x,z){
   return base;
 }
 /* tie facilities to POI system (hover cards + badges) */
-const FACILITY_POIS=[
+const FACILITY_POIS=HTS_IS_AUS?(function(){
+  const rows=[
+    {n:'University of Texas at Austin',k:'school',lat:30.28565,lng:-97.73921,addr:'University of Texas · Main Campus'},
+    {n:'St. Edward\'s University',k:'school',lat:30.2295,lng:-97.7545,addr:'3001 S Congress Ave'},
+    {n:'Austin Community College — Highland',k:'school',lat:30.3295,lng:-97.7155,addr:'6101 Airport Blvd'},
+    {n:'Austin High School',k:'school',lat:30.2645,lng:-97.7638,addr:'1715 Cesar Chavez St'},
+    {n:'McCallum High School',k:'school',lat:30.3265,lng:-97.7315,addr:'5600 Sunshine Dr'},
+    {n:'Texas State University',k:'school',lat:29.889,lng:-97.939,addr:'601 University Dr, San Marcos'},
+    {n:'Round Rock High School',k:'school',lat:30.5085,lng:-97.6785,addr:'300 N Lake Creek Dr, Round Rock'},
+    {n:'St. David\'s Episcopal Church',k:'worship',lat:30.2685,lng:-97.7415,addr:'301 E 8th St'},
+    {n:'Central Christian Church',k:'worship',lat:30.2735,lng:-97.7425,addr:'1110 Guadalupe St'},
+  ];
+  return rows.map(r=>{
+    const w=geoToWorld(r.lat,r.lng);
+    return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr};
+  });
+})():[
   {n:'Rice University',k:'school',x:-342,z:683,addr:'6100 Main St · est. 1912'},
   {n:'University of Houston',k:'school',x:390.9,z:635.2,addr:'4800 Calhoun Rd'},
   {n:'Texas Southern University',k:'school',x:183.1,z:630.5,addr:'3100 Cleburne St'},
@@ -6903,11 +7906,29 @@ const FACILITY_POIS=[
   {n:'Congregation Beth Israel',k:'worship',x:-914,z:1129,addr:'5600 N Braeswood Blvd'},
 ];
 for(const p of FACILITY_POIS){
-  const kind=(p.n.includes('Islamic')?'mosque':(p.n.includes('Church')||p.n.includes('Cathedral')||p.n.includes('Congregation')?'church':'school'));
+  /* UT Tower already placed — skip duplicate massing under the lantern */
+  if(HTS_IS_AUS&&/University of Texas at Austin/i.test(p.n)){
+    EXCLUDES.push({x:p.x,z:p.z,r:90});
+    continue;
+  }
+  /* Keep churches/schools off Capitol grounds and athletic venues */
+  if(HTS_IS_AUS){
+    const cap=geoToWorld(30.2747,-97.7404);
+    const dkr=geoToWorld(30.28361,-97.73252);
+    const moody=geoToWorld(30.2806,-97.7323);
+    if(Math.hypot(p.x-cap.x,p.z-cap.z)<160)continue;
+    if(Math.hypot(p.x-dkr.x,p.z-dkr.z)<55)continue;
+    if(Math.hypot(p.x-moody.x,p.z-moody.z)<42)continue;
+  }
+  const kind=(p.n.includes('Islamic')?'mosque':(p.n.includes('Church')||p.n.includes('Cathedral')||p.n.includes('Congregation')||p.n.includes('Episcopal')?'church':'school'));
   const b=facilityBuilding(kind,p.x,p.z);
   b.userData.info={n:p.n,d:p.addr};
+  EXCLUDES.push({x:p.x,z:p.z,r:55});
   if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
   PICK_TOWERS.push(b);
+  registerLandmarkHit(p.x,16,p.z,60,30,50,
+    {n:p.n,d:p.addr},
+    {n:p.n,x:p.x,z:p.z,addr:p.addr});
 }
 
 /* ---------------- simulation clock ---------------- */
@@ -7004,6 +8025,10 @@ const CORRIDORS=[
  {road:'us290',label:'US-290 · Waller',   ax:-5400,az:-4050,bx:-6861,bz:-4281,realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
  {road:'sh146',label:'SH-146 · Baytown',  ax:2900, az:3320, bx:5152, bz:428,  realMi:16, typMin:20, minMin:14, maxMin:45, toDt:false},
 ];
+if(HTS_PACK&&HTS_PACK.corridors&&HTS_PACK.corridors.length){
+  CORRIDORS.length=0;
+  for(const c of HTS_PACK.corridors)CORRIDORS.push(c);
+}
 const DOWNTOWN_CORRIDORS=()=>CORRIDORS.filter(c=>c.toDt);
 for(const c of CORRIDORS){
   c.roadObj=findRoadByKey(c.road);
@@ -7376,7 +8401,7 @@ function roadIncidents(road,dir){
   return out;
 }
 function nearestDistrictName(x,z){
-  let best='Houston',bd=1e18;
+  let best=CITY_NAME,bd=1e18;
   for(const d of DISTRICTS){const dd=Math.hypot(x-d.x,z-d.z);if(dd<bd){bd=dd;best=d.n;}}
   return best;
 }
@@ -7748,10 +8773,43 @@ function updateFloods(dt){
 }
 
 /* ---------------- hazard predictions (hurricane / wildfire / flood / nuclear) ----------------
-   Simulated forecast overlays for Houston metro — educational / what-if, not live NWS alerts. */
+   Simulated forecast overlays for the active metro — educational / what-if, not live NWS alerts. */
 window.HAZARD={mode:null,active:false,t:0,intensity:0,congBoost:0,group:null,alertEl:null,rings:[],smoke:[],yieldKt:10,labels:[],
   nukeOrigin:null,nukePlaceMode:false,targetMarkers:[]};
-const HAZ_SCENARIOS={
+const HAZ_SCENARIOS=HTS_IS_AUS?{
+  hurricane:{
+    title:'Tropical remnant / flood outlook',
+    cls:'hurricane',
+    status:'Gulf tropical moisture track into Central Texas · 36–48 hr outlook. Heavy rain + flash flooding on Onion / Shoal / Walnut creeks and Lady Bird corridor. Evac/relief: I-35 N–S, MoPac, US-183, SH-71, SH-130.',
+    alert:'Tropical rain event — modeled Gulf moisture over Greater Austin. Flash-flood risk on creeks & low-water crossings. Freeways jammed outbound.',
+    fly:{x:60,z:200,r:2800},
+    cong:0.5
+  },
+  wildfire:{
+    title:'Wildfire outlook',
+    cls:'wildfire',
+    status:'Elevated fire weather west of Austin (Balcones / Bee Cave / Lake Travis / Dripping Springs juniper-oak). Dry fuels + SW winds. Smoke drift toward MoPac & downtown if winds W–SW.',
+    alert:'Wildfire prediction — Hill Country brush fire risk west of MoPac. Smoke reducing visibility on Loop 360, Bee Caves Rd & RM 2222.',
+    fly:{x:-1600,z:-400,r:2600},
+    cong:0.28
+  },
+  flood:{
+    title:'Flood prediction',
+    cls:'flood',
+    status:'Certain inundation corridors (Memorial Day / Onion Creek–class): Lady Bird Lake shore, Onion Creek, Shoal Creek, Waller Creek, Walnut Creek, Barton Creek, Colorado River flats near AUS.',
+    alert:'Flood prediction — historic Austin flood footprints lit. Creeks, low-water crossings & riverside neighborhoods underwater. Avoid flooded roadways.',
+    fly:{x:60,z:120,r:2400},
+    cong:0.48
+  },
+  nuclear:{
+    title:'Nuclear blast model',
+    cls:'nuclear',
+    status:'Strategic targeting model — ranked likely ground zeros (Capitol, downtown, AUS, Camp Mabry, tech campuses). Click map for any point; rings use Glasstone W^(1/3) scaling + live wind for fallout.',
+    alert:'NUCLEAR DRILL (SIMULATED) — educational blast / thermal / fallout model. Not a real event.',
+    fly:{x:60,z:60,r:2200},
+    cong:0.75
+  }
+}:{
   hurricane:{
     title:'Hurricane forecast',
     cls:'hurricane',
@@ -7801,9 +8859,34 @@ function nukeRadiiMi(kt){
 }
 const NUK_YIELDS={};
 [1,10,100,1000].forEach(kt=>{NUK_YIELDS[kt]=nukeRadiiMi(kt);});
-/* Strategic / high-value Houston targets — weighted for likelihood scoring (simulated targeting model) */
+/* Strategic / high-value metro targets — weighted for likelihood scoring (simulated targeting model) */
 const NUK_TARGETS=(function(){
-  const raw=[
+  const raw=HTS_IS_AUS?[
+    {id:'downtown',n:'Downtown Austin CBD',short:'Downtown',cat:'government',w:94,lat:30.2672,lng:-97.7431,
+      why:'State capital metro core — dense employment & nightlife'},
+    {id:'capitol',n:'Texas State Capitol',short:'Capitol',cat:'government',w:96,lat:30.2747,lng:-97.7404,
+      why:'Seat of Texas government — legislature, agencies, symbolism'},
+    {id:'ut',n:'University of Texas',short:'UT Austin',cat:'critical',w:82,lat:30.2862,lng:-97.7394,
+      why:'Flagship research university · stadium · dense campus population'},
+    {id:'aus',n:'AUS — Austin-Bergstrom',short:'AUS',cat:'transport',w:88,lat:30.1945,lng:-97.6699,
+      why:'Primary commercial airport & air-cargo gateway'},
+    {id:'edc',n:'Austin Executive Airport',short:'EDC',cat:'transport',w:62,lat:30.3975,lng:-97.5664,
+      why:'Corporate / GA field northeast of metro'},
+    {id:'mabry',n:'Camp Mabry',short:'Camp Mabry',cat:'military',w:80,lat:30.316,lng:-97.763,
+      why:'Texas Military Department HQ · National Guard'},
+    {id:'domain',n:'The Domain / tech north',short:'Domain',cat:'economic',w:74,lat:30.402,lng:-97.725,
+      why:'Major employment / retail / tech campus cluster'},
+    {id:'tesla',n:'Tesla Gigafactory Texas',short:'Giga Texas',cat:'economic',w:86,lat:30.221,lng:-97.618,
+      why:'Large manufacturing plant · critical industrial infrastructure'},
+    {id:'samsung',n:'Samsung / NE tech',short:'Samsung corridor',cat:'economic',w:78,lat:30.35,lng:-97.48,
+      why:'Semiconductor & advanced manufacturing corridor'},
+    {id:'oracle',n:'Oracle campus / waterfront',short:'Oracle',cat:'economic',w:70,lat:30.262,lng:-97.75,
+      why:'Large corporate campus on Lady Bird Lake'},
+    {id:'abby',n:'ABIA cargo / Del Valle',short:'ABIA cargo',cat:'logistics',w:72,lat:30.20,lng:-97.66,
+      why:'Airport logistics & south-east industrial belt'},
+    {id:'zilker',n:'Zilker / ACL grounds',short:'Zilker',cat:'gathering',w:66,lat:30.2671,lng:-97.7729,
+      why:'Mass-gathering park · festivals · west downtown'},
+  ]:[
     {id:'downtown',n:'Downtown CBD',short:'Downtown',cat:'government',w:92,lat:29.7604,lng:-95.3698,
       why:'State & county government, financial core, dense population'},
     {id:'shipchannel',n:'Houston Ship Channel',short:'Ship Channel',cat:'energy',w:98,lat:29.723,lng:-95.238,
@@ -7851,10 +8934,12 @@ function hazNukeLikelihoodAt(x,z){
       if(contrib>8)hits.push({n:t.short,w:contrib,why:t.why});
     }
   }
-  const dDownMi=Math.hypot(x-60,z-60)/UNITS_PER_MILE;
+  const dt=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
+  const dDownMi=Math.hypot(x-dt.x,z-dt.z)/UNITS_PER_MILE;
   score+=55*Math.exp(-dDownMi/8);
-  const dPortMi=Math.hypot(x-2400,z-150)/UNITS_PER_MILE;
-  score+=40*Math.exp(-dPortMi/6);
+  const hub=HTS_IS_AUS?geoToWorld(30.1945,-97.6699):{x:2400,z:150};
+  const dHubMi=Math.hypot(x-hub.x,z-hub.z)/UNITS_PER_MILE;
+  score+=40*Math.exp(-dHubMi/6);
   hits.sort((a,b)=>b.w-a.w);
   const pct=clamp(Math.round(score/1.15),0,99);
   return {pct,score,hits:hits.slice(0,4),reasons:hits.map(h=>h.n)};
@@ -7862,7 +8947,8 @@ function hazNukeLikelihoodAt(x,z){
 function hazNukeRankTargets(){
   const pts=[];
   for(const t of NUK_TARGETS)pts.push({...t,lik:hazNukeLikelihoodAt(t.x,t.z)});
-  for(const d of DISTRICTS_CORE.slice(0,20)){
+  const districtPool=(DISTRICTS&&DISTRICTS.length)?DISTRICTS:(DISTRICTS_CORE||[]);
+  for(const d of districtPool.slice(0,20)){
     const lik=hazNukeLikelihoodAt(d.x,d.z);
     if(lik.pct>25)pts.push({id:d.id,n:d.n,short:d.n,x:d.x,z:d.z,why:'Urban / economic density',lik});
   }
@@ -7882,8 +8968,30 @@ function hazWindRad(){
   return ((wd+180)%360)*Math.PI/180;
 }
 function miToUnits(mi){return mi*UNITS_PER_MILE;}
-/* Houston corridors that historically flood in major storms (near-certain in Harvey-class) */
-const FLOOD_CERTAIN=[
+/* Metro corridors that historically flood in major storms */
+const FLOOD_CERTAIN=HTS_IS_AUS?(function(){
+  const z=(lat,lng,r,name)=>{const p=geoToWorld(lat,lng);return {x:p.x,z:p.z,r,name};};
+  return [
+    z(30.265,-97.772,280,'Lady Bird · Zilker'),
+    z(30.262,-97.75,220,'Lady Bird · downtown'),
+    z(30.250,-97.736,200,'Lady Bird · I-35'),
+    z(30.245,-97.77,360,'Onion Creek'),
+    z(30.22,-97.75,300,'Onion / South Austin'),
+    z(30.20,-97.70,280,'Onion · Del Valle'),
+    z(30.29,-97.76,240,'Shoal Creek mid'),
+    z(30.275,-97.755,200,'Shoal · Pease'),
+    z(30.268,-97.74,160,'Waller Creek'),
+    z(30.35,-97.68,280,'Walnut Creek'),
+    z(30.32,-97.70,220,'Walnut mid'),
+    z(30.264,-97.771,200,'Barton Creek'),
+    z(30.27,-97.80,220,'Barton / Lost Creek'),
+    z(30.31,-97.78,200,'Bull Creek'),
+    z(30.24,-97.72,240,'Riverside low'),
+    z(30.21,-97.69,260,'AUS floodplain fringe'),
+    z(30.19,-97.67,240,'Bergstrom low'),
+    z(30.40,-97.91,320,'Lake Travis shore'),
+  ];
+})():[
   /* Addicks / Barker reservoir pools + release paths */
   {x:-2650,z:-780,r:520,name:'Addicks pool'},
   {x:-2850,z:300,r:540,name:'Barker pool'},
@@ -8077,13 +9185,15 @@ function hazBuildFlood(){
     H.group.add(hazMakeDisk(z.x,z.z,z.r,0x1e40af,0.42,2.0));
     H.group.add(hazMakeDisk(z.x,z.z,z.r*1.08,0x3b82f6,0.18,2.4));
   }
-  /* continuous bayou inundation ribbons (channel + overflow) */
-  const ribbons=[
-    [BAYOU,140,0x1d4ed8,0.5],[BRAYS,110,0x1e40af,0.48],[WHITEOAK,100,0x1d4ed8,0.46],
-    [SIMS,95,0x1e3a8a,0.44],[GREENS,100,0x1e40af,0.44],[SANJAC,160,0x1e3a8a,0.4]
-  ];
+  /* continuous inundation ribbons (bayous Houston / Lady Bird + creeks Austin) */
+  const ribbons=HTS_IS_AUS
+    ?[[LADYBIRD,160,0x1d4ed8,0.5]]
+    :[
+      [BAYOU,140,0x1d4ed8,0.5],[BRAYS,110,0x1e40af,0.48],[WHITEOAK,100,0x1d4ed8,0.46],
+      [SIMS,95,0x1e3a8a,0.44],[GREENS,100,0x1e40af,0.44],[SANJAC,160,0x1e3a8a,0.4]
+    ];
   for(const [pts,w,hex,op] of ribbons){
-    H.group.add(hazBayouFloodRibbon(pts,w,hex,op));
+    if(pts&&pts.length>=2)H.group.add(hazBayouFloodRibbon(pts,w,hex,op));
   }
   /* label a few key certain zones */
   for(const z of FLOOD_CERTAIN.filter((_,i)=>i%4===0)){
@@ -8091,7 +9201,8 @@ function hazBuildFlood(){
     sp.position.set(z.x,22,z.z);H.group.add(sp);H.labels.push(sp);
   }
   const banner=textSprite('100% LIKELY FLOOD ZONES',0.55);
-  banner.position.set(-900,55,200);H.group.add(banner);H.labels.push(banner);
+  const banAt=HTS_IS_AUS?geoToWorld(30.26,-97.75):{x:-900,z:200};
+  banner.position.set(banAt.x,55,banAt.z);H.group.add(banner);H.labels.push(banner);
   /* activate underpasses that sit inside certain flood footprints */
   if(UNDERPASSES.length){
     let n=0;
@@ -8115,6 +9226,12 @@ function hazLiveHurricaneStatus(){
   const cat=w>=130?4:w>=100?3:w>=75?2:w>=40?1:0;
   const catTxt=cat?('Category '+cat+(cat>=3?'–'+(cat+1):'')+' potential'):'Tropical-storm force winds';
   const hum=wx.hum!=null?wx.hum:65;
+  if(HTS_IS_AUS){
+    const rainIn=cat>=3?8:cat>=2?5:cat>=1?3:1.5;
+    return catTxt+' · live wind '+w+' mph · humidity '+hum+'%'
+      +' · modeled rain '+rainIn+'–'+(rainIn+3)+' in Central Texas'
+      +' · relief: I-35 N–S, MoPac, US-183, SH-71, SH-130';
+  }
   const surgeFt=cat>=3?12:cat>=2?8:cat>=1?4:2;
   return catTxt+' · live wind '+w+' mph · humidity '+hum+'%'
     +' · modeled surge '+surgeFt+'–'+(surgeFt+4)+' ft Galveston Bay'
@@ -8127,6 +9244,11 @@ function hazLiveWildfireStatus(){
   const rain=wxBlend.rain||0;
   const idx=clamp((100-hum)/100*(w/22)*(1-rain*0.85),0,1);
   const risk=idx>0.65?'EXTREME':idx>0.4?'ELEVATED':idx>0.2?'MODERATE':'LOW';
+  if(HTS_IS_AUS){
+    return risk+' fire weather · humidity '+hum+'% · wind '+w+' mph'
+      +' · Balcones / Bee Cave / Lake Travis / Dripping Springs most exposed'
+      +' · smoke drift toward MoPac & downtown if winds W–SW';
+  }
   return risk+' fire weather · humidity '+hum+'% · wind '+w+' mph'
     +' · NW prairie / Cypress / Magnolia / Montgomery pine belt most exposed'
     +' · smoke drift toward Energy Corridor if winds SW';
@@ -8136,6 +9258,12 @@ function hazLiveFloodStatus(){
   if(liveWx&&liveWx.hourly&&liveWx.hourly.precipitation){
     const h=liveWx.hourly.precipitation;
     for(let i=0;i<Math.min(24,h.length);i++)precip24+=h[i]||0;
+  }
+  if(HTS_IS_AUS){
+    const cls=precip24>=3?'>Memorial Day–class rain forecast':'Onion Creek / Memorial Day footprint';
+    return cls+' ('+precip24.toFixed(2)+'" /24h forecast) · '
+      +FLOOD_CERTAIN.length+' certain zones + Lady Bird ribbon'
+      +' · Shoal / Onion / Walnut light when forecast >2"';
   }
   const harveyClass=precip24>=3?'>Harvey-class rain forecast':'Harvey-class footprint';
   return harveyClass+' ('+precip24.toFixed(2)+'" /24h forecast) · '
@@ -8159,20 +9287,40 @@ function hazActivate(mode){
     const wx=liveWx||{};
     const w=wx.wind||0;
     const catScale=clamp(w/85,0.6,1.35);
-    const core=geoToWorld(29.35,-94.85);
-    H.group.add(hazMakeDisk(core.x,core.z,900*catScale,0x6366f1,0.28,3));
-    H.group.add(hazMakeDisk(core.x,core.z,1800*catScale,0x4c1d95,0.14,2.2));
-    H.group.add(hazMakeDisk(core.x,core.z,2800*catScale,0x312e81,0.08,1.8));
-    const r1=hazMakeRing(core.x,core.z,1000*catScale,1300*catScale,0xa78bfa,4,0.42);H.group.add(r1.mesh);H.rings.push(r1);
-    const r2=hazMakeRing(core.x,core.z,2000*catScale,2400*catScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
-    const trackSp=textSprite('Landfall cone · Galveston Bay',0.42);
-    trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
-    for(const [lx,lz,lr] of [[2050,3020,500],[7150,2700,1400],[3800,-200,600],[2450,420,450]]){
-      H.group.add(hazMakeDisk(lx,lz,lr*catScale,0x2563eb,0.22,2));
-    }
-    for(const [x,z,r,nm] of [[60,-800,280,'I-45 N'],[-1200,-200,320,'I-10 W'],[400,-1400,300,'US-59 N'],[60,60,260,'Downtown']]){
-      H.group.add(hazMakeDisk(x,z,r,0xc4b5fd,0.14,5));
-      const ev=textSprite('Evac · '+nm,0.32);ev.position.set(x,24,z);H.group.add(ev);H.labels.push(ev);
+    if(HTS_IS_AUS){
+      const core=geoToWorld(30.15,-97.55); /* Gulf moisture push into SE Travis */
+      H.group.add(hazMakeDisk(core.x,core.z,700*catScale,0x6366f1,0.28,3));
+      H.group.add(hazMakeDisk(core.x,core.z,1400*catScale,0x4c1d95,0.14,2.2));
+      H.group.add(hazMakeDisk(core.x,core.z,2200*catScale,0x312e81,0.08,1.8));
+      const r1=hazMakeRing(core.x,core.z,800*catScale,1050*catScale,0xa78bfa,4,0.42);H.group.add(r1.mesh);H.rings.push(r1);
+      const r2=hazMakeRing(core.x,core.z,1500*catScale,1850*catScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
+      const trackSp=textSprite('Rain shield · Central Texas',0.42);
+      trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
+      for(const [lat,lng,lr] of [[30.245,-97.77,380],[30.265,-97.75,320],[30.21,-97.69,360],[30.35,-97.68,300]]){
+        const p=geoToWorld(lat,lng);
+        H.group.add(hazMakeDisk(p.x,p.z,lr*catScale,0x2563eb,0.22,2));
+      }
+      for(const [lat,lng,r,nm] of [[30.35,-97.73,260,'I-35 N'],[30.20,-97.75,260,'I-35 S'],[30.29,-97.76,240,'MoPac'],[30.22,-97.80,240,'SH-71 W'],[30.267,-97.743,220,'Downtown']]){
+        const p=geoToWorld(lat,lng);
+        H.group.add(hazMakeDisk(p.x,p.z,r,0xc4b5fd,0.14,5));
+        const ev=textSprite('Relief · '+nm,0.32);ev.position.set(p.x,24,p.z);H.group.add(ev);H.labels.push(ev);
+      }
+    }else{
+      const core=geoToWorld(29.35,-94.85);
+      H.group.add(hazMakeDisk(core.x,core.z,900*catScale,0x6366f1,0.28,3));
+      H.group.add(hazMakeDisk(core.x,core.z,1800*catScale,0x4c1d95,0.14,2.2));
+      H.group.add(hazMakeDisk(core.x,core.z,2800*catScale,0x312e81,0.08,1.8));
+      const r1=hazMakeRing(core.x,core.z,1000*catScale,1300*catScale,0xa78bfa,4,0.42);H.group.add(r1.mesh);H.rings.push(r1);
+      const r2=hazMakeRing(core.x,core.z,2000*catScale,2400*catScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
+      const trackSp=textSprite('Landfall cone · Galveston Bay',0.42);
+      trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
+      for(const [lx,lz,lr] of [[2050,3020,500],[7150,2700,1400],[3800,-200,600],[2450,420,450]]){
+        H.group.add(hazMakeDisk(lx,lz,lr*catScale,0x2563eb,0.22,2));
+      }
+      for(const [x,z,r,nm] of [[60,-800,280,'I-45 N'],[-1200,-200,320,'I-10 W'],[400,-1400,300,'US-59 N'],[60,60,260,'Downtown']]){
+        H.group.add(hazMakeDisk(x,z,r,0xc4b5fd,0.14,5));
+        const ev=textSprite('Evac · '+nm,0.32);ev.position.set(x,24,z);H.group.add(ev);H.labels.push(ev);
+      }
     }
     const st=$('hazStatus');if(st)st.textContent=hazLiveHurricaneStatus();
   }else if(mode==='wildfire'){
@@ -8180,7 +9328,9 @@ function hazActivate(mode){
     const hum=wx.hum!=null?wx.hum:50;
     const w=wx.wind||0;
     const idx=clamp((100-hum)/100*(w/22),0.2,1);
-    const fires=[[-3200,-1800,380],[-2800,-2600,320],[-2100,-3200,280],[-3600,-900,260],[-2400,-3950,300]];
+    const fires=HTS_IS_AUS
+      ?[[30.31,-97.95,360],[30.36,-97.90,300],[30.28,-97.88,280],[30.22,-98.02,260],[30.41,-97.91,320]].map(([lat,lng,r])=>{const p=geoToWorld(lat,lng);return [p.x,p.z,r];})
+      :[[-3200,-1800,380],[-2800,-2600,320],[-2100,-3200,280],[-3600,-900,260],[-2400,-3950,300]];
     for(const [x,z,r] of fires){
       const rs=r*(0.7+idx*0.5);
       H.group.add(hazMakeDisk(x,z,rs,0xea580c,0.35+idx*0.15,2.5));
@@ -8192,10 +9342,11 @@ function hazActivate(mode){
       }
     }
     const wr=hazWindRad();
+    const smokeOrigin=HTS_IS_AUS?geoToWorld(30.32,-97.92):{x:-2800,z:-2200};
     for(let i=1;i<=6;i++){
       const t=i/6;
-      const sx=-2800+Math.cos(wr)*1200*t;
-      const sz=-2200+Math.sin(wr)*1200*t;
+      const sx=smokeOrigin.x+Math.cos(wr)*1200*t;
+      const sz=smokeOrigin.z+Math.sin(wr)*1200*t;
       H.group.add(hazMakeDisk(sx,sz,200+120*t,0x57534e,0.1*(1-t*0.3),10+t*2));
     }
     const st=$('hazStatus');if(st)st.textContent=hazLiveWildfireStatus();
@@ -8206,7 +9357,7 @@ function hazActivate(mode){
   }else if(mode==='nuclear'){
     hazPopulateNukeUI();
     const top=hazNukeRankTargets()[0];
-    const origin=top?{x:top.x,z:top.z}:geoToWorld(29.73,-95.12);
+    const origin=top?{x:top.x,z:top.z}:(HTS_IS_AUS?geoToWorld(30.2672,-97.7431):geoToWorld(29.73,-95.12));
     hazBuildNuclear(origin,H.yieldKt||10);
     hazBuildNukeTargetMarkers(H.yieldKt||10);
     const R=hazNukeRanges(H.yieldKt||10);
@@ -8214,7 +9365,7 @@ function hazActivate(mode){
     H.nukeOrigin={x:origin.x,z:origin.z,lik};
     H.congBoost=clamp(0.42+Math.log10((H.yieldKt||10)+1)*0.2,0.5,0.96);
     const st=$('hazStatus');
-    if(st)st.textContent='Top likely: '+top.short+' ('+top.lik.pct+'%) · '+R.label
+    if(st)st.textContent='Top likely: '+(top?top.short:'Downtown')+' ('+(top?top.lik.pct:lik.pct)+'%) · '+R.label
       +' · click map or pick target · 5 psi '+R.mi.severe.toFixed(2)+' mi · thermal '+R.mi.thermal.toFixed(2)
       +' mi · 1 psi '+R.mi.light.toFixed(2)+' mi · fallout ~'+R.mi.fallout.toFixed(1)+' mi.';
     sc.fly={x:origin.x,z:origin.z,r:clamp(R.light*2.4,1600,7200)};
@@ -8465,7 +9616,17 @@ function trafficTick(dt){
         const li=Math.floor(rand()*dir.lanes.length);
         const lane=dir.lanes[li];
         const L=road.s.total;
-        const s0=road.s.closed?rand()*L:0;
+        let s0=road.s.closed?rand()*L:0;
+        /* Don't spawn cars on runway / apron */
+        if(typeof inAirfield==='function'){
+          for(let t=0;t<8;t++){
+            roadPos(road,dir.sign>0?s0:L-s0,_rp);
+            if(!inAirfield(_rp.px,_rp.pz))break;
+            s0=rand()*L;
+          }
+          roadPos(road,dir.sign>0?s0:L-s0,_rp);
+          if(inAirfield(_rp.px,_rp.pz))continue;
+        }
         let idx=0;while(idx<lane.length&&lane[idx].s<s0)idx++;
         const nxt=lane.length?lane[idx%lane.length]:null;
         const prv=lane.length?lane[(idx-1+lane.length)%lane.length]:null;
@@ -8705,6 +9866,20 @@ function moveVehicles(dt,nightF){
               v.v=Math.min(v.v,12*MPH);
             }
           }
+          /* Never drive across runway / apron pads */
+          if(typeof inAirfield==='function'&&inAirfield(px,pz)){
+            let hop=v.s,guard=0;
+            while(guard++<24){
+              hop+=dir.sign>0?55:-55;
+              if(hop<0||hop>L){v._dead=true;lane.splice(i,1);break;}
+              roadPos(road,dir.sign>0?hop:L-hop,_rp);
+              const hx=_rp.px+rx*off,hz=_rp.pz+rz*off;
+              if(!inAirfield(hx,hz)){v.s=hop;v.v=Math.max(v.v,18*MPH);break;}
+            }
+            if(v._dead)continue;
+            roadPos(road,dir.sign>0?v.s:L-v.s,_rp);
+            px=_rp.px+rx*off;pz=_rp.pz+rz*off;
+          }
           const heading=Math.atan2(fx,fz);
           renderedSpeedSum+=v.v;renderedVeh++;
           vehRef[idx]=v;
@@ -8856,7 +10031,7 @@ function moveVehicles(dt,nightF){
 function _sc2Sun(tmp,h){keyCol(SUN_COL,h,tmp);return tmp;}
 const _fc=new THREE.Color(),_sc=new THREE.Color();
 const _nightHemi=new THREE.Color(0x6a7a98),_cityGlow=new THREE.Color(0x2a2218);
-const _hemiGroundDay=new THREE.Color(0x5a6a48),_hemiGroundNight=new THREE.Color(0x141820);
+const _hemiGroundDay=new THREE.Color(HTS_IS_AUS?0x6a7a50:0x5a6a48),_hemiGroundNight=new THREE.Color(0x141820);
 const GRAY_DT=new THREE.Color(0x6a7581),GRAY_DB=new THREE.Color(0xaab3bb),
       GRAY_NT=new THREE.Color(0x0a101c),GRAY_NB=new THREE.Color(0x121820),
       _gt=new THREE.Color(),_gb=new THREE.Color();
@@ -8919,6 +10094,14 @@ function envUpdate(dt,h){
     m.emissiveIntensity=nightF*0.95;         /* clear windows, not blown out */
     if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),12,nightF);
     if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.06,nightF));
+  }
+  if(window.HTS_OSM_FACADE_MATS){
+    for(const m of HTS_OSM_FACADE_MATS){
+      m.color.setScalar(lerp(1,0.38,nightF));
+      m.emissiveIntensity=nightF*0.95;
+      if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),12,nightF);
+      if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.06,nightF));
+    }
   }
   for(const m of crownMats)m.opacity=nightF*0.55;
   if(window.sprawlMat){
@@ -9070,11 +10253,11 @@ function updateWhereAmI(){
   }else{
     const x=cam.target.x,z=cam.target.z;
     const p=placeNameAt(x,z);
-    name=p?p.n:'Greater Houston';
+    name=p?p.n:METRO_NAME;
     kind=p?p.kind:null;
     road=nearestRoadLabel(x,z);
   }
-  $('waDist').textContent=name||'Greater Houston';
+  $('waDist').textContent=name||METRO_NAME;
   let roadTxt='—';
   if(kind==='you'){
     const acc=userGeo&&userGeo.acc!=null?Math.round(userGeo.acc):null;
@@ -9086,7 +10269,7 @@ function updateWhereAmI(){
   else roadTxt='open country';
   $('waRoad').textContent=roadTxt;
   const mLoc=$('mHudLocLabel');
-  if(mLoc)mLoc.textContent=name||'Houston';
+  if(mLoc)mLoc.textContent=name||CITY_NAME;
 }
 function updateHUD(nightF,skyH){
   const hh=Math.floor(simH),mm=Math.floor((simH-hh)*60);
@@ -9151,7 +10334,7 @@ function updateHUD(nightF,skyH){
   else if(!liveMode){dot.className='pulse sim';
     src.textContent='Time-lapse · '+phaseLabel(simH)+' pattern';}
   else if(liveWx){dot.className=wxStale?'pulse sim':'pulse';
-    src.textContent=(wxStale?'Stale · ':'')+'Houston live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
+    src.textContent=(wxStale?'Stale · ':'')+CITY_NAME+' live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
   else{dot.className='pulse sim';src.textContent='Typical July pattern · retrying live feed…';}
   /* suburb / locate-me weather — full live stats under Houston */
   const locBox=$('wxLocal');
@@ -9222,7 +10405,7 @@ function updateHUD(nightF,skyH){
         const st=window.LIVE_FLIGHT_STATUS||{};
         const err=st.err?(' · '+st.err):'';
         flEmpty.textContent=st.ok
-          ? 'Matching live ADS-B to Houston arrivals/departures…'
+          ? ('Matching live ADS-B to '+CITY_NAME+' arrivals/departures…')
           : ('Waiting for live ADS-B feed'+err);
       }
     }
@@ -9276,15 +10459,15 @@ function updateHUD(nightF,skyH){
         const src=(window.LIVE_FLIGHT_STATUS&&LIVE_FLIGHT_STATUS.src)?LIVE_FLIGHT_STATUS.src:'ADS-B';
         if(usingBoard){
           flSrc.style.color='#ffb400';
-          flSrc.textContent='· '+list.length+' Houston board · Track on FlightAware';
+          flSrc.textContent='· '+list.length+' '+CITY_NAME+' board · Track on FlightAware';
         }else{
           const houN=list.filter(x=>x._houston===true).length;
           flSrc.style.color='#7fd6a0';
-          flSrc.textContent='· '+list.length+' in sky + panel'+(houN?' · '+houN+' Houston-verified':'')+' · '+src+(fa?' + FA':'');
+          flSrc.textContent='· '+list.length+' in sky + panel'+(houN?' · '+houN+' '+CITY_NAME+'-verified':'')+' · '+src+(fa?' + FA':'');
         }
       }else{
         flSrc.style.color='#8a939c';
-        flSrc.textContent='· Houston arrivals & departures only';
+        flSrc.textContent='· '+CITY_NAME+' arrivals & departures only';
       }
     }
   }
@@ -9292,6 +10475,7 @@ function updateHUD(nightF,skyH){
   const tsl=$('trafficSrcLine');
   if(tlt){
     const lt=window.LIVE_TRAFFIC;
+    const primary=trafficPrimary();
     tlt.classList.remove('off','warn');
     if(!liveMode){
       tlt.textContent='Predicted · time-lapse';
@@ -9306,17 +10490,22 @@ function updateHUD(nightF,skyH){
       tlt.textContent='Incidents only';
       if(tsl)tsl.textContent='Feed · incidents live · mapping flow…';
     }else if(lt&&lt.authOk===false&&!lt.transtar){
+      /* Austin (TomTom-primary) has no TranStar — don’t sit on Connecting forever */
       tlt.classList.add('warn');
-      tlt.textContent='Connecting…';
-      if(tsl)tsl.textContent='Feed · waiting on TranStar…';
+      tlt.textContent='Modeled';
+      if(tsl)tsl.textContent=primary==='tomtom'
+        ? 'Feed · modeled · need TomTom Traffic API key'
+        : 'Feed · modeled · TranStar / TomTom unavailable';
     }else if(lt&&lt.err){
       tlt.classList.add('warn');
       tlt.textContent='Modeled';
-      if(tsl)tsl.textContent='Feed · modeled · '+String(lt.err).slice(0,42);
+      if(tsl)tsl.textContent='Feed · modeled · '+String(lt.err).slice(0,48);
     }else{
       tlt.classList.add('off');
       tlt.textContent='Connecting…';
-      if(tsl)tsl.textContent='Feed · waiting…';
+      if(tsl)tsl.textContent=primary==='tomtom'
+        ? 'Feed · waiting on TomTom…'
+        : 'Feed · waiting on TranStar…';
     }
   }
   if(typeof window.renderAirportBoard==='function')window.renderAirportBoard();
@@ -9357,7 +10546,7 @@ if(hazNukeMapBtn)hazNukeMapBtn.addEventListener('click',()=>{
   window.HAZARD.nukePlaceMode=!window.HAZARD.nukePlaceMode;
   hazNukeMapBtn.classList.toggle('on',HAZARD.nukePlaceMode);
   const st=$('hazStatus');
-  if(st&&HAZARD.nukePlaceMode)st.textContent='Click anywhere on the Houston map to place ground zero — rings show blast, thermal & fallout ranges.';
+  if(st&&HAZARD.nukePlaceMode)st.textContent='Click anywhere on the '+CITY_NAME+' map to place ground zero — rings show blast, thermal & fallout ranges.';
   else if(st&&HAZARD.nukeOrigin)st.textContent='Map placement off. Pick a target or re-enable click-to-place.';
 });
 const hazClearBtn=$('hazClear');
@@ -9518,7 +10707,9 @@ document.querySelectorAll('#volBtns .btn').forEach(b=>b.addEventListener('click'
   b.classList.add('on');volumeMode=b.dataset.vol;}));
 
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);});
+  renderer.setSize(innerWidth,innerHeight);
+  if(window.HTS_CINEMATIC&&HTS_CINEMATIC.resize)HTS_CINEMATIC.resize(innerWidth,innerHeight);
+});
 
 /* ---------------- boot & main loop ---------------- */
 for(const road of roads)for(const dir of road.dirs){
@@ -9750,8 +10941,8 @@ function frame(now){
         seq[i2].opacity=(seq.length-1-i2)===step?0.95:(nightF>0.4?0.12:0.04);
   }
   updateFlights(dt);
-  /* POI badges appear at neighborhood zoom */
-  {const o=(inOSM?0:1)*clamp((3400-cam.radius)/1100,0,1)*(1-mapT);
+  /* POI badges: close-in only, soft so they don't wallpaper the map */
+  {const o=(inOSM?0:1)*0.45*clamp((1600-cam.radius)/700,0,1)*(1-mapT);
    for(const sp of poiSprites)sp.material.opacity=o;}
   if(userHalo.visible){const pk=44+14*Math.sin(simClock*0.003);userHalo.scale.set(pk,pk,1);}
   updateCrowds(dt,cam.radius,simH);
@@ -9797,8 +10988,10 @@ function frame(now){
       hotLabel='Clear overnight';
     }
   }
-  FERRIS.rotation.z+=dt*0.25;
-  for(let ci=0;ci<8;ci++){const cab=FERRIS.userData['cab'+ci];if(cab)cab.rotation.z=-FERRIS.rotation.z;}
+  if(FERRIS){
+    FERRIS.rotation.z+=dt*0.25;
+    for(let ci=0;ci<8;ci++){const cab=FERRIS.userData['cab'+ci];if(cab)cab.rotation.z=-FERRIS.rotation.z;}
+  }
   if(window.AQUARIUM_WHEEL)AQUARIUM_WHEEL.rotation.z+=dt*0.35;
   /* chase cam — flexible: scroll to zoom above/beside the aircraft */
   if(followPlane){
@@ -9868,17 +11061,41 @@ function frame(now){
     const base=(c.userData&&c.userData.baseOp!=null)?c.userData.baseOp:0.85;
     c.material.opacity=base*skyFade;
   }
-  /* district labels: fade OUT when close so they never obstruct street-level views */
-  const lblO=inOSM?0:clamp((cam.radius-620)/620,0,1)*clamp(1-mapT*0.5,0.35,1);
-  for(const sp of districtSprites)sp.material.opacity=lblO;
-  /* street blades: only near ground level */
-  const bladeO=inOSM?0:clamp((2100-cam.radius)/900,0,1);
+  /* Place labels: only the nearest name, faint + mid-zoom — no suburb billboard clutter */
+  const tgt=(camGoal&&camGoal.target)?camGoal.target:{x:60,z:60};
+  const midBand=inOSM?0:clamp((cam.radius-1200)/500,0,1)*clamp((2200-cam.radius)/550,0,1);
+  const lblBase=midBand*0.28;
+  let bestD=null,bestDd=1e12,bestW=null,bestWd=1e12;
+  for(const sp of districtSprites){
+    sp.material.opacity=0;
+    const dd=Math.hypot(sp.position.x-tgt.x,sp.position.z-tgt.z);
+    if(dd<bestDd){bestDd=dd;bestD=sp;}
+  }
+  for(const sp of waterSprites){
+    sp.material.opacity=0;
+    const dd=Math.hypot(sp.position.x-tgt.x,sp.position.z-tgt.z);
+    if(dd<bestWd){bestWd=dd;bestW=sp;}
+  }
+  if(bestD&&bestDd<900)bestD.material.opacity=lblBase*clamp(1-bestDd/900,0,1);
+  if(bestW&&bestWd<1100)bestW.material.opacity=lblBase*0.7*clamp(1-bestWd/1100,0,1);
+  /* street blades: close-in only, soft */
+  const bladeO=inOSM?0:0.35*clamp((900-cam.radius)/500,0,1);
   for(const sp of bladeSprites)sp.material.opacity=bladeO;
   if(typeof updateOsmLod==='function'&&camGoal){
     updateOsmLod(camGoal.target.x,camGoal.target.z,camGoal.radius);
   }
   /* Always paint the frame first — HUD/API errors must never blank the canvas */
-  renderer.render(scene,camera);
+  if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update){
+    try{
+      HTS_CINEMATIC.update(camGoal||cam,nightF,_fpsAvg);
+    }catch(e){}
+  }
+  if(window.HTS_CINEMATIC&&HTS_CINEMATIC.render){
+    try{HTS_CINEMATIC.render();}
+    catch(e){renderer.render(scene,camera);}
+  }else{
+    renderer.render(scene,camera);
+  }
   hudT-=dt;
   if(hudT<=0){
     try{updateHUD(nightF,simH);}catch(e){console.warn('[HTS] HUD',e&&e.message?e.message:e);}
@@ -9890,6 +11107,32 @@ function frame(now){
 requestAnimationFrame(frame);
 if(typeof startLiveTrafficPolling==='function')startLiveTrafficPolling();
 if(typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),1200);
+/* OSM CBD buildings — real footprints + Houston-style window façades */
+(function bootOsmBuildings(){
+  const cityId=HTS_CITY_ID||'houston';
+  /* Austin CBD primary; Houston pack on disk for later (avoid stacking on hand towers) */
+  const want=cityId==='austin';
+  if(!want)return;
+  setTimeout(()=>{
+    loadOsmCbdBuildings({
+      parent:gDetail,
+      geoToWorld,
+      unitsPerMile:UNITS_PER_MILE,
+      cityId,
+      envMap:(window.HTS_CINEMATIC&&HTS_CINEMATIC.envMap)||null,
+      skipNear:window.HTS_AUS_LANDMARK_SKIP||[],
+      inWater:(x,z)=>typeof inWater==='function'&&inWater(x,z),
+      registerFoot:(x,z,hw,hd)=>{if(typeof registerBldgFoot==='function')registerBldgFoot(x,z,hw,hd);},
+    }).then((r)=>{
+      window.HTS_OSM_BUILDINGS_COUNT=(r&&r.count)||0;
+      if(r&&r.group&&window.HTS_CINEMATIC&&HTS_CINEMATIC.markShadowCasters){
+        HTS_CINEMATIC.markShadowCasters(r.group);
+      }
+    }).catch((e)=>{
+      console.warn('[HTS] OSM buildings',e&&e.message);
+    });
+  },900);
+})();
 setTimeout(()=>{
   const l=$('loading');
   if(!l){fireHtsReady();return;}
@@ -9984,8 +11227,8 @@ setTimeout(()=>{
   const mobileMq=window.matchMedia('(max-width:680px)');
   let idx=0,activeEl=null,running=false;
   const STEPS=[
-    {sel:'#sign',mobileSel:'#mHud',fallback:'#scene',title:'Welcome to Space City',body:'This is a living 3D Houston metro. One finger rotates, pinch zooms, two fingers pan. The map stays open so you can explore.'},
-    {sel:'#sign',mobileSel:'#mHudChip',fallback:'#whereami',title:'Live clock and weather',body:'Time and Houston weather stay on screen. On a phone, tap the locate button to drop a you are here marker.'},
+    {sel:'#sign',mobileSel:'#mHud',fallback:'#scene',title:HTS_IS_AUS?'Welcome to Austin':'Welcome to Space City',body:HTS_IS_AUS?'This is a living 3D Austin metro. One finger rotates, pinch zooms, two fingers pan. The map stays open so you can explore.':'This is a living 3D Houston metro. One finger rotates, pinch zooms, two fingers pan. The map stays open so you can explore.'},
+    {sel:'#sign',mobileSel:'#mHudChip',fallback:'#whereami',title:'Live clock and weather',body:'Time and '+CITY_NAME+' weather stay on screen. On a phone, tap the locate button to drop a you are here marker.'},
     {sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',title:'Go anywhere',body:'Open Go (or use the side panel), then pick a district, airport, or landmark. The camera flies there.'},
     {sel:'#whereami',fallback:'#mHudLoc',title:'Where you are looking',body:'This pill tracks the district and road under the camera as you move around.'},
     {sel:'#tourFlightGrp',mobileOpen:'live',mobileSel:'#mLiveFab',title:'Live flights',body:'Open Live for aircraft in the sky and airport boards. Find a plane, then jump to it.'},
