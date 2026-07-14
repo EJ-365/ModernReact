@@ -1,6 +1,13 @@
 /* Extracted from app.html — loaded via src/boot.js after Three Vite bridge */
 import { loadOsmCbdBuildings } from './render/osm-buildings.js';
 import { createCinematic } from './render/cinematic.js';
+import {
+  buildWeatherZones,
+  chunkWeatherZones,
+  sampleZoneWeather,
+  rainIntensityAt,
+  openMeteoMultiUrl,
+} from './weather-zones.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -15,23 +22,35 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.17 (0713-airfield-cars). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.32 (0713-tour-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
+const HTS_HAS_PACK=!!(HTS_PACK&&HTS_PACK.useBuiltinRoads===false);
 const CITY_NAME=(window.HTS_CITY&&window.HTS_CITY.name)||'Houston';
-const METRO_NAME=HTS_IS_AUS?'Greater Austin':'Greater Houston';
-const AREA_NAME=HTS_IS_AUS?'Austin-area':'Houston-area';
+const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':'Greater Houston');
+const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':'Houston-area');
 const METRO_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
 const METRO_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lng)||-95.3698;
 const DEFAULT_APT=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts[0])||'IAH';
-/* Failsafe: never leave the loading screen stuck if a later error occurs. */
+/* Failsafe: never leave the loading screen stuck if a later error occurs.
+   Ready can fire before late listeners register (large app-main parse) — use whenHtsReady(). */
 let htsReadyFired=false;
+const _htsReadyWaiters=[];
 function fireHtsReady(){
   if(htsReadyFired)return;
   htsReadyFired=true;
   window.dispatchEvent(new CustomEvent('hts-ready'));
+  while(_htsReadyWaiters.length){
+    try{_htsReadyWaiters.shift()();}catch(e){console.warn('[HTS] ready waiter',e);}
+  }
 }
+function whenHtsReady(fn){
+  if(typeof fn!=='function')return;
+  if(htsReadyFired){try{fn();}catch(e){console.warn('[HTS] ready fn',e);}return;}
+  _htsReadyWaiters.push(fn);
+}
+window.whenHtsReady=whenHtsReady;
 window.addEventListener('error',(ev)=>{
   console.error('[HTS]',ev.message,ev.filename,ev.lineno);
   try{
@@ -68,6 +87,12 @@ function worldToGeo(x,z){
     lng: ((x-60)/(59.9*UNITS_PER_MILE))-95.3698,
     lat: 29.7604-((z-60)/(69*UNITS_PER_MILE))
   };
+}
+function packDowntown(){
+  if(HTS_PACK&&Number.isFinite(HTS_PACK.originLat)&&Number.isFinite(HTS_PACK.originLng))
+    return geoToWorld(HTS_PACK.originLat,HTS_PACK.originLng);
+  if(HTS_IS_AUS)return geoToWorld(30.2672,-97.7431);
+  return {x:60,z:60};
 }
 function fmtFlightTime(t){
   return t?new Date(t).toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}):'—';
@@ -292,11 +317,16 @@ function flightInSkyBounds(f){
 function liveFlightEligible(f){
   if(!f||f.kind!=='live')return false;
   const cls=(f.m&&f.m.userData&&f.m.userData.acClass)||classifyAcModel(f.actype,f.category,f.cs);
-  /* Helis / GA stay visible even if airline-route enrichment says non-Houston */
+  /* Helis / GA stay visible even if airline-route enrichment says non-metro */
   if(f._houston===false&&cls!=='heli'&&cls!=='prop')return false;
   if(!isLiveFlightActive(f))return false;
   if(!Number.isFinite(f._tLat)||!Number.isFinite(f._tLon))return false;
   if(!flightInSkyBounds(f))return false;
+  /* Truly parked / ground clutter only — airborne with motion (feed or estimated) stays up */
+  const gs=flightGsKts(f);
+  const alt=flightAltFt(f);
+  const moveGs=Math.max(gs||0,f._lastGoodGs||0,f._estGs||0);
+  if(f.onGround&&(moveGs<25)&&(alt==null||alt<400))return false;
   if(cls==='heli'||cls==='prop')return true;
   const cs=String(f.cs||'').trim();
   if(!cs)return false;
@@ -497,14 +527,18 @@ const APT_COORDS={
 };
 function flightPhase(f){
   const alt=flightAltFt(f);
-  const spd=flightGsKts(f)||0;
+  const spdKnown=flightGsKts(f); /* null = incomplete ADS-B — never treat as "stopped on final" */
+  const spd=spdKnown!=null?spdKnown:0;
   const vs=f.vsFpm!=null?f.vsFpm:0;
   const st=String(f.status||'').toLowerCase();
-  if(/taxi|take.?off|rolling/.test(st)|| (alt!=null&&alt<800&&spd<160))return {label:'Taking Off',cls:'takeoff'};
+  if(/taxi|take.?off|rolling/.test(st)|| (alt!=null&&alt<800&&spdKnown!=null&&spd<160))return {label:'Taking Off',cls:'takeoff'};
   if(/climb/.test(st)||(alt!=null&&alt<12000&&vs>250))return {label:'Climbing',cls:'climb'};
-  if(/land|approach|final|descend/.test(st)||(alt!=null&&alt<10000&&(vs<-250||spd<250)))return {label:'Landing',cls:'land'};
+  /* Landing needs real descent or moving approach — missing/0 kts alone is incomplete data */
+  if(/land|approach|final|descend/.test(st)||(alt!=null&&alt<10000&&vs<-250)
+    ||(alt!=null&&alt<10000&&spdKnown!=null&&spdKnown>=40&&spdKnown<250&&vs<=50))
+    return {label:'Landing',cls:'land'};
   if(alt==null)return {label:'En route',cls:''};
-  if(alt>=28000||spd>320)return {label:'Cruising',cls:''};
+  if(alt>=28000||(spdKnown!=null&&spd>320))return {label:'Cruising',cls:''};
   if(vs>200)return {label:'Climbing',cls:'climb'};
   if(vs<-200)return {label:'Descending',cls:'land'};
   return {label:'En route',cls:''};
@@ -568,18 +602,23 @@ function classifyLiveCorridor(f){
   const ph=flightPhase(f);
   const alt=flightAltFt(f);
   const vs=f.vsFpm!=null?f.vsFpm:0;
+  const gs=flightGsKts(f);
+  /* Incomplete ADS-B (common outside denser Houston coverage): no GS / frozen track
+     must not be labeled Final <APT> or snapped into approach corridors. */
+  const incomplete=(gs==null||gs<12)&&(alt==null||alt>2000)&&Math.abs(vs)<120;
+  if(incomplete)return null;
   let apt=null,mode=null,mi=null;
-  /* Prefer verified Houston airport from route */
+  /* Prefer verified metro airport from route (HOU_APT = pack board airports) */
   if(dir==='arr'&&isHoustonApt(f.arr)){apt=airportByCode(f.arr);mode='arr';}
   else if(dir==='dep'&&isHoustonApt(f.dep)){apt=airportByCode(f.dep);mode='dep';}
-  /* Fallback: nearest Houston field when low / climbing / descending */
+  /* Fallback: nearest field when low / climbing / descending with real motion */
   if(!apt){
     const near=nearestDecorAirport(lat,lon);
     if(near&&near.mi<22){
       apt=near.apt;mi=near.mi;
-      if(ph.cls==='land'||vs<-200||(alt!=null&&alt<9000&&vs<=0))mode='arr';
-      else if(ph.cls==='takeoff'||ph.cls==='climb'||vs>150||(alt!=null&&alt<12000&&vs>0))mode='dep';
-      else if(alt!=null&&alt<6000)mode=(vs>=0?'dep':'arr');
+      if(ph.cls==='land'||vs<-200||(alt!=null&&alt<9000&&vs<-80&&gs!=null&&gs>=40))mode='arr';
+      else if(ph.cls==='takeoff'||ph.cls==='climb'||vs>150||(alt!=null&&alt<12000&&vs>0&&gs!=null&&gs>=40))mode='dep';
+      else if(alt!=null&&alt<6000&&gs!=null&&gs>=40)mode=(vs>=0?'dep':'arr');
     }
   }
   if(!apt||!mode)return null;
@@ -658,8 +697,26 @@ function flightGsKts(f){
   let s=numOrNull(f.gsKts);
   if(s==null)s=numOrNull(f.kts);
   if(s==null&&f.lastPos)s=numOrNull(f.lastPos.groundspeed);
+  if(s==null)s=numOrNull(f._estGs);
+  if(s==null)s=numOrNull(f._lastGoodGs);
   if(s==null)return null;
   return Math.round(s);
+}
+/** Typical cruise GS by altitude when ADS-B omits speed (Austin / thinner coverage). */
+function assumedAirborneGs(altFt,cls){
+  if(cls==='heli')return 90;
+  if(cls==='prop'){
+    if(altFt==null)return 140;
+    if(altFt<3000)return 120;
+    if(altFt<10000)return 160;
+    return 200;
+  }
+  if(altFt==null)return 380;
+  if(altFt<1500)return 180;
+  if(altFt<5000)return 250;
+  if(altFt<12000)return 320;
+  if(altFt<25000)return 400;
+  return 450;
 }
 function applyFaLastPosition(f,fl){
   const lp=fl&&fl.last_position;
@@ -1028,7 +1085,7 @@ function blob(cx,cz,r,irr,mat,y){
   return m;
 }
 /* Parks, forests, and neighborhood lawns — visible from altitude */
-if(!HTS_IS_AUS){
+if(!HTS_HAS_PACK){
 blob(-1140,-3620,520,.3,matForest,0.02);    /* Woodlands pines */
 blob(1500,-3700,480,.3,matForest,0.02);     /* Kingwood woods */
 blob(-2650,-780,360,.3,matScrub,0.018);     /* Addicks land */
@@ -1054,7 +1111,7 @@ blob(-2650,-780,170,.4,matWater,0.035);     /* Addicks pool */
 blob(-2850,300,180,.4,matWater,0.035);      /* Barker pool */
 blob(7150,2700,3300,.22,matBay,0.03);       /* Galveston Bay */
 blob(2699,-1383,160,.4,matLake,0.03);       /* Sheldon Lake */
-}else{
+}else if(HTS_IS_AUS){
   /* Austin — Balcones edge: flat east prairie, greenbelt + lakes west/central */
   const dtLawn=geoToWorld(30.2672,-97.7431);
   blob(dtLawn.x,dtLawn.z,70,.4,matLawn,0.022);
@@ -1128,14 +1185,17 @@ blob(2699,-1383,160,.4,matLake,0.03);       /* Sheldon Lake */
     const p=geoToWorld(lat,lng);
     blob(p.x,p.z,r,.4,matForest,0.02);
   }
+}else if(HTS_HAS_PACK){
+  const dtLawn=packDowntown();
+  blob(dtLawn.x,dtLawn.z,90,.4,matLawn,0.022);
 }
 /* Buffalo Bayou + other Houston bayous / rivers (Austin uses Lady Bird + creek corridors) */
-const BAYOU=HTS_IS_AUS?[]:[[-2300,-120],[-1500,-60],[-900,-140],[-400,-40],[0,-90],[420,-20],[900,40],[1600,-30],[2400,80],[3300,220],[4200,520]];
-const BRAYS=HTS_IS_AUS?[]:[[-2400,1520],[-1600,1160],[-800,900],[-200,720],[300,540],[720,400]];
-const WHITEOAK=HTS_IS_AUS?[]:[[-2200,-1800],[-1600,-1200],[-900,-700],[-400,-350],[0,-120],[90,10],[177,0]];
-const SIMS=HTS_IS_AUS?[]:[[-400,2800],[200,2400],[800,2000],[1400,1700],[2000,1500],[2600,1400]];
-const GREENS=HTS_IS_AUS?[]:[[800,-2800],[1400,-2200],[2000,-1600],[2600,-1100],[3200,-700],[3800,-400]];
-const SANJAC=HTS_IS_AUS?[]:[[2400,-3200],[2800,-2600],[3400,-1800],[4200,-800],[5200,400],[6200,1600]];
+const BAYOU=HTS_HAS_PACK?[]:[[-2300,-120],[-1500,-60],[-900,-140],[-400,-40],[0,-90],[420,-20],[900,40],[1600,-30],[2400,80],[3300,220],[4200,520]];
+const BRAYS=HTS_HAS_PACK?[]:[[-2400,1520],[-1600,1160],[-800,900],[-200,720],[300,540],[720,400]];
+const WHITEOAK=HTS_HAS_PACK?[]:[[-2200,-1800],[-1600,-1200],[-900,-700],[-400,-350],[0,-120],[90,10],[177,0]];
+const SIMS=HTS_HAS_PACK?[]:[[-400,2800],[200,2400],[800,2000],[1400,1700],[2000,1500],[2600,1400]];
+const GREENS=HTS_HAS_PACK?[]:[[800,-2800],[1400,-2200],[2000,-1600],[2600,-1100],[3200,-700],[3800,-400]];
+const SANJAC=HTS_HAS_PACK?[]:[[2400,-3200],[2800,-2600],[3400,-1800],[4200,-800],[5200,400],[6200,1600]];
 const LADYBIRD=(HTS_PACK&&HTS_PACK.ladyBird&&HTS_PACK.ladyBird.length>=2)
   ?HTS_PACK.ladyBird.slice()
   :(HTS_IS_AUS?(function(){
@@ -1150,7 +1210,7 @@ const SHOAL=HTS_IS_AUS?ausCreek([[30.32,-97.76],[30.31,-97.755],[30.295,-97.752]
 const WALLER=HTS_IS_AUS?ausCreek([[30.285,-97.735],[30.278,-97.736],[30.272,-97.737],[30.267,-97.738],[30.262,-97.739]]):[];
 const BARTON_CK=HTS_IS_AUS?ausCreek([[30.245,-97.81],[30.252,-97.795],[30.258,-97.782],[30.263,-97.774],[30.265,-97.771]]):[];
 const ONION=HTS_IS_AUS?ausCreek([[30.15,-97.78],[30.17,-97.76],[30.185,-97.74],[30.20,-97.72],[30.22,-97.70]]):[];
-window.ALL_BAYOUS=HTS_IS_AUS?[LADYBIRD,SHOAL,WALLER,BARTON_CK,ONION]:[BAYOU,BRAYS,WHITEOAK,SIMS,GREENS,SANJAC];
+window.ALL_BAYOUS=HTS_IS_AUS?[LADYBIRD,SHOAL,WALLER,BARTON_CK,ONION]:(HTS_HAS_PACK?(LADYBIRD.length>=2?[LADYBIRD]:[]):[BAYOU,BRAYS,WHITEOAK,SIMS,GREENS,SANJAC]);
 
 /* ---------------- curve & ribbon builders (elevation-aware) ---------------- */
 function sampleCurve(pts2,closed,step){
@@ -1738,12 +1798,14 @@ console.log('%cRoad network ready: '+roads.length+' corridors','color:#7fd6a0');
     /* Austin: Lady Bird is a wide river through downtown (not a thin creek) */
     const specs=HTS_IS_AUS
     ?[[LADYBIRD,110,92,matLake],[SHOAL,14,10,matBayou],[WALLER,10,7,matBayou],[BARTON_CK,12,8,matBayou],[ONION,16,11,matBayou]]
-    :[[BAYOU,52,34,matBayou],[BRAYS,36,22,matBayou],[WHITEOAK,40,24,matBayou],
-      [SIMS,34,20,matBayou],[GREENS,36,22,matBayou],[SANJAC,58,38,matWater]];
+    :(HTS_HAS_PACK
+      ?(LADYBIRD.length>=2?[[LADYBIRD,70,55,matLake]]:[])
+      :[[BAYOU,52,34,matBayou],[BRAYS,36,22,matBayou],[WHITEOAK,40,24,matBayou],
+        [SIMS,34,20,matBayou],[GREENS,36,22,matBayou],[SANJAC,58,38,matWater]]);
   for(const [pts,bw,ww,wmat] of specs){
     if(!pts||pts.length<2)continue;
     const s=sampleCurve(pts,false,HTS_IS_AUS?22:30);
-    if(!HTS_IS_AUS){
+    if(!HTS_IS_AUS&&!HTS_HAS_PACK){
       gDetail.add(new THREE.Mesh(ribbonGeom(s,bw*1.55,0.015,0,false,0),bankOuter));
       gDetail.add(new THREE.Mesh(ribbonGeom(s,bw,0.02,0,false,0),bankMat));
     }else if(pts===LADYBIRD){
@@ -1758,10 +1820,11 @@ console.log('%cRoad network ready: '+roads.length+' corridors','color:#7fd6a0');
     }
     gDetail.add(new THREE.Mesh(ribbonGeom(s,ww,0.055,0,false,0),wmat));
   }
-  /* Austin: keep channel clear — half-width ~46 so towers/trees stay on shore */
-  if(HTS_IS_AUS&&LADYBIRD&&LADYBIRD.length>=2){
+  /* Keep river channel clear of towers/trees */
+  if((HTS_IS_AUS||HTS_HAS_PACK)&&LADYBIRD&&LADYBIRD.length>=2){
     const s=sampleCurve(LADYBIRD,false,18);
-    for(let i=0;i<=s.n;i++)EXCLUDES.push({x:s.px[i],z:s.pz[i],r:48,water:true});
+    const rr=HTS_IS_AUS?48:36;
+    for(let i=0;i<=s.n;i++)EXCLUDES.push({x:s.px[i],z:s.pz[i],r:rr,water:true});
   }
 })();
 
@@ -2212,6 +2275,13 @@ if(HTS_PACK&&HTS_PACK.districts&&HTS_PACK.districts.length){
   DISTRICTS.length=0;
   for(const d of HTS_PACK.districts)DISTRICTS.push(d);
 }
+/* Every suburb needs lat/lng for its own Open-Meteo sample */
+for(const d of DISTRICTS){
+  if(!Number.isFinite(d.lat)||!Number.isFinite(d.lng)){
+    const g=worldToGeo(d.x,d.z);
+    d.lat=g.lat;d.lng=g.lng;
+  }
+}
 
 function textSprite(txt,scaleK){
   const pad=26,fs=HTS_IS_AUS?56:64;
@@ -2258,6 +2328,14 @@ const WATERS=[
 if(HTS_PACK&&HTS_PACK.waters&&HTS_PACK.waters.length){
   WATERS.length=0;
   for(const w of HTS_PACK.waters)WATERS.push(w);
+}
+if(HTS_HAS_PACK&&!HTS_IS_AUS){
+  const dtLawn=packDowntown();
+  blob(dtLawn.x,dtLawn.z,80,.4,matLawn,0.022);
+  for(const w of WATERS){
+    const mat=w.tag==='harbor'||w.tag==='bay'?matBay:(w.tag==='river'||w.tag==='channel'||w.tag==='bayou'?matBayou:matLake);
+    blob(w.x,w.z,Math.min(w.r||200,420),.35,mat,0.03);
+  }
 }
 for(const w of WATERS){
   const sp=textSprite(w.n,0.32);
@@ -2396,7 +2474,7 @@ function inAirfield(x,z){
   }
   return null;
 }
-if(!HTS_IS_AUS){
+if(!HTS_HAS_PACK){
 EXCLUDES.push({x:-455,z:1157,r:140});  /* NRG Stadium */
 EXCLUDES.push({x:-245,z:1140,r:110});  /* Astrodome (east of NRG, clear gap) */
 EXCLUDES.push({x:240,z:105,r:130});   /* Daikin Park (EaDo) */
@@ -2406,7 +2484,7 @@ EXCLUDES.push({x:89,z:8,r:90});      /* Downtown Aquarium */
 }
 /* keep suburban houses out of the dense downtown core */
 (function(){
-  const dt=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
+  const dt=packDowntown();
   EXCLUDES.push({x:dt.x,z:dt.z,r:520});
 })();
 function blocked(x,z,extra){
@@ -2544,7 +2622,7 @@ function addTowers(cx,cz,count,rad,hmin,hmax,cylP){
     const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
     /* Houston: restore pre-Austin placement (blocked + downtown EXCLUDE = landmark CBD).
        Austin: nearRoad only so geo-pinned towers can sit in the core. */
-    if(HTS_IS_AUS){if(nearRoad(x,z,28))continue;}
+    if(HTS_HAS_PACK){if(nearRoad(x,z,28))continue;}
     else{if(blocked(x,z,28))continue;}
     const w=26+rand()*34,dep=26+rand()*34,h=hmin+Math.pow(rand(),1.6)*(hmax-hmin);
     tower(x,z,w,dep,h,Math.floor(rand()*4),rand()<0.7?0:rand()*0.5,rand()<(cylP||0));
@@ -2623,6 +2701,35 @@ if(HTS_IS_AUS){
     console.log('%cAustin skyline: '+AUS_LANDMARKS.length+' landmarks + CBD pockets (Capitol cleared)','color:#7fd6a0');
   })();
   window.__htsPlaceAusSkylineFallback=function(){ /* landmarks already placed */ };
+}else if(HTS_HAS_PACK){
+  (function placePackSkyline(){
+    const list=(HTS_PACK&&HTS_PACK.skyline)||[];
+    const dt=packDowntown();
+    for(const L of list){
+      const x=L.x,z=L.z;
+      const m=tower(x,z,L.w||28,L.d||28,L.h||120,L.s||0,0,false);
+      m.userData.info={n:L.n,d:L.info||L.n};
+      PICK_TOWERS.push(m);
+      HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(L.w||28,L.d||28)*0.75+18});
+      EXCLUDES.push({x,z,r:Math.max(L.w||28,L.d||28)*0.6+16});
+    }
+    /* Mid-rise CBD pocket around downtown */
+    let got=0;
+    for(let t=0;t<240&&got<36;t++){
+      const a=rand()*TAU,r=Math.sqrt(rand())*220;
+      const x=dt.x+Math.cos(a)*r,z=dt.z+Math.sin(a)*r;
+      if(nearFreeway(x,z,16))continue;
+      if(typeof inWater==='function'&&inWater(x,z))continue;
+      let near=false;
+      for(const s of HTS_AUS_LANDMARK_SKIP){if(Math.hypot(x-s.x,z-s.z)<(s.r||40)){near=true;break;}}
+      if(near)continue;
+      const w=22+rand()*18,dep=22+rand()*18,h=50+Math.pow(rand(),1.5)*120;
+      tower(x,z,w,dep,h,Math.floor(rand()*4),rand()*0.35,false);
+      HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(w,dep)*0.55+12});
+      got++;
+    }
+    console.log('%c'+CITY_NAME+' skyline: '+list.length+' landmarks + CBD pocket','color:#7fd6a0');
+  })();
 }else{
   /* Houston skyline — original denser clusters (Galleria / Med Center / …) + landmark CBD */
   addTowers(60,60,72,380,70,345,0.14);   /* downtown (denser / taller) */
@@ -2646,7 +2753,7 @@ if(HTS_IS_AUS){
 if(window.HTS_CINEMATIC&&HTS_CINEMATIC.markShadowCasters){
   try{HTS_CINEMATIC.markShadowCasters(gDetail);}catch(e){}
 }
-const LANDMARK_TOWERS=HTS_IS_AUS?[]:[
+const LANDMARK_TOWERS=HTS_HAS_PACK?[]:[
  /* Offsets keep towers beside freeways, not sitting in the travel lanes */
  {n:'JPMorgan Chase Tower',x:105,z:25,w:40,d:40,h:335,s:0,info:'1,002 ft · 75 floors · 1982 · tallest in Texas until 2019'},
  {n:'Wells Fargo Plaza',x:-55,z:155,w:38,d:30,h:330,s:0,info:'992 ft · 71 floors · 1983 · all-glass twin quarter-cylinders'},
@@ -2675,7 +2782,7 @@ for(const L of LANDMARK_TOWERS){
   m.userData.info={n:L.n,d:L.info};
   PICK_TOWERS.push(m);
 }
-if(!HTS_IS_AUS)(function(){const g=new THREE.CylinderGeometry(0.7,1.1,70,5);g.translate(0,35,0);
+if(!HTS_HAS_PACK)(function(){const g=new THREE.CylinderGeometry(0.7,1.1,70,5);g.translate(0,35,0);
   const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0x8a9098}));
   m.position.set(60,330,60);gDetail.add(m);})();
 /* Invisible pick volume helper for landmark hover / Wikipedia cards */
@@ -2898,7 +3005,11 @@ const houseClusters=HTS_IS_AUS?[
    ];
    return ids.map(([lat,lng,rad,cnt])=>{const w=geoToWorld(lat,lng);return [w.x,w.z,rad,cnt];});
  })()
-]:[
+]:(HTS_HAS_PACK?(function(){
+  return (HTS_PACK.districts||[])
+    .filter((d)=>d.id!=='downtown')
+    .map((d)=>[d.x,d.z,Math.min((d.r||280)*1.35,560),Math.max(90,Math.floor((d.r||280)*0.55))]);
+})():[
  [-3520,-120,700,300],[-3050,2260,760,320],[-2280,2520,620,270],[-2520,1780,380,150],
  [-4550,3300,640,260],[-1140,-3620,780,270],[-950,-2950,560,220],[-1600,-4950,640,240],
  [430,3420,680,290],[-3020,-2420,700,270],[-2650,-3250,560,220],[-1650,-1520,380,160],
@@ -2908,10 +3019,10 @@ const houseClusters=HTS_IS_AUS?[
  [-2050,950,480,180],[-360,-420,340,140],[-360,300,300,110],[-620,180,300,110],
  [-820,760,320,120],[820,-900,500,160],[-2200,900,540,170],[1500,1500,600,180],
  [-1600,1800,540,160],[900,-2200,540,160],
-];
+]);
 (function(){
   let N=0;for(const c of houseClusters)N+=c[3];
-  if(HTS_IS_AUS)N=Math.max(N,3200);
+  if(HTS_HAS_PACK)N=Math.max(N,3200);
   const bodyG=new THREE.BoxGeometry(1,1,1);bodyG.translate(0,0.5,0);
   const bodies=new THREE.InstancedMesh(bodyG,new THREE.MeshLambertMaterial({map:houseTex}),N);
   const roofs=new THREE.InstancedMesh(prismGeom(),new THREE.MeshLambertMaterial({}),N);
@@ -2934,28 +3045,26 @@ const houseClusters=HTS_IS_AUS?[
     col.setHex(ROOF_COLS[Math.floor(rand()*ROOF_COLS.length)]);roofs.setColorAt(idx,col);
     idx++;return true;
   }
-  if(HTS_IS_AUS){
+  if(HTS_HAS_PACK){
     /* Sit houses beside arterials/surface roads so suburbs follow the road network */
-    const dt=geoToWorld(30.2672,-97.7431);
+    const dt=packDowntown();
     for(const {def,s} of roadSamples){
       if(!(def.arterial||def.surface))continue;
       const step=Math.max(2,Math.floor(18/(def.width||16)));
       for(let i=0;i<=s.n;i+=step){
-        if(Math.hypot(s.px[i]-dt.x,s.pz[i]-dt.z)<380)continue; /* CBD / Capitol View */
+        if(Math.hypot(s.px[i]-dt.x,s.pz[i]-dt.z)<380)continue; /* CBD */
         const rx=-s.tz[i],rz=s.tx[i];
-        const face=Math.atan2(s.tx[i],s.tz[i]); /* face along street */
+        const face=Math.atan2(s.tx[i],s.tz[i]);
         for(const sg of [1,-1]){
           if(rand()>0.55)continue;
           const setback=(def.width||18)*0.55+10+rand()*14;
           const along=(rand()-0.5)*10;
           const x=s.px[i]+rx*sg*setback+s.tx[i]*along;
           const z=s.pz[i]+rz*sg*setback+s.tz[i]*along;
-          /* Face the street (inward toward centerline) */
           placeHouse(x,z,face+Math.PI/2*(sg>0?1:-1));
         }
       }
     }
-    /* Fill remaining quota in district rings (still avoid water / CBD) */
     for(const [cx,cz,rad,cnt] of houseClusters){
       let placed=0,tries=0;
       while(placed<Math.min(80,cnt*0.28)&&tries<cnt*5&&idx<N){tries++;
@@ -2966,7 +3075,7 @@ const houseClusters=HTS_IS_AUS?[
         if(placeHouse(x,z,null))placed++;
       }
     }
-    console.log('%cAustin houses along roads: '+idx,'color:#7fd6a0');
+    console.log('%c'+CITY_NAME+' houses along roads: '+idx,'color:#7fd6a0');
   }else{
     for(const [cx,cz,rad,cnt] of houseClusters){
       let placed=0,tries=0;
@@ -3009,8 +3118,8 @@ const houseClusters=HTS_IS_AUS?[
   const N=760;const mesh=new THREE.InstancedMesh(g,mat,N);
   const _sc2=new THREE.Color();
   const d=new THREE.Object3D();let placed=0,tries=0;
-  const dtSprawl=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
-  const dtClear=HTS_IS_AUS?480:380;
+  const dtSprawl=packDowntown();
+  const dtClear=HTS_HAS_PACK?480:380;
   while(placed<N&&tries<7000){tries++;
     const x=(rand()-.5)*9000,z=(rand()-.5)*9000;
     if(Math.hypot(x-dtSprawl.x,z-dtSprawl.z)<dtClear)continue;
@@ -3098,7 +3207,7 @@ function canopyGeom(){
       }
     }
   }
-  if(!HTS_IS_AUS){
+  if(!HTS_HAS_PACK){
     for(let k=0;k<280;k++){const a=rand()*TAU,r=Math.sqrt(rand())*480;
       put(-1140+Math.cos(a)*r,-3620+Math.sin(a)*r,true);}
     for(let k=0;k<220;k++){const a=rand()*TAU,r=Math.sqrt(rand())*420;
@@ -3182,7 +3291,7 @@ function canopyGeom(){
 
 /* ---------------- ship-channel industry ---------------- */
 (function(){
-  if(HTS_IS_AUS)return;
+  if(HTS_HAS_PACK)return;
   const spots=[];
   for(let i=0;i<28;i++)spots.push([2050+rand()*1300,140+rand()*600]);
   for(let i=0;i<18;i++)spots.push([3550+rand()*680,-580+rand()*440]);
@@ -3205,12 +3314,11 @@ function canopyGeom(){
 /* downtown street grid — Houston CBD + quiet Austin Congress-aligned fabric */
 (function(){
   const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-  if(HTS_IS_AUS){
-    /* Dim clay-city blocks — Congress-aligned N–S / E–W fabric */
+  if(HTS_HAS_PACK){
+    /* Dim clay-city blocks — N–S / E–W fabric */
     x.fillStyle='#4a463c';
     x.fillRect(0,0,256,256);
     x.strokeStyle='#6a6558';x.lineWidth=4;
-    /* finer north–south streets (Congress cadence) */
     for(let i=0;i<=12;i++){
       const p=i*(256/12);
       x.beginPath();x.moveTo(p,0);x.lineTo(p,256);x.stroke();
@@ -3220,7 +3328,6 @@ function canopyGeom(){
       const p=i*(256/8);
       x.beginPath();x.moveTo(0,p);x.lineTo(256,p);x.stroke();
     }
-    /* Congress Ave highlight down the center */
     x.strokeStyle='#8a8470';x.lineWidth=9;
     x.beginPath();x.moveTo(128,0);x.lineTo(128,256);x.stroke();
   }else{
@@ -3229,14 +3336,14 @@ function canopyGeom(){
       x.beginPath();x.moveTo(0,p);x.lineTo(256,p);x.stroke();}
   }
   const t=new THREE.CanvasTexture(c);
-  const dt=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(HTS_IS_AUS?620:720,HTS_IS_AUS?640:720),
+  const dt=packDowntown();
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(HTS_HAS_PACK?620:720,HTS_HAS_PACK?640:720),
     new THREE.MeshLambertMaterial({
-      map:t,transparent:true,opacity:HTS_IS_AUS?0.38:0.55,depthWrite:false,
+      map:t,transparent:true,opacity:HTS_HAS_PACK?0.38:0.55,depthWrite:false,
     }));
   m.rotation.x=-Math.PI/2;
-  /* Austin streets roughly N–S / E–W; Houston grid is slightly rotated */
-  m.rotation.z=HTS_IS_AUS?0:0.12;
+  /* Pack cities: axis-aligned fabric; Houston grid is slightly rotated */
+  m.rotation.z=HTS_HAS_PACK?0:0.12;
   m.position.set(dt.x,0.12,dt.z);
   gDetail.add(m);
 })();
@@ -3881,6 +3988,23 @@ window.FLIGHTS=[];
   function toKts(ms){return Math.round((ms||0)*1.94384);}
   function ft(m){return Math.round((m||0)*3.28084/100)*100;}
   function cleanCS(s){return String(s||'').trim().replace(/\s+/g,'');}
+  /** Prefer real GS from feed; never coerce missing vel → 0 (that freezes planes into airport piles). */
+  function feedGsKts(x){
+    if(!x)return null;
+    /* Treat explicit 0 as missing when airborne — many ADS-B mirrors send gs:0 outside dense metros */
+    if(x.gsKts!=null&&Number.isFinite(x.gsKts)){
+      if(x.gsKts>0)return Math.round(x.gsKts);
+      if(x.onGround)return 0;
+      return null;
+    }
+    if(x.vel!=null&&Number.isFinite(x.vel)&&x.vel>0.5)return toKts(x.vel);
+    return null;
+  }
+  function nmBetween(lat1,lon1,lat2,lon2){
+    const dLat=(lat2-lat1)*69;
+    const dLon=(lon2-lon1)*59.9*Math.cos(((lat1+lat2)*0.5)*Math.PI/180);
+    return Math.hypot(dLat,dLon);
+  }
 
   /* create a live aircraft mesh — airliner, prop, or helicopter from ADS-B type */
   function makeLivePlane(seed,actype,category,cs){
@@ -3994,6 +4118,7 @@ window.FLIGHTS=[];
         seen.add(x.icao24);
         let f=LIVE_FLIGHTS.get(x.icao24);
         if(!f){
+          const gs0=feedGsKts(x);
           f={kind:'live',icao24:x.icao24,m:makeLivePlane(i,x.actype,x.category,x.cs),
              cs:x.cs||x.icao24.toUpperCase(),
              actype:x.actype||'—',
@@ -4002,8 +4127,8 @@ window.FLIGHTS=[];
              dep:null,arr:null,etd:null,eta:null,
              city:(x.country||'')||'—',
              status:'Live ADS-B',
-             kts:x.gsKts!=null?x.gsKts:toKts(x.vel),
-             gsKts:x.gsKts!=null?x.gsKts:toKts(x.vel),
+             kts:gs0,
+             gsKts:gs0,
              altFt:x.altFt!=null?x.altFt:(x.altM!=null?Math.round(x.altM*3.28084):null),
              sched:null,
              _routeVerified:false,_guessRoute:false,_guessArr:false,_houston:null,
@@ -4026,8 +4151,11 @@ window.FLIGHTS=[];
         }
         f.cs=x.cs||f.cs;
         f.city=(x.country||f.city||'—');
-        const gs=x.gsKts!=null?x.gsKts:toKts(x.vel);
-        if(gs!=null&&Number.isFinite(gs)){f.kts=gs;f.gsKts=gs;}
+        f.onGround=!!x.onGround;
+        const gs=feedGsKts(x);
+        /* Only update speed when the feed actually reports it — keep last GS to keep flying */
+        if(gs!=null&&gs>0){f.kts=gs;f.gsKts=gs;f._lastGoodGs=gs;}
+        else if(gs===0&&x.onGround){f.kts=0;f.gsKts=0;}
         const altFromFeed=x.altFt!=null?x.altFt:(x.altM!=null?Math.round(x.altM*3.28084):null);
         if(altFromFeed!=null&&Number.isFinite(altFromFeed))f.altFt=altFromFeed;
         else if(f.altFt==null&&f._tAltM!=null)f.altFt=ft(f._tAltM);
@@ -4041,20 +4169,50 @@ window.FLIGHTS=[];
           f.category=f.category||'A1';
         }
         maybeUpgradeLiveMesh(f);
+        /* Estimate GS/track from position deltas when feed omits speed (common in Austin) */
+        const prevLat=f._tLat,prevLon=f._tLon,prevAt=f._feedAt||Date.now();
+        const posMoved=Number.isFinite(prevLat)&&Number.isFinite(x.lat)&&Number.isFinite(x.lon)
+          &&(Math.abs(x.lat-prevLat)>3e-5||Math.abs(x.lon-prevLon)>3e-5);
+        if(posMoved){
+          const dtSec=Math.max(2,(Date.now()-prevAt)/1000);
+          const dNm=nmBetween(prevLat,prevLon,x.lat,x.lon);
+          const est=clamp((dNm/dtSec)*3600,0,620);
+          if(est>=25){
+            f._estGs=est;
+            f._lastGoodGs=est;
+            if(gs==null||gs<=0){f.gsKts=Math.round(est);f.kts=f.gsKts;}
+          }
+          const brg=((Math.atan2(
+            (x.lon-prevLon)*Math.cos(x.lat*Math.PI/180),
+            (x.lat-prevLat)
+          )*180/Math.PI)+360)%360;
+          f._estTrk=brg;
+          if(x.track==null||!Number.isFinite(x.track)||x.track===0){
+            f._tTrk=brg;f._trk=brg;
+          }
+        }
         f._tLat=x.lat;f._tLon=x.lon;
         if(x.altM!=null)f._tAltM=x.altM;
         else if(f.altFt!=null)f._tAltM=f.altFt/3.28084;
-        f._tTrk=(x.track!=null?x.track:f._tTrk||0);
+        if(x.track!=null&&Number.isFinite(x.track)&&!(x.track===0&&posMoved&&f._estTrk!=null)){
+          f._tTrk=x.track;
+        }else if(f._estTrk!=null&&(f._tTrk==null||f._tTrk===0)){
+          f._tTrk=f._estTrk;
+        }else{
+          f._tTrk=(x.track!=null?x.track:f._tTrk||0);
+        }
         f._feedAt=Date.now();
-        f._newFix=true; /* tell motion loop to re-anchor once */
-        const showAlt=flightAltFt(f), showGs=flightGsKts(f);
+        /* Only hard-reanchor when the reported position actually moved — otherwise dead-reckon */
+        f._fixMoved=!!posMoved;
+        f._newFix=!!posMoved;
+        const showAlt=flightAltFt(f), showGs=flightGsKts(f)||f._estGs||f._lastGoodGs;
         const corr=classifyLiveCorridor(f);
         if(corr){
           const ph=flightPhase(f);
           f.status=(corr.mode==='arr'?'Final '+corr.apt.code:(ph.cls==='takeoff'?'Departing '+corr.apt.code:'Climbing '+corr.apt.code))
-            +' · '+(showAlt!=null?showAlt+' ft':'—')+' · '+(showGs!=null?showGs+' kts':'—');
+            +' · '+(showAlt!=null?showAlt+' ft':'—')+' · '+(showGs!=null?Math.round(showGs)+' kts':'—');
         }else{
-          f.status=(showAlt!=null?showAlt+' ft':'—')+' · '+(showGs!=null?showGs+' kts':'—');
+          f.status=(showAlt!=null?showAlt+' ft':'—')+' · '+(showGs!=null?Math.round(showGs)+' kts':'—');
         }
       }
 
@@ -4291,10 +4449,13 @@ window.FLIGHTS=[];
 (function(){ window.FLIGHTS = window.FLIGHTS || []; })();
 /* ---------------- stadiums & arenas ---------------- */
 let ASTRO={x:0,z:0};
-if(!HTS_IS_AUS){
+/* Module-scoped: trafficTick event congestion must see NRG even though the mesh
+   builder lives inside if(!HTS_HAS_PACK). Block-scoped const caused black screens
+   whenever event traffic kicked in (ReferenceError: NRG is not defined). */
+const NRG=geoToWorld(29.6847,-95.4107);
+if(!HTS_HAS_PACK){
 /* Real NRG Stadium @ 1 NRG Pkwy — rectangular glass bowl, translucent PTFE roof,
    twin burgundy-red longitudinal supertrusses (signature silhouette from I-610). */
-const NRG=geoToWorld(29.6847,-95.4107);
 (function(){
   const cx=NRG.x,cz=NRG.z;
   const glass=new THREE.MeshLambertMaterial({color:0xa8c4d8,transparent:true,opacity:0.72});
@@ -4741,6 +4902,118 @@ if(HTS_IS_AUS)(function placeAusAttractions(){
 
   console.log('%cAustin attractions: one landmark building per site','color:#7fd6a0');
 })();
+/* ---------------- Pack-city attractions (non-Austin) ---------------- */
+if(HTS_HAS_PACK&&!HTS_IS_AUS)(function placePackAttractions(){
+  const conc=new THREE.MeshLambertMaterial({color:0xb8b4ac});
+  const steel=new THREE.MeshLambertMaterial({color:0x6a727a});
+  const turf=new THREE.MeshLambertMaterial({color:0x2f7a38});
+  const dark=new THREE.MeshLambertMaterial({color:0x3a4048});
+  const copper=new THREE.MeshLambertMaterial({color:0x4a8a72});
+  const stone=new THREE.MeshLambertMaterial({color:0xcfc8b8});
+  const glass=new THREE.MeshLambertMaterial({color:0x8ab0c8,transparent:true,opacity:0.78});
+  const sand=new THREE.MeshLambertMaterial({color:0xb8a878});
+  const neon=new THREE.MeshLambertMaterial({color:0xe8d8a8,emissive:0x665522,emissiveIntensity:0.35});
+  function pad(x,z,w,d,mat,y){
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat||new THREE.MeshLambertMaterial({color:0x5a6068}));
+    m.rotation.x=-Math.PI/2;m.position.set(x,y==null?0.08:y,z);gDetail.add(m);return m;
+  }
+  function box(x,z,w,h,d,mat,y0){
+    const m=new THREE.Mesh(towerGeo,mat);
+    m.scale.set(w,h,d);m.position.set(x,y0||0,z);m.frustumCulled=false;gDetail.add(m);return m;
+  }
+  function cyl(x,y,z,rTop,rBot,h,mat,seg){
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBot,h,seg||10),mat);
+    m.position.set(x,y,z);m.frustumCulled=false;gDetail.add(m);return m;
+  }
+  function clear(x,z,r){EXCLUDES.push({x,z,r});HTS_AUS_LANDMARK_SKIP.push({x,z,r});}
+  function mark(A,cx,cy,cz,sx,sy,sz,d){
+    registerLandmarkHit(cx,cy,cz,sx,sy,sz,{n:A.n,d:d||A.n},{n:A.n,x:cx,z:cz,addr:A.n});
+    const sp=textSprite(A.n.length>18?A.n.slice(0,16)+'…':A.n,0.38);
+    sp.position.set(cx,Math.max(sy*0.55,42)+8,cz);gDetail.add(sp);
+  }
+  for(const A of (HTS_PACK.attractions||[])){
+    const cx=A.x,cz=A.z;
+    const kind=(A.kind||'museum').toLowerCase();
+    clear(cx,cz,kind==='park'?90:60);
+    if(kind==='stadium'){
+      pad(cx,cz,70,58);box(cx,cz,52,8,42,conc);box(cx,cz,48,14,38,steel,6);
+      const field=new THREE.Mesh(new THREE.PlaneGeometry(36,24),turf);
+      field.rotation.x=-Math.PI/2;field.position.set(cx,20.2,cz);gDetail.add(field);
+      mark(A,cx,16,cz,60,40,50,A.n+' · stadium');
+    }else if(kind==='arena'){
+      pad(cx,cz,62,52);box(cx,cz,48,10,40,conc);
+      const bowl=new THREE.Mesh(new THREE.CylinderGeometry(20,24,18,16),glass);
+      bowl.position.set(cx,19,cz);bowl.frustumCulled=false;gDetail.add(bowl);
+      mark(A,cx,16,cz,55,40,48,A.n+' · arena');
+    }else if(kind==='school'){
+      pad(cx,cz,80,70);box(cx,cz,55,22,40,conc);box(cx+28,cz,18,36,18,steel);
+      mark(A,cx,20,cz,70,50,60,A.n);
+    }else if(kind==='tower'){
+      /* Observation / needle towers (Reunion, Tower of the Americas) */
+      pad(cx,cz,54,54);
+      cyl(cx,8,cz,16,18,16,stone,12);
+      cyl(cx,55,cz,5,7,78,steel,10);
+      cyl(cx,98,cz,14,14,10,glass,14);
+      cyl(cx,118,cz,2.2,3.5,28,steel,8);
+      mark(A,cx,70,cz,40,140,40,A.n+' · observation tower');
+    }else if(kind==='statue'||kind==='monument'){
+      /* Pedestal + figure — Liberty / monument silhouette (exaggerated for map read) */
+      const island=new THREE.Mesh(new THREE.CylinderGeometry(38,42,4,20),sand);
+      island.position.set(cx,2.2,cz);island.frustumCulled=false;gDetail.add(island);
+      pad(cx,cz,70,70,turf,4.4);
+      box(cx,cz,22,18,22,stone,4);
+      cyl(cx,28,cz,10,12,12,stone,8);
+      const body=new THREE.Mesh(new THREE.CapsuleGeometry(6,28,4,8),copper);
+      body.position.set(cx,52,cz);body.frustumCulled=false;gDetail.add(body);
+      const arm=new THREE.Mesh(new THREE.CapsuleGeometry(2.2,16,3,6),copper);
+      arm.position.set(cx+8,68,cz);arm.rotation.z=-0.7;arm.frustumCulled=false;gDetail.add(arm);
+      const torch=new THREE.Mesh(new THREE.SphereGeometry(3.2,8,8),neon);
+      torch.position.set(cx+14,78,cz);torch.frustumCulled=false;gDetail.add(torch);
+      mark(A,cx,48,cz,50,110,50,A.n);
+    }else if(kind==='park'){
+      pad(cx,cz,110,90,turf,0.12);
+      for(let i=0;i<7;i++){
+        const a=i/7*TAU,rr=18+10*(i%3);
+        cyl(cx+Math.cos(a)*rr,10,cz+Math.sin(a)*rr,0.8,1.2,20,new THREE.MeshLambertMaterial({color:0x6a5038}),6);
+        const canopy=new THREE.Mesh(new THREE.SphereGeometry(7,8,6),new THREE.MeshLambertMaterial({color:0x2f7a38}));
+        canopy.position.set(cx+Math.cos(a)*rr,22,cz+Math.sin(a)*rr);gDetail.add(canopy);
+      }
+      mark(A,cx,12,cz,90,30,80,A.n+' · park');
+    }else if(kind==='sign'){
+      /* Hillside letter bank (Hollywood Sign style) */
+      pad(cx,cz,90,28,new THREE.MeshLambertMaterial({color:0x6a7058}),0.15);
+      const letters=(A.letters||'HOLLYWOOD').slice(0,10);
+      const start=-(letters.length-1)*5.5;
+      for(let i=0;i<letters.length;i++){
+        box(cx+start+i*11,cz,7,16,2.4,new THREE.MeshLambertMaterial({color:0xf2f0ea}),2);
+      }
+      mark(A,cx,18,cz,100,40,40,A.n);
+    }else if(kind==='themepark'||kind==='castle'){
+      pad(cx,cz,90,80,new THREE.MeshLambertMaterial({color:0x6a9070}),0.1);
+      box(cx,cz,36,20,28,stone);
+      box(cx-14,cz,10,34,10,stone);box(cx+14,cz,10,34,10,stone);
+      cyl(cx,48,cz,4,8,20,neon,8);
+      mark(A,cx,28,cz,80,60,70,A.n);
+    }else if(kind==='bridge'){
+      pad(cx,cz,120,28,steel,0.2);
+      box(cx,cz,100,3,14,dark,6);
+      for(const dx of [-36,36]){box(cx+dx,cz,4,42,4,steel,0);box(cx+dx,cz,28,2,2,steel,40);}
+      mark(A,cx,24,cz,110,50,40,A.n+' · bridge');
+    }else if(kind==='mission'||kind==='alamo'){
+      pad(cx,cz,56,48,sand,0.1);
+      box(cx,cz,40,16,28,stone);
+      box(cx,cz-6,18,22,8,stone,14);
+      mark(A,cx,14,cz,50,40,40,A.n);
+    }else{
+      /* museum / landmark / default — readable civic block */
+      pad(cx,cz,56,46);
+      box(cx,cz,40,20,32,conc);
+      box(cx,cz,28,8,24,glass,18);
+      mark(A,cx,16,cz,52,40,44,A.n);
+    }
+  }
+  console.log('%c'+CITY_NAME+' attractions: '+(HTS_PACK.attractions||[]).length+' physical landmarks','color:#7fd6a0');
+})();
 /* ---------------- points of interest ---------------- */
 function poiBadge(kind){
   const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
@@ -4796,6 +5069,7 @@ const PLACE_HISTORY={
   'Bank of America Center':{wiki:'Bank_of_America_Center_(Houston)',blurb:'1983 Philip Johnson tower with a stepped Art Deco crown; a defining silhouette of the Houston skyline.'},
   'Minute Maid Park':{wiki:'Daikin_Park',blurb:'Opened 2000 as Enron Field; home of the Houston Astros with a retractable roof and downtown train motif.'},
   'Daikin Park':{wiki:'Daikin_Park',blurb:'Opened 2000 as Enron Field (later Minute Maid Park). Home of the Houston Astros with a retractable roof beside downtown.'},
+  'My place':{wiki:'',blurb:'This is your live GPS spot on the Houston map — the little house marks where you are. Use the blue pin or Go to my location to fly home.'},
   'Toyota Center':{wiki:'Toyota_Center',blurb:'Opened 2003 as home of the Houston Rockets and a major downtown concert arena.'},
   'NRG Stadium':{wiki:'NRG_Stadium',blurb:'Opened 2002 as Reliant Stadium. Home of the Houston Texans and Houston Livestock Show and Rodeo; first NFL retractable-roof stadium.'},
   'Lakewood Church':{wiki:'Lakewood_Church',blurb:'America’s largest megachurch, led by Joel Osteen. Occupies the former Compaq Center / Summit arena since 2005.'},
@@ -5181,7 +5455,7 @@ for(const p of POIS){
 }
 /* NASA Johnson Space Center campus pad (visual landmark near Space Center Houston) */
 (function(){
-  if(HTS_IS_AUS)return;
+  if(HTS_HAS_PACK)return;
   const jsc=geoToWorld(29.5593,-95.0899);
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(280,220),new THREE.MeshLambertMaterial({color:0x4a5560}));
   pad.rotation.x=-Math.PI/2;pad.position.set(jsc.x,0.12,jsc.z);gDetail.add(pad);
@@ -5199,7 +5473,7 @@ for(const p of POIS){
 })();
 /* Kemah: boardwalk pad + working ferris wheel */
 window.FERRIS=(function(){
-  if(HTS_IS_AUS)return null;
+  if(HTS_HAS_PACK)return null;
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(220,140),new THREE.MeshLambertMaterial({color:0x8a7a5e}));
   pad.rotation.x=-Math.PI/2;pad.position.set(2900,0.1,3330);gDetail.add(pad);
   const g=new THREE.Group();
@@ -5225,7 +5499,7 @@ window.FERRIS=(function(){
 
 /* Downtown Aquarium — Landry’s complex on Buffalo Bayou (410 Bagby) */
 (function buildDowntownAquarium(){
-  if(HTS_IS_AUS)return;
+  if(HTS_HAS_PACK)return;
   const ax=89, az=8;
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(95,70),new THREE.MeshLambertMaterial({color:0x6a7068}));
   pad.rotation.x=-Math.PI/2;pad.position.set(ax,0.08,az);gDetail.add(pad);
@@ -5493,7 +5767,7 @@ window.HOTRINGS=[];
 
 /* ---------------- METRORail Red Line (Downtown <-> Med Center) ---------------- */
 const _rpRail={px:0,pz:0,py:0,tx:0,tz:0};
-window.RAIL=HTS_IS_AUS?null:(function(){
+window.RAIL=HTS_HAS_PACK?null:(function(){
   const pts=[[95,10],[60,190],[-10,390],[-90,570],[-190,705],[-272,812]];
   const s=sampleCurve(pts,false,12);
   gDetail.add(new THREE.Mesh(ribbonGeom(s,5.5,0.86,0,false,0),
@@ -5533,7 +5807,7 @@ window.updateRail=function(dt){
 };
 /* ---------------- Port of Houston container cranes ---------------- */
 (function(){
-  if(HTS_IS_AUS)return;
+  if(HTS_HAS_PACK)return;
   const craneMat=new THREE.MeshLambertMaterial({color:0xc94b3a});
   for(let k=0;k<4;k++){
     const x=3050+k*130,z=520;
@@ -5765,8 +6039,10 @@ let wxMode='auto',wxCur='clear',wxDesc='Clear',wxBlend={...WX.clear},wxNextRoll=
 
 /* live weather via Open-Meteo (works when the file is opened in a browser;
    falls back to a simulated typical Gulf-Coast pattern if blocked/offline) */
-let liveWx=null; /* Houston downtown — always drives sky/sim */
-let localWx=null; /* user suburb / locate-me weather (shown alongside Houston) */
+let liveWx=null; /* metro-core/downtown forecast — hourly for time-lapse + fallback */
+let localWx=null; /* user suburb / locate-me weather (shown alongside metro) */
+let zoneWx=null; /* camera-local suburb weather from zonal sample */
+window.WX_ZONES=[]; /* suburb / district Open-Meteo samples */
 const HOU_WX_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
 const HOU_WX_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lng)||-95.3698;
 const WMO_MAP=[
@@ -5806,21 +6082,75 @@ function nominatimHost(){
 function openMeteoUrl(lat,lng,hourly){
   /* 5–6 decimal places ≈ neighborhood / street precision for Open-Meteo grid */
   const la=Number(lat).toFixed(5),lo=Number(lng).toFixed(5);
+  const tz=encodeURIComponent((window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.timezone)||'America/Chicago');
   return openMeteoHost()+'/v1/forecast?latitude='+la+'&longitude='+lo
     +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,'
     +'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
-    +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation&forecast_days=2':'')
-    +'&past_minutes=15&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FChicago';
+    +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation':'')
+    +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max'
+    +'&forecast_days=3'
+    +'&past_minutes=15&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone='+tz;
+}
+function parseDailyForecast(j){
+  const d=j&&j.daily;
+  if(!d||!d.time||!d.time.length)return null;
+  const out=[];
+  for(let i=0;i<d.time.length;i++){
+    const m=wmoLookup(d.weather_code?d.weather_code[i]:2);
+    out.push({
+      date:d.time[i],
+      hi:Math.round(d.temperature_2m_max[i]),
+      lo:Math.round(d.temperature_2m_min[i]),
+      precip:(d.precipitation_sum&&d.precipitation_sum[i]!=null)?d.precipitation_sum[i]:0,
+      pop:(d.precipitation_probability_max&&d.precipitation_probability_max[i]!=null)?Math.round(d.precipitation_probability_max[i]):null,
+      preset:m.preset,label:m.label,
+    });
+  }
+  return out;
 }
 function parseOpenMeteo(j,extra){
   const c=j.current;const m=wmoLookup(c.weather_code);
+  const precip=c.precipitation!=null?c.precipitation:0;
+  /* Guarantee visible drizzle even when inch precip rounds near zero */
+  let rainAmt=m.rain;
+  if(rainAmt<=0&&precip>0.01)rainAmt=clamp(precip*6,0.15,0.7);
+  if(rainAmt>0&&rainAmt<0.22&&/driz|rain|shower|thunder/i.test(m.label))rainAmt=Math.max(rainAmt,0.28);
   return {temp:Math.round(c.temperature_2m),feels:Math.round(c.apparent_temperature),
     hum:Math.round(c.relative_humidity_2m),wind:Math.round(c.wind_speed_10m),
-    windDir:c.wind_direction_10m,precip:c.precipitation,cloud:c.cloud_cover/100,
+    windDir:c.wind_direction_10m,precip,cloud:c.cloud_cover/100,
     dew:Math.round(c.dew_point_2m),press:(c.pressure_msl*0.02953).toFixed(2),
     uv:Math.round(c.uv_index),vis:Math.round((c.visibility||24000)/1609),
-    preset:m.preset,label:m.label,rainAmt:m.rain,at:Date.now(),
-    hourly:j.hourly||null,...(extra||{})};
+    preset:m.preset,label:m.label,rainAmt,at:Date.now(),
+    hourly:j.hourly||null,daily:parseDailyForecast(j),...(extra||{})};
+}
+function forecastDayLabel(isoDate,idx){
+  const tz=(window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.timezone)||'America/Chicago';
+  if(idx===0)return 'Today';
+  if(idx===1)return 'Tomorrow';
+  try{
+    const parts=String(isoDate).split('-');
+    const d=new Date(Date.UTC(+parts[0],+parts[1]-1,+parts[2],18,0,0));
+    return d.toLocaleDateString('en-US',{weekday:'short',timeZone:tz});
+  }catch(e){return 'Day '+(idx+1);}
+}
+function renderWxForecast(pack){
+  const el=$('wxForecast');
+  if(!el)return;
+  const days=(pack&&pack.daily)||(liveWx&&liveWx.daily)||null;
+  if(!days||!days.length){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='grid';
+  el.innerHTML=days.slice(0,3).map((day,i)=>{
+    const icon=ICONS[WX[day.preset]?WX[day.preset].icon:'partly']||ICONS.partly;
+    const pop=day.pop!=null?day.pop+'% chance':'';
+    const rain=day.precip>0.01?(day.precip.toFixed(2)+'"'):'';
+    const meta=[pop,rain].filter(Boolean).join(' · ')||day.label;
+    return '<div class="wxDay">'
+      +'<div class="wdLab">'+forecastDayLabel(day.date,i)+'</div>'
+      +'<div class="wdIcon">'+icon+'</div>'
+      +'<div class="wdTemp"><b>'+day.hi+'°</b><span>'+day.lo+'°</span></div>'
+      +'<div class="wdMeta">'+meta+'</div>'
+      +'</div>';
+  }).join('');
 }
 /* Known Houston-metro neighborhoods (fallback when reverse-geocode is slow/offline) */
 const HOU_NEIGHBORHOODS=[
@@ -6018,8 +6348,105 @@ async function fetchWeather(){
     const place=(HTS_PACK&&HTS_PACK.wxPlace)||(CITY_NAME+' · Downtown');
     const r=await fetchWithTimeout(openMeteoUrl(HOU_WX_LAT,HOU_WX_LNG,true),{cache:'no-store'},10000);
     if(!r.ok)throw new Error(r.status);
-    liveWx=parseOpenMeteo(await r.json(),{place});
+    liveWx=parseOpenMeteo(await r.json(),{place,lat:HOU_WX_LAT,lng:HOU_WX_LNG});
   }catch(e){ liveWx=null; }
+}
+function ensureWeatherZones(){
+  if(window.WX_ZONES&&window.WX_ZONES.length)return window.WX_ZONES;
+  const originW=geoToWorld(HOU_WX_LAT,HOU_WX_LNG);
+  window.WX_ZONES=buildWeatherZones(DISTRICTS,{
+    lat:HOU_WX_LAT,lng:HOU_WX_LNG,x:originW.x,z:originW.z,
+    name:CITY_NAME,unitsPerMile:UNITS_PER_MILE,
+    allSuburbs:true,
+    worldToGeo,
+  });
+  return window.WX_ZONES;
+}
+function parseZonalWeatherRows(j){
+  let rows=[];
+  if(Array.isArray(j))rows=j;
+  else if(j&&Array.isArray(j.location))rows=j.location;
+  else if(j&&Array.isArray(j.current)){
+    rows=j.current.map((c,i)=>({
+      current:{
+        temperature_2m:Array.isArray(j.current.temperature_2m)?j.current.temperature_2m[i]:c.temperature_2m,
+        apparent_temperature:Array.isArray(j.current.apparent_temperature)?j.current.apparent_temperature[i]:c.apparent_temperature,
+        relative_humidity_2m:Array.isArray(j.current.relative_humidity_2m)?j.current.relative_humidity_2m[i]:c.relative_humidity_2m,
+        precipitation:Array.isArray(j.current.precipitation)?j.current.precipitation[i]:c.precipitation,
+        weather_code:Array.isArray(j.current.weather_code)?j.current.weather_code[i]:c.weather_code,
+        cloud_cover:Array.isArray(j.current.cloud_cover)?j.current.cloud_cover[i]:c.cloud_cover,
+        wind_speed_10m:Array.isArray(j.current.wind_speed_10m)?j.current.wind_speed_10m[i]:c.wind_speed_10m,
+        wind_direction_10m:Array.isArray(j.current.wind_direction_10m)?j.current.wind_direction_10m[i]:c.wind_direction_10m,
+        dew_point_2m:Array.isArray(j.current.dew_point_2m)?j.current.dew_point_2m[i]:c.dew_point_2m,
+        pressure_msl:Array.isArray(j.current.pressure_msl)?j.current.pressure_msl[i]:c.pressure_msl,
+        uv_index:Array.isArray(j.current.uv_index)?j.current.uv_index[i]:c.uv_index,
+        visibility:Array.isArray(j.current.visibility)?j.current.visibility[i]:c.visibility,
+      },
+    }));
+  }else if(j&&j.current&&Array.isArray(j.latitude)){
+    const n=j.latitude.length;
+    for(let i=0;i<n;i++){
+      const pick=(arr)=>Array.isArray(arr)?arr[i]:arr;
+      const c=j.current;
+      rows.push({current:{
+        temperature_2m:pick(c.temperature_2m),apparent_temperature:pick(c.apparent_temperature),
+        relative_humidity_2m:pick(c.relative_humidity_2m),precipitation:pick(c.precipitation),
+        weather_code:pick(c.weather_code),cloud_cover:pick(c.cloud_cover),
+        wind_speed_10m:pick(c.wind_speed_10m),wind_direction_10m:pick(c.wind_direction_10m),
+        dew_point_2m:pick(c.dew_point_2m),pressure_msl:pick(c.pressure_msl),
+        uv_index:pick(c.uv_index),visibility:pick(c.visibility),
+      }});
+    }
+  }else if(j&&j.current){
+    rows=[j];
+  }
+  return rows;
+}
+async function fetchZonalWeather(){
+  try{
+    const zones=ensureWeatherZones();
+    if(!zones.length)return;
+    const tz=(window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.timezone)||'America/Chicago';
+    const batches=chunkWeatherZones(zones,40);
+    for(let bi=0;bi<batches.length;bi++){
+      const batch=batches[bi];
+      const url=openMeteoMultiUrl(batch,openMeteoHost(),tz,false);
+      const r=await fetchWithTimeout(url,{cache:'no-store'},18000);
+      if(!r.ok)throw new Error(r.status+' batch '+bi);
+      const rows=parseZonalWeatherRows(await r.json());
+      for(let i=0;i<batch.length;i++){
+        const row=rows[i]||rows[0];
+        if(!row||!row.current)continue;
+        batch[i].wx=parseOpenMeteo(row,{place:batch[i].n,lat:batch[i].lat,lng:batch[i].lng});
+      }
+    }
+    /* Keep downtown liveWx in sync with core zone when available */
+    const core=zones.find(z=>z.id==='core'||/downtown/i.test(z.n));
+    if(core&&core.wx){
+      liveWx={...(liveWx||{}),...core.wx,hourly:(liveWx&&liveWx.hourly)||core.wx.hourly||null,daily:(liveWx&&liveWx.daily)||core.wx.daily||null,place:core.wx.place||liveWx&&liveWx.place};
+    }
+    console.log('%cWeather zones · '+zones.filter(z=>z.wx).length+'/'+zones.length+' suburbs live ('+CITY_NAME+')','color:#7fd6a0');
+  }catch(e){
+    console.warn('[HTS] zonal weather',e&&e.message?e.message:e);
+  }
+}
+function activeViewWeather(){
+  /* Prefer GPS suburb panel when you're near your pin; else weather under the camera */
+  try{
+    if(userGeo&&localWx&&cam&&cam.target){
+      const w=geoToWorld(userGeo.lat,userGeo.lng);
+      if(Math.hypot(cam.target.x-w.x,cam.target.z-w.z)<(UNITS_PER_MILE*2.2)){
+        zoneWx=localWx;
+        return localWx;
+      }
+    }
+  }catch(e){}
+  if(cam&&cam.target&&window.WX_ZONES&&window.WX_ZONES.length){
+    const s=sampleZoneWeather(window.WX_ZONES,cam.target.x,cam.target.z);
+    if(s){zoneWx=s;return s;}
+  }
+  zoneWx=null;
+  return liveWx;
 }
 async function fetchLocalWeather(lat,lng,force){
   if(lat==null||lng==null||!isFinite(lat)||!isFinite(lng))return;
@@ -6063,15 +6490,18 @@ async function fetchLocalWeather(lat,lng,force){
     }
   }
 }
-fetchWeather();
+fetchWeather().then(()=>fetchZonalWeather());
 setTimeout(()=>{if(!liveWx)fetchWeather();},12000);
 setTimeout(()=>{if(!liveWx)fetchWeather();},35000);
-setInterval(fetchWeather,3*60*1000); /* downtown: refresh every 3 min */
+setTimeout(()=>{if(!window.WX_ZONES||!window.WX_ZONES.some(z=>z.wx))fetchZonalWeather();},18000);
+setInterval(fetchWeather,3*60*1000); /* downtown hourly pack */
+setInterval(fetchZonalWeather,5*60*1000); /* suburb mosaic */
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible')return;
   houstonNow(true);
   syncSimCalendar();
   if(!liveWx||(Date.now()-liveWx.at)>3*60*1000)fetchWeather();
+  if(!window.WX_ZONES||!window.WX_ZONES.some(z=>z&&z.wx)||(window.WX_ZONES[0]&&window.WX_ZONES[0].wx&&(Date.now()-window.WX_ZONES[0].wx.at)>5*60*1000))fetchZonalWeather();
   if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,false);
   /* Resume with fresh probes — tab sleep used to leave traffic hours stale */
   try{
@@ -6226,25 +6656,39 @@ function wxUpdate(dt){
       if(simH>wxNextRoll||wxNextRoll-simH>6){wxCur=rollWeather(simH);wxNextRoll=(simH+1.5+rand()*2.5)%24;}
       targetPreset=wxCur;label=WX[wxCur].desc;
     }
-  }else if(liveWx){targetPreset=liveWx.preset;label=liveWx.label;rainAmt=liveWx.rainAmt;cloudOv=liveWx.cloud;}
-  else{
+  }else if(liveWx||zoneWx||(window.WX_ZONES&&window.WX_ZONES.length)){
+    const view=activeViewWeather()||liveWx;
+    if(view&&!view.pending){
+      targetPreset=view.preset||'clear';
+      label=view.label||(WX[targetPreset]?WX[targetPreset].desc:'Clear');
+      rainAmt=view.rainAmt!=null?view.rainAmt:(WX[targetPreset]?WX[targetPreset].rain:0);
+      cloudOv=view.cloud!=null?view.cloud:null;
+    }else{
+      targetPreset='clear';label=view&&view.place?(view.place+' · loading'):'Loading…';
+      rainAmt=0;cloudOv=0.25;
+    }
+  }else{
     if(simH>wxNextRoll||wxNextRoll-simH>6){wxCur=rollWeather(simH);wxNextRoll=(simH+1.5+rand()*2.5)%24;}
     targetPreset=wxCur;label=WX[wxCur].desc;
   }
   wxCur=targetPreset;wxDesc=label;
-  const T=WX[targetPreset];
-  /* Time-lapse: blend fast enough that each forecast minute visibly changes the sky */
-  const k=clamp(dt*(liveMode?0.5:Math.min(4.2,0.85+timeScale/180)),0,1);
+  const T=WX[targetPreset]||WX.clear;
+  /* Snap rain faster when flying into a drizzly suburb so streaks appear immediately */
+  const rainTarget=rainAmt!=null?rainAmt:T.rain;
+  const rainDelta=Math.abs((wxBlend.rain||0)-rainTarget);
+  const k=clamp(dt*(liveMode?(rainDelta>0.1?3.2:0.9):Math.min(4.2,0.85+timeScale/180)),0,1);
   const tgt={cloud:cloudOv!=null?Math.max(T.cloud*0.4,cloudOv):T.cloud,
              fogK:T.fogK,speed:T.speed,cong:T.cong,
-             rain:rainAmt!=null?rainAmt:T.rain};
+             rain:rainTarget};
   for(const key of ['cloud','fogK','speed','cong','rain'])wxBlend[key]=lerp(wxBlend[key],tgt[key],k);
-  wxBlend.storm=T.storm;wxBlend.tempD=T.tempD;
+  wxBlend.storm=!!(T.storm||rainTarget>=0.85);wxBlend.tempD=T.tempD;
   /* Wind slant always tracks the active weather source — never freeze in preview */
   {
     let wDir=null,wSpd=null;
-    if(liveMode&&liveWx){wDir=liveWx.windDir;wSpd=liveWx.wind;}
-    else if(!liveMode){
+    if(liveMode){
+      const view=activeViewWeather()||liveWx;
+      if(view){wDir=view.windDir;wSpd=view.wind;}
+    }else if(!liveMode){
       if(fc){wDir=fc.windDir;wSpd=fc.wind;}
       else{wDir=(simH*15)%360;wSpd=6+8*wxBlend.cloud;}
     }
@@ -6263,7 +6707,8 @@ function bootRainSystem(){
   if(htsRain||!window.__htsRainInit||typeof THREE==='undefined')return;
   htsRain=window.__htsRainInit({
     THREE,scene,roadMats,getUnderpasses:()=>UNDERPASSES,rand,lerp,clamp,
-    getLiveWx:()=>liveWx,getWxBlend:()=>wxBlend,getCam:()=>cam,
+    getLiveWx:()=>activeViewWeather()||liveWx,getWxBlend:()=>wxBlend,getCam:()=>cam,
+    getRainAtWorld:(x,z)=>rainIntensityAt(window.WX_ZONES||[],x,z),
   });
 }
 window.__htsRainPending=bootRainSystem;
@@ -6453,7 +6898,7 @@ function tryPickVehicle(e){
   const pHits=_ray.intersectObjects(allPlaneMeshes(),true);
   let f=pHits.length?findPlaneByHit(pHits[0].object):null;
   if(!f)f=pickNearestFlightScreen(e);
-  if(f){focusAircraftInSky(f);return;}
+  if(f){closePoiCard();focusAircraftInSky(f);return;}
   /* airports -> info card */
   if(window.AIRPORT_HITS&&AIRPORT_HITS.length){
     const aHits=_ray.intersectObjects(AIRPORT_HITS,false);
@@ -6472,6 +6917,11 @@ function tryPickVehicle(e){
     const tHits=_ray.intersectObjects(PICK_TOWERS,false);
     if(tHits.length&&tHits[0].object.userData.info){
       const tw=tHits[0].object;
+      if(tw.userData.userHome){
+        flyToMyLocation();
+        openPoiCard(tw.userData.poi||{n:'My place',x:userWorld&&userWorld.x,z:userWorld&&userWorld.z,lat:userGeo&&userGeo.lat,lng:userGeo&&userGeo.lng,addr:'You are here'},e.clientX,e.clientY);
+        return;
+      }
       const inf=tw.userData.info;
       const poi=tw.userData.poi;
       openPoiCard(poi||{
@@ -6488,6 +6938,8 @@ function tryPickVehicle(e){
     openPoiCard(poiHits[0].object.userData.poi,e.clientX,e.clientY);
     return;
   }
+  /* Empty map click — dismiss sticky place card */
+  closePoiCard();
   if(!bodies.visible)return;
   const hits=_ray.intersectObject(bodies,false);
   if(hits.length&&hits[0].instanceId!=null&&hits[0].instanceId<bodies.count){
@@ -6498,28 +6950,193 @@ function tryPickVehicle(e){
 /* ---- POI card, geolocation & Google Maps handoff ---- */
 let userGeo=null,geoAsked=false,userWorld=null,geoWatchId=null;
 setInterval(()=>{if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,false);},2*60*1000);
-/* 'you are here' marker */
+/* 'you are here' marker — Houston gets a cozy house + go-to pin; others keep the blue dot */
+const HTS_IS_HOU=HTS_CITY_ID==='houston';
 const userDot=(function(){
   const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
-  x.beginPath();x.arc(32,32,13,0,TAU);x.fillStyle='#2f86ff';x.fill();
-  x.lineWidth=5;x.strokeStyle='#fff';x.stroke();
+  if(HTS_IS_HOU){
+    /* Soft ground glow under the house */
+    const g=x.createRadialGradient(32,32,4,32,32,30);
+    g.addColorStop(0,'rgba(110,180,255,.55)');g.addColorStop(1,'rgba(110,180,255,0)');
+    x.fillStyle=g;x.fillRect(0,0,64,64);
+  }else{
+    x.beginPath();x.arc(32,32,13,0,TAU);x.fillStyle='#2f86ff';x.fill();
+    x.lineWidth=5;x.strokeStyle='#fff';x.stroke();
+  }
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false,transparent:true}));
-  sp.scale.set(26,26,1);sp.visible=false;scene.add(sp);return sp;})();
+  sp.scale.set(HTS_IS_HOU?48:26,HTS_IS_HOU?48:26,1);sp.visible=false;scene.add(sp);return sp;
+})();
 const userHalo=(function(){
   const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
   const g=x.createRadialGradient(32,32,6,32,32,32);
   g.addColorStop(0,'rgba(47,134,255,.4)');g.addColorStop(1,'rgba(47,134,255,0)');
   x.fillStyle=g;x.fillRect(0,0,64,64);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false,transparent:true}));
-  sp.visible=false;scene.add(sp);return sp;})();
+  sp.visible=false;scene.add(sp);return sp;
+})();
+/* Houston: redesigned Craftsman bungalow + go-to pin at your geo fix */
+const userHome=(function(){
+  if(!HTS_IS_HOU)return null;
+  const g=new THREE.Group();g.visible=false;g.frustumCulled=false;gDetail.add(g);
+  function add(mesh){mesh.frustumCulled=false;g.add(mesh);return mesh;}
+  function box(w,h,d,mat,x,y,z){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    m.position.set(x,y,z);return add(m);
+  }
+  const siding=new THREE.MeshLambertMaterial({color:0xf7f1e6});
+  const trim=new THREE.MeshLambertMaterial({color:0xffffff});
+  const brick=new THREE.MeshLambertMaterial({color:0x9a6a4e});
+  const cedar=new THREE.MeshLambertMaterial({color:0x6e4530});
+  const roofM=new THREE.MeshLambertMaterial({color:0x2f4a62});
+  const glass=new THREE.MeshLambertMaterial({color:0x8ec4ea,emissive:0x3a6a88,emissiveIntensity:0.35});
+  const grass=new THREE.MeshLambertMaterial({color:0x3f8f4c});
+  const hedge=new THREE.MeshLambertMaterial({color:0x2f6a38});
+  /* landscaped lot */
+  const lawn=new THREE.Mesh(new THREE.CircleGeometry(26,28),grass);
+  lawn.rotation.x=-Math.PI/2;lawn.position.y=0.1;add(lawn);
+  const pad=new THREE.Mesh(new THREE.CircleGeometry(16,24),new THREE.MeshLambertMaterial({color:0x5a8f58}));
+  pad.rotation.x=-Math.PI/2;pad.position.y=0.12;add(pad);
+  /* Front walk + driveway */
+  box(4.2,0.18,14,new THREE.MeshLambertMaterial({color:0xc2b5a0}),0,0.18,12);
+  box(7.5,0.16,12,new THREE.MeshLambertMaterial({color:0x6a7078}),12.5,0.16,6);
+  /* Foundation + main volume */
+  box(20,1.4,15,brick,0,0.7,0);
+  box(19.2,9.5,14.2,siding,0,6.1,0);
+  /* Side garage wing */
+  box(9,7.2,11,siding,13.2,4.8,1.2);
+  box(9.2,1.2,11.2,brick,13.2,0.6,1.2);
+  box(6.4,4.8,0.35,cedar,13.2,3.2,6.85); /* garage door */
+  /* Front porch deck + roof slab */
+  box(14,0.45,5.5,cedar,0,1.35,9.2);
+  box(1.6,0.35,3.2,cedar,-2.2,0.55,12.6); /* steps */
+  box(1.6,0.35,2.2,cedar,-2.2,0.95,13.3);
+  for(const sx of [-5.5,5.5]){
+    box(0.55,5.2,0.55,trim,sx,4.0,11.4);
+  }
+  box(13.5,0.35,5.8,roofM,0,6.8,9.1);
+  /* Craftsman door + sidelights */
+  box(3.4,6.2,0.35,cedar,0,4.5,7.25);
+  box(0.9,4.4,0.28,glass,-2.4,4.8,7.25);
+  box(0.9,4.4,0.28,glass,2.4,4.8,7.25);
+  box(3.8,0.35,1.6,trim,0,7.85,7.55); /* door header */
+  /* Windows with frames */
+  function windowAt(x,y,z,w,h){
+    box(w+0.55,h+0.55,0.28,trim,x,y,z);
+    box(w,h,0.22,glass,x,y,z+0.05);
+    box(0.18,h,0.24,trim,x,y,z+0.08); /* mullion */
+  }
+  windowAt(-5.4,6.4,7.2,3.4,3.2);
+  windowAt(5.4,6.4,7.2,3.4,3.2);
+  windowAt(-5.4,6.4,-7.2,3.4,3.2);
+  windowAt(5.4,6.4,-7.2,3.4,3.2);
+  windowAt(-9.7,5.6,0,2.8,2.8);
+  /* Closed gable roof — triangular prism sitting on the wall tops (no rotate; previous Extrude+rotate left the peak open) */
+  const wallTop=10.85;
+  const gable=new THREE.Shape();
+  gable.moveTo(-10.9,0);
+  gable.lineTo(0,5.4);
+  gable.lineTo(10.9,0);
+  gable.closePath();
+  const roofGeo=new THREE.ExtrudeGeometry(gable,{depth:15.8,bevelEnabled:false});
+  roofGeo.translate(0,0,-7.9);
+  const roof=new THREE.Mesh(roofGeo,roofM);
+  roof.position.set(0,wallTop,0);
+  add(roof);
+  /* Gable end fills so the ends read closed */
+  function gableEnd(z){
+    const s=new THREE.Shape();
+    s.moveTo(-9.7,0);s.lineTo(0,4.9);s.lineTo(9.7,0);s.closePath();
+    const eg=new THREE.ExtrudeGeometry(s,{depth:0.45,bevelEnabled:false});
+    const m=new THREE.Mesh(eg,siding);
+    m.position.set(0,wallTop,z);add(m);
+  }
+  gableEnd(7.55);gableEnd(-8.0);
+  /* Garage lean-to roof — pitched toward the driveway */
+  const lean=new THREE.Mesh(new THREE.BoxGeometry(10.4,0.45,12.4),roofM);
+  lean.rotation.z=-0.18;lean.position.set(13.4,9.2,1.2);add(lean);
+  /* Chimney through the closed roof */
+  box(2.4,6.2,2.4,brick,-5.8,15.4,-2.2);
+  box(2.8,0.45,2.8,trim,-5.8,18.6,-2.2);
+  /* Hedges + shade trees */
+  for(const hx of [-10,10])box(2.2,2.4,8,hedge,hx,1.4,-2);
+  box(8,1.8,2.0,hedge,0,1.1,-9.5);
+  function tree(tx,tz,h){
+    box(0.9,h*0.55,0.9,cedar,tx,h*0.28,tz);
+    const canopy=new THREE.Mesh(new THREE.SphereGeometry(h*0.38,10,8),hedge);
+    canopy.position.set(tx,h*0.72,tz);canopy.scale.set(1,0.85,1);add(canopy);
+  }
+  tree(-14,10,14);tree(18,-8,12);tree(-16,-8,11);
+  /* Warm porch glow */
+  const porch=new THREE.PointLight(0xffd2a0,0.85,52,2);porch.position.set(0,7.2,10.5);g.add(porch);
+  const glow=new THREE.PointLight(0xffc078,0.25,36,2);glow.position.set(0,5,0);g.add(glow);
+  /* Go-to-location pin */
+  const pinC=document.createElement('canvas');pinC.width=pinC.height=128;const px=pinC.getContext('2d');
+  px.clearRect(0,0,128,128);
+  const grad=px.createLinearGradient(40,20,90,110);
+  grad.addColorStop(0,'#5eb0ff');grad.addColorStop(1,'#1f6fd6');
+  px.fillStyle=grad;
+  px.beginPath();px.moveTo(64,118);px.quadraticCurveTo(14,70,14,46);px.arc(64,46,50,Math.PI,0,false);
+  px.quadraticCurveTo(114,70,64,118);px.closePath();px.fill();
+  px.strokeStyle='rgba(255,255,255,.95)';px.lineWidth=5;px.stroke();
+  px.beginPath();px.arc(64,46,20,0,Math.PI*2);px.fillStyle='#fff';px.fill();
+  /* Mini home glyph in pin */
+  px.fillStyle='#1f6fd6';
+  px.fillRect(54,44,20,14);
+  px.beginPath();px.moveTo(50,44);px.lineTo(64,32);px.lineTo(78,44);px.closePath();px.fill();
+  const pin=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(pinC),transparent:true,depthWrite:false}));
+  pin.scale.set(24,24,1);pin.position.set(0,30,0);add(pin);
+  const hit=new THREE.Mesh(
+    new THREE.BoxGeometry(36,38,30),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
+  );
+  hit.position.y=14;hit.frustumCulled=false;
+  hit.userData.userHome=true;
+  hit.userData.info={n:'My place',d:'Your location · tap the pin or use Go to my location'};
+  hit.userData.poi={n:'My place',x:0,z:0,lat:null,lng:null,addr:'You are here'};
+  g.add(hit);
+  if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
+  PICK_TOWERS.push(hit);
+  g.userData={pin,hit,porch};
+  return g;
+})();
+function flyToMyLocation(){
+  requestGeo(()=>{
+    if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,true);
+    if(userWorld){stopFollow();
+      camGoal.target.set(userWorld.x,0,userWorld.z);
+      camGoal.radius=HTS_IS_HOU?280:430;camGoal.phi=1.0;}
+    else if(userGeo){
+      geoToast.querySelector('span').textContent="You're outside the "+CITY_NAME+" map area — showing Downtown instead.";
+      geoToast.style.display='flex';setTimeout(hideGeoToast,4200);
+      camGoal.target.set(60,0,60);camGoal.radius=800;}
+    else{geoToast.style.display='flex';}
+  });
+}
 function updateUserMarker(){
   if(!userGeo)return;
   const w=geoToWorld(userGeo.lat,userGeo.lng);
   userWorld=(Math.abs(w.x)<9000&&Math.abs(w.z)<9000)?w:null;
-  userDot.visible=userHalo.visible=!!userWorld;
+  const on=!!userWorld;
+  userDot.visible=on&&!HTS_IS_HOU;
+  userHalo.visible=on;
+  if(userHome)userHome.visible=on;
   if(userWorld){
-    userDot.position.set(userWorld.x,42,userWorld.z);
-    userHalo.position.set(userWorld.x,40,userWorld.z);
+    if(userHome){
+      userHome.position.set(userWorld.x,0,userWorld.z);
+      if(userHome.userData.hit&&userHome.userData.hit.userData.poi){
+        const poi=userHome.userData.hit.userData.poi;
+        poi.x=userWorld.x;poi.z=userWorld.z;
+        poi.lat=userGeo.lat;poi.lng=userGeo.lng;
+        poi.addr=(localWx&&localWx.place)?(localWx.place+' · your GPS'):('Your GPS · '+userGeo.lat.toFixed(5)+', '+userGeo.lng.toFixed(5));
+      }
+      if(!userHome.userData.ex){userHome.userData.ex={x:userWorld.x,z:userWorld.z,r:42};EXCLUDES.push(userHome.userData.ex);}
+      else{userHome.userData.ex.x=userWorld.x;userHome.userData.ex.z=userWorld.z;}
+      userHalo.position.set(userWorld.x,0.4,userWorld.z);
+      userHalo.scale.set(56,56,1);
+    }else{
+      userDot.position.set(userWorld.x,42,userWorld.z);
+      userHalo.position.set(userWorld.x,40,userWorld.z);
+    }
     document.getElementById('locBtn').classList.add('active');
     const mLoc=document.getElementById('mHudLoc');if(mLoc)mLoc.classList.add('on');
     const mLocOld=document.getElementById('mLocFab');if(mLocOld)mLocOld.classList.add('on');
@@ -6576,20 +7193,8 @@ function maybePromptGeo(){
   geoPromptScheduled=true;
   setTimeout(()=>{requestGeo(()=>{if(!userGeo)geoToast.style.display='flex';});},400);
 }
-/* locate-me: fly to the blue dot */
-document.getElementById('locBtn').addEventListener('click',()=>{
-  requestGeo(()=>{
-    if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,true);
-    if(userWorld){stopFollow();
-      camGoal.target.set(userWorld.x,0,userWorld.z);
-      camGoal.radius=430;camGoal.phi=1.0;}
-    else if(userGeo){
-      geoToast.querySelector('span').textContent="You're outside the Houston map area — showing Downtown instead.";
-      geoToast.style.display='flex';setTimeout(hideGeoToast,4200);
-      camGoal.target.set(60,0,60);camGoal.radius=800;}
-    else{geoToast.style.display='flex';}
-  });
-});
+/* locate-me: fly to house / blue dot */
+document.getElementById('locBtn').addEventListener('click',()=>flyToMyLocation());
 /* geoToWorld / worldToGeo defined near UNITS_PER_MILE */
 
 /* ---------------- LIVE traffic: TranStar primary + TomTom fallback ----------------
@@ -7453,44 +8058,59 @@ function updateLiveFlights(dt){
     if(!Number.isFinite(f._lon))f._lon=f._tLon;
     if(!Number.isFinite(f._altM))f._altM=f._tAltM||2500;
     if(Number.isFinite(f._tTrk))f._trk=f._tTrk;
+    else if(Number.isFinite(f._estTrk))f._trk=f._estTrk;
 
     /* New ADS-B sample: snap once toward the fix, then resume free flight */
     if(f._newFix&&Number.isFinite(f._tLat)&&Number.isFinite(f._tLon)){
-      f._lat=lerp(f._lat,f._tLat,0.65);
-      f._lon=lerp(f._lon,f._tLon,0.65);
-      if(Number.isFinite(f._tAltM))f._altM=lerp(f._altM,f._tAltM,0.65);
+      f._lat=lerp(f._lat,f._tLat,0.55);
+      f._lon=lerp(f._lon,f._tLon,0.55);
+      if(Number.isFinite(f._tAltM))f._altM=lerp(f._altM,f._tAltM,0.55);
       if(Number.isFinite(f._tTrk))f._trk=f._tTrk;
       f._newFix=false;
     }
 
-    const gs=Math.max(0,flightGsKts(f)||f.gsKts||f.kts||0);
-    const trk=Number.isFinite(f._trk)?f._trk:0;
+    const gsKnown=flightGsKts(f);
+    const gs=Math.max(0,gsKnown!=null?gsKnown:0);
+    const trk=Number.isFinite(f._trk)?f._trk:(Number.isFinite(f._estTrk)?f._estTrk:0);
     const vsFpm=Number.isFinite(f.vsFpm)?f.vsFpm:0;
     const cls=(f.m.userData&&f.m.userData.acClass)||'airliner';
-    /* Helis can hover / crawl — still move when they have any GS */
+    const altFtNow=flightAltFt(f);
     const minGs=cls==='heli'?2:8;
+    /* Prefer feed → estimated→ last good → altitude-assumed so airborne never freezes mid-sky */
+    let flyGs=0;
+    if(gs>=minGs){flyGs=gs;f._lastGoodGs=gs;}
+    else if(Number.isFinite(f._estGs)&&f._estGs>=minGs)flyGs=f._estGs;
+    else if(Number.isFinite(f._lastGoodGs)&&f._lastGoodGs>=minGs)flyGs=f._lastGoodGs;
+    else if(!f.onGround&&(altFtNow==null||altFtNow>600)){
+      flyGs=assumedAirborneGs(altFtNow,cls);
+      f._assumedMotion=true;
+    }else{
+      f._assumedMotion=false;
+    }
+    if(flyGs>=minGs&&!f._assumedMotion)f._assumedMotion=false;
 
-    /* Continuous dead-reckon — this is what makes planes look like they're flying */
-    if(gs>=minGs&&Number.isFinite(f._lat)&&Number.isFinite(f._lon)){
-      const nmPerSec=gs/3600;
+    if(flyGs>=minGs&&Number.isFinite(f._lat)&&Number.isFinite(f._lon)){
+      const nmPerSec=flyGs/3600;
       const rad=trk*Math.PI/180;
       const dNm=nmPerSec*dt;
       f._lat+= (dNm*Math.cos(rad))/60;
       f._lon+= (dNm*Math.sin(rad))/(60*Math.max(0.2,Math.cos(f._lat*Math.PI/180)));
     }
     if(vsFpm)f._altM+=(vsFpm/60)*dt/3.28084;
-    /* Very gentle pull toward last fix so we don't drift for minutes if feed is slow —
-       but weak enough that motion stays visible (original-sim feel). */
-    if(Number.isFinite(f._tLat)&&Number.isFinite(f._tLon)){
+    /* Only gently pull toward feed when it reported a fresh moved fix.
+       Pulling every frame to a frozen fix cancels dead-reckon (Austin hang bug). */
+    if(Number.isFinite(f._tLat)&&Number.isFinite(f._tLon)&&f._fixMoved){
       const age=f._feedAt?(Date.now()-f._feedAt)/1000:30;
-      const pull=age>25?clamp(dt*0.08,0,1):clamp(dt*0.02,0,1);
-      f._lat=lerp(f._lat,f._tLat,pull);
-      f._lon=lerp(f._lon,f._tLon,pull);
-      if(Number.isFinite(f._tAltM))f._altM=lerp(f._altM,f._tAltM,pull);
+      if(age<8){
+        const pull=clamp(dt*0.015,0,1);
+        f._lat=lerp(f._lat,f._tLat,pull);
+        f._lon=lerp(f._lon,f._tLon,pull);
+        if(Number.isFinite(f._tAltM))f._altM=lerp(f._altM,f._tAltM,pull);
+      }
     }
 
-    const altFt=flightAltFt(f);
-    const yTarget=displayAltY(altFt!=null?altFt:(f._altM*3.28084));
+    const altFt=altFtNow!=null?altFtNow:(f._altM*3.28084);
+    const yTarget=displayAltY(altFt);
     f._y=lerp(f._y!=null?f._y:yTarget,yTarget,clamp(dt*3,0,1));
 
     const corr=classifyLiveCorridor(f);
@@ -7528,6 +8148,12 @@ function updateLiveFlights(dt){
 }
 const poiCard=document.getElementById('poiCard');
 let pcPoi=null;
+let pcOpenedAt=0;
+function closePoiCard(){
+  if(poiCard)poiCard.style.display='none';
+  pcPoi=null;
+  pcOpenedAt=0;
+}
 function poiEtaText(p){
   let ox=cam.target.x,oz=cam.target.z,src='from current view';
   if(userGeo){const w=geoToWorld(userGeo.lat,userGeo.lng);
@@ -7538,6 +8164,7 @@ function poiEtaText(p){
 }
 function openPoiCard(p,cx,cy){
   pcPoi=p;
+  pcOpenedAt=performance.now();
   document.getElementById('pcName').textContent=p.n;
   document.getElementById('pcAddr').textContent=p.addr||'';
   applyPlaceHistoryToCard(p.n);
@@ -7549,18 +8176,40 @@ function openPoiCard(p,cx,cy){
   poiCard.style.top=Math.min(innerHeight-220,cy+10)+'px';
   if(p.x!=null&&p.z!=null)requestGeo(()=>{if(pcPoi===p)etaEl.textContent=poiEtaText(p);});
 }
-document.getElementById('pcX').addEventListener('click',()=>{poiCard.style.display='none';pcPoi=null;});
+/* Dismiss place card when the camera leaves the clicked spot (× still works anytime). */
+function updatePoiCardVisibility(){
+  if(!pcPoi||!poiCard||poiCard.style.display==='none')return;
+  if(performance.now()-pcOpenedAt<700)return;
+  if(pcPoi.x==null||pcPoi.z==null)return;
+  const dist=Math.hypot(cam.target.x-pcPoi.x,cam.target.z-pcPoi.z);
+  const leaveR=Math.max(720,cam.radius*0.92);
+  if(dist>leaveR)closePoiCard();
+}
+document.getElementById('pcX').addEventListener('click',()=>{closePoiCard();});
 document.getElementById('pcFly').addEventListener('click',()=>{
   if(!pcPoi)return;
   camGoal.target.set(pcPoi.x,0,pcPoi.z);camGoal.radius=340;camGoal.phi=1.0;
-  poiCard.style.display='none';
+  closePoiCard();
 });
 document.getElementById('pcDir').addEventListener('click',()=>{
   if(!pcPoi)return;const p=pcPoi;
   requestGeo(()=>{
-    const dest=encodeURIComponent(p.addr+', Houston, TX');
+    /* Prefer exact lat/lng so Google does not fuzzy-match words like "metro" to METRO HQ. */
+    let dest=null;
+    if(Number.isFinite(p.lat)&&Number.isFinite(p.lng))dest=p.lat+','+p.lng;
+    else if(p.n==='My place'&&userGeo)dest=userGeo.lat+','+userGeo.lng;
+    else if(p.x!=null&&p.z!=null&&typeof worldToGeo==='function'){
+      const g=worldToGeo(p.x,p.z);
+      if(g&&Number.isFinite(g.lat)&&Number.isFinite(g.lng))dest=g.lat+','+g.lng;
+    }
+    if(!dest){
+      const city=(CITY_NAME||'Houston');
+      const bare=String(p.addr||p.n||'').replace(/\s*[—–-].*$/,'').trim()||p.n;
+      dest=encodeURIComponent(bare+', '+city+', TX');
+    }
     let url='https://www.google.com/maps/dir/?api=1&destination='+dest+'&travelmode=driving';
-    if(userGeo)url+='&origin='+userGeo.lat+','+userGeo.lng;
+    const destIsHome=p.n==='My place'||(userGeo&&Number.isFinite(p.lat)&&Math.abs(p.lat-userGeo.lat)<1e-5&&Math.abs(p.lng-userGeo.lng)<1e-5);
+    if(userGeo&&!destIsHome)url+='&origin='+userGeo.lat+','+userGeo.lng;
     window.open(url,'_blank');
   });
 });
@@ -7695,7 +8344,7 @@ function focusAircraftInSky(f){
   camGoal.phi=clamp(0.95,0.2,1.4);
   document.getElementById('followChip').style.display='flex';
   const cs=callsignPair(f.cs,f.csIata).main||f.cs||'aircraft';
-  document.getElementById('fTxt').textContent='Following '+cs+' · '+(flightGsKts(f)||f.kts||0)+' kts · scroll to zoom';
+  document.getElementById('fTxt').textContent='Following '+cs+' · '+(flightGsKts(f)!=null?flightGsKts(f)+' kts':'— kts')+' · scroll to zoom';
   return true;
 }
 function findNextAircraftInSky(){
@@ -7779,17 +8428,17 @@ canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches)touches.d
   if(touches.size<2){pinchD=0;pinchMid=null;}},{passive:false});
 
 const CAM_VIEWS={
-  city:{theta:-0.65,phi:0.78,radius:HTS_IS_AUS?1550:4300,target:HTS_IS_AUS?(function(){const d=geoToWorld(30.2672,-97.7431);return [d.x,d.z];})():[-250,-50]},
-  freeway:{theta:-1.2,phi:1.34,radius:150,target:HTS_IS_AUS?(function(){const d=geoToWorld(30.2672,-97.7431);return [d.x+80,d.z+40];})():[-980,-255]},
+  city:{theta:-0.65,phi:0.78,radius:HTS_HAS_PACK?1550:4300,target:(function(){const d=packDowntown();return HTS_HAS_PACK?[d.x,d.z]:[-250,-50];})()},
+  freeway:{theta:-1.2,phi:1.34,radius:150,target:(function(){const d=packDowntown();return HTS_HAS_PACK?[d.x+80,d.z+40]:[-980,-255];})()},
 };
-const INNER=new Set(['downtown','galleria','medcenter','greenway','heights','montrose','riveroaks','bellaire','midtown','eastend','fifthward','memorial','westu','meyerland','westchase','sharpstown','gulfton','capitol','ut','eastaustin','southcongress','zilker','hydepark','mueller','rainey','riverside']);
+const INNER=new Set(['downtown','galleria','medcenter','greenway','heights','montrose','riveroaks','bellaire','midtown','eastend','fifthward','memorial','westu','meyerland','westchase','sharpstown','gulfton','capitol','ut','eastaustin','southcongress','zilker','hydepark','mueller','rainey','riverside','backbay','fenway','seaport','fidi','midtown','uptown','alamo','riverwalk']);
 for(const d of DISTRICTS){
   let rad=INNER.has(d.id)?560:920;
   if(d.id==='ut')rad=320;
   if(d.id==='capitol')rad=360;
   CAM_VIEWS[d.id]={theta:-0.9+rand()*1.8,phi:0.98,radius:rad,target:[d.x,d.z]};
 }
-const FACILITIES=HTS_IS_AUS?{}:{fac_rice:[-342,683],fac_uh:[390.9,635.2],fac_tsu:[183.1,630.5],fac_lamar:[-842,327],
+const FACILITIES=HTS_HAS_PACK?{}:{fac_rice:[-342,683],fac_uh:[390.9,635.2],fac_tsu:[183.1,630.5],fac_lamar:[-842,327],
   fac_bellairehs:[-1102,892],fac_lakewood:[-545,455],fac_cocathedral:[55,240],
   fac_isgh:[-682,401],fac_bethisrael:[-914,1129]};
 for(const k in FACILITIES)
@@ -7830,7 +8479,7 @@ for(const a of AIRPORTS)
 })();
 
 /* Austin: ensure Fly-to Attractions list is city-correct (not Houston leftovers) */
-if(HTS_IS_AUS&&HTS_PACK&&HTS_PACK.jumpGroups){(function applyAusJumpSelect(){
+if(HTS_HAS_PACK&&HTS_PACK&&HTS_PACK.jumpGroups){(function applyPackJumpSelect(){
   const sel=document.getElementById('locSelect');
   if(!sel)return;
   const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -7894,7 +8543,7 @@ const FACILITY_POIS=HTS_IS_AUS?(function(){
     const w=geoToWorld(r.lat,r.lng);
     return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr};
   });
-})():[
+})():(HTS_HAS_PACK?[]:[
   {n:'Rice University',k:'school',x:-342,z:683,addr:'6100 Main St · est. 1912'},
   {n:'University of Houston',k:'school',x:390.9,z:635.2,addr:'4800 Calhoun Rd'},
   {n:'Texas Southern University',k:'school',x:183.1,z:630.5,addr:'3100 Cleburne St'},
@@ -7904,7 +8553,7 @@ const FACILITY_POIS=HTS_IS_AUS?(function(){
   {n:'Co-Cathedral of the Sacred Heart',k:'worship',x:55,z:240,addr:'1111 St Joseph Pkwy'},
   {n:'Islamic Society of Greater Houston',k:'worship',x:-682,z:401,addr:'3110 Eastside St'},
   {n:'Congregation Beth Israel',k:'worship',x:-914,z:1129,addr:'5600 N Braeswood Blvd'},
-];
+]);
 for(const p of FACILITY_POIS){
   /* UT Tower already placed — skip duplicate massing under the lantern */
   if(HTS_IS_AUS&&/University of Texas at Austin/i.test(p.n)){
@@ -9448,6 +10097,8 @@ function eventLevel(h){
   return Math.max(a,b*0.9);
 }
 function updateEvent(){
+  /* Pack cities skip Houston NRG event spillover */
+  if(HTS_HAS_PACK)return 0;
   const lv=eventLevel(simH);
   const on=lv>0.18;
   /* Roll event day once per sim calendar day (not RAF wall clock) */
@@ -9555,7 +10206,7 @@ function trafficTick(dt){
           const ki=f.arc/road.s.total*dir.segCong.length;
           d+=1.25*f.level*Math.exp(-Math.abs(ki-k)*0.45);
         }
-        if(evLv>0.05){
+        if(evLv>0.05&&!HTS_HAS_PACK){
           const dx=road.segX[k]-NRG.x,dz=road.segZ[k]-NRG.z;
           const dist=Math.hypot(dx,dz);
           if(dist<820)d+=0.62*evLv*(1-dist/820);
@@ -10282,10 +10933,11 @@ function updateHUD(nightF,skyH){
     ?new Date(Date.now()+window.simOffsetSec*1000)
     :new Date();
   $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:CHI_TZ})+(weekend?' · weekend pattern':' · weekday pattern');
-  /* weather card — live in liveMode; forecast/sim hour during time-lapse */
+  /* weather card — camera-local suburb in liveMode; forecast/sim hour during time-lapse */
   const P=WX[wxCur];
   const fc=(!liveMode&&wxMode==='auto'&&liveWx)?forecastAt(window.simOffsetSec||0):null;
-  const wxSrc=fc||(liveMode?liveWx:null);
+  const viewWx=liveMode?(activeViewWeather()||liveWx):null;
+  const wxSrc=fc||viewWx;
   const statsLive=!!wxSrc;
   /* When scrubbing forecast, drive sky description from that hour too */
   if(fc&&wxMode==='auto'){wxDesc=fc.label;wxCur=fc.preset;}
@@ -10313,6 +10965,19 @@ function updateHUD(nightF,skyH){
   const ageMin=liveWx?Math.max(0,Math.round((Date.now()-liveWx.at)/60000)):null;
   const wxStale=liveWx&&(Date.now()-liveWx.at)>20*60*1000;
   const dot=$('wxDot'),src=$('wxSrcTxt');
+  if(dot)dot.className=wxStale?'syncDot stale':'syncDot';
+  if(src){
+    if(!liveMode&&fc){
+      src.textContent='Time-lapse forecast · Open-Meteo · '+houClock(0,false);
+    }else if(viewWx&&viewWx.place){
+      src.textContent=(wxStale?'Stale · ':'')+viewWx.place+' · Open-Meteo'
+        +(ageMin!=null?(ageMin===0?' · just now':' · '+ageMin+' min ago'):'');
+    }else if(liveWx){
+      src.textContent=(wxStale?'Stale · ':'')+CITY_NAME+' live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');
+    }
+  }
+  const wxPlaceEl=$('wxPlace');
+  if(wxPlaceEl&&liveMode&&viewWx&&viewWx.place)wxPlaceEl.textContent=viewWx.place;
   function feedAgeMin(at){
     if(!at)return '—';
     const m=Math.max(0,Math.round((Date.now()-at)/60000));
@@ -10333,9 +10998,12 @@ function updateHUD(nightF,skyH){
     src.textContent='Time-lapse forecast · Open-Meteo · '+houClock(0,false);}
   else if(!liveMode){dot.className='pulse sim';
     src.textContent='Time-lapse · '+phaseLabel(simH)+' pattern';}
-  else if(liveWx){dot.className=wxStale?'pulse sim':'pulse';
-    src.textContent=(wxStale?'Stale · ':'')+CITY_NAME+' live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
-  else{dot.className='pulse sim';src.textContent='Typical July pattern · retrying live feed…';}
+  else if(viewWx||liveWx){dot.className=wxStale?'pulse sim':'pulse';
+    const label=(viewWx&&viewWx.place)||(liveWx&&liveWx.place)||CITY_NAME;
+    src.textContent=(wxStale?'Stale · ':'')+label+' · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
+  else{dot.className='pulse sim';src.textContent='Typical weather pattern · retrying live feed…';}
+  /* 3-day outlook — prefer camera/local pack daily, else metro liveWx */
+  renderWxForecast((viewWx&&viewWx.daily)?viewWx:(localWx&&localWx.daily?localWx:liveWx));
   /* suburb / locate-me weather — full live stats under Houston */
   const locBox=$('wxLocal');
   if(locBox){
@@ -10554,6 +11222,7 @@ if(hazClearBtn)hazClearBtn.addEventListener('click',()=>hazDeactivate());
 
 $('locSelect').addEventListener('change',e=>{
   stopFollow();
+  closePoiCard();
   const p=CAM_VIEWS[e.target.value];if(!p)return;
   camGoal.theta=p.theta;camGoal.phi=p.phi;camGoal.radius=p.radius;
   camGoal.target.set(p.target[0],0,p.target[1]);
@@ -10944,7 +11613,14 @@ function frame(now){
   /* POI badges: close-in only, soft so they don't wallpaper the map */
   {const o=(inOSM?0:1)*0.45*clamp((1600-cam.radius)/700,0,1)*(1-mapT);
    for(const sp of poiSprites)sp.material.opacity=o;}
-  if(userHalo.visible){const pk=44+14*Math.sin(simClock*0.003);userHalo.scale.set(pk,pk,1);}
+  if(userHalo.visible){
+    const pk=HTS_IS_HOU?(62+10*Math.sin(simClock*0.003)):(44+14*Math.sin(simClock*0.003));
+    userHalo.scale.set(pk,pk,1);
+    if(userHome&&userHome.visible&&userHome.userData.pin){
+      userHome.userData.pin.position.y=30+2.4*Math.sin(simClock*0.004);
+      userHome.userData.pin.material.opacity=0.9+0.1*Math.sin(simClock*0.005);
+    }
+  }
   updateCrowds(dt,cam.radius,simH);
   updateRail(dt);
   for(let i=0;i<patrolBadges.length;i++){
@@ -11005,7 +11681,7 @@ function frame(now){
       camGoal.radius=clamp(camGoal.radius,lim.rmin,lim.rmax);
       camGoal.phi=clamp(camGoal.phi,lim.phiMin,lim.phiMax);
       const cs=callsignPair(f.cs,f.csIata).main||f.cs||'aircraft';
-      document.getElementById('fTxt').textContent='Following '+cs+' · '+(flightGsKts(f)||f.kts||0)+' kts · '+(f.status||'');
+      document.getElementById('fTxt').textContent='Following '+cs+' · '+(flightGsKts(f)!=null?flightGsKts(f)+' kts':'— kts')+' · '+(f.status||'');
     }
   }
   else if(follow){
@@ -11021,6 +11697,7 @@ function frame(now){
     }
   }
   applyCam();
+  updatePoiCardVisibility();
   /* Sky / clouds / sun always wrap the viewed area — never leave a black void */
   if(typeof skyRoot!=='undefined')skyRoot.position.set(cam.target.x,0,cam.target.z);
 
@@ -11225,26 +11902,49 @@ setTimeout(()=>{
   if(!root||!spot||!card)return;
   const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const mobileMq=window.matchMedia('(max-width:680px)');
-  let idx=0,activeEl=null,running=false;
+  let idx=0,activeEl=null,running=false,renderTimer=0;
   const STEPS=[
-    {sel:'#sign',mobileSel:'#mHud',fallback:'#scene',title:HTS_IS_AUS?'Welcome to Austin':'Welcome to Space City',body:HTS_IS_AUS?'This is a living 3D Austin metro. One finger rotates, pinch zooms, two fingers pan. The map stays open so you can explore.':'This is a living 3D Houston metro. One finger rotates, pinch zooms, two fingers pan. The map stays open so you can explore.'},
-    {sel:'#sign',mobileSel:'#mHudChip',fallback:'#whereami',title:'Live clock and weather',body:'Time and '+CITY_NAME+' weather stay on screen. On a phone, tap the locate button to drop a you are here marker.'},
-    {sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',title:'Go anywhere',body:'Open Go (or use the side panel), then pick a district, airport, or landmark. The camera flies there.'},
+    {sel:'#sign',mobileSel:'#mHud',fallback:'#scene',rail:'left',title:'Welcome to '+CITY_NAME,body:'This is a living 3D '+CITY_NAME+' metro. Drag to rotate, scroll to zoom, right-drag to pan. On a phone: one finger rotates, pinch zooms, two fingers pan.'},
+    {sel:'#sign',mobileSel:'#mHudChip',fallback:'#whereami',rail:'left',title:'Live clock and weather',body:'Time and '+CITY_NAME+' weather stay on screen — including per-suburb conditions as you fly. On a phone, tap locate to mark where you are.'},
+    {sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',rail:'right',title:'Go anywhere',body:'Open Go (or the right-hand panel), then pick a district, airport, or landmark. The camera flies there.'},
     {sel:'#whereami',fallback:'#mHudLoc',title:'Where you are looking',body:'This pill tracks the district and road under the camera as you move around.'},
-    {sel:'#tourFlightGrp',mobileOpen:'live',mobileSel:'#mLiveFab',title:'Live flights',body:'Open Live for aircraft in the sky and airport boards. Find a plane, then jump to it.'},
-    {sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',title:'Time, weather, hazards',body:'Open More for time of day, sky presets, traffic volume, and hazard overlays.'},
-    {sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',title:'Back to the map',body:'On a phone, tap Map anytime to close the sheet and keep exploring. Pinch and drag freely.'}
+    {sel:'#tourFlightGrp',mobileOpen:'live',mobileSel:'#mLiveFab',rail:'right',title:'Live flights',body:'Open Live for aircraft in the sky and airport boards. Find a plane, then jump to it.'},
+    {sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',title:'Time, weather, hazards',body:'Open More for time of day, sky presets, traffic volume, and hazard overlays.'},
+    {sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',title:'Explore freely',body:'On a phone, tap Map anytime to close the sheet. Replay this tour anytime from Replay tour under More / the cam hint.'}
   ];
   function isMobile(){return mobileMq.matches;}
+  function expandDesktopRails(step){
+    if(isMobile())return;
+    /* Ensure tour targets aren’t off-screen behind collapsed rails */
+    if(step.rail==='left'&&document.body.classList.contains('left-collapsed')){
+      document.body.classList.remove('left-collapsed');
+      try{localStorage.setItem('hts-left-collapsed','0');}catch(e){}
+    }
+    if(step.rail==='right'&&document.body.classList.contains('right-collapsed')){
+      document.body.classList.remove('right-collapsed');
+      try{localStorage.setItem('hts-right-collapsed','0');}catch(e){}
+      const panel=$('panel');
+      if(panel){
+        panel.style.removeProperty('right');
+        panel.style.removeProperty('opacity');
+        panel.style.removeProperty('visibility');
+        panel.style.removeProperty('pointer-events');
+      }
+      const btn=$('rightRailToggle')||$('panelCollapseBtn');
+      if(btn){btn.setAttribute('aria-expanded','true');btn.title='Hide panel';}
+    }
+  }
   function done(){try{localStorage.setItem(KEY,'1');}catch(e){} finish(true);}
   function finish(promptGeo){
     running=false;root.classList.remove('on');root.setAttribute('aria-hidden','true');
+    if(renderTimer){clearTimeout(renderTimer);renderTimer=0;}
     if(activeEl){activeEl.classList.remove('tour-target-pulse');activeEl=null;}
     if(replay)replay.style.display='inline';
     if(window.htsMobile)window.htsMobile.closeSheets();
     if(promptGeo)maybePromptGeo();
   }
   function prepareStep(step){
+    expandDesktopRails(step);
     if(!isMobile()||!window.htsMobile)return;
     if(step.mobileOpen)window.htsMobile.openPanel(step.mobileOpen);
     else window.htsMobile.closeSheets();
@@ -11254,14 +11954,24 @@ setTimeout(()=>{
     let el=document.querySelector(prefer);
     if(el){
       const r=el.getBoundingClientRect();const cs=getComputedStyle(el);
-      const hidden=r.width<2||r.height<2||cs.display==='none'||cs.visibility==='hidden';
+      const hidden=r.width<2||r.height<2||cs.display==='none'||cs.visibility==='hidden'||cs.opacity==='0';
       if(!hidden)return el;
     }
-    if(step.fallback){const fb=document.querySelector(step.fallback);if(fb)return fb;}
-    return document.querySelector(step.sel);
+    if(step.fallback){
+      const fb=document.querySelector(step.fallback);
+      if(fb){
+        const r=fb.getBoundingClientRect();const cs=getComputedStyle(fb);
+        if(r.width>=2&&r.height>=2&&cs.display!=='none'&&cs.visibility!=='hidden')return fb;
+      }
+    }
+    return document.querySelector(step.sel)||document.querySelector('#scene');
   }
   function placeCard(targetRect){
-    if(isMobile()){card.style.transform='';card.style.left='';card.style.top='';return;}
+    if(isMobile()){
+      /* Keep card above the sheet / dock — CSS media query pins bottom; clear inline desktop coords */
+      card.style.left='';card.style.top='';card.style.transform='';
+      return;
+    }
     const pad=14,cw=card.offsetWidth||320,ch=card.offsetHeight||180,vw=window.innerWidth,vh=window.innerHeight;
     let left=targetRect.left,top=targetRect.bottom+12;
     if(top+ch>vh-pad)top=targetRect.top-ch-12;
@@ -11270,34 +11980,57 @@ setTimeout(()=>{
     if(targetRect.left>vw*0.55&&targetRect.left-cw-16>pad){left=targetRect.left-cw-16;top=Math.min(Math.max(pad,targetRect.top),vh-ch-pad);}
     card.style.transform='';card.style.left=left+'px';card.style.top=top+'px';
   }
+  function paintStep(){
+    const step=STEPS[idx];
+    const el=resolveTarget(step);
+    if(activeEl)activeEl.classList.remove('tour-target-pulse');
+    activeEl=el;
+    if(el){
+      el.classList.add('tour-target-pulse');
+      try{el.scrollIntoView({block:'nearest',inline:'nearest',behavior:reduce?'auto':'smooth'});}catch(e){}
+      const r=el.getBoundingClientRect();const m=isMobile()?6:8;
+      spot.style.display='block';
+      spot.style.top=(r.top-m)+'px';spot.style.left=(r.left-m)+'px';
+      spot.style.width=Math.max(24,r.width+m*2)+'px';spot.style.height=Math.max(24,r.height+m*2)+'px';
+      spot.style.borderRadius=(el.id==='whereami'||el.id==='locBtn'||el.id==='mHudLoc'||el.id==='mGoFab'||el.id==='mLiveFab'||el.id==='mMoreFab'||el.id==='mMapFab')?'14px':'14px';
+      placeCard(r);
+    }else{
+      spot.style.display='none';
+      placeCard({left:0,top:0,bottom:0,right:0,width:0,height:0});
+    }
+    kickerEl.textContent='Quick tour';
+    titleEl.textContent=step.title;
+    bodyEl.textContent=step.body;
+    stepEl.textContent=(idx+1)+' / '+STEPS.length;
+    backBtn.style.visibility=idx===0?'hidden':'visible';
+    nextBtn.textContent=idx===STEPS.length-1?'Got it':'Next';
+  }
   function render(){
     const step=STEPS[idx];
     prepareStep(step);
+    if(renderTimer)clearTimeout(renderTimer);
+    /* Wait for rail / sheet open animation so spot lands on real layout */
+    const delay=reduce?0:(step.mobileOpen||step.rail==='right'?320:40);
     requestAnimationFrame(()=>{
-      const el=resolveTarget(step);
-      if(activeEl)activeEl.classList.remove('tour-target-pulse');
-      activeEl=el;
-      if(el){
-        el.classList.add('tour-target-pulse');
-        try{el.scrollIntoView({block:'nearest',inline:'nearest',behavior:reduce?'auto':'smooth'});}catch(e){}
-        const r=el.getBoundingClientRect();const m=isMobile()?6:8;
-        spot.style.display='block';
-        spot.style.top=(r.top-m)+'px';spot.style.left=(r.left-m)+'px';
-        spot.style.width=Math.max(24,r.width+m*2)+'px';spot.style.height=Math.max(24,r.height+m*2)+'px';
-        spot.style.borderRadius=(el.id==='whereami'||el.id==='locBtn'||el.id==='mHudLoc')?'999px':'14px';
-        placeCard(r);
-      }else{spot.style.display='none';placeCard({left:0,top:0,bottom:0,right:0,width:0,height:0});}
-      kickerEl.textContent='Quick tour';titleEl.textContent=step.title;bodyEl.textContent=step.body;
-      stepEl.textContent=(idx+1)+' / '+STEPS.length;
-      backBtn.style.visibility=idx===0?'hidden':'visible';
-      nextBtn.textContent=idx===STEPS.length-1?'Got it':'Next';
+      paintStep();
+      if(delay)renderTimer=setTimeout(()=>{if(running)paintStep();},delay);
     });
   }
   function start(force){
     if(running)return;
-    if(!force){try{if(localStorage.getItem(KEY)==='1'){if(replay)replay.style.display='inline';maybePromptGeo();return;}}catch(e){}}
+    if(!force){
+      try{
+        if(localStorage.getItem(KEY)==='1'){
+          if(replay)replay.style.display='inline';
+          maybePromptGeo();
+          return;
+        }
+      }catch(e){}
+    }
     running=true;idx=0;root.classList.add('on');root.setAttribute('aria-hidden','false');
-    if(replay)replay.style.display='none';if(replayMobile)replayMobile.style.display='none';
+    if(replay)replay.style.display='none';
+    /* On mobile, Replay tour lives under More — keep floating button optional */
+    if(replayMobile&&!isMobile())replayMobile.style.display='none';
     hideGeoToast();render();
   }
   nextBtn.addEventListener('click',()=>{if(idx>=STEPS.length-1)done();else{idx++;render();}});
@@ -11322,8 +12055,11 @@ setTimeout(()=>{
     panel.appendChild(wrap);
     $('tourReplayPanel').addEventListener('click',()=>start(true));
   }
-  window.addEventListener('hts-ready',()=>setTimeout(()=>start(false),reduce?200:500),{once:true});
+  /* Large app-main can finish after loading timeout — never miss the first-visit tour */
+  whenHtsReady(()=>setTimeout(()=>start(false),reduce?200:500));
 })();
+/* Last-chance ready: if loading already gone and timeout somehow skipped, still unlock tour */
+if(!htsReadyFired&&!document.getElementById('loading'))fireHtsReady();
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
 }

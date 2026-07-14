@@ -3,12 +3,22 @@
  */
 import { houstonManifest } from './houston/manifest.js';
 import { austinManifest } from './austin/manifest.js';
+import { sanantonioManifest } from './sanantonio/manifest.js';
+import { dallasManifest } from './dallas/manifest.js';
+import { losangelesManifest } from './losangeles/manifest.js';
+import { newyorkManifest } from './newyork/manifest.js';
+import { bostonManifest } from './boston/manifest.js';
 import { isCityManifest, CITY_IDS as TYPE_CITY_IDS } from './types.js';
 
 /** @type {Record<string, import('./types.js').CityManifest>} */
 export const CITY_PACKS = Object.freeze({
   houston: houstonManifest,
   austin: austinManifest,
+  sanantonio: sanantonioManifest,
+  dallas: dallasManifest,
+  losangeles: losangelesManifest,
+  newyork: newyorkManifest,
+  boston: bostonManifest,
 });
 
 export const CITY_IDS = TYPE_CITY_IDS;

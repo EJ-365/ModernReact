@@ -1,13 +1,27 @@
 /**
  * Loads the active city pack + core helpers onto window for the classic app.html script.
- * Default city remains Houston; Austin via ?city=austin (full content pack).
+ * Default city remains Houston; other metros via ?city=<id> (lat/lng content packs).
  */
 import { activeCity, activeCityId, CITY_IDS, CITY_PACKS } from './cities/registry.js';
 import { isCityManifest } from './cities/types.js';
 import { buildAustinRuntimePack } from './cities/austin/runtime.js';
+import { buildSanAntonioRuntimePack } from './cities/sanantonio/runtime.js';
+import { buildDallasRuntimePack } from './cities/dallas/runtime.js';
+import { buildLosAngelesRuntimePack } from './cities/losangeles/runtime.js';
+import { buildNewYorkRuntimePack } from './cities/newyork/runtime.js';
+import { buildBostonRuntimePack } from './cities/boston/runtime.js';
 import { transtarAdapter } from './feeds/transtar.js';
 import { tomtomAdapter } from './feeds/tomtom.js';
 import * as core from './core/index.js';
+
+const PACK_BUILDERS = {
+  austin: buildAustinRuntimePack,
+  sanantonio: buildSanAntonioRuntimePack,
+  dallas: buildDallasRuntimePack,
+  losangeles: buildLosAngelesRuntimePack,
+  newyork: buildNewYorkRuntimePack,
+  boston: buildBostonRuntimePack,
+};
 
 const city = activeCity();
 
@@ -42,8 +56,9 @@ if (!isCityManifest(city)) {
 
   /** @type {any} */
   let pack = null;
-  if (city.id === 'austin') {
-    pack = buildAustinRuntimePack(geo);
+  const buildPack = PACK_BUILDERS[city.id];
+  if (typeof buildPack === 'function') {
+    pack = buildPack(geo);
   } else {
     pack = {
       id: 'houston',
@@ -53,6 +68,8 @@ if (!isCityManifest(city)) {
       slogan: 'Space City · Texas',
       loadingSub: 'Paving 700 sq mi of freeway…',
       wxPlace: 'Houston · Downtown',
+      metroName: 'Greater Houston',
+      areaName: 'Houston-area',
       nws: {
         counties:
           /\b(Harris|Fort Bend|Montgomery|Brazoria|Galveston|Chambers|Liberty|Waller|Austin|San Jacinto)\b/i,
@@ -109,7 +126,8 @@ function applyCityChrome(city, pack) {
   const wa = document.getElementById('waDist');
   if (wa) {
     wa.textContent =
-      city.id === 'houston' ? 'Greater Houston' : 'Greater ' + name;
+      (pack && pack.metroName) ||
+      (city.id === 'houston' ? 'Greater Houston' : 'Greater ' + name);
   }
   try {
     document.documentElement.dataset.city = city.id || 'houston';

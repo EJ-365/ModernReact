@@ -15,6 +15,7 @@ export function createRainSystem(deps) {
     getLiveWx,
     getWxBlend,
     getCam,
+    getRainAtWorld,
   } = deps;
 
   const RAIN_N = 1900;
@@ -165,10 +166,19 @@ export function createRainSystem(deps) {
 
   function update(dt, nightF, wxBlend, rainWindX, rainWindZ, liveWx) {
     buildPuddles();
-    const rainF = clamp(wxBlend?.rain || 0, 0, 1);
-    /* Prefer blended rain so time-lapse forecast drives streaks — live precip only fills when blend is dry */
-    const precip = rainF > 0.015 ? rainF * 5 : (liveWx?.precip != null ? liveWx.precip : 0);
-    const active = rainF > 0.02 || precip > 0.05;
+    const cam = getCam();
+    const zoneRain = typeof getRainAtWorld === 'function' ? getRainAtWorld : null;
+    /* Camera-suburb rain wins — Conroe drizzle only while you are in Conroe */
+    const camRain = cam && zoneRain
+      ? clamp(zoneRain(cam.target.x, cam.target.z), 0, 1)
+      : 0;
+    const blendRain = clamp(wxBlend?.rain || 0, 0, 1);
+    const rainF = Math.max(blendRain, camRain);
+    const precip =
+      rainF > 0.02
+        ? rainF * 5
+        : (liveWx?.precip != null ? liveWx.precip : 0);
+    const active = rainF > 0.045 || camRain > 0.045 || precip > 0.04;
 
     if (active) {
       cumRain = clamp(cumRain + dt * (0.15 + precip * 0.08), 0, 120);
@@ -176,7 +186,7 @@ export function createRainSystem(deps) {
       dryTimer = 0;
     } else {
       dryTimer += dt;
-      if (dryTimer > 2) wetLevel = clamp(wetLevel - dt / 120, 0, 1);
+      if (dryTimer > 2) wetLevel = clamp(wetLevel - dt / 80, 0, 1);
     }
 
     const wet = clamp(wetLevel * lerp(1, 1.25, rainF), 0, 1);
@@ -185,33 +195,53 @@ export function createRainSystem(deps) {
       applyWetRoadMaterials._last = wet;
     }
 
+    /* Floor opacity so light drizzle is actually visible */
     rain.material.opacity = active
-      ? rainF * lerp(0.35, 0.88, clamp(precip / 6, 0, 1))
+      ? Math.max(0.26, rainF * lerp(0.55, 0.95, clamp(precip / 6, 0, 1)))
       : 0;
 
-    const cam = getCam();
     if (active && cam) {
-      rain.position.set(cam.target.x, 0, cam.target.z);
+      rain.position.set(0, 0, 0);
       const p = rainGeo.getAttribute('position');
-      const fallSpd = 220 + 240 * rainF + precip * 8;
+      const fallSpd = 200 + 260 * rainF + precip * 8;
       const fall = dt * fallSpd;
       const slantX = rainWindX + (liveWx?.wind ? Math.sin(((liveWx.windDir || 0) + 180) * Math.PI / 180) * 0.02 * liveWx.wind : 0);
       const slantZ = rainWindZ + (liveWx?.wind ? Math.cos(((liveWx.windDir || 0) + 180) * Math.PI / 180) * 0.02 * liveWx.wind : 0);
-      const streakLen = lerp(0.2, 2.5, rainF) * lerp(12, 4, rainF);
-      const splashRate = clamp(precip * rainF * 0.35, 0, 1);
-      /* Light rain / low FPS: update a subset of streaks each frame */
-      const stride = rainF < 0.12 ? 3 : rainF < 0.35 ? 2 : 1;
+      const streakLen = lerp(0.35, 2.6, rainF) * lerp(14, 5, rainF);
+      const splashRate = clamp(precip * Math.max(rainF, camRain) * 0.4, 0, 1);
+      const stride = rainF < 0.18 ? 2 : 1;
       const start = (update._tick = ((update._tick || 0) + 1) % stride);
+      /* Keep drops tight around the viewed suburb so drizzle concentrates where the card says */
+      const spawnR = lerp(520, 1100, clamp(rainF, 0, 1));
 
       for (let i = start; i < RAIN_N; i += stride) {
         let y = rainDrop[i * 3 + 1] - fall;
         let x = rainDrop[i * 3] + slantX * fall;
         let z = rainDrop[i * 3 + 2] + slantZ * fall;
         if (y < 2.2) {
-          if (y < 1.1 && rand() < splashRate) spawnSplash(x, z, rainF);
-          y = 480 + rand() * 200;
-          x = cam.target.x + (rand() - 0.5) * 1500;
-          z = cam.target.z + (rand() - 0.5) * 1500;
+          let placed = false;
+          for (let tryN = 0; tryN < 12 && !placed; tryN++) {
+            const nx = cam.target.x + (rand() - 0.5) * spawnR * 2;
+            const nz = cam.target.z + (rand() - 0.5) * spawnR * 2;
+            const localRain = zoneRain ? zoneRain(nx, nz) : rainF;
+            if (localRain > 0.05 || (!zoneRain && rainF > 0.04)) {
+              if (y < 1.1 && rand() < splashRate * Math.max(localRain, rainF)) {
+                spawnSplash(nx, nz, Math.max(localRain, rainF));
+              }
+              x = nx;
+              z = nz;
+              y = 420 + rand() * 220;
+              placed = true;
+            }
+          }
+          if (!placed) {
+            x = cam.target.x + (rand() - 0.5) * 160;
+            z = cam.target.z + (rand() - 0.5) * 160;
+            y = 980 + rand() * 160;
+          }
+        } else if (zoneRain) {
+          const here = zoneRain(x, z);
+          if (here < 0.05) y = 2.0;
         }
         rainDrop[i * 3] = x;
         rainDrop[i * 3 + 1] = y;
@@ -219,8 +249,14 @@ export function createRainSystem(deps) {
         const ang = Math.atan2(slantX, fallSpd * 0.004 + 0.08);
         const dx = Math.sin(ang) * streakLen;
         const dz = Math.cos(ang) * streakLen * 0.35;
-        p.setXYZ(i * 2, x, y, z);
-        p.setXYZ(i * 2 + 1, x - dx - slantX * streakLen * 1.4, y + streakLen, z - dz - slantZ * streakLen * 1.4);
+        const localHere = zoneRain ? zoneRain(x, z) : rainF;
+        if (localHere < 0.05) {
+          p.setXYZ(i * 2, x, -50, z);
+          p.setXYZ(i * 2 + 1, x, -50, z);
+        } else {
+          p.setXYZ(i * 2, x, y, z);
+          p.setXYZ(i * 2 + 1, x - dx - slantX * streakLen * 1.4, y + streakLen, z - dz - slantZ * streakLen * 1.4);
+        }
       }
       p.needsUpdate = true;
     } else if (!active && rain.material.opacity > 0.001) {
@@ -246,7 +282,7 @@ export function createRainSystem(deps) {
     }
     splashes.count = splashCount;
     splashes.instanceMatrix.needsUpdate = splashCount > 0;
-    splashMat.opacity = rainF > 0.05 ? lerp(0.25, 0.7, rainF) : 0;
+    splashMat.opacity = rainF > 0.05 ? lerp(0.28, 0.75, rainF) : 0;
 
     const puddleWet = clamp(cumRain / 45, 0, 1) * wet;
     for (const m of puddleMeshes) {

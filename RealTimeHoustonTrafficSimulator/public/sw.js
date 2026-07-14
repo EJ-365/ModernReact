@@ -1,4 +1,4 @@
-const CACHE = "hts-shell-v102";
+const CACHE = "hts-shell-v117";
 const PRECACHE = [
   "/",
   "/index.html",
@@ -35,11 +35,38 @@ self.addEventListener("fetch", (event) => {
   /* Never cache API proxies */
   if (url.pathname.startsWith("/api/")) return;
 
+  /* App/modules: network-first so syntax/runtime fixes are never stuck behind stale cache */
+  const isAppShell =
+    url.pathname.startsWith("/src/") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".mjs") ||
+    url.pathname === "/app.html";
+
+  if (isAppShell) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req)),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
         .then((res) => {
-          if (res.ok && (url.pathname.endsWith(".html") || url.pathname.endsWith(".css") || url.pathname.endsWith(".js") || url.pathname === "/")) {
+          if (
+            res.ok &&
+            (url.pathname.endsWith(".html") ||
+              url.pathname.endsWith(".css") ||
+              url.pathname === "/")
+          ) {
             const copy = res.clone();
             caches.open(CACHE).then((cache) => cache.put(req, copy));
           }
