@@ -16,6 +16,7 @@ export function createRainSystem(deps) {
     getWxBlend,
     getCam,
     getRainAtWorld,
+    getRainZonesLive,
   } = deps;
 
   const RAIN_N = 1900;
@@ -168,12 +169,20 @@ export function createRainSystem(deps) {
     buildPuddles();
     const cam = getCam();
     const zoneRain = typeof getRainAtWorld === 'function' ? getRainAtWorld : null;
-    /* Camera-suburb rain wins — Conroe drizzle only while you are in Conroe */
-    const camRain = cam && zoneRain
+    const zonesLive = typeof getRainZonesLive === 'function' ? !!getRainZonesLive() : false;
+    /* Suburb mosaic only gates streaks once Open-Meteo samples exist.
+       Before that (or when the sky force-sets Rain/Storm), use wxBlend so
+       drops stay visible instead of being culled to y=-50. */
+    const camRain = cam && zoneRain && zonesLive
       ? clamp(zoneRain(cam.target.x, cam.target.z), 0, 1)
       : 0;
     const blendRain = clamp(wxBlend?.rain || 0, 0, 1);
     const rainF = Math.max(blendRain, camRain);
+    const mosaicDriving = zonesLive && camRain >= blendRain - 0.12;
+    const localAt = (x, z) => {
+      if (!mosaicDriving || !zoneRain) return rainF;
+      return clamp(zoneRain(x, z), 0, 1);
+    };
     const precip =
       rainF > 0.02
         ? rainF * 5
@@ -197,7 +206,7 @@ export function createRainSystem(deps) {
 
     /* Floor opacity so light drizzle is actually visible */
     rain.material.opacity = active
-      ? Math.max(0.26, rainF * lerp(0.55, 0.95, clamp(precip / 6, 0, 1)))
+      ? Math.max(0.32, rainF * lerp(0.6, 1.0, clamp(precip / 6, 0, 1)))
       : 0;
 
     if (active && cam) {
@@ -207,8 +216,8 @@ export function createRainSystem(deps) {
       const fall = dt * fallSpd;
       const slantX = rainWindX + (liveWx?.wind ? Math.sin(((liveWx.windDir || 0) + 180) * Math.PI / 180) * 0.02 * liveWx.wind : 0);
       const slantZ = rainWindZ + (liveWx?.wind ? Math.cos(((liveWx.windDir || 0) + 180) * Math.PI / 180) * 0.02 * liveWx.wind : 0);
-      const streakLen = lerp(0.35, 2.6, rainF) * lerp(14, 5, rainF);
-      const splashRate = clamp(precip * Math.max(rainF, camRain) * 0.4, 0, 1);
+      const streakLen = lerp(0.45, 2.8, rainF) * lerp(14, 5, rainF);
+      const splashRate = clamp(precip * Math.max(rainF, camRain) * 0.45, 0, 1);
       const stride = rainF < 0.18 ? 2 : 1;
       const start = (update._tick = ((update._tick || 0) + 1) % stride);
       /* Keep drops tight around the viewed suburb so drizzle concentrates where the card says */
@@ -223,8 +232,8 @@ export function createRainSystem(deps) {
           for (let tryN = 0; tryN < 12 && !placed; tryN++) {
             const nx = cam.target.x + (rand() - 0.5) * spawnR * 2;
             const nz = cam.target.z + (rand() - 0.5) * spawnR * 2;
-            const localRain = zoneRain ? zoneRain(nx, nz) : rainF;
-            if (localRain > 0.05 || (!zoneRain && rainF > 0.04)) {
+            const localRain = localAt(nx, nz);
+            if (localRain > 0.045) {
               if (y < 1.1 && rand() < splashRate * Math.max(localRain, rainF)) {
                 spawnSplash(nx, nz, Math.max(localRain, rainF));
               }
@@ -235,13 +244,14 @@ export function createRainSystem(deps) {
             }
           }
           if (!placed) {
-            x = cam.target.x + (rand() - 0.5) * 160;
-            z = cam.target.z + (rand() - 0.5) * 160;
-            y = 980 + rand() * 160;
+            /* Still rain around the camera when sky blend says wet (forced storm / feed) */
+            x = cam.target.x + (rand() - 0.5) * (mosaicDriving ? 160 : spawnR);
+            z = cam.target.z + (rand() - 0.5) * (mosaicDriving ? 160 : spawnR);
+            y = mosaicDriving ? (980 + rand() * 160) : (420 + rand() * 220);
           }
-        } else if (zoneRain) {
-          const here = zoneRain(x, z);
-          if (here < 0.05) y = 2.0;
+        } else if (mosaicDriving) {
+          const here = localAt(x, z);
+          if (here < 0.045) y = 2.0;
         }
         rainDrop[i * 3] = x;
         rainDrop[i * 3 + 1] = y;
@@ -249,8 +259,8 @@ export function createRainSystem(deps) {
         const ang = Math.atan2(slantX, fallSpd * 0.004 + 0.08);
         const dx = Math.sin(ang) * streakLen;
         const dz = Math.cos(ang) * streakLen * 0.35;
-        const localHere = zoneRain ? zoneRain(x, z) : rainF;
-        if (localHere < 0.05) {
+        const localHere = localAt(x, z);
+        if (localHere < 0.045) {
           p.setXYZ(i * 2, x, -50, z);
           p.setXYZ(i * 2 + 1, x, -50, z);
         } else {
@@ -307,5 +317,15 @@ export function createRainSystem(deps) {
     applyVisibilityFog(sceneFog, wxBlend, liveWx, baseFar, nightF, rainF);
   }
 
-  return { update, updateFog, rain };
+  return {
+    update,
+    updateFog,
+    rain,
+    getStats: () => ({
+      opacity: rain.material.opacity,
+      wetLevel,
+      cumRain,
+      active: rain.material.opacity > 0.02,
+    }),
+  };
 }

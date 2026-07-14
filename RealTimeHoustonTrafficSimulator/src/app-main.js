@@ -22,7 +22,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.32 (0713-tour-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.33 (0713-rain-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -6709,7 +6709,9 @@ function bootRainSystem(){
     THREE,scene,roadMats,getUnderpasses:()=>UNDERPASSES,rand,lerp,clamp,
     getLiveWx:()=>activeViewWeather()||liveWx,getWxBlend:()=>wxBlend,getCam:()=>cam,
     getRainAtWorld:(x,z)=>rainIntensityAt(window.WX_ZONES||[],x,z),
+    getRainZonesLive:()=>(window.WX_ZONES||[]).some(z=>z&&z.wx),
   });
+  window.__htsRain=htsRain;
 }
 window.__htsRainPending=bootRainSystem;
 bootRainSystem();
