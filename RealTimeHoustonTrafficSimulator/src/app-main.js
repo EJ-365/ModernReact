@@ -22,7 +22,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.33 (0713-rain-fix). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.34 (0713-aus-ground). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -322,11 +322,13 @@ function liveFlightEligible(f){
   if(!isLiveFlightActive(f))return false;
   if(!Number.isFinite(f._tLat)||!Number.isFinite(f._tLon))return false;
   if(!flightInSkyBounds(f))return false;
-  /* Truly parked / ground clutter only — airborne with motion (feed or estimated) stays up */
-  const gs=flightGsKts(f);
+  /* Parked / gate clutter — never keep cruise GS cache as "still moving" */
+  const gsNow=flightGsKts(f);
   const alt=flightAltFt(f);
-  const moveGs=Math.max(gs||0,f._lastGoodGs||0,f._estGs||0);
-  if(f.onGround&&(moveGs<25)&&(alt==null||alt<400))return false;
+  if(f.onGround){
+    const taxiGs=Math.max(gsNow||0,(f._posMoved&&f._estGs)||0);
+    if(taxiGs<25&&(alt==null||alt<400))return false;
+  }
   if(cls==='heli'||cls==='prop')return true;
   const cs=String(f.cs||'').trim();
   if(!cs)return false;
@@ -3512,12 +3514,15 @@ for(const a of AIRPORTS){
       const jb=new THREE.Mesh(towerGeo,new THREE.MeshLambertMaterial({color:0x767c84}));
       jb.scale.set(4,6,26);jb.rotation.y=hd;
       jb.position.set(a.x+a.dx*300*f+(-a.dz)*62,0,a.z+a.dz*300*f+(a.dx)*62);grp.add(jb);
-      /* parked airliner at gate */
-      const pk=makeAirliner(FIN_COLS[(b+AIRPORTS.indexOf(a))%FIN_COLS.length]);
-      pk.scale.setScalar(0.85);
-      pk.position.set(a.x+a.dx*300*f+(-a.dz)*40,2.6,a.z+a.dz*300*f+(a.dx)*40);
-      pk.rotation.y=Math.atan2(-a.dz,a.dx)+Math.PI/2;
-      grp.add(pk);
+      /* Static gate models look like frozen live traffic (esp. AUS) — keep only for Houston legacy */
+      if(!HTS_HAS_PACK){
+        const pk=makeAirliner(FIN_COLS[(b+AIRPORTS.indexOf(a))%FIN_COLS.length]);
+        pk.scale.setScalar(0.85);
+        pk.position.set(a.x+a.dx*300*f+(-a.dz)*40,2.6,a.z+a.dz*300*f+(a.dx)*40);
+        pk.rotation.y=Math.atan2(-a.dz,a.dx)+Math.PI/2;
+        pk.userData.decorParked=true;
+        grp.add(pk);
+      }
     }
     /* sequenced approach lights leading to the threshold */
     const seq=[];
@@ -3535,16 +3540,18 @@ for(const a of AIRPORTS){
     const cab=new THREE.Mesh(new THREE.CylinderGeometry(7,8,7,8),glassMat);
     cab.position.copy(twr.position);cab.position.y=47;grp.add(cab);
   }else{
-    /* GA hangars + small tower + parked props */
+    /* GA hangars + small tower — skip static parked props on pack cities (same freeze confusion) */
     for(let hgi=0;hgi<3;hgi++){
       const f=(hgi-1)*0.24;
       const hg=new THREE.Mesh(new THREE.CylinderGeometry(13,13,34,10,1,false,0,Math.PI),
         new THREE.MeshLambertMaterial({color:0x8d9299,side:THREE.DoubleSide}));
       hg.rotation.z=Math.PI/2;hg.rotation.y=hd;
       hg.position.set(a.x+a.dx*a.runLen*0.6*f+(-a.dz)*66,0,a.z+a.dz*a.runLen*0.6*f+(a.dx)*66);grp.add(hg);
-      const pp=makeProp([0xd9d9d9,0xc23a2c,0x2b5ea8][hgi]);
-      pp.position.set(a.x+a.dx*a.runLen*0.6*f+(-a.dz)*44,1.2,a.z+a.dz*a.runLen*0.6*f+(a.dx)*44);
-      pp.rotation.y=rand()*TAU;grp.add(pp);
+      if(!HTS_HAS_PACK){
+        const pp=makeProp([0xd9d9d9,0xc23a2c,0x2b5ea8][hgi]);
+        pp.position.set(a.x+a.dx*a.runLen*0.6*f+(-a.dz)*44,1.2,a.z+a.dz*a.runLen*0.6*f+(a.dx)*44);
+        pp.rotation.y=rand()*TAU;pp.userData.decorParked=true;grp.add(pp);
+      }
     }
     const twr=new THREE.Mesh(new THREE.CylinderGeometry(2.4,3,20,7),new THREE.MeshLambertMaterial({color:0xb9bec4}));
     twr.position.set(a.x+(-a.dz)*46+a.dx*a.runLen*0.42,10,a.z+(a.dx)*46+a.dz*a.runLen*0.42);grp.add(twr);
@@ -4084,7 +4091,12 @@ window.FLIGHTS=[];
           const altFt=x.altFt!=null?x.altFt:(x.altM!=null?x.altM*3.28084:null);
           const near=nearestDecorAirport(x.lat,x.lon);
           const nearTerm=near&&near.mi<20;
-          if(x.onGround)return nearTerm&&near.mi<4; /* taxi / rollout at Houston fields */
+          if(x.onGround){
+            /* Active taxi/rollout only — parked gate traffic freezes into AUS piles */
+            const g=feedGsKts(x);
+            if(g==null||g<25)return false;
+            return nearTerm&&near.mi<4;
+          }
           if(altFt!=null&&altFt<500&&!nearTerm)return false;
           return true;
         })
@@ -4155,7 +4167,13 @@ window.FLIGHTS=[];
         const gs=feedGsKts(x);
         /* Only update speed when the feed actually reports it — keep last GS to keep flying */
         if(gs!=null&&gs>0){f.kts=gs;f.gsKts=gs;f._lastGoodGs=gs;}
-        else if(gs===0&&x.onGround){f.kts=0;f.gsKts=0;}
+        else if(gs===0&&x.onGround){
+          /* Parked: wipe cruise cache or planes stay visible but stand still at AUS */
+          f.kts=0;f.gsKts=0;f._lastGoodGs=0;f._estGs=0;f._assumedMotion=false;
+        }
+        if(x.onGround&&(gs==null||gs<25)){
+          f._lastGoodGs=0;f._estGs=0;
+        }
         const altFromFeed=x.altFt!=null?x.altFt:(x.altM!=null?Math.round(x.altM*3.28084):null);
         if(altFromFeed!=null&&Number.isFinite(altFromFeed))f.altFt=altFromFeed;
         else if(f.altFt==null&&f._tAltM!=null)f.altFt=ft(f._tAltM);
@@ -8078,12 +8096,18 @@ function updateLiveFlights(dt){
     const cls=(f.m.userData&&f.m.userData.acClass)||'airliner';
     const altFtNow=flightAltFt(f);
     const minGs=cls==='heli'?2:8;
-    /* Prefer feed → estimated→ last good → altitude-assumed so airborne never freezes mid-sky */
+    /* Prefer feed → estimated→ last good → altitude-assumed so airborne never freezes mid-sky.
+       On the ground NEVER coast at last cruise GS (Austin Bergstrom "statue" bug). */
     let flyGs=0;
-    if(gs>=minGs){flyGs=gs;f._lastGoodGs=gs;}
+    if(f.onGround){
+      if(gs>=minGs&&gs<90)flyGs=gs;
+      else if(f._posMoved&&Number.isFinite(f._estGs)&&f._estGs>=minGs&&f._estGs<90)flyGs=f._estGs;
+      else{flyGs=0;f._lastGoodGs=0;f._estGs=0;}
+      f._assumedMotion=false;
+    }else if(gs>=minGs){flyGs=gs;f._lastGoodGs=gs;}
     else if(Number.isFinite(f._estGs)&&f._estGs>=minGs)flyGs=f._estGs;
     else if(Number.isFinite(f._lastGoodGs)&&f._lastGoodGs>=minGs)flyGs=f._lastGoodGs;
-    else if(!f.onGround&&(altFtNow==null||altFtNow>600)){
+    else if(altFtNow==null||altFtNow>600){
       flyGs=assumedAirborneGs(altFtNow,cls);
       f._assumedMotion=true;
     }else{

@@ -1,7 +1,7 @@
 {
   "name": "Houston Traffic Simulator",
   "short_name": "Houston Sim",
-  "description": "Live 3D city traffic simulator. Houston now; LA, NYC, Austin, San Antonio, Boston and more coming. Created by Ejay Gabriel.",
+  "description": "Live 3D multi-city traffic simulator — Houston, Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston with suburb weather, ADS-B aircraft, and live traffic.",
   "start_url": "/app.html",
   "scope": "/",
   "display": "standalone",

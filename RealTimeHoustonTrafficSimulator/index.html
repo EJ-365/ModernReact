@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Houston Traffic Simulator · 7 metros live · by Ejay Gabriel</title>
-<meta name="description" content="Live 3D city traffic simulator. Houston, Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston. Created by Ejay Gabriel.">
+<meta name="description" content="Live 3D metro simulator across Houston, Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston — freeways, suburb weather, ADS-B flights. By Ejay Gabriel.">
 <meta name="author" content="Ejay Gabriel">
 <meta name="theme-color" content="#0a0e14">
 <meta property="og:title" content="Houston Traffic Simulator · 7 metros live">
-<meta property="og:description" content="Seven metros live: Houston, Austin, San Antonio, DFW, LA, NYC, Boston. By Ejay Gabriel.">
+<meta property="og:description" content="Seven U.S. metros live with researched freeways, per-suburb weather, and real aircraft. By Ejay Gabriel.">
 <meta property="og:type" content="website">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -58,7 +58,6 @@
 </div>
 
 <main id="main">
-  <!-- Full-bleed living hero: one composition -->
   <section class="hero-bleed" aria-label="Houston Traffic Simulator">
     <div class="cityscape" aria-hidden="true" data-parallax>
       <div class="cs-sky">
@@ -102,23 +101,20 @@
     <div class="hero-content">
       <p class="hero-kicker reveal" data-reveal>
         <span class="pulse-dot" aria-hidden="true"></span>
-        Houston &amp; friends · 7 metros live · by Ejay Gabriel
+        7 metros live · Space City born · by Ejay Gabriel
       </p>
       <h1 class="hero-brand reveal" data-reveal>
         Houston<br>Traffic Simulator
       </h1>
       <p class="hero-lede reveal" data-reveal>
-        A living 3D metro: freeways, flights, and weather. Seven U.S. cities ship today — pick yours below.
+        A living 3D metro — freeways, flights, and weather that stays local to every suburb. Open Houston, or jump to Austin, DFW, LA, NYC, and more.
       </p>
       <div class="hero-actions reveal" data-reveal>
         <a class="btn primary lg glow-btn" href="/app.html">
           <span>Open Houston</span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a class="btn soft lg" href="/app.html?city=austin">
-          <span>Open Austin</span>
-        </a>
-        <a class="btn ghost lg" href="#cities">All cities</a>
+        <a class="btn soft lg" href="#cities">All 7 cities</a>
       </div>
     </div>
 
@@ -130,78 +126,78 @@
 
   <div class="ticker" id="pulse" aria-hidden="true">
     <div class="ticker-track">
-      <span>I-10 · I-45 · I-69 · Beltway 8 · US-59 · Hardy Toll · IAH departures · Hobby arrivals · Buffalo Bayou · Downtown Aquarium · TranStar incidents · Open-Meteo sky · ADS-B tracks ·</span>
-      <span>I-10 · I-45 · I-69 · Beltway 8 · US-59 · Hardy Toll · IAH departures · Hobby arrivals · Buffalo Bayou · Downtown Aquarium · TranStar incidents · Open-Meteo sky · ADS-B tracks ·</span>
+      <span>Houston · Austin · San Antonio · Dallas–Fort Worth · Los Angeles · New York · Boston · suburb weather mosaic · ADS-B sky · TranStar · TomTom · Open-Meteo rain · IAH · AUS · DFW · LAX · JFK · BOS ·</span>
+      <span>Houston · Austin · San Antonio · Dallas–Fort Worth · Los Angeles · New York · Boston · suburb weather mosaic · ADS-B sky · TranStar · TomTom · Open-Meteo rain · IAH · AUS · DFW · LAX · JFK · BOS ·</span>
     </div>
   </div>
 
   <section class="pulse-bar" aria-label="Highlights">
     <div class="pulse-item reveal" data-reveal>
-      <strong data-count="2" data-suffix="">0</strong>
-      <span>cities live · Houston &amp; Austin</span>
+      <strong data-count="7" data-suffix="">0</strong>
+      <span>metros live today</span>
     </div>
     <div class="pulse-item reveal" data-reveal>
-      <strong data-count="5" data-suffix="+">0</strong>
-      <span>metros on the roadmap</span>
+      <strong>Local</strong>
+      <span>rain per suburb</span>
     </div>
     <div class="pulse-item reveal" data-reveal>
-      <strong>CI</strong>
-      <span>build on every push</span>
+      <strong>Live</strong>
+      <span>ads-b · traffic · weather</span>
     </div>
     <div class="pulse-item reveal" data-reveal>
-      <strong>Often</strong>
-      <span>continuous updates</span>
+      <strong>Free</strong>
+      <span>in the browser</span>
     </div>
   </section>
 
   <section class="section" id="features">
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">Craft</p>
-      <h2>Built for the freeway city</h2>
-      <p>Not a generic map toy. A Houston shaped world with stacked freeways, bayou parks, and Space City landmarks.</p>
+      <h2>One platform. Seven metros.</h2>
+      <p>Started as Space City — now a shared 3D engine with researched freeways, skylines, and feeds for each place.</p>
     </div>
     <div class="feature-rail">
       <article class="feat reveal" data-reveal>
         <div class="feat-visual" data-i="road" aria-hidden="true">
           <span class="fv-road"></span><span class="fv-car"></span>
         </div>
-        <h3>True freeway geometry</h3>
-        <p>Elevated decks, underpasses, gantries, and congestion that paints the ribbons in real time.</p>
+        <h3>Real freeway geometry</h3>
+        <p>Elevated decks, congestion ribbons, and corridors built from researched polylines — I-10 in Houston, MoPac in Austin, FDR in New York.</p>
       </article>
       <article class="feat reveal" data-reveal>
         <div class="feat-visual" data-i="wx" aria-hidden="true">
           <span class="fv-sun"></span><span class="fv-cloud"></span>
         </div>
-        <h3>Living sky &amp; weather</h3>
-        <p>Open-Meteo drives clouds, rain, and night sodium glow. Scrub time and the forecast follows.</p>
+        <h3>Suburb-local weather</h3>
+        <p>Every district gets its own Open-Meteo sample. Rain at a world point comes from the nearest suburb only — never borrowed from downtown or a far wet cell.</p>
       </article>
       <article class="feat reveal" data-reveal>
         <div class="feat-visual" data-i="plane" aria-hidden="true">
           <span class="fv-plane"></span><span class="fv-trail"></span>
         </div>
-        <h3>Flights over IAH &amp; HOU</h3>
-        <p>ADS-B traffic, airport boards, and follow cam so you can chase a departure into the haze.</p>
+        <h3>ADS-B that keeps flying</h3>
+        <p>Live aircraft over IAH, AUS, DFW, LAX, JFK, and more. Parked gate clutter at low ground speed is filtered so the sky stays in motion.</p>
       </article>
       <article class="feat reveal" data-reveal>
         <div class="feat-visual" data-i="haz" aria-hidden="true">
           <span class="fv-ring"></span><span class="fv-core"></span>
         </div>
-        <h3>Hazard predictions</h3>
-        <p>Hurricane, wildfire, flood corridors, and yield scaled nuclear drill rings. Educational overlays only.</p>
+        <h3>Hazard what-ifs</h3>
+        <p>Hurricane, wildfire, flood corridors, and educational nuclear drill rings — overlays, not official alerts.</p>
       </article>
       <article class="feat reveal" data-reveal>
         <div class="feat-visual" data-i="place" aria-hidden="true">
           <span class="fv-pin"></span>
         </div>
-        <h3>Places with stories</h3>
-        <p>Hover lakes, suburbs, and landmarks for fun facts and Wikipedia deep dives.</p>
+        <h3>Landmarks &amp; places</h3>
+        <p>Physical attractions per metro — Capitol, Statue of Liberty, Reunion Tower — plus hover cards and Wikipedia deep dives.</p>
       </article>
       <article class="feat reveal" data-reveal>
         <div class="feat-visual" data-i="ui" aria-hidden="true">
           <span class="fv-panel"></span><span class="fv-dot"></span>
         </div>
-        <h3>UI that stays out of the way</h3>
-        <p>Soft motion, clear hierarchy. The city is the star, not the chrome around it.</p>
+        <h3>Tour that teaches</h3>
+        <p>First-visit guided tour, mobile Go / Live / More sheets, and a map-first chrome that stays out of the way.</p>
       </article>
     </div>
   </section>
@@ -209,10 +205,10 @@
   <section class="section cities-section" id="cities">
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">Atlas</p>
-      <h2>Cities live &amp; coming</h2>
-      <p>Seven metros ship today — Houston plus Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston — each with researched freeways, skyline, airports, and live feeds.</p>
+      <h2>Seven metros. Launch any of them.</h2>
+      <p>Each city ships with freeways, districts, airports, skyline, attractions, and live weather — pick one and fly.</p>
     </div>
-    <div class="city-grid">
+    <div class="city-grid city-grid-7">
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
@@ -224,79 +220,79 @@
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
         <h3>Austin</h3>
-        <p>Live Music Capital · I-35 &amp; MoPac · Lady Bird Lake · Capitol &amp; AUS</p>
+        <p>I-35 &amp; MoPac · Lady Bird Lake · Capitol · AUS</p>
         <a class="btn primary" href="/app.html?city=austin">Launch</a>
       </article>
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
         <h3>San Antonio</h3>
-        <p>Loops &amp; missions · River Walk · I-10 / I-35 · SAT</p>
+        <p>River Walk · missions · I-10 / I-35 · SAT</p>
         <a class="btn primary" href="/app.html?city=sanantonio">Launch</a>
       </article>
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
         <h3>Dallas–Fort Worth</h3>
-        <p>DFW mega-hub · I-35E / I-30 · AT&amp;T Stadium · Love Field</p>
+        <p>Metroplex · I-35E / Central · DFW &amp; Love Field</p>
         <a class="btn primary" href="/app.html?city=dallas">Launch</a>
       </article>
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
         <h3>Los Angeles</h3>
-        <p>Freeway mosaic · LAX approaches · DTLA skyline · basin haze</p>
+        <p>Freeway mosaic · LAX · DTLA · Hollywood Sign</p>
         <a class="btn primary" href="/app.html?city=losangeles">Launch</a>
       </article>
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
         <h3>New York</h3>
-        <p>Grid + bridges · JFK / LGA / EWR · Midtown &amp; FiDi</p>
+        <p>Bridges &amp; grid · JFK / LGA / EWR · Midtown</p>
         <a class="btn primary" href="/app.html?city=newyork">Launch</a>
       </article>
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
         <h3>Boston</h3>
-        <p>Historic core · I-93 / Mass Pike · Fenway · Logan</p>
+        <p>I-93 / Mass Pike · Fenway · Logan · Harbor</p>
         <a class="btn primary" href="/app.html?city=boston">Launch</a>
       </article>
       <article class="city-card soon more reveal" data-reveal>
-        <span class="city-status">On the list</span>
+        <span class="city-status">Next up</span>
         <h3>And more…</h3>
         <p>Chicago, Miami, Seattle, and other metros as the platform grows.</p>
       </article>
     </div>
-    <p class="city-footnote reveal" data-reveal>Each city ships with live weather, TomTom or TranStar traffic context, airports, and UI tuned to that place.</p>
+    <p class="city-footnote reveal" data-reveal>Tip: bookmark <code>?city=austin</code> (or any id) — packs load researched roads, NWS filters, and airport boards for that metro.</p>
   </section>
 
   <section class="section alt" id="updates">
     <div class="section-head reveal" data-reveal>
-      <p class="eyebrow">Shipping</p>
-      <h2>Updated often. Shipped with CI.</h2>
-      <p>This is not a one and done demo. New features, city work, and fixes land continuously, with automated builds on every push and pull request.</p>
+      <p class="eyebrow">What’s new · v10.16</p>
+      <h2>Multi-city packs. Weather that stays put.</h2>
+      <p>Same engine across seven metros — with suburb weather mosaics, local rain, and airfield cleanup that matches how the sim actually works.</p>
     </div>
     <div class="update-rail">
       <article class="update-card reveal" data-reveal>
         <span class="update-num">01</span>
-        <h3>Continuous integration</h3>
-        <p>GitHub Actions installs, verifies pages, and runs a full production build on every PR and push to main.</p>
+        <h3>Seven city packs</h3>
+        <p>Houston plus Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston — freeways, districts, airports, skylines, and attractions from one runtime builder.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">02</span>
-        <h3>Frequent releases</h3>
-        <p>Simulator build tags bump when behavior changes. Web users pick up updates on refresh; desktop packages rebuild from CI.</p>
+        <h3>Weather mosaic</h3>
+        <p>Open-Meteo samples every suburb. Rain intensity follows the nearest district’s feed only — a dry suburb stays dry even if downtown is wet.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">03</span>
-        <h3>Always improving</h3>
-        <p>Traffic fidelity, new cities, hazards, and polish. Seven metros ship today; Chicago, Miami, Seattle, and more are next.</p>
+        <h3>Sky &amp; tour polish</h3>
+        <p>Slow ground tracks (parked ADS-B) drop out so fields like AUS don’t freeze in place. First-visit tour waits until the sim is actually ready.</p>
       </article>
     </div>
     <div class="hero-actions reveal" data-reveal style="margin-top:28px">
-      <a class="btn soft" href="/docs/ci.html">Read CI docs</a>
-      <a class="btn ghost" href="/docs/contributing.html">How we ship</a>
+      <a class="btn soft" href="/docs/">Read the docs</a>
+      <a class="btn ghost" href="/docs/TECH_TRANSITION.md">Tech transition</a>
     </div>
   </section>
 
@@ -304,25 +300,26 @@
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">Feeds</p>
       <h2>Live where it matters</h2>
-      <p>Modeled motion fills the gaps; live feeds keep each metro honest. Houston uses TranStar; Austin uses TomTom. The same stack powers every city that follows.</p>
+      <p>Modeled motion fills the gaps; live feeds keep each metro honest across traffic, weather, and the sky.</p>
     </div>
     <div class="live-table">
       <div class="live-row reveal" data-reveal><span>Traffic · Houston</span><b>TranStar</b></div>
-      <div class="live-row reveal" data-reveal><span>Traffic · Austin</span><b>TomTom</b></div>
-      <div class="live-row reveal" data-reveal><span>Weather &amp; forecast</span><b>Open-Meteo</b></div>
+      <div class="live-row reveal" data-reveal><span>Traffic · other metros</span><b>TomTom</b></div>
+      <div class="live-row reveal" data-reveal><span>Weather · every suburb</span><b>Open-Meteo</b></div>
       <div class="live-row reveal" data-reveal><span>Aircraft positions</span><b>ADS-B / OpenSky</b></div>
       <div class="live-row reveal" data-reveal><span>Airport boards</span><b>FlightAware AeroAPI</b></div>
+      <div class="live-row reveal" data-reveal><span>Alerts</span><b>NWS (per metro)</b></div>
     </div>
   </section>
 
   <section class="cta-band">
     <div class="cta-orbit" aria-hidden="true"></div>
     <div class="cta-inner reveal" data-reveal>
-      <h2>Start in Houston or Austin.<br>Grow with the map.</h2>
-      <p>Install the web app today. Pick your metro, and CI keeps every release build checked as more cities unlock.</p>
+      <h2>Open a metro.<br>Watch it breathe.</h2>
+      <p>Start in Houston or jump straight to Austin, NYC, LA — seven skies are ready.</p>
       <div class="hero-actions">
         <a class="btn primary lg glow-btn" href="/app.html">Open Houston</a>
-        <a class="btn soft lg" href="/app.html?city=austin">Open Austin</a>
+        <a class="btn soft lg" href="/app.html?city=newyork">Open New York</a>
         <a class="btn ghost lg" href="/download.html">Download</a>
       </div>
     </div>
@@ -339,12 +336,12 @@
   </div>
   <div class="footer-links">
     <a href="/app.html">Simulator</a>
+    <a href="#cities">Cities</a>
     <a href="/download.html">Download</a>
     <a href="/docs/">Developer docs</a>
-    <a href="/docs/ci.html">CI &amp; updates</a>
     <a href="/docs/architecture.html">Architecture</a>
   </div>
-  <p class="footer-fine">Houston &amp; Austin live · more cities coming · updated often with CI · educational simulation · hazard modes are what if overlays, not official alerts.</p>
+  <p class="footer-fine">7 metros live · suburb-local weather · ADS-B sky · educational simulation · hazard modes are what-if overlays, not official alerts.</p>
 </footer>
 
 <script src="/site/site.js" type="module"></script>
