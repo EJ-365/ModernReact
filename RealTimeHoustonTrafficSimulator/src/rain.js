@@ -160,9 +160,9 @@ export function createRainSystem(deps) {
       lerp(1, 0.82, rainF) *
       visK *
       (1 - murk * 0.45) *
-      lerp(1, 1.05, nightF);
+      lerp(1, 0.88, nightF);
     sceneFog.far = lerp(sceneFog.far, far, 0.06);
-    sceneFog.near = sceneFog.far * lerp(0.08, 0.12, nightF);
+    sceneFog.near = sceneFog.far * lerp(0.08, 0.1, nightF);
   }
 
   function update(dt, nightF, wxBlend, rainWindX, rainWindZ, liveWx) {

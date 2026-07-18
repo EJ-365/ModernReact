@@ -17,29 +17,29 @@ export const NEWYORK_ROAD_LATLNG = [
 ];
 
 export const NEWYORK_DISTRICTS = [
-  { id:'fidi', n:'Financial District', lat:40.7074, lng:-74.0113, r:280 },
-  { id:'midtown', n:'Midtown Manhattan', lat:40.7549, lng:-73.9840, r:420 },
+  { id:'fidi', n:'Financial District', lat:40.7074, lng:-74.0113, r:280, noHouses:true },
+  { id:'midtown', n:'Midtown Manhattan', lat:40.7549, lng:-73.9840, r:420, noHouses:true },
   { id:'ues', n:'Upper East Side', lat:40.7736, lng:-73.9566, r:320 },
   { id:'uws', n:'Upper West Side', lat:40.7870, lng:-73.9754, r:320 },
   { id:'harlem', n:'Harlem', lat:40.8116, lng:-73.9465, r:360 },
-  { id:'chelsea', n:'Chelsea', lat:40.7465, lng:-74.0014, r:260 },
-  { id:'greenwich', n:'Greenwich Village', lat:40.7336, lng:-74.0027, r:240 },
-  { id:'tribeca', n:'Tribeca', lat:40.7163, lng:-74.0086, r:220 },
+  { id:'chelsea', n:'Chelsea', lat:40.7465, lng:-74.0014, r:260, noHouses:true },
+  { id:'greenwich', n:'Greenwich Village', lat:40.7336, lng:-74.0027, r:240, noHouses:true },
+  { id:'tribeca', n:'Tribeca', lat:40.7163, lng:-74.0086, r:220, noHouses:true },
   { id:'brooklynhts', n:'Brooklyn Heights', lat:40.6960, lng:-73.9936, r:240 },
-  { id:'dtbrooklyn', n:'Downtown Brooklyn', lat:40.6920, lng:-73.9870, r:300 },
+  { id:'dtbrooklyn', n:'Downtown Brooklyn', lat:40.6920, lng:-73.9870, r:300, noHouses:true },
   { id:'williamsburg', n:'Williamsburg', lat:40.7081, lng:-73.9571, r:300 },
   { id:'astoria', n:'Astoria', lat:40.7644, lng:-73.9235, r:320 },
-  { id:'lic', n:'Long Island City', lat:40.7447, lng:-73.9485, r:300 },
+  { id:'lic', n:'Long Island City', lat:40.7447, lng:-73.9485, r:300, noHouses:true },
   { id:'flushing', n:'Flushing', lat:40.7654, lng:-73.8318, r:340 },
   { id:'jamaica', n:'Jamaica', lat:40.7020, lng:-73.7900, r:320 },
   { id:'bronx', n:'The Bronx', lat:40.8610, lng:-73.8900, r:400 },
   { id:'statenisland', n:'Staten Island', lat:40.6437, lng:-74.0760, r:380 },
-  { id:'jerseycity', n:'Jersey City', lat:40.7178, lng:-74.0431, r:360 },
-  { id:'hoboken', n:'Hoboken', lat:40.7440, lng:-74.0324, r:240 },
+  { id:'jerseycity', n:'Jersey City', lat:40.7178, lng:-74.0431, r:360, noHouses:true },
+  { id:'hoboken', n:'Hoboken', lat:40.7440, lng:-74.0324, r:240, noHouses:true },
   { id:'newark', n:'Newark', lat:40.7357, lng:-74.1724, r:420 },
   { id:'yonkers', n:'Yonkers', lat:40.9312, lng:-73.8987, r:380 },
-  { id:'soho', n:'SoHo', lat:40.7233, lng:-74.0030, r:220 },
-  { id:'eastvillage', n:'East Village', lat:40.7264, lng:-73.9818, r:240 },
+  { id:'soho', n:'SoHo', lat:40.7233, lng:-74.0030, r:220, noHouses:true },
+  { id:'eastvillage', n:'East Village', lat:40.7264, lng:-73.9818, r:240, noHouses:true },
   { id:'coneyisland', n:'Coney Island', lat:40.5755, lng:-73.9707, r:280 },
 ];
 
@@ -110,15 +110,60 @@ export const NEWYORK_WATERS = [
 
 export const NEWYORK_CAM_EXTRAS = [{ id:'midtown', lat:40.7549, lng:-73.9840, radius:360 }];
 
+/* World height ≈ real feet / 3.16 (matches Houston Williams Tower 901 ft → h 285). */
 export const NEWYORK_SKYLINE = [
-  { n:'One World Trade Center', lat:40.7127, lng:-74.0134, w:40, d:40, h:420, s:0, info:'1776 ft' },
-  { n:'Empire State Building', lat:40.7484, lng:-73.9857, w:36, d:36, h:380, s:1, info:'1454 ft' },
-  { n:'Chrysler Building', lat:40.7516, lng:-73.9755, w:28, d:28, h:290, s:2, info:'1046 ft Art Deco' },
-  { n:'Central Park Tower', lat:40.7663, lng:-73.9808, w:22, d:22, h:400, s:0, info:'1550 ft pencil' },
-  { n:'One Vanderbilt', lat:40.7530, lng:-73.9785, w:30, d:30, h:360, s:1, info:'1401 ft' },
-  { n:'30 Hudson Yards', lat:40.7540, lng:-74.0010, w:32, d:30, h:340, s:3, info:'1270 ft' },
-  { n:'432 Park Avenue', lat:40.7616, lng:-73.9716, w:20, d:20, h:360, s:0, info:'1396 ft' },
-  { n:'Bank of America Tower', lat:40.7556, lng:-73.9840, w:30, d:28, h:320, s:2, info:'1200 ft' },
+  /* ——— Lower Manhattan / FiDi ——— */
+  { n:'One World Trade Center', lat:40.7127, lng:-74.0134, w:42, d:42, h:562, s:0, info:'1776 ft · Freedom Tower' },
+  { n:'3 World Trade Center', lat:40.7108, lng:-74.0114, w:34, d:32, h:390, s:1, info:'1079 ft' },
+  { n:'4 World Trade Center', lat:40.7104, lng:-74.0119, w:34, d:34, h:310, s:2, info:'978 ft' },
+  { n:'7 World Trade Center', lat:40.7133, lng:-74.0119, w:36, d:34, h:235, s:3, info:'743 ft' },
+  { n:'40 Wall Street', lat:40.7070, lng:-74.0098, w:26, d:26, h:293, s:2, info:'927 ft · Trump Building' },
+  { n:'70 Pine Street', lat:40.7065, lng:-74.0077, w:26, d:24, h:301, s:1, info:'952 ft Art Deco' },
+  { n:'Woolworth Building', lat:40.7122, lng:-74.0082, w:28, d:28, h:250, s:2, info:'792 ft Gothic' },
+  { n:'200 West Street', lat:40.7146, lng:-74.0147, w:40, d:36, h:236, s:0, info:'Goldman Sachs HQ' },
+  { n:'One Manhattan West', lat:40.7527, lng:-74.0058, w:32, d:30, h:315, s:1, info:'996 ft · Hudson Yards edge' },
+  /* ——— Midtown ——— */
+  { n:'Empire State Building', lat:40.7484, lng:-73.9857, w:38, d:38, h:460, s:1, info:'1454 ft · Art Deco' },
+  { n:'Chrysler Building', lat:40.7516, lng:-73.9755, w:30, d:28, h:331, s:2, info:'1046 ft Art Deco crown' },
+  { n:'One Vanderbilt', lat:40.7530, lng:-73.9785, w:32, d:32, h:443, s:1, info:'1401 ft · Grand Central' },
+  { n:'Bank of America Tower', lat:40.7556, lng:-73.9840, w:32, d:30, h:380, s:2, info:'1200 ft · Bryant Park' },
+  { n:'30 Rockefeller Plaza', lat:40.7587, lng:-73.9787, w:40, d:36, h:269, s:3, info:'850 ft · 30 Rock' },
+  { n:'MetLife Building', lat:40.7536, lng:-73.9765, w:44, d:28, h:255, s:0, info:'808 ft · Park Avenue' },
+  { n:'Citigroup Center', lat:40.7586, lng:-73.9700, w:34, d:34, h:289, s:1, info:'915 ft · slanted top' },
+  { n:'Bloomberg Tower', lat:40.7616, lng:-73.9680, w:36, d:30, h:279, s:2, info:'883 · 59th & Lex' },
+  { n:'New York Life Building', lat:40.7427, lng:-73.9868, w:32, d:30, h:195, s:2, info:'615 ft gold pyramid' },
+  { n:'Flatiron Building', lat:40.7411, lng:-73.9897, w:22, d:40, h:90, s:3, info:'285 ft · wedge' },
+  { n:'Madison Square Garden', lat:40.7505, lng:-73.9934, w:72, d:72, h:45, s:0, info:'Arena drum · Penn Station' },
+  /* ——— Billionaires’ Row / UES ——— */
+  { n:'Central Park Tower', lat:40.7663, lng:-73.9808, w:20, d:20, h:490, s:0, info:'1550 ft pencil' },
+  { n:'432 Park Avenue', lat:40.7616, lng:-73.9716, w:18, d:18, h:442, s:0, info:'1396 ft pencil' },
+  { n:'111 West 57th Street', lat:40.7648, lng:-73.9778, w:14, d:18, h:450, s:1, info:'1428 ft · Steinway Tower' },
+  { n:'220 Central Park South', lat:40.7670, lng:-73.9800, w:26, d:24, h:300, s:3, info:'950 ft' },
+  /* ——— Hudson Yards ——— */
+  { n:'30 Hudson Yards', lat:40.7540, lng:-74.0010, w:34, d:32, h:402, s:3, info:'1270 ft observation deck' },
+  { n:'35 Hudson Yards', lat:40.7546, lng:-74.0024, w:30, d:28, h:318, s:1, info:'1005 ft' },
+  { n:'50 Hudson Yards', lat:40.7547, lng:-74.0000, w:40, d:36, h:268, s:0, info:'849 ft' },
+  /* ——— Brooklyn / LIC / NJ silhouettes ——— */
+  { n:'Brookfield Place Brooklyn', lat:40.6930, lng:-73.9855, w:34, d:32, h:225, s:1, info:'Downtown Brooklyn' },
+  { n:'Skyline Tower', lat:40.7475, lng:-73.9412, w:28, d:28, h:241, s:0, info:'762 ft · LIC' },
+  { n:'99 Hudson', lat:40.7189, lng:-74.0355, w:28, d:26, h:279, s:2, info:'900 ft · Jersey City' },
+  { n:'Goldman Sachs Tower', lat:40.7137, lng:-74.0345, w:36, d:34, h:250, s:1, info:'781 ft · Jersey City' },
+];
+
+/** Mid-rise CBD fabric pockets (lat/lng) — planted around landmarks, not house sprawl. */
+export const NEWYORK_SKYLINE_POCKETS = [
+  { n:'Financial District', lat:40.7075, lng:-74.0110, count:48, rad:260, hmin:55, hmax:220 },
+  { n:'Battery / WTC ring', lat:40.7125, lng:-74.0120, count:22, rad:160, hmin:70, hmax:260 },
+  { n:'Tribeca loft towers', lat:40.7165, lng:-74.0085, count:16, rad:140, hmin:40, hmax:140 },
+  { n:'Midtown core', lat:40.7549, lng:-73.9840, count:70, rad:320, hmin:80, hmax:280 },
+  { n:'Times Square / Broadway', lat:40.7580, lng:-73.9855, count:28, rad:170, hmin:70, hmax:220 },
+  { n:'Grand Central / Park Ave', lat:40.7527, lng:-73.9772, count:26, rad:180, hmin:90, hmax:260 },
+  { n:'Hudson Yards', lat:40.7545, lng:-74.0005, count:24, rad:180, hmin:80, hmax:260 },
+  { n:'Chelsea / Nomad', lat:40.7455, lng:-73.9935, count:22, rad:180, hmin:45, hmax:160 },
+  { n:'Upper East / Billionaires’', lat:40.7645, lng:-73.9735, count:18, rad:150, hmin:90, hmax:240 },
+  { n:'Downtown Brooklyn', lat:40.6925, lng:-73.9865, count:28, rad:220, hmin:50, hmax:180 },
+  { n:'Long Island City', lat:40.7460, lng:-73.9430, count:30, rad:220, hmin:55, hmax:200 },
+  { n:'Jersey City waterfront', lat:40.7155, lng:-74.0355, count:26, rad:200, hmin:55, hmax:210 },
 ];
 
 export const NEWYORK_ATTRACTIONS = [

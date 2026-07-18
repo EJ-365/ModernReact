@@ -8,6 +8,15 @@ import {
   rainIntensityAt,
   openMeteoMultiUrl,
 } from './weather-zones.js';
+import {
+  fetchNhcStorms,
+  fetchSpcTornadoOutlook,
+  fetchStormAlerts,
+  spcRiskLabel,
+  stormsNearMetro,
+  nhcClassLabel,
+  nwsStatesForCity,
+} from './feeds/storm-tracker.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -22,7 +31,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.34 (0713-aus-ground). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.43 (0718-storm-polish). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -894,8 +903,8 @@ const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,2,42000);
 
 const hemi=new THREE.HemisphereLight(HTS_IS_AUS?0xe8f0ff:0xd0e4ff,HTS_IS_AUS?0x6a7a50:0x4a5a3a,HTS_IS_AUS?0.95:0.88);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff5e6,HTS_IS_AUS?1.15:1.05);scene.add(sun);
-const nightAmb=new THREE.AmbientLight(0x1a2438,0.0);scene.add(nightAmb);
-const cityFill=new THREE.HemisphereLight(0x5a4838,0x10141c,0.0);scene.add(cityFill); /* soft warm CBD bounce */
+const nightAmb=new THREE.AmbientLight(0x080c14,0.0);scene.add(nightAmb);
+const cityFill=new THREE.HemisphereLight(0x3a2e22,0x06080c,0.0);scene.add(cityFill); /* soft warm CBD bounce */
 /* LOD groups: full-detail 3D vs zoom-out map mode */
 const gRoads3D=new THREE.Group();scene.add(gRoads3D);
 const gDetail=new THREE.Group();scene.add(gDetail);
@@ -2488,6 +2497,21 @@ EXCLUDES.push({x:89,z:8,r:90});      /* Downtown Aquarium */
 (function(){
   const dt=packDowntown();
   EXCLUDES.push({x:dt.x,z:dt.z,r:520});
+  /* NYC: Midtown / Hudson Yards / LIC / Brooklyn CBDs are far from City Hall */
+  if(HTS_CITY_ID==='newyork'){
+    const rings=[
+      [40.7549,-73.9840,480], /* Midtown */
+      [40.7545,-74.0005,260], /* Hudson Yards */
+      [40.7460,-73.9430,280], /* LIC */
+      [40.6925,-73.9865,260], /* Downtown Brooklyn */
+      [40.7155,-74.0355,260], /* Jersey City waterfront */
+      [40.7829,-73.9654,480], /* Central Park lawn */
+    ];
+    for(const [lat,lng,r] of rings){
+      const p=geoToWorld(lat,lng);
+      EXCLUDES.push({x:p.x,z:p.z,r});
+    }
+  }
 })();
 function blocked(x,z,extra){
   for(const e of EXCLUDES){const dx=x-e.x,dz=z-e.z;
@@ -2593,7 +2617,8 @@ function footHitsBldg(px,pz){
   }
   return null;
 }
-function tower(x,z,w,dep,h,skin,rotY,cyl){
+function tower(x,z,w,dep,h,skin,rotY,cyl,opts){
+  const faithful=!!(opts&&opts.faithful); /* researched landmarks: keep real proportions */
   const mat=towerMats[skin%towerMats.length];
   const m=new THREE.Mesh(cyl?cylGeo:towerGeo,cyl?mat:[mat,mat,towerRoof,towerRoof,mat,mat]);
   m.scale.set(w,h,dep);m.position.set(x,0,z);m.rotation.y=rotY||0;gDetail.add(m);
@@ -2601,20 +2626,26 @@ function tower(x,z,w,dep,h,skin,rotY,cyl){
   /* parapet cap */
   const cap=new THREE.Mesh(cyl?cylGeo:towerGeo,parapetMat);
   cap.scale.set(w*1.03,1.6,dep*1.03);cap.position.set(x,h-0.4,z);cap.rotation.y=rotY||0;gDetail.add(cap);
-  if(!cyl&&h>150&&rand()<0.6){
+  if(!faithful&&!cyl&&h>150&&rand()<0.6){
     const m2=new THREE.Mesh(towerGeo,[mat,mat,towerRoof,towerRoof,mat,mat]);
     m2.scale.set(w*0.62,h*1.24,dep*0.62);m2.position.set(x,0,z);m2.rotation.y=rotY||0;gDetail.add(m2);
     const cap2=new THREE.Mesh(towerGeo,parapetMat);
     cap2.scale.set(w*0.64,1.6,dep*0.64);cap2.position.set(x,h*1.24-0.4,z);cap2.rotation.y=rotY||0;gDetail.add(cap2);
   }
-  if(rand()<0.7){
+  if(!faithful&&rand()<0.7){
     const rb=new THREE.Mesh(rooftopGeo,rooftopMat);
     rb.scale.set(w*0.3,5+rand()*6,dep*0.3);rb.position.set(x,h,z);gDetail.add(rb);
   }
-  if(h>210&&rand()<0.5){ /* spire */
+  if(!faithful&&h>210&&rand()<0.5){ /* spire */
     const sp=new THREE.Mesh(new THREE.CylinderGeometry(0.5,1.2,30+rand()*30,5),new THREE.MeshLambertMaterial({color:0x8a9098}));
     sp.geometry.translate(0,sp.geometry.parameters?0:0,0);
     sp.position.set(x,h+18,z);gDetail.add(sp);
+  }
+  /* Optional researched antenna / known spire tip */
+  if(faithful&&opts&&opts.spire){
+    const sh=opts.spire;
+    const sp=new THREE.Mesh(new THREE.CylinderGeometry(0.6,1.4,sh,6),new THREE.MeshLambertMaterial({color:0x9aa2aa}));
+    sp.position.set(x,h+sh*0.5,z);gDetail.add(sp);
   }
   return m;
 }
@@ -2649,26 +2680,31 @@ if(HTS_IS_AUS){
     EXCLUDES.push({x:ut0.x,z:ut0.z,r:50});
 
     const AUS_LANDMARKS=[
-      {n:'Sixth and Guadalupe',lat:30.269687,lng:-97.746691,w:34,d:34,h:280,s:1,info:'875 ft · 66 floors · 2023'},
-      {n:'The Independent',lat:30.267850,lng:-97.751192,w:30,d:30,h:250,s:0,info:'694 ft · 58 floors · 2019'},
-      {n:'The Republic',lat:30.266790,lng:-97.747762,w:32,d:28,h:230,s:1,info:'58 floors · Republic Square'},
-      {n:'The Austonian',lat:30.264730,lng:-97.744511,w:28,d:28,h:240,s:3,info:'683 ft · 56 floors · 2010'},
-      {n:'Fairmont Austin',lat:30.262227,lng:-97.738289,w:40,d:34,h:180,s:2,info:'37 floors · 2018'},
-      {n:'360 Condominiums',lat:30.267418,lng:-97.749682,w:28,d:28,h:205,s:1,info:'581 ft · 44 floors · 2008'},
-      {n:'Frost Bank Tower',lat:30.266500,lng:-97.742847,w:30,d:28,h:175,s:2,info:'516 ft · 33 floors · 2004'},
-      {n:'Indeed Tower',lat:30.269093,lng:-97.744427,w:28,d:32,h:190,s:0,info:'36 floors · 2021'},
-      {n:'One American Center',lat:30.268618,lng:-97.743259,w:30,d:28,h:155,s:2,info:'32 floors'},
-      {n:'415 Colorado',lat:30.267058,lng:-97.744308,w:26,d:26,h:210,s:0,info:'47 floors'},
-      {n:'Block 185',lat:30.26695,lng:-97.74555,w:32,d:30,h:165,s:1,info:'Google Tower · 2015'},
-      {n:'JW Marriott Austin',lat:30.2639,lng:-97.7426,w:36,d:32,h:145,s:2,info:'34 floors · 2015'},
-      {n:'One Congress Plaza',lat:30.2649,lng:-97.7436,w:28,d:28,h:140,s:0,info:'30 floors'},
-      {n:'Spring Condo',lat:30.2634,lng:-97.7408,w:26,d:24,h:155,s:3,info:'Rainey skyline'},
+      /* heights ≈ real feet / 3.16 (Houston Williams Tower scale) */
+      {n:'Sixth and Guadalupe',lat:30.269687,lng:-97.746691,w:34,d:34,h:277,s:1,info:'875 ft · 66 floors · 2023'},
+      {n:'The Independent',lat:30.267850,lng:-97.751192,w:30,d:30,h:220,s:0,info:'694 ft · 58 floors · 2019'},
+      {n:'The Republic',lat:30.266790,lng:-97.747762,w:32,d:28,h:210,s:1,info:'58 floors · Republic Square'},
+      {n:'The Austonian',lat:30.264730,lng:-97.744511,w:28,d:28,h:216,s:3,info:'683 ft · 56 floors · 2010'},
+      {n:'Fairmont Austin',lat:30.262227,lng:-97.738289,w:40,d:34,h:168,s:2,info:'530 ft · 37 floors · 2018'},
+      {n:'360 Condominiums',lat:30.267418,lng:-97.749682,w:28,d:28,h:184,s:1,info:'581 ft · 44 floors · 2008'},
+      {n:'Frost Bank Tower',lat:30.266500,lng:-97.742847,w:30,d:28,h:163,s:2,info:'516 ft · 33 floors · 2004'},
+      {n:'Indeed Tower',lat:30.269093,lng:-97.744427,w:28,d:32,h:170,s:0,info:'36 floors · 2021'},
+      {n:'One American Center',lat:30.268618,lng:-97.743259,w:30,d:28,h:140,s:2,info:'32 floors · 1984'},
+      {n:'415 Colorado',lat:30.267058,lng:-97.744308,w:26,d:26,h:185,s:0,info:'47 floors'},
+      {n:'Block 185',lat:30.26695,lng:-97.74555,w:32,d:30,h:145,s:1,info:'Google Tower · 2015'},
+      {n:'JW Marriott Austin',lat:30.2639,lng:-97.7426,w:36,d:32,h:130,s:2,info:'34 floors · 2015'},
+      {n:'One Congress Plaza',lat:30.2649,lng:-97.7436,w:28,d:28,h:125,s:0,info:'30 floors'},
+      {n:'Spring Condo',lat:30.2634,lng:-97.7408,w:26,d:24,h:145,s:3,info:'Rainey Street residential'},
+      {n:'Ashton',lat:30.2645,lng:-97.7475,w:24,d:24,h:140,s:0,info:'Rainey · glass condo'},
+      {n:'Fifth & West Residences',lat:30.2682,lng:-97.7515,w:26,d:26,h:155,s:1,info:'West End residential'},
+      {n:'Northshore',lat:30.2676,lng:-97.7398,w:28,d:26,h:120,s:2,info:'East CBD · Lady Bird'},
+      {n:'Hanover Republic Square',lat:30.2662,lng:-97.7465,w:30,d:28,h:135,s:3,info:'Downtown residential'},
     ];
     for(const L of AUS_LANDMARKS){
       const p=geoToWorld(L.lat,L.lng);
       /* Never plant a skyscraper on Capitol grounds */
       if(Math.hypot(p.x-cap0.x,p.z-cap0.z)<160)continue;
-      const m=tower(p.x,p.z,L.w,L.d,L.h,L.s,0,false);
+      const m=tower(p.x,p.z,L.w,L.d,L.h,L.s,0,false,{faithful:true});
       m.userData.info={n:L.n,d:L.info};
       PICK_TOWERS.push(m);
       HTS_AUS_LANDMARK_SKIP.push({x:p.x,z:p.z,r:Math.max(L.w,L.d)*0.75+18});
@@ -2678,8 +2714,10 @@ if(HTS_IS_AUS){
     const rainey=geoToWorld(30.258,-97.738);
     const soco=geoToWorld(30.248,-97.749);
     const east=geoToWorld(30.262,-97.72);
+    const domain=geoToWorld(30.402,-97.725);
     function pocket(cx,cz,n,rad,hmin,hmax){
       let got=0;
+      EXCLUDES.push({x:cx,z:cz,r:Math.min(rad*1.1,400)});
       for(let t=0;t<n*8&&got<n;t++){
         const a=rand()*TAU,r=Math.sqrt(rand())*rad;
         const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
@@ -2696,41 +2734,62 @@ if(HTS_IS_AUS){
         got++;
       }
     }
-    pocket(dt.x,dt.z,28,180,55,150); /* tighter radius — stay south of Capitol */
-    pocket(rainey.x,rainey.z,12,140,70,160);
-    pocket(soco.x,soco.z,10,120,35,95);
-    pocket(east.x,east.z,8,130,30,80);
+    pocket(dt.x,dt.z,36,190,55,160); /* denser CBD south of Capitol */
+    pocket(rainey.x,rainey.z,18,150,70,175);
+    pocket(soco.x,soco.z,12,120,35,95);
+    pocket(east.x,east.z,10,130,30,90);
+    pocket(domain.x,domain.z,14,160,40,110);
     console.log('%cAustin skyline: '+AUS_LANDMARKS.length+' landmarks + CBD pockets (Capitol cleared)','color:#7fd6a0');
   })();
   window.__htsPlaceAusSkylineFallback=function(){ /* landmarks already placed */ };
 }else if(HTS_HAS_PACK){
   (function placePackSkyline(){
     const list=(HTS_PACK&&HTS_PACK.skyline)||[];
+    const pockets=(HTS_PACK&&HTS_PACK.skylinePockets)||[];
     const dt=packDowntown();
+    /* Central Park clear zone — NYC only (no towers / houses through the lawn) */
+    if(HTS_CITY_ID==='newyork'){
+      const cp=geoToWorld(40.7829,-73.9654);
+      HTS_AUS_LANDMARK_SKIP.push({x:cp.x,z:cp.z,r:520});
+      EXCLUDES.push({x:cp.x,z:cp.z,r:480});
+    }
     for(const L of list){
       const x=L.x,z=L.z;
-      const m=tower(x,z,L.w||28,L.d||28,L.h||120,L.s||0,0,false);
+      const m=tower(x,z,L.w||28,L.d||28,L.h||120,L.s||0,L.rot||0,!!L.cyl,{faithful:true,spire:L.spire||0});
       m.userData.info={n:L.n,d:L.info||L.n};
       PICK_TOWERS.push(m);
       HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(L.w||28,L.d||28)*0.75+18});
       EXCLUDES.push({x,z,r:Math.max(L.w||28,L.d||28)*0.6+16});
     }
-    /* Mid-rise CBD pocket around downtown */
-    let got=0;
-    for(let t=0;t<240&&got<36;t++){
-      const a=rand()*TAU,r=Math.sqrt(rand())*220;
-      const x=dt.x+Math.cos(a)*r,z=dt.z+Math.sin(a)*r;
-      if(nearFreeway(x,z,16))continue;
-      if(typeof inWater==='function'&&inWater(x,z))continue;
-      let near=false;
-      for(const s of HTS_AUS_LANDMARK_SKIP){if(Math.hypot(x-s.x,z-s.z)<(s.r||40)){near=true;break;}}
-      if(near)continue;
-      const w=22+rand()*18,dep=22+rand()*18,h=50+Math.pow(rand(),1.5)*120;
-      tower(x,z,w,dep,h,Math.floor(rand()*4),rand()*0.35,false);
-      HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(w,dep)*0.55+12});
-      got++;
+    function pocketAt(cx,cz,n,rad,hmin,hmax){
+      let got=0;
+      EXCLUDES.push({x:cx,z:cz,r:Math.min(rad*1.05,460)}); /* keep house sprawl out of CBD fabric */
+      for(let t=0;t<n*10&&got<n;t++){
+        const a=rand()*TAU,r=Math.sqrt(rand())*rad;
+        const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+        if(nearFreeway(x,z,16))continue;
+        if(typeof inWater==='function'&&inWater(x,z))continue;
+        let near=false;
+        for(const s of HTS_AUS_LANDMARK_SKIP){if(Math.hypot(x-s.x,z-s.z)<(s.r||40)){near=true;break;}}
+        if(near)continue;
+        const w=20+rand()*22,dep=20+rand()*22;
+        const h=hmin+Math.pow(rand(),1.45)*(hmax-hmin);
+        tower(x,z,w,dep,h,Math.floor(rand()*4),rand()*0.35,false);
+        HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(w,dep)*0.55+12});
+        got++;
+      }
+      return got;
     }
-    console.log('%c'+CITY_NAME+' skyline: '+list.length+' landmarks + CBD pocket','color:#7fd6a0');
+    let fabric=0;
+    if(pockets.length){
+      for(const P of pockets){
+        fabric+=pocketAt(P.x,P.z,P.count||24,P.rad||200,P.hmin||50,P.hmax||180);
+      }
+    }else{
+      /* Default single CBD pocket for packs without researched fabric */
+      fabric+=pocketAt(dt.x,dt.z,36,220,50,170);
+    }
+    console.log('%c'+CITY_NAME+' skyline: '+list.length+' landmarks + '+fabric+' CBD towers','color:#7fd6a0');
   })();
 }else{
   /* Houston skyline — original denser clusters (Galleria / Med Center / …) + landmark CBD */
@@ -3009,7 +3068,7 @@ const houseClusters=HTS_IS_AUS?[
  })()
 ]:(HTS_HAS_PACK?(function(){
   return (HTS_PACK.districts||[])
-    .filter((d)=>d.id!=='downtown')
+    .filter((d)=>d.id!=='downtown'&&!d.noHouses)
     .map((d)=>[d.x,d.z,Math.min((d.r||280)*1.35,560),Math.max(90,Math.floor((d.r||280)*0.55))]);
 })():[
  [-3520,-120,700,300],[-3050,2260,760,320],[-2280,2520,620,270],[-2520,1780,380,150],
@@ -6097,6 +6156,134 @@ function nominatimHost(){
   }catch(e){}
   return 'https://nominatim.openstreetmap.org';
 }
+function nwsApiHost(){
+  try{
+    if(/^https?:$/i.test(location.protocol)&&location.hostname)return '/api/nws';
+  }catch(e){}
+  return 'https://api.weather.gov';
+}
+const NWS_UA='HoustonTrafficSimulator/1.0 (edu; github.com/EJ-365/ModernReact)';
+function nwsHeaders(){
+  return {Accept:'application/geo+json,application/ld+json,application/json',
+    'User-Agent':NWS_UA};
+}
+function nwsQty(obj){
+  if(obj==null)return null;
+  if(typeof obj==='number'&&isFinite(obj))return obj;
+  if(typeof obj==='object'&&obj.value!=null&&isFinite(+obj.value))return +obj.value;
+  return null;
+}
+function nwsTempF(obj){
+  const v=nwsQty(obj);if(v==null)return null;
+  const u=String((obj&&obj.unitCode)||'wmoUnit:degC');
+  if(/degF|fahrenheit/i.test(u))return v;
+  return v*9/5+32; /* NWS obs are usually °C */
+}
+function nwsWindMph(obj){
+  const v=nwsQty(obj);if(v==null)return null;
+  const u=String((obj&&obj.unitCode)||'');
+  if(/mi_h|mph/i.test(u))return v;
+  if(/m_s-1|m\/s/i.test(u))return v*2.23694;
+  if(/km_h|km\/h/i.test(u))return v*0.621371;
+  return v*0.621371; /* default km/h */
+}
+function nwsPressInHg(obj){
+  const v=nwsQty(obj);if(v==null)return null;
+  const u=String((obj&&obj.unitCode)||'');
+  if(/inHg|inch_of_mercury/i.test(u))return v;
+  if(/Pa\b|pascal/i.test(u))return v*0.0002953;
+  if(/hPa|mbar/i.test(u))return v*0.02953;
+  return v*0.0002953;
+}
+function nwsVisMi(obj){
+  const v=nwsQty(obj);if(v==null)return null;
+  const u=String((obj&&obj.unitCode)||'');
+  if(/mi\b|mile/i.test(u))return v;
+  return v/1609.34; /* meters */
+}
+function nwsTextToPreset(text){
+  const t=String(text||'').toLowerCase();
+  if(/thunder|tstm|lightning/.test(t))return {preset:'storm',label:text||'Thunderstorm',rain:0.9};
+  if(/heavy rain|downpour/.test(t))return {preset:'rain',label:text||'Heavy rain',rain:0.95};
+  if(/rain|shower|drizzle/.test(t))return {preset:'rain',label:text||'Rain',rain:0.55};
+  if(/fog|mist|haze/.test(t))return {preset:'fog',label:text||'Fog',rain:0};
+  if(/overcast|cloudy/.test(t)&&!/partly|mostly clear|fair/.test(t))return {preset:'overcast',label:text||'Overcast',rain:0};
+  if(/partly|mostly cloudy|broken/.test(t))return {preset:'partly',label:text||'Partly cloudy',rain:0};
+  if(/clear|fair|sunny/.test(t))return {preset:'clear',label:text||'Clear',rain:0};
+  return {preset:'partly',label:text||'Partly cloudy',rain:0};
+}
+/** Nearest NWS METAR-style observation for a US lat/lng. Null outside US / on failure. */
+async function fetchNwsLocalObservation(lat,lng){
+  if(!isFinite(lat)||!isFinite(lng))return null;
+  /* CONUS + AK/HI rough bounds — NWS stations aren't global */
+  if(lat<18||lat>72||lng<-180||lng>-65)return null;
+  const host=nwsApiHost();
+  const hdr=nwsHeaders();
+  try{
+    const pts=await fetchWithTimeout(
+      host+'/points/'+Number(lat).toFixed(4)+','+Number(lng).toFixed(4),
+      {headers:hdr,cache:'no-store'},8000);
+    if(!pts.ok)throw new Error('points '+pts.status);
+    const pj=await pts.json();
+    const stUrl=pj&&pj.properties&&pj.properties.observationStations;
+    if(!stUrl)return null;
+    const stPath=String(stUrl).replace(/^https?:\/\/api\.weather\.gov/i,'');
+    const stRes=await fetchWithTimeout(host+stPath,{headers:hdr,cache:'no-store'},8000);
+    if(!stRes.ok)throw new Error('stations '+stRes.status);
+    const sj=await stRes.json();
+    const feats=(sj&&sj.features)||[];
+    for(let i=0;i<Math.min(feats.length,6);i++){
+      const f=feats[i];
+      const sid=(f.properties&&(f.properties.stationIdentifier||f.properties.stationId))
+        ||(f.id&&String(f.id).split('/').pop());
+      const sname=(f.properties&&f.properties.name)||sid;
+      if(!sid)continue;
+      const obsRes=await fetchWithTimeout(
+        host+'/stations/'+encodeURIComponent(sid)+'/observations/latest',
+        {headers:hdr,cache:'no-store'},8000);
+      if(!obsRes.ok)continue;
+      const oj=await obsRes.json();
+      const p=oj&&oj.properties;if(!p)continue;
+      const temp=nwsTempF(p.temperature);
+      if(temp==null||!isFinite(temp))continue; /* skip null-temp stations */
+      const feelsRaw=(()=>{
+        const hi=nwsTempF(p.heatIndex);if(hi!=null)return hi;
+        const wc=nwsTempF(p.windChill);if(wc!=null)return wc;
+        return null;
+      })();
+      const dew=nwsTempF(p.dewpoint);
+      const hum=nwsQty(p.relativeHumidity);
+      const wind=nwsWindMph(p.windSpeed);
+      const windDir=nwsQty(p.windDirection);
+      const press=nwsPressInHg(p.seaLevelPressure||p.barometricPressure);
+      const vis=nwsVisMi(p.visibility);
+      const mapped=nwsTextToPreset(p.textDescription||'');
+      let stationMi=null;
+      try{
+        const g=f.geometry&&f.geometry.coordinates;
+        if(g&&g.length>=2)stationMi=+miBetween(lat,lng,g[1],g[0]).toFixed(1);
+      }catch(e){}
+      return {
+        src:'nws',temp:Math.round(temp),
+        feels:Math.round(feelsRaw!=null?feelsRaw:temp),
+        hum:hum!=null?Math.round(hum):null,
+        wind:wind!=null?Math.round(wind):null,
+        windDir:windDir!=null?windDir:null,
+        dew:dew!=null?Math.round(dew):null,
+        press:press!=null?press.toFixed(2):null,
+        vis:vis!=null?Math.round(vis):null,
+        precip:0,
+        cloud:mapped.preset==='overcast'?0.9:(mapped.preset==='partly'?0.45:0.1),
+        preset:mapped.preset,label:mapped.label,rainAmt:mapped.rain,
+        stationId:sid,stationName:sname,stationMi,
+        at:Date.now(),
+      };
+    }
+  }catch(e){
+    console.warn('[HTS] NWS obs',e&&e.message?e.message:e);
+  }
+  return null;
+}
 function openMeteoUrl(lat,lng,hourly){
   /* 5–6 decimal places ≈ neighborhood / street precision for Open-Meteo grid */
   const la=Number(lat).toFixed(5),lo=Number(lng).toFixed(5);
@@ -6107,7 +6294,18 @@ function openMeteoUrl(lat,lng,hourly){
     +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation':'')
     +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max'
     +'&forecast_days=3'
-    +'&past_minutes=15&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone='+tz;
+    +'&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone='+tz;
+}
+/* GPS “Your location” — no past_minutes lag, auto timezone, best_match model (closer to consumer apps). */
+function openMeteoLocalUrl(lat,lng){
+  const la=Number(lat).toFixed(5),lo=Number(lng).toFixed(5);
+  return openMeteoHost()+'/v1/forecast?latitude='+la+'&longitude='+lo
+    +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,'
+    +'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
+    +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max'
+    +'&forecast_days=3'
+    +'&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch'
+    +'&timezone=auto&models=best_match';
 }
 function parseDailyForecast(j){
   const d=j&&j.daily;
@@ -6269,6 +6467,8 @@ function miBetween(lat1,lng1,lat2,lng2){
   return Math.hypot(dLat,dLng);
 }
 function nearestNeighborhood(lat,lng,maxMi){
+  /* Dense Houston-only subdivision DB — never use for pack metros */
+  if(!HTS_IS_HOU)return null;
   let best=null,bd=1e9;
   for(const p of HOU_NEIGHBORHOODS){
     const d=miBetween(lat,lng,p.lat,p.lng);
@@ -6277,29 +6477,71 @@ function nearestNeighborhood(lat,lng,maxMi){
   if(!best||bd>(maxMi!=null?maxMi:3.2))return null;
   return {place:best,mi:bd};
 }
+/** Nearest researched district for the active city (Austin Round Rock, NYC Midtown, …). */
+function nearestDistrictByGeo(lat,lng,maxMi){
+  if(lat==null||lng==null||!DISTRICTS||!DISTRICTS.length)return null;
+  let best=null,bd=1e9;
+  for(const d of DISTRICTS){
+    if(d.lat==null||d.lng==null||!isFinite(d.lat)||!isFinite(d.lng))continue;
+    const mi=miBetween(lat,lng,d.lat,d.lng);
+    if(mi<bd){bd=mi;best=d;}
+  }
+  if(!best||bd>(maxMi!=null?maxMi:16))return null;
+  return {district:best,mi:bd};
+}
+function cityPlaceCity(){
+  return (window.HTS_CITY&&(window.HTS_CITY.name||window.HTS_CITY.metroName))||CITY_NAME||'Near you';
+}
 function formatPlaceLabel(hood,city){
   const h=String(hood||'').trim(),c=String(city||'').trim();
   if(h&&c&&h.toLowerCase()!==c.toLowerCase())return h+' · '+c;
   return h||c||'Near you';
 }
-/* Compass-bucket fallback only if reverse geocode + neighborhood DB both miss */
+function placeLabelFromDistricts(lat,lng,maxMi){
+  const hit=nearestDistrictByGeo(lat,lng,maxMi!=null?maxMi:14);
+  if(!hit)return null;
+  return formatPlaceLabel(hit.district.n,cityPlaceCity());
+}
+/* Compass-bucket fallback only if reverse geocode + neighborhood/district DB both miss */
 function suburbNameFromGeo(lat,lng){
   if(lat==null||lng==null)return 'Near you';
-  const near=nearestNeighborhood(lat,lng,6);
-  if(near)return formatPlaceLabel(near.place.n,near.place.c);
-  const dLat=lat-HOU_WX_LAT,dLng=lng-HOU_WX_LNG;
-  const mi=Math.sqrt(dLat*dLat+dLng*dLng)*69;
-  if(mi<4)return 'Near downtown';
-  const ang=Math.atan2(dLng,dLat)*180/Math.PI;
-  const a=((ang%360)+360)%360;
-  if(a>=337.5||a<22.5)return mi<18?'Northside':'The Woodlands area';
-  if(a<67.5)return mi<20?'Northeast':'Humble / Kingwood area';
-  if(a<112.5)return mi<18?'Eastside':'Baytown area';
-  if(a<157.5)return mi<22?'Southeast':'Clear Lake / Pearland area';
-  if(a<202.5)return mi<18?'Southside':'Pearland / Friendswood area';
-  if(a<247.5)return mi<20?'Southwest':'Sugar Land / Missouri City area';
-  if(a<292.5)return mi<18?'Westside':'Katy / Energy Corridor area';
-  return mi<20?'Northwest':'Cypress / Tomball area';
+  const byDistrict=placeLabelFromDistricts(lat,lng,18);
+  if(byDistrict)return byDistrict;
+  if(HTS_IS_HOU){
+    const near=nearestNeighborhood(lat,lng,6);
+    if(near)return formatPlaceLabel(near.place.n,near.place.c);
+    const dLat=lat-HOU_WX_LAT,dLng=lng-HOU_WX_LNG;
+    const mi=Math.sqrt(dLat*dLat+dLng*dLng)*69;
+    if(mi<4)return 'Near downtown';
+    const ang=Math.atan2(dLng,dLat)*180/Math.PI;
+    const a=((ang%360)+360)%360;
+    if(a>=337.5||a<22.5)return mi<18?'Northside':'The Woodlands area';
+    if(a<67.5)return mi<20?'Northeast':'Humble / Kingwood area';
+    if(a<112.5)return mi<18?'Eastside':'Baytown area';
+    if(a<157.5)return mi<22?'Southeast':'Clear Lake / Pearland area';
+    if(a<202.5)return mi<18?'Southside':'Pearland / Friendswood area';
+    if(a<247.5)return mi<20?'Southwest':'Sugar Land / Missouri City area';
+    if(a<292.5)return mi<18?'Westside':'Katy / Energy Corridor area';
+    return mi<20?'Northwest':'Cypress / Tomball area';
+  }
+  const mi=miBetween(lat,lng,HOU_WX_LAT,HOU_WX_LNG);
+  if(mi<3.5)return 'Near '+cityPlaceCity()+' downtown';
+  return cityPlaceCity()+' area';
+}
+function enhanceGpsPlaceLabel(label,lat,lng){
+  const city=cityPlaceCity();
+  const generic=new RegExp('^('+[
+    'houston','austin','dallas','san antonio','boston','los angeles','new york',
+    'fort worth','texas','california','massachusetts','new york city','nyc',
+    'near you','united states','usa',
+  ].map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')$', 'i');
+  const dist=placeLabelFromDistricts(lat,lng,4.5);
+  if(!label||generic.test(String(label).trim())||String(label).trim().toLowerCase()===city.toLowerCase())
+    return dist||label||(city+' area');
+  /* Nominatim returned only the city — prefer district when you're in it */
+  if(dist&&!String(label).includes('·')&&generic.test(String(label).split('·')[0].trim()))
+    return dist;
+  return label;
 }
 let _placeCache={lat:null,lng:null,name:null,at:0};
 function pickNominatimPlace(j){
@@ -6327,10 +6569,18 @@ async function reverseGeocodePlace(lat,lng){
     if(miBetween(lat,lng,_placeCache.lat,_placeCache.lng)<0.35&&(Date.now()-_placeCache.at)<20*60*1000)
       return _placeCache.name;
   }
-  /* Strong local hit (< ~0.9 mi): trust dense neighborhood DB */
-  const local=nearestNeighborhood(lat,lng,1.6);
-  let localName=local?formatPlaceLabel(local.place.n,local.place.c):null;
-  if(localName&&local.mi<=0.9){
+  const distHit=nearestDistrictByGeo(lat,lng,2.2);
+  let localName=distHit?formatPlaceLabel(distHit.district.n,cityPlaceCity()):null;
+  let houHood=null;
+  /* Houston: dense subdivision DB can beat district centroids inside the loop */
+  if(HTS_IS_HOU){
+    houHood=nearestNeighborhood(lat,lng,1.6);
+    if(houHood)localName=formatPlaceLabel(houHood.place.n,houHood.place.c);
+    if(localName&&houHood&&houHood.mi<=0.9){
+      _placeCache={lat,lng,name:localName,at:Date.now()};
+      return localName;
+    }
+  }else if(localName&&distHit&&distHit.mi<=1.1){
     _placeCache={lat,lng,name:localName,at:Date.now()};
     return localName;
   }
@@ -6343,23 +6593,28 @@ async function reverseGeocodePlace(lat,lng){
       const picked=pickNominatimPlace(j);
       if(picked&&picked.display){
         const hood=picked.hood||picked.named||'';
-        const city=picked.city||'';
-        const hoodWeak=!hood||/^(sugar land|houston|katy|missouri city|fort bend|fort bend county|harris county|texas)$/i.test(hood);
-        if(localName&&(hoodWeak||(local&&local.mi<1.25))){
+        const hoodWeak=!hood||/^(sugar land|houston|katy|missouri city|fort bend|fort bend county|harris county|texas|austin|travis county|williamson county|dallas|tarrant county|boston|suffolk county|los angeles|new york|manhattan|san antonio|bexar county|california|massachusetts)$/i.test(hood);
+        if(localName&&(hoodWeak||(distHit&&distHit.mi<1.6)||(houHood&&houHood.mi<1.25))){
           _placeCache={lat,lng,name:localName,at:Date.now()};
           return localName;
         }
-        const name=picked.display;
+        const name=enhanceGpsPlaceLabel(picked.display,lat,lng);
         _placeCache={lat,lng,name,at:Date.now()};
         return name;
       }
       if(localName){_placeCache={lat,lng,name:localName,at:Date.now()};return localName;}
     }
-  }catch(e){ /* proxy/network — fall through to neighborhood DB */ }
+  }catch(e){ /* proxy/network — fall through */ }
   if(localName){_placeCache={lat,lng,name:localName,at:Date.now()};return localName;}
-  const soft=nearestNeighborhood(lat,lng,4);
-  if(soft){const name=formatPlaceLabel(soft.place.n,soft.place.c);_placeCache={lat,lng,name,at:Date.now()};return name;}
-  return suburbNameFromGeo(lat,lng);
+  if(HTS_IS_HOU){
+    const soft=nearestNeighborhood(lat,lng,4);
+    if(soft){const name=formatPlaceLabel(soft.place.n,soft.place.c);_placeCache={lat,lng,name,at:Date.now()};return name;}
+  }
+  const softD=placeLabelFromDistricts(lat,lng,12);
+  if(softD){_placeCache={lat,lng,name:softD,at:Date.now()};return softD;}
+  const fallback=suburbNameFromGeo(lat,lng);
+  _placeCache={lat,lng,name:fallback,at:Date.now()};
+  return fallback;
 }
 async function fetchWeather(){
   try{
@@ -6449,22 +6704,55 @@ async function fetchZonalWeather(){
   }
 }
 function activeViewWeather(){
-  /* Prefer GPS suburb panel when you're near your pin; else weather under the camera */
-  try{
-    if(userGeo&&localWx&&cam&&cam.target){
-      const w=geoToWorld(userGeo.lat,userGeo.lng);
-      if(Math.hypot(cam.target.x-w.x,cam.target.z-w.z)<(UNITS_PER_MILE*2.2)){
-        zoneWx=localWx;
-        return localWx;
-      }
-    }
-  }catch(e){}
+  /* Camera / rain mosaic — weather under the lens (never lock to GPS) */
   if(cam&&cam.target&&window.WX_ZONES&&window.WX_ZONES.length){
     const s=sampleZoneWeather(window.WX_ZONES,cam.target.x,cam.target.z);
     if(s){zoneWx=s;return s;}
   }
   zoneWx=null;
   return liveWx;
+}
+/** Weather card / HUD follows Fly-to goal (snappy) then camera; GPS stays in “Your location”. */
+function activeCardWeather(){
+  if(!liveMode)return null;
+  try{
+    if(window._wxFocus&&window._wxFocus.wx){
+      const f=window._wxFocus;
+      const age=Date.now()-(f.pinAt||0);
+      const tx=(camGoal&&camGoal.target)?camGoal.target.x:null;
+      const tz=(camGoal&&camGoal.target)?camGoal.target.z:null;
+      if(tx!=null&&tz!=null){
+        const d=Math.hypot(tx-f.x,tz-f.z);
+        const r=Math.max(f.r||400,320);
+        if(d<r*1.6||age<2800){
+          return {...f.wx,place:f.n,zoneId:f.id,feels:f.wx.feels!=null?f.wx.feels:f.wx.temp};
+        }
+      }else if(age<2800){
+        return {...f.wx,place:f.n,zoneId:f.id,feels:f.wx.feels!=null?f.wx.feels:f.wx.temp};
+      }
+      if(age>6000)window._wxFocus=null;
+    }
+  }catch(e){}
+  /* Prefer Fly-to target while the camera is still traveling */
+  try{
+    if(camGoal&&camGoal.target&&window.WX_ZONES&&window.WX_ZONES.length){
+      const s=sampleZoneWeather(window.WX_ZONES,camGoal.target.x,camGoal.target.z);
+      if(s){
+        if(s.temp==null&&liveWx)return {...liveWx,place:s.place||liveWx.place,zoneId:s.zoneId,
+          label:'Loading local weather…',pending:s.pending};
+        return s;
+      }
+    }
+  }catch(e){}
+  const view=activeViewWeather();
+  if(view&&view.temp==null&&liveWx)
+    return {...liveWx,place:view.place||liveWx.place,zoneId:view.zoneId,
+      label:'Loading local weather…',pending:view.pending};
+  return view;
+}
+/** @deprecated GPS is shown in wxLocal — card uses activeCardWeather */
+function activeHudWeather(){
+  return activeCardWeather();
 }
 async function fetchLocalWeather(lat,lng,force){
   if(lat==null||lng==null||!isFinite(lat)||!isFinite(lng))return;
@@ -6484,26 +6772,80 @@ async function fetchLocalWeather(lat,lng,force){
   if(!localWx||force){
     if(tempEl)tempEl.textContent='--°';
     if(descEl)descEl.textContent='Loading…';
-    if(metaEl)metaEl.textContent='Open-Meteo · your GPS · fetching…';
+    if(metaEl)metaEl.textContent='NWS station + Open-Meteo · your GPS · fetching…';
   }
   try{
-    /* Point forecast at exact GPS + precise place name in parallel */
-    const [wxRes,place]=await Promise.all([
-      fetchWithTimeout(openMeteoUrl(latR,lngR,false),{cache:'no-store'},10000),
+    /* NWS station obs (US) + Open-Meteo model fill + place label */
+    const [wxRes,rawPlace,nwsObs]=await Promise.all([
+      fetchWithTimeout(openMeteoLocalUrl(latR,lngR),{cache:'no-store'},10000).catch(()=>null),
       reverseGeocodePlace(latR,lngR),
+      fetchNwsLocalObservation(latR,lngR),
     ]);
-    if(!wxRes.ok)throw new Error(wxRes.status);
     const acc=userGeo&&userGeo.acc!=null?userGeo.acc:null;
-    localWx=parseOpenMeteo(await wxRes.json(),{
-      place:place||'Near you',lat:latR,lng:lngR,acc,
-      gpsLat:lat,gpsLng:lng,
-    });
+    let place=enhanceGpsPlaceLabel(rawPlace||'Near you',latR,lngR);
+    let j=null;
+    if(wxRes&&wxRes.ok){
+      try{j=await wxRes.json();}catch(e){j=null;}
+    }
+    if(j&&j.current&&j.current.temperature_2m!=null){
+      localWx=parseOpenMeteo(j,{
+        place:place||'Near you',lat:latR,lng:lngR,acc,
+        gpsLat:lat,gpsLng:lng,src:'open-meteo',
+      });
+    }else if(nwsObs&&nwsObs.temp!=null){
+      /* NWS-only fallback when Open-Meteo is down */
+      localWx={
+        temp:nwsObs.temp,feels:nwsObs.feels!=null?nwsObs.feels:nwsObs.temp,
+        hum:nwsObs.hum!=null?nwsObs.hum:50,wind:nwsObs.wind!=null?nwsObs.wind:0,
+        windDir:nwsObs.windDir!=null?nwsObs.windDir:0,precip:0,
+        cloud:nwsObs.cloud!=null?nwsObs.cloud:0.4,
+        dew:nwsObs.dew!=null?nwsObs.dew:nwsObs.temp-10,
+        press:nwsObs.press!=null?nwsObs.press:'29.92',
+        uv:null,vis:nwsObs.vis!=null?nwsObs.vis:10,
+        preset:nwsObs.preset||'partly',label:nwsObs.label||'—',rainAmt:nwsObs.rainAmt||0,
+        at:Date.now(),hourly:null,daily:null,
+        place:place||'Near you',lat:latR,lng:lngR,acc,gpsLat:lat,gpsLng:lng,src:'nws',
+      };
+    }else{
+      throw new Error(wxRes?('open-meteo '+wxRes.status):'no weather');
+    }
+    /* Prefer official NWS thermometer at nearest METAR when available */
+    if(nwsObs&&nwsObs.temp!=null){
+      localWx.temp=nwsObs.temp;
+      if(nwsObs.feels!=null)localWx.feels=nwsObs.feels;
+      if(nwsObs.hum!=null)localWx.hum=nwsObs.hum;
+      if(nwsObs.wind!=null)localWx.wind=nwsObs.wind;
+      if(nwsObs.windDir!=null)localWx.windDir=nwsObs.windDir;
+      if(nwsObs.dew!=null)localWx.dew=nwsObs.dew;
+      if(nwsObs.press!=null)localWx.press=nwsObs.press;
+      if(nwsObs.vis!=null)localWx.vis=nwsObs.vis;
+      if(nwsObs.label)localWx.label=nwsObs.label;
+      if(nwsObs.preset){localWx.preset=nwsObs.preset;localWx.rainAmt=nwsObs.rainAmt||0;}
+      localWx.src='nws';
+      localWx.stationId=nwsObs.stationId;
+      localWx.stationName=nwsObs.stationName;
+      localWx.stationMi=nwsObs.stationMi;
+    }
+    /* Prefer pack district label when mosaic zones are live (Round Rock · Austin, …) */
+    try{
+      const dist=nearestDistrictByGeo(latR,lngR,2.5);
+      if(dist&&window.WX_ZONES){
+        const z=window.WX_ZONES.find(zz=>zz&&zz.id===dist.district.id&&zz.wx);
+        if(z&&z.n)localWx.place=formatPlaceLabel(z.n,cityPlaceCity());
+      }else if(dist){
+        localWx.place=formatPlaceLabel(dist.district.n,cityPlaceCity());
+      }
+    }catch(e){}
     if(nmEl)nmEl.textContent=localWx.place;
+    const via=localWx.src==='nws'
+      ?('NWS '+(localWx.stationId||'')+(localWx.stationMi!=null?(' · '+localWx.stationMi+' mi'):''))
+      :'Open-Meteo';
+    console.log('%cYour location wx · '+localWx.temp+'°F (feels '+localWx.feels+'°) via '+via+' @ '+latR+', '+lngR+' · '+localWx.place,'color:#7fd6a0');
   }catch(e){
     if(nmEl)nmEl.textContent=(_placeCache.name)||'Near you';
     if(!localWx){
       if(descEl)descEl.textContent='Weather unavailable';
-      if(metaEl)metaEl.textContent='Open-Meteo · retrying…';
+      if(metaEl)metaEl.textContent='NWS / Open-Meteo · retrying…';
       setTimeout(()=>{if(userGeo&&!localWx)fetchLocalWeather(userGeo.lat,userGeo.lng,true);},4000);
     }
   }
@@ -6514,6 +6856,7 @@ setTimeout(()=>{if(!liveWx)fetchWeather();},35000);
 setTimeout(()=>{if(!window.WX_ZONES||!window.WX_ZONES.some(z=>z.wx))fetchZonalWeather();},18000);
 setInterval(fetchWeather,3*60*1000); /* downtown hourly pack */
 setInterval(fetchZonalWeather,5*60*1000); /* suburb mosaic */
+setInterval(()=>{if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,false);},2*60*1000); /* GPS nowcast */
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState!=='visible')return;
   houstonNow(true);
@@ -6527,8 +6870,10 @@ document.addEventListener('visibilitychange',()=>{
     if(typeof _liveIncidentNext!=='undefined')_liveIncidentNext=0;
     if(typeof _liveRouteNext!=='undefined')_liveRouteNext=0;
     if(typeof _nwsNext!=='undefined')_nwsNext=0;
+    if(typeof _stormNext!=='undefined')_stormNext=0;
     if(typeof refreshLiveTraffic==='function')refreshLiveTraffic();
     if(typeof refreshNWSAlerts==='function')refreshNWSAlerts();
+    if(typeof refreshStormTracker==='function')refreshStormTracker(true);
   }catch(e){}
 });
 
@@ -6628,8 +6973,10 @@ function renderWeatherWarnings(features){
 function openWeatherReport(){
   const panel=$('wxReport'),scrim=$('wxReportScrim');
   if(!panel||!scrim)return;
-  $('wrSub').textContent=((window.HTS_CITY&&window.HTS_CITY.name)||'Houston')+' metro · National Weather Service';
+  $('wrSub').textContent=((window.HTS_CITY&&window.HTS_CITY.name)||'Houston')+' metro · NWS · NHC · SPC';
   renderWeatherWarnings((window.LIVE_NWS&&window.LIVE_NWS.features)||[]);
+  renderStormTrackerPanel();
+  if(typeof refreshStormTracker==='function')refreshStormTracker(true);
   if(typeof refreshNWSAlerts==='function'){
     _nwsNext=0;
     Promise.resolve(refreshNWSAlerts()).then(()=>{
@@ -6658,6 +7005,350 @@ function closeWeatherReport(){
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&$('wxReport')&&$('wxReport').classList.contains('on'))closeWeatherReport();
   });
+})();
+
+/* ---------- Live tornado / hurricane tracker (NHC + SPC + NWS) ---------- */
+const STORM_POLL_MS=3*60*1000;
+let _stormNext=0;
+let _stormAlertEls=[];
+window.STORM_TRACKER={
+  ok:false,at:0,err:'',
+  hurricanes:[],nearStorms:[],tornadoOutlook:[],alerts:{tornado:[],hurricane:[],all:[]},
+  showTornado:true,showHurricane:true,group:null,labels:[],
+};
+function stormTrackerOrigin(){
+  if(HTS_PACK&&Number.isFinite(HTS_PACK.originLat)&&Number.isFinite(HTS_PACK.originLng))
+    return {lat:HTS_PACK.originLat,lng:HTS_PACK.originLng};
+  if(HTS_IS_AUS)return {lat:30.2672,lng:-97.7431};
+  return {lat:29.7604,lng:-95.3698};
+}
+function stormGeoRings(geom){
+  if(!geom||!geom.coordinates)return [];
+  if(geom.type==='Polygon')return [geom.coordinates[0]];
+  if(geom.type==='MultiPolygon'){
+    const rings=[];
+    for(const poly of geom.coordinates)if(poly&&poly[0])rings.push(poly[0]);
+    return rings;
+  }
+  return [];
+}
+function stormRingToShape(ring){
+  const shape=new THREE.Shape();
+  ring.forEach(([lng,lat],i)=>{
+    const w=geoToWorld(lat,lng);
+    if(i===0)shape.moveTo(w.x,w.z);else shape.lineTo(w.x,w.z);
+  });
+  return shape;
+}
+function stormMakePolyMesh(rings,color,op,y){
+  if(!rings||!rings.length||typeof THREE==='undefined')return null;
+  const shapes=[];
+  for(const ring of rings){
+    if(!ring||ring.length<3)continue;
+    try{shapes.push(stormRingToShape(ring));}catch(e){}
+  }
+  if(!shapes.length)return null;
+  const geom=new THREE.ShapeGeometry(shapes);
+  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:op||0.28,depthWrite:false,side:THREE.DoubleSide});
+  const mesh=new THREE.Mesh(geom,mat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.y=y||10;
+  return mesh;
+}
+function stormMakeLine(rings,color,op,y){
+  if(!rings||!rings.length||typeof THREE==='undefined')return null;
+  const pts=[];
+  const ring=rings[0]||[];
+  for(const [lng,lat] of ring){
+    const w=geoToWorld(lat,lng);
+    pts.push(w.x,y||12,w.z);
+  }
+  if(pts.length<6)return null;
+  const geom=new THREE.BufferGeometry();
+  geom.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
+  const line=new THREE.LineLoop(geom,new THREE.LineBasicMaterial({color,transparent:true,opacity:op||0.85,depthWrite:false}));
+  return line;
+}
+function stormMakeTrackLine(track,color,op,y){
+  if(!track||track.length<2||typeof THREE==='undefined')return null;
+  const pts=[];
+  for(const [lng,lat] of track){
+    const w=geoToWorld(lat,lng);
+    pts.push(w.x,y||14,w.z);
+  }
+  const geom=new THREE.BufferGeometry();
+  geom.setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
+  return new THREE.Line(geom,new THREE.LineBasicMaterial({color,transparent:true,opacity:op||0.9,depthWrite:false}));
+}
+function stormGeometryBounds(geom){
+  if(!geom||!geom.coordinates)return null;
+  let minLat=90,maxLat=-90,minLng=180,maxLng=-180,n=0;
+  const walk=v=>{
+    if(!Array.isArray(v))return;
+    if(v.length>=2&&Number.isFinite(v[0])&&Number.isFinite(v[1])){
+      minLng=Math.min(minLng,v[0]);maxLng=Math.max(maxLng,v[0]);
+      minLat=Math.min(minLat,v[1]);maxLat=Math.max(maxLat,v[1]);n++;return;
+    }
+    v.forEach(walk);
+  };
+  walk(geom.coordinates);
+  return n?{lat:(minLat+maxLat)/2,lng:(minLng+maxLng)/2,minLat,maxLat,minLng,maxLng}:null;
+}
+function flyToStormLocation(lat,lng,geom){
+  if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+  stopFollow();
+  closePoiCard();
+  const w=geoToWorld(lat,lng);
+  let radius=900;
+  const b=stormGeometryBounds(geom);
+  if(b){
+    const a=geoToWorld(b.minLat,b.minLng),z=geoToWorld(b.maxLat,b.maxLng);
+    radius=clamp(Math.hypot(z.x-a.x,z.z-a.z)*1.15,520,4200);
+  }
+  camGoal.target.set(w.x,0,w.z);
+  camGoal.radius=radius;camGoal.phi=0.94;
+  closeWeatherReport();
+}
+function flyToStormAlert(alert){
+  const b=stormGeometryBounds(alert&&alert.feature&&alert.feature.geometry);
+  if(b)flyToStormLocation(b.lat,b.lng,alert.feature.geometry);
+}
+function stormTrackerClearMap(){
+  const ST=window.STORM_TRACKER;
+  if(ST.group){try{scene.remove(ST.group);}catch(e){}ST.group=null;}
+  ST.labels=[];
+}
+function stormTrackerRenderMap(){
+  stormTrackerClearMap();
+  const ST=window.STORM_TRACKER;
+  if(!scene||typeof THREE==='undefined')return;
+  const grp=new THREE.Group();
+  ST.group=grp;
+  if(ST.showTornado){
+    for(const o of ST.tornadoOutlook||[]){
+      for(const ring of stormGeoRings(o.geometry)){
+        const fill=stormMakePolyMesh([ring],0xfbbf24,0.18,9);
+        const edge=stormMakeLine([ring],0xf59e0b,0.75,10);
+        if(fill)grp.add(fill);
+        if(edge)grp.add(edge);
+      }
+    }
+    for(const a of ST.alerts.tornado||[]){
+      const col=a.tier==='warning'?0xef4444:0xf97316;
+      for(const ring of stormGeoRings(a.feature&&a.feature.geometry)){
+        const fill=stormMakePolyMesh([ring],col,a.tier==='warning'?0.32:0.2,11);
+        const edge=stormMakeLine([ring],col,0.95,12);
+        if(fill)grp.add(fill);
+        if(edge)grp.add(edge);
+      }
+    }
+  }
+  if(ST.showHurricane){
+    for(const s of ST.hurricanes||[]){
+      if(s.lat==null||s.lng==null)continue;
+      const w=geoToWorld(s.lat,s.lng);
+      const r=Math.max(80,120+(s.cat||0)*55);
+      const col=s.cat>=3?0x7c3aed:s.cat>=1?0x6366f1:0x38bdf8;
+      if(s.cone&&s.cone.length>=3){
+        const cone=stormMakePolyMesh([s.cone],0xa78bfa,0.13,11);
+        const coneEdge=stormMakeLine([s.cone],0xc4b5fd,0.58,12);
+        if(cone)grp.add(cone);
+        if(coneEdge)grp.add(coneEdge);
+      }
+      grp.add(hazMakeDisk(w.x,w.z,r,col,0.24,13));
+      grp.add(hazMakeDisk(w.x,w.z,Math.max(40,r*0.35),0xffffff,0.12,14));
+      const track=stormMakeTrackLine(s.track,0xc4b5fd,0.85,14);
+      if(track)grp.add(track);
+      const tag=textSprite((s.name||'Storm')+' · '+s.intensity+' mph',0.34);
+      tag.position.set(w.x,42,w.z);
+      grp.add(tag);ST.labels.push(tag);
+    }
+    for(const a of ST.alerts.hurricane||[]){
+      const col=/surge/i.test(a.label)?0x2563eb:0x7c3aed;
+      for(const ring of stormGeoRings(a.feature&&a.feature.geometry)){
+        const fill=stormMakePolyMesh([ring],col,0.22,10);
+        const edge=stormMakeLine([ring],col,0.8,11);
+        if(fill)grp.add(fill);
+        if(edge)grp.add(edge);
+      }
+    }
+  }
+  if(grp.children.length)scene.add(grp);
+}
+function renderStormTrackerPanel(){
+  const hBox=$('wrHurTrack'),tBox=$('wrTorTrack'),hCount=$('wrHurCount'),tCount=$('wrTorCount');
+  const chip=$('stormTrackChip');
+  const ST=window.STORM_TRACKER;
+  const torN=(ST.alerts.tornado||[]).length;
+  const hurN=(ST.alerts.hurricane||[]).length;
+  const near=ST.nearStorms||[];
+  if(hCount)hCount.textContent=near.length?(`${near.length} active · ${hurN} alert${hurN===1?'':'s'}`):(`${ST.hurricanes.length} basin · ${hurN} alert${hurN===1?'':'s'}`);
+  if(tCount)tCount.textContent=torN?(`${torN} NWS · SPC outlook`):spcRiskLabel(ST.tornadoOutlook);
+  if(chip){
+    const hot=torN||hurN||near.length;
+    chip.style.display=hot?'inline-flex':'none';
+    const parts=[];
+    if(torN)parts.push(torN+' tornado alert'+(torN===1?'':'s'));
+    if(hurN)parts.push(hurN+' tropical alert'+(hurN===1?'':'s'));
+    if(!torN&&!hurN&&near.length)parts.push(near.length+' active storm'+(near.length===1?'':'s'));
+    chip.textContent=hot?parts.join(' · '):'';
+  }
+  const layerState=$('stormLayerStatus');
+  if(layerState){
+    const age=ST.at?Math.max(0,Math.round((Date.now()-ST.at)/60000)):null;
+    const tor=torN?(torN+' local alert'+(torN===1?'':'s'))
+      :((ST.tornadoOutlook||[]).length?spcRiskLabel(ST.tornadoOutlook).replace('SPC Day 1 tornado outlook · ','SPC '):'no active risk');
+    const hur=hurN?(hurN+' local alert'+(hurN===1?'':'s'))
+      :(near.length?(near.length+' nearby storm'+(near.length===1?'':'s')):'none nearby');
+    layerState.textContent='Tornado: '+tor+' · Hurricane: '+hur
+      +' · '+(age==null?'fetching':(age===0?'just now':age+'m ago'));
+    layerState.classList.toggle('warn',!!(torN||hurN));
+  }
+  const banner=$('stormImpactBanner');
+  if(banner){
+    const urgent=[...(ST.alerts.tornado||[]),...(ST.alerts.hurricane||[])]
+      .find(a=>a.tier==='warning'||a.tier==='surge'||a.tier==='severe')
+      ||[...(ST.alerts.tornado||[]),...(ST.alerts.hurricane||[])][0];
+    banner.style.display=urgent?'block':'none';
+    banner.className='stormImpact '+(urgent?urgent.kind:'');
+    banner.textContent=urgent
+      ?urgent.label+' in the metro · traffic model is applying a modest weather-response delay'
+      :'';
+  }
+  if(hBox){
+    if(!ST.hurricanes.length&&!hurN){
+      hBox.innerHTML='<div class="wrStormEmpty"><b>No active NHC storms in the Atlantic / East Pacific right now.</b><br>'
+        +'When hurricanes or tropical storms form, live position, projected track, and NWS watch/warning polygons appear on the map.</div>';
+    }else{
+      const cards=(near.length?near:ST.hurricanes).slice(0,4).map(s=>{
+        const cat=s.cat?('Cat '+s.cat+' · '):'';
+        const mv=s.movementDir!=null?(' · moving '+Math.round(s.movementDir)+'° at '+s.movementSpeed+' kt'):'';
+        return '<div class="wrStormCard hurricane clickable" data-storm-id="'+escHtml(s.id||'')+'">'
+          +'<div class="tag">NHC · '+escHtml(s.classLabel||nhcClassLabel(s.classification))+'</div>'
+          +'<div class="ev">'+escHtml(s.name||'Storm')+' · '+escHtml(String(s.intensity))+' mph</div>'
+          +'<div class="area">'+cat+'Lat '+Number(s.lat).toFixed(1)+' · Lon '+Math.abs(Number(s.lng)).toFixed(1)+(Number(s.lng)<0?'W':'E')+mv
+          +' · '+escHtml(s.trackSource||'NHC track')+'</div>'
+          +'<div class="until">Tap card to fly to storm</div>'
+          +(s.advisoryUrl?'<div class="until"><a href="'+escHtml(s.advisoryUrl)+'" target="_blank" rel="noopener">NHC advisory ↗</a></div>':'')
+          +'</div>';
+      }).join('');
+      const alertCards=(ST.alerts.hurricane||[]).slice(0,4).map(a=>{
+        const p=a.feature.properties||{};
+        return '<div class="wrStormCard hurricane alert clickable" data-hur-alert="'+String((ST.alerts.hurricane||[]).indexOf(a))+'">'
+          +'<div class="tag">NWS · '+escHtml(a.label)+'</div>'
+          +'<div class="ev">'+escHtml(p.event||a.label)+'</div>'
+          +'<div class="area">'+escHtml(String(p.areaDesc||'').slice(0,120))+'</div>'
+          +'</div>';
+      }).join('');
+      hBox.innerHTML=cards+alertCards;
+      hBox.querySelectorAll('[data-storm-id]').forEach(el=>el.addEventListener('click',e=>{
+        if(e.target&&e.target.closest&&e.target.closest('a'))return;
+        const s=(ST.hurricanes||[]).find(x=>String(x.id)===el.getAttribute('data-storm-id'));
+        if(s)flyToStormLocation(s.lat,s.lng);
+      }));
+      hBox.querySelectorAll('[data-hur-alert]').forEach(el=>el.addEventListener('click',()=>{
+        flyToStormAlert((ST.alerts.hurricane||[])[+el.getAttribute('data-hur-alert')]);
+      }));
+    }
+  }
+  if(tBox){
+    const outlook=ST.tornadoOutlook&&ST.tornadoOutlook.length
+      ?('<div class="wrStormCard tornado outlook"><div class="tag">SPC Day 1</div><div class="ev">'+escHtml(spcRiskLabel(ST.tornadoOutlook))+'</div>'
+        +'<div class="area">Probabilistic tornado outlook — shaded on map when tracker is on.</div></div>')
+      :'<div class="wrStormEmpty">SPC Day 1 tornado outlook not available — will retry on next poll.</div>';
+    const alertCards=(ST.alerts.tornado||[]).slice(0,6).map(a=>{
+      const p=a.feature.properties||{};
+      return '<div class="wrStormCard tornado alert clickable" data-tor-alert="'+String((ST.alerts.tornado||[]).indexOf(a))+'">'
+        +'<div class="tag">NWS · '+escHtml(a.label)+'</div>'
+        +'<div class="ev">'+escHtml(p.headline||p.event||a.label)+'</div>'
+        +'<div class="area">'+escHtml(String(p.areaDesc||'').slice(0,120))+'</div>'
+        +'</div>';
+    }).join('');
+    tBox.innerHTML=outlook+(alertCards||('<div class="wrStormEmpty">No active tornado or severe t-storm alerts for this metro.</div>'));
+    tBox.querySelectorAll('[data-tor-alert]').forEach(el=>el.addEventListener('click',()=>{
+      flyToStormAlert((ST.alerts.tornado||[])[+el.getAttribute('data-tor-alert')]);
+    }));
+  }
+  const foot=$('wrStormFoot');
+  if(foot){
+    const age=ST.at?Math.max(0,Math.round((Date.now()-ST.at)/60000)):null;
+    foot.textContent='NHC storms · SPC tornado outlook · NWS tornado/tropical alerts'
+      +(ST.err?' · '+ST.err:'')
+      +(age==null?' · fetching…':(age<=0?' · updated just now':' · updated '+age+' min ago'));
+  }
+  const tBtn=$('stormTornadoBtn'),hBtn=$('stormHurricaneBtn');
+  if(tBtn)tBtn.classList.toggle('on',!!ST.showTornado);
+  if(hBtn)hBtn.classList.toggle('on',!!ST.showHurricane);
+}
+function clearStormAlertEls(){
+  for(const el of _stormAlertEls){try{el.remove();}catch(e){}}
+  _stormAlertEls=[];
+}
+function syncStormTrackerAlerts(){
+  clearStormAlertEls();
+  const box=document.getElementById('alertsWeather')||document.getElementById('alerts');
+  const ST=window.STORM_TRACKER;
+  const items=[...(ST.alerts.tornado||[]),...(ST.alerts.hurricane||[])].slice(0,5);
+  if(!box||!items.length)return;
+  const head=document.createElement('div');
+  head.className='alertSec storm';
+  head.textContent='Tornado / hurricane · live';
+  box.prepend(head);
+  _stormAlertEls.push(head);
+  for(const a of items){
+    const p=a.feature.properties||{};
+    const el=document.createElement('div');
+    el.className='alert '+(a.kind==='hurricane'?'hurricane':'work')+' clickable storm';
+    el.innerHTML='<div class="at">'+escHtml(a.label)+'</div>'
+      +'<div class="aMeta"><span class="aChip">NWS live</span></div>'
+      +'<div class="ab"><b>'+escHtml(p.headline||p.event||a.label)+'</b></div>'
+      +'<div class="aHint">Tap for tracker details · map overlay</div>';
+    el.addEventListener('click',()=>{
+      if(a.kind==='tornado')ST.showTornado=true;
+      if(a.kind==='hurricane')ST.showHurricane=true;
+      stormTrackerRenderMap();
+      flyToStormAlert(a);
+    });
+    box.prepend(el);
+    _stormAlertEls.push(el);
+  }
+  refreshIncidentCount();
+}
+async function refreshStormTracker(force){
+  if(!force&&Date.now()<_stormNext)return;
+  _stormNext=Date.now()+STORM_POLL_MS;
+  const ST=window.STORM_TRACKER;
+  try{
+    const origin=stormTrackerOrigin();
+    const [hur,outlook,alerts]=await Promise.all([
+      fetchNhcStorms(),
+      fetchSpcTornadoOutlook().catch(()=>[]),
+      fetchStormAlerts(HTS_PACK,HTS_CITY_ID),
+    ]);
+    ST.hurricanes=hur;
+    ST.nearStorms=stormsNearMetro(hur,origin.lat,origin.lng,950);
+    ST.tornadoOutlook=outlook;
+    ST.alerts=alerts;
+    ST.ok=true;ST.err='';ST.at=Date.now();
+  }catch(e){
+    ST.ok=false;ST.err=String(e&&e.message?e.message:e);ST.at=Date.now();
+  }
+  stormTrackerRenderMap();
+  renderStormTrackerPanel();
+  syncStormTrackerAlerts();
+  if($('wxReport')&&$('wxReport').classList.contains('on'))renderWeatherWarnings(window.LIVE_NWS.features||[]);
+}
+(function wireStormTracker(){
+  const tBtn=$('stormTornadoBtn'),hBtn=$('stormHurricaneBtn');
+  if(tBtn)tBtn.addEventListener('click',()=>{
+    window.STORM_TRACKER.showTornado=!window.STORM_TRACKER.showTornado;
+    stormTrackerRenderMap();renderStormTrackerPanel();
+  });
+  if(hBtn)hBtn.addEventListener('click',()=>{
+    window.STORM_TRACKER.showHurricane=!window.STORM_TRACKER.showHurricane;
+    stormTrackerRenderMap();renderStormTrackerPanel();
+  });
+  refreshStormTracker(true);
+  setInterval(()=>refreshStormTracker(false),STORM_POLL_MS);
 })();
 
 /* weather blending toward current target */
@@ -6736,17 +7427,18 @@ bootRainSystem();
 let rainWindX=0.28,rainWindZ=0.12; /* slant direction, refreshed from live wind */
 
 /* TOD keyframes = clear-sky baseline; envUpdate dims/grays them from wxBlend.cloud/rain */
-const SKY_TOP=[{t:0,v:'#040917'},{t:4.8,v:'#060c1e'},{t:6.0,v:'#1d2f5e'},{t:6.6,v:'#3a5a96'},
- {t:8,v:'#3f86d8'},{t:12,v:'#3480d6'},{t:17.5,v:'#3f78c0'},{t:19.6,v:'#4a3d78'},{t:20.4,v:'#1a1c48'},{t:21.4,v:'#070d22'}];
-const SKY_BOT=[{t:0,v:'#0a1226'},{t:4.8,v:'#101a33'},{t:6.0,v:'#c96a3e'},{t:6.7,v:'#ffb066'},
- {t:8,v:'#d4e6f5'},{t:12,v:'#c8dff0'},{t:17.5,v:'#e4d4b0'},{t:19.4,v:'#ff8a4d'},{t:20.3,v:'#8a3a52'},{t:21.4,v:'#131a36'}];
+/* Night keyed dark — deep ink sky, not dusk-blue “mode” */
+const SKY_TOP=[{t:0,v:'#010208'},{t:4.8,v:'#02040e'},{t:6.0,v:'#1d2f5e'},{t:6.6,v:'#3a5a96'},
+ {t:8,v:'#3f86d8'},{t:12,v:'#3480d6'},{t:17.5,v:'#3f78c0'},{t:19.6,v:'#3a2e5c'},{t:20.4,v:'#0c1028'},{t:21.4,v:'#02040c'}];
+const SKY_BOT=[{t:0,v:'#04060c'},{t:4.8,v:'#060910'},{t:6.0,v:'#c96a3e'},{t:6.7,v:'#ffb066'},
+ {t:8,v:'#d4e6f5'},{t:12,v:'#c8dff0'},{t:17.5,v:'#e4d4b0'},{t:19.4,v:'#ff8a4d'},{t:20.3,v:'#4a2238'},{t:21.4,v:'#060810'}];
 const SUN_COL=[{t:5.8,v:'#ff9a55'},{t:7,v:'#ffd9a0'},{t:9,v:'#fff8ea'},{t:12,v:'#ffffff'},
- {t:17,v:'#ffe9c4'},{t:19,v:'#ff9e5a'},{t:20.2,v:'#ff7040'},{t:21,v:'#334066'},{t:4.5,v:'#334066'}];
+ {t:17,v:'#ffe9c4'},{t:19,v:'#ff9e5a'},{t:20.2,v:'#ff7040'},{t:21,v:'#1a2238'},{t:4.5,v:'#1a2238'}];
 const SUN_INT=[{t:0,v:0},{t:5.6,v:0},{t:6.6,v:.5},{t:8,v:.95},{t:12,v:1.08},{t:17,v:.95},
  {t:19.3,v:.45},{t:20.5,v:.05},{t:21,v:0}];
-const HEMI_INT=[{t:0,v:.12},{t:5.5,v:.16},{t:6.6,v:.48},{t:9,v:.82},{t:12,v:.9},{t:18,v:.72},{t:20,v:.3},{t:21.2,v:.12}];
-const FOG_COL=[{t:0,v:'#0a101c'},{t:6.2,v:'#7a5a58'},{t:7.5,v:'#c0d4e4'},{t:12,v:'#bcd2e4'},
- {t:18,v:'#ccc4ac'},{t:19.6,v:'#7a4a4e'},{t:20.6,v:'#0c121e'}];
+const HEMI_INT=[{t:0,v:.04},{t:5.5,v:.08},{t:6.6,v:.48},{t:9,v:.82},{t:12,v:.9},{t:18,v:.72},{t:20,v:.22},{t:21.2,v:.04}];
+const FOG_COL=[{t:0,v:'#03050a'},{t:6.2,v:'#7a5a58'},{t:7.5,v:'#c0d4e4'},{t:12,v:'#bcd2e4'},
+ {t:18,v:'#ccc4ac'},{t:19.6,v:'#5a3840'},{t:20.6,v:'#04060c'}];
 
 const SUNRISE=6.4,SUNSET=20.4;
 function phaseLabel(h){
@@ -7630,11 +8322,24 @@ const NWS_POLL_MS=2*60*1000;
 let _nwsNext=0;
 window.LIVE_NWS={ok:false,at:0,count:0,err:'',features:[]};
 async function fetchNWSAlerts(){
-  const hdr={'Accept':'application/geo+json','User-Agent':'HoustonTrafficSimulator/1.0 (educational; contact via github.com/EJ-365/ModernReact)'};
-  const r=await fetch('https://api.weather.gov/alerts/active?area=TX',{headers:hdr,cache:'no-store'});
-  if(!r.ok)throw new Error('NWS '+r.status);
-  const j=await r.json();
-  return (j.features||[]).filter(f=>{
+  const hdr=nwsHeaders();
+  const host=nwsApiHost();
+  const states=nwsStatesForCity(HTS_CITY_ID);
+  const seen=new Set();
+  const feats=[];
+  for(const st of states){
+    try{
+      const r=await fetch(host+'/alerts/active?area='+encodeURIComponent(st),{headers:hdr,cache:'no-store'});
+      if(!r.ok)continue;
+      const j=await r.json();
+      for(const f of (j.features||[])){
+        if(!f||!f.id||seen.has(f.id))continue;
+        seen.add(f.id);
+        feats.push(f);
+      }
+    }catch(e){}
+  }
+  return feats.filter(f=>{
     const p=f.properties||{};
     if(p.status!=='Actual')return false;
     const area=String(p.areaDesc||'')+' '+String(p.event||'')+' '+String(p.headline||'');
@@ -10103,6 +10808,14 @@ function hazardCongBoost(){
   if(!H.active)return 0;
   return H.congBoost*H.intensity;
 }
+function stormTrafficBoost(){
+  const alerts=window.STORM_TRACKER&&window.STORM_TRACKER.alerts&&window.STORM_TRACKER.alerts.all;
+  if(!alerts||!alerts.length)return 0;
+  if(alerts.some(a=>a.tier==='warning'))return 0.18;
+  if(alerts.some(a=>a.tier==='surge'||a.tier==='severe'))return 0.13;
+  if(alerts.some(a=>a.tier==='watch'))return 0.07;
+  return 0;
+}
 function hazardNukeRoadBoost(road,arc){
   const H=window.HAZARD;
   if(!H.active||H.mode!=='nuclear'||!H.nukeOrigin)return 0;
@@ -10180,6 +10893,7 @@ function trafficTick(dt){
   const vol=demand(simH,weekend);
   const dirBias=volumeMode==='auto'?keyNum(DIRB_KEYS,simH):0;
   const evLv=updateEvent();
+  const stormBoost=stormTrafficBoost();
   refreshIncidentCount();
   const cx=cam.target.x,cz=cam.target.z;
   let congSum=0,congN=0,hotMax=-1;
@@ -10202,7 +10916,7 @@ function trafficTick(dt){
       if(liveMode&&liveFlowFresh(live)){
         /* Live TranStar / TomTom probe — use measured speed/congestion only */
         for(let k=0;k<dir.segCong.length;k++){
-          dir.segCong[k]=liveSegCongBump(road,dir,k,live.cong);
+          dir.segCong[k]=clamp(liveSegCongBump(road,dir,k,live.cong)+stormBoost,0,1);
           if(isArt)dir.segCong[k]=Math.min(dir.segCong[k],0.88);
           dsum+=dir.segCong[k];
         }
@@ -10212,6 +10926,7 @@ function trafficTick(dt){
         let d=vol*(1+0.4*dirBias*inb);
         d*=dir.segMult[k];
         d+=wxBlend.cong;
+        d+=stormBoost;
         d+=hazardCongBoost();
         d+=hazardNukeRoadBoost(road,(k+0.5)/dir.segCong.length*road.s.total);
         d+=0.05*Math.sin(simClock*0.00025+dir.segPhase[k]);
@@ -10707,10 +11422,12 @@ function moveVehicles(dt,nightF){
 /* ---------------- environment update ---------------- */
 function _sc2Sun(tmp,h){keyCol(SUN_COL,h,tmp);return tmp;}
 const _fc=new THREE.Color(),_sc=new THREE.Color();
-const _nightHemi=new THREE.Color(0x6a7a98),_cityGlow=new THREE.Color(0x2a2218);
-const _hemiGroundDay=new THREE.Color(HTS_IS_AUS?0x6a7a50:0x5a6a48),_hemiGroundNight=new THREE.Color(0x141820);
+const _nightHemi=new THREE.Color(0x1c2436),_cityGlow=new THREE.Color(0x1a1410);
+const _hemiGroundDay=new THREE.Color(HTS_IS_AUS?0x6a7a50:0x5a6a48),_hemiGroundNight=new THREE.Color(0x05070c);
+/* Night ground: ink asphalt / shadowed earth — not dimmed daytime lime */
+const _nightLand=new THREE.Color(0x0b0f14),_nightPark=new THREE.Color(0x07100c),_nightPlaza=new THREE.Color(0x121618);
 const GRAY_DT=new THREE.Color(0x6a7581),GRAY_DB=new THREE.Color(0xaab3bb),
-      GRAY_NT=new THREE.Color(0x0a101c),GRAY_NB=new THREE.Color(0x121820),
+      GRAY_NT=new THREE.Color(0x02040a),GRAY_NB=new THREE.Color(0x05080e),
       _gt=new THREE.Color(),_gb=new THREE.Color();
 let lightningT=0;
 function envUpdate(dt,h){
@@ -10733,10 +11450,11 @@ function envUpdate(dt,h){
   const baseFogFar=lerp(2600,16000,wxBlend.fogK)*lerp(1,0.82,rainF);
   if(htsRain)htsRain.updateFog(scene.fog,wxBlend,liveWx,baseFogFar,nightF);
   else{
-    const vis=baseFogFar*lerp(1,1.05,nightF);
+    /* Night: slightly tighter fog — milky distant haze washes out real darkness */
+    const vis=baseFogFar*lerp(1,0.88,nightF);
     const fogLerp=liveMode?0.04:clamp(0.08+timeScale/6000,0.08,0.35);
     scene.fog.far=lerp(scene.fog.far,vis,fogLerp);
-    scene.fog.near=scene.fog.far*lerp(0.08,0.12,nightF);
+    scene.fog.near=scene.fog.far*lerp(0.08,0.1,nightF);
   }
   const A=clamp(x,-0.2,1.2)*Math.PI;
   const sx=Math.cos(A),sy=Math.sin(A);
@@ -10762,32 +11480,32 @@ function envUpdate(dt,h){
   moonDisc.position.set(Math.cos(mA)*15000,Math.max(Math.sin(mA),-0.2)*9000+400,-4200);
   moonDisc.lookAt(camera.position);
   moonDisc.material.opacity=clamp(Math.sin(mA)*2.5,0,0.85)*(1-wxBlend.cloud*0.9);
-  hemi.intensity=keyNum(HEMI_INT,h)*lerp(1,0.32,cl)*lerp(1,0.55,nightF)*lerp(1,0.85,rainF);
-  nightAmb.intensity=nightF*0.22;
-  cityFill.intensity=nightF*0.28;
-  stars.material.opacity=nightF*(1-wxBlend.cloud)*0.9;
+  hemi.intensity=keyNum(HEMI_INT,h)*lerp(1,0.32,cl)*lerp(1,0.22,nightF)*lerp(1,0.85,rainF);
+  nightAmb.intensity=nightF*0.06;          /* faint sky glow only — not a blue fill light */
+  cityFill.intensity=nightF*0.12;          /* soft CBD bounce; streetlights carry the rest */
+  stars.material.opacity=nightF*(1-wxBlend.cloud)*1.05;
   for(const m of towerMats){
-    m.color.setScalar(lerp(1,0.38,nightF)); /* dark glass, still readable shape */
-    m.emissiveIntensity=nightF*0.95;         /* clear windows, not blown out */
-    if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),12,nightF);
-    if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.06,nightF));
+    m.color.setScalar(lerp(1,0.16,nightF)); /* dark facade; windows carry the glow */
+    m.emissiveIntensity=nightF*1.05;
+    if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),8,nightF);
+    if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.03,nightF));
   }
   if(window.HTS_OSM_FACADE_MATS){
     for(const m of HTS_OSM_FACADE_MATS){
-      m.color.setScalar(lerp(1,0.38,nightF));
-      m.emissiveIntensity=nightF*0.95;
-      if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),12,nightF);
-      if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.06,nightF));
+      m.color.setScalar(lerp(1,0.16,nightF));
+      m.emissiveIntensity=nightF*1.05;
+      if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),8,nightF);
+      if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.03,nightF));
     }
   }
-  for(const m of crownMats)m.opacity=nightF*0.55;
+  for(const m of crownMats)m.opacity=nightF*0.7;
   if(window.sprawlMat){
-    sprawlMat.color.setScalar(lerp(1,0.36,nightF));
-    sprawlMat.emissiveIntensity=nightF*0.7;
+    sprawlMat.color.setScalar(lerp(1,0.14,nightF));
+    sprawlMat.emissiveIntensity=nightF*0.85;
   }
-  if(window.towerRoof)towerRoof.color.setScalar(lerp(0.15,0.08,nightF));
+  if(window.towerRoof)towerRoof.color.setScalar(lerp(0.15,0.04,nightF));
   lampHeads.opacity=nightF*1.0;
-  if(window.lampPoolMat)lampPoolMat.opacity=nightF*0.72;
+  if(window.lampPoolMat)lampPoolMat.opacity=nightF*0.85;
   /* runway edge lights, PAPI & rotating beacons */
   if(window.RWEDGE)for(const m of RWEDGE)m.opacity=0.1+nightF*0.7;
   if(window.BEACONS){
@@ -10797,27 +11515,38 @@ function envUpdate(dt,h){
   hemi.color.setHex(0xd0e6ff).lerp(_nightHemi,nightF);
   if(hemi.groundColor)hemi.groundColor.copy(_hemiGroundDay).lerp(_hemiGroundNight,nightF);
   /* Greenery / ground follow weather — cloudy days stay green, not blown-out white */
+  /* Greenery / ground at night → real dark land, not washed olive */
   {
-    const greenMul=lerp(1,0.78,cl)*lerp(1,0.88,rainF)*lerp(1,0.55,nightF);
-    if(ground.userData.baseColor)ground.material.color.copy(ground.userData.baseColor).multiplyScalar(greenMul);
-    for(const m of [matForest,matPark,matLawn,matScrub,matPlaza]){
-      if(m.userData.baseColor)m.color.copy(m.userData.baseColor).multiplyScalar(greenMul);
+    const wxMul=lerp(1,0.82,cl)*lerp(1,0.9,rainF);
+    if(ground.userData.baseColor){
+      ground.material.color.copy(ground.userData.baseColor).lerp(_nightLand,nightF*0.94).multiplyScalar(wxMul);
+    }
+    for(const m of [matForest,matPark,matLawn,matScrub]){
+      if(m.userData.baseColor)m.color.copy(m.userData.baseColor).lerp(_nightPark,nightF*0.92).multiplyScalar(wxMul);
+    }
+    if(matPlaza.userData.baseColor)matPlaza.color.copy(matPlaza.userData.baseColor).lerp(_nightPlaza,nightF*0.9).multiplyScalar(wxMul);
+    /* Asphalt reads darker under streetlight night */
+    if(window.roadMats){
+      for(const m of roadMats){
+        if(!m.userData._dayCol)m.userData._dayCol=m.color.clone();
+        m.color.copy(m.userData._dayCol).multiplyScalar(lerp(1,0.42,nightF));
+      }
     }
   }
-  skyUni.haze.value.lerp(_cityGlow,nightF*0.28*(1-wxBlend.cloud*0.4));
-  for(const road of roads)if(road.signMats)road.signMats.emissiveIntensity=nightF*0.4;
+  skyUni.haze.value.lerp(_cityGlow,nightF*0.1*(1-wxBlend.cloud*0.4));
+  for(const road of roads)if(road.signMats)road.signMats.emissiveIntensity=nightF*0.55;
   {
     const lowSun2=clamp(1-Math.abs(Math.sin(clamp((h-SUNRISE)/(SUNSET-SUNRISE),-0.3,1.3)*Math.PI))*1.5,0,1);
     const dayN=1-nightF;
     for(const c of clouds.children){
-      const base=clamp(0.28+wxBlend.cloud*0.72,0,0.96);
+      const base=clamp(0.28+wxBlend.cloud*0.72,0,0.96)*lerp(1,0.35,nightF);
       c.userData.baseOp=base;
       c.material.opacity=base;
-      /* white by day -> ember/plum at golden hour -> slate blue at night */
+      /* white by day -> ember/plum at golden hour -> nearly black silhouettes at night */
       c.material.color.setRGB(
-        lerp(lerp(0.42,1,dayN), lerp(1.0,_sc.r*1.05,0.75), lowSun2*dayN),
-        lerp(lerp(0.46,1,dayN), lerp(0.86,_sc.g*0.9,0.75),  lowSun2*dayN),
-        lerp(lerp(0.6,1,dayN),  lerp(0.9,_sc.b*0.95,0.6),   lowSun2*dayN));
+        lerp(lerp(0.14,1,dayN), lerp(1.0,_sc.r*1.05,0.75), lowSun2*dayN),
+        lerp(lerp(0.16,1,dayN), lerp(0.86,_sc.g*0.9,0.75),  lowSun2*dayN),
+        lerp(lerp(0.22,1,dayN),  lerp(0.9,_sc.b*0.95,0.6),   lowSun2*dayN));
       c.position.x+=c.userData.vx*dt*(liveMode?1:clamp(1+timeScale/70,1,48));
       if(c.position.x>11000)c.position.x=-11000;
       /* Soft vertical bob so the deck never looks frozen during time-lapse */
@@ -10959,26 +11688,30 @@ function updateHUD(nightF,skyH){
     ?new Date(Date.now()+window.simOffsetSec*1000)
     :new Date();
   $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:CHI_TZ})+(weekend?' · weekend pattern':' · weekday pattern');
-  /* weather card — camera-local suburb in liveMode; forecast/sim hour during time-lapse */
+  /* weather card — follows camera / Fly-to suburb in liveMode; GPS is under “Your location” */
   const P=WX[wxCur];
   const fc=(!liveMode&&wxMode==='auto'&&liveWx)?forecastAt(window.simOffsetSec||0):null;
   const viewWx=liveMode?(activeViewWeather()||liveWx):null;
-  const wxSrc=fc||viewWx;
-  const statsLive=!!wxSrc;
+  const cardWx=liveMode?(activeCardWeather()||viewWx||liveWx):null;
+  const wxSrc=fc||cardWx;
+  const statsLive=!!(wxSrc&&wxSrc.temp!=null);
   /* When scrubbing forecast, drive sky description from that hour too */
   if(fc&&wxMode==='auto'){wxDesc=fc.label;wxCur=fc.preset;}
+  else if(liveMode&&wxMode==='auto'&&cardWx&&cardWx.preset&&!cardWx.pending){
+    wxCur=cardWx.preset;wxDesc=cardWx.label||wxDesc;
+  }
   const iconKey=nightF>0.6?(WX[wxCur]?WX[wxCur].nIcon:P.nIcon):(WX[wxCur]?WX[wxCur].icon:P.icon);
   if($('wxIcon').dataset.k!==iconKey){$('wxIcon').innerHTML=ICONS[iconKey];$('wxIcon').dataset.k=iconKey;}
   const temp=statsLive?wxSrc.temp:tempFsim(simH,P);
   const feels=statsLive?(wxSrc.feels!=null?wxSrc.feels:wxSrc.temp):temp+(temp>88?4:0);
   const hum=statsLive?wxSrc.hum:humiditySim(simH);
   const windDir=statsLive?(wxSrc.windDir!=null?wxSrc.windDir:0):0;
-  $('wxTemp').textContent=temp+'°';
-  $('wxDesc').textContent=(wxMode==='auto'&&statsLive)?(wxSrc.label||wxDesc):wxDesc;
-  const mTemp=$('mHudTemp');if(mTemp)mTemp.textContent=temp+'°';
+  $('wxTemp').textContent=(temp!=null?temp:'--')+'°';
+  $('wxDesc').textContent=(wxMode==='auto'&&wxSrc)?(wxSrc.label||wxDesc||'—'):wxDesc;
+  const mTemp=$('mHudTemp');if(mTemp)mTemp.textContent=(temp!=null?temp:'--')+'°';
   const mDesc=$('mHudDesc');if(mDesc)mDesc.textContent=$('wxDesc').textContent;
-  $('wxFeels').textContent='feels like '+feels+'°';
-  $('wxHum').textContent=hum+'%';
+  $('wxFeels').textContent=feels!=null?('feels like '+feels+'°'):'feels like —';
+  $('wxHum').textContent=hum!=null?(hum+'%'):'—';
   $('wxWind').textContent=statsLive?(wxSrc.wind+' '+windArrow(windDir)):(6+Math.round(6*wxBlend.cloud))+' mph';
   $('wxPrec').textContent=(statsLive?(wxSrc.precip||0):wxBlend.rain*0.22).toFixed(2)+'"';
   const dew=statsLive?(wxSrc.dew!=null?wxSrc.dew:Math.round(temp-(100-hum)/2.8)):Math.round(temp-(100-hum)/2.8);
@@ -10988,22 +11721,27 @@ function updateHUD(nightF,skyH){
   const uvVal=statsLive?(wxSrc.uv!=null?wxSrc.uv:uvSim):uvSim;
   const isNight=nightF>0.55||(simH<6.2||simH>20.2);
   $('wxUv').textContent=(statsLive&&isNight&&(!uvVal||uvVal===0))?'Night':uvVal;
-  const ageMin=liveWx?Math.max(0,Math.round((Date.now()-liveWx.at)/60000)):null;
-  const wxStale=liveWx&&(Date.now()-liveWx.at)>20*60*1000;
+  const ageMin=cardWx&&cardWx.at?Math.max(0,Math.round((Date.now()-cardWx.at)/60000))
+    :(liveWx?Math.max(0,Math.round((Date.now()-liveWx.at)/60000)):null);
+  const wxStale=(cardWx&&cardWx.at?(Date.now()-cardWx.at):liveWx?(Date.now()-liveWx.at):0)>20*60*1000;
   const dot=$('wxDot'),src=$('wxSrcTxt');
   if(dot)dot.className=wxStale?'syncDot stale':'syncDot';
   if(src){
     if(!liveMode&&fc){
       src.textContent='Time-lapse forecast · Open-Meteo · '+houClock(0,false);
-    }else if(viewWx&&viewWx.place){
-      src.textContent=(wxStale?'Stale · ':'')+viewWx.place+' · Open-Meteo'
-        +(ageMin!=null?(ageMin===0?' · just now':' · '+ageMin+' min ago'):'');
+    }else if(cardWx&&cardWx.place){
+      const via=cardWx.src==='nws'
+        ?('NWS '+(cardWx.stationId||'obs'))
+        :'Open-Meteo';
+      src.textContent='View · '+cardWx.place+' · '+via
+        +(ageMin==null?'':(ageMin===0?' · just now':' · '+ageMin+' min ago'));
     }else if(liveWx){
       src.textContent=(wxStale?'Stale · ':'')+CITY_NAME+' live · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');
     }
   }
   const wxPlaceEl=$('wxPlace');
-  if(wxPlaceEl&&liveMode&&viewWx&&viewWx.place)wxPlaceEl.textContent=viewWx.place;
+  if(wxPlaceEl&&liveMode&&cardWx&&cardWx.place)wxPlaceEl.textContent=cardWx.place;
+  else if(wxPlaceEl&&liveMode&&viewWx&&viewWx.place)wxPlaceEl.textContent=viewWx.place;
   function feedAgeMin(at){
     if(!at)return '—';
     const m=Math.max(0,Math.round((Date.now()-at)/60000));
@@ -11024,12 +11762,16 @@ function updateHUD(nightF,skyH){
     src.textContent='Time-lapse forecast · Open-Meteo · '+houClock(0,false);}
   else if(!liveMode){dot.className='pulse sim';
     src.textContent='Time-lapse · '+phaseLabel(simH)+' pattern';}
+  else if(cardWx&&cardWx.place){
+    /* Keep camera / Fly-to suburb line — do not overwrite with downtown */
+    dot.className=wxStale?'pulse sim':'pulse';
+  }
   else if(viewWx||liveWx){dot.className=wxStale?'pulse sim':'pulse';
     const label=(viewWx&&viewWx.place)||(liveWx&&liveWx.place)||CITY_NAME;
     src.textContent=(wxStale?'Stale · ':'')+label+' · Open-Meteo · '+(ageMin===0?'just now':ageMin+' min ago');}
   else{dot.className='pulse sim';src.textContent='Typical weather pattern · retrying live feed…';}
   /* 3-day outlook — prefer camera/local pack daily, else metro liveWx */
-  renderWxForecast((viewWx&&viewWx.daily)?viewWx:(localWx&&localWx.daily?localWx:liveWx));
+  renderWxForecast((cardWx&&cardWx.daily)?cardWx:(viewWx&&viewWx.daily)?viewWx:(localWx&&localWx.daily?localWx:liveWx));
   /* suburb / locate-me weather — full live stats under Houston */
   const locBox=$('wxLocal');
   if(locBox){
@@ -11041,7 +11783,15 @@ function updateHUD(nightF,skyH){
       const ld=$('wxLocalDesc');if(ld)ld.textContent=localWx.label||'—';
       const lm=$('wxLocalMeta');
       const lage=Math.max(0,Math.round((Date.now()-localWx.at)/60000));
-      if(lm)lm.textContent=(nearDt?'Near downtown · ':'')+'Open-Meteo at your GPS'
+      const dist=nearestDistrictByGeo(userGeo.lat,userGeo.lng,8);
+      const via=localWx.src==='nws'
+        ?('NWS '+(localWx.stationId||'station')
+          +(localWx.stationName?(' · '+String(localWx.stationName).split(',')[0]):'')
+          +(localWx.stationMi!=null?(' · '+localWx.stationMi+' mi'):'')
+          +' · Open-Meteo for outlook')
+        :'Open-Meteo at your GPS';
+      if(lm)lm.textContent=(nearDt?('Near '+cityPlaceCity()+' downtown · '):(dist?dist.district.n+' · ':''))
+        +via
         +(localWx.acc!=null?(' ±'+Math.round(localWx.acc)+'m'):'')
         +' · '+localWx.lat.toFixed(4)+', '+localWx.lng.toFixed(4)
         +' · feels '+localWx.feels+'° · '
@@ -11053,7 +11803,7 @@ function updateHUD(nightF,skyH){
       const nm=$('wxLocalName');if(nm)nm.textContent='Locating…';
       const lt=$('wxLocalTemp');if(lt)lt.textContent='--°';
       const ld=$('wxLocalDesc');if(ld)ld.textContent='Loading…';
-      const lm=$('wxLocalMeta');if(lm)lm.textContent='Open-Meteo · your GPS · fetching…';
+      const lm=$('wxLocalMeta');if(lm)lm.textContent='NWS station + Open-Meteo · your GPS · fetching…';
     }else{
       locBox.style.display='none';
     }
@@ -11249,10 +11999,40 @@ if(hazClearBtn)hazClearBtn.addEventListener('click',()=>hazDeactivate());
 $('locSelect').addEventListener('change',e=>{
   stopFollow();
   closePoiCard();
-  const p=CAM_VIEWS[e.target.value];if(!p)return;
+  const id=e.target.value;
+  const p=CAM_VIEWS[id];if(!p)return;
   camGoal.theta=p.theta;camGoal.phi=p.phi;camGoal.radius=p.radius;
   camGoal.target.set(p.target[0],0,p.target[1]);
+  try{
+    const url=new URL(location.href);
+    url.searchParams.set('city',HTS_CITY_ID);
+    url.searchParams.set('view',id);
+    history.replaceState(null,'',url);
+  }catch(err){}
+  /* Pin weather card to this suburb immediately while the camera flies */
+  try{
+    const zones=window.WX_ZONES||[];
+    let z=zones.find(zz=>zz&&zz.id===id);
+    if(!z&&zones.length){
+      let best=null,bd=1e18;
+      for(const zz of zones){
+        const d=Math.hypot(zz.x-p.target[0],zz.z-p.target[1]);
+        if(d<bd){bd=d;best=zz;}
+      }
+      z=best;
+    }
+    if(z)window._wxFocus={...z,pinAt:Date.now()};
+  }catch(err){}
 });
+(function applySharedView(){
+  try{
+    const id=new URLSearchParams(location.search).get('view');
+    const sel=$('locSelect');
+    if(!id||!sel||!CAM_VIEWS[id])return;
+    sel.value=id;
+    sel.dispatchEvent(new Event('change'));
+  }catch(e){}
+})();
 
 /* ---- Airport departure / arrival board UI ---- */
 window.renderAirportBoard=function(force){
@@ -11429,7 +12209,7 @@ const patrolBadges=(function(){
   return arr;
 })();
 document.getElementById('legend').insertAdjacentHTML('beforeend',
-  '<div class="dataline"><b>LIVE</b> clock · Open-Meteo weather · NWS alerts · TranStar incidents/closures · TomTom flow · ADS-B flights · FlightAware boards · your GPS weather<br>'
+  '<div class="dataline"><b>LIVE</b> clock · Open-Meteo weather · NWS alerts · NHC hurricane + SPC tornado tracker · TranStar incidents/closures · TomTom flow · ADS-B flights · FlightAware boards · your GPS weather<br>'
   +'<i>MODELED</i> vehicle physics driven by live congestion · patrol motion · hazard drills &nbsp;·&nbsp; <b style="color:#9fb2c2">78 districts</b> · 10-county MSA · Created by <b style="color:#9fb2c2">Ejay Gabriel</b></div>');
 seedPatrols();
 spawnWorkZone('i45',0,0.30,420,'the North Side');
@@ -11733,7 +12513,8 @@ function frame(now){
   /* Cap map opacity so fogged 3D + sky still read; mute bright roads */
   const mapOp=mapT*0.72;
   if(on)for(const m of mapMats)m.opacity=mapOp;
-  renderer.toneMappingExposure=lerp(lerp(1.12,0.98,nightF),0.9,mapT)
+  /* Real night: drop exposure hard so sky/grass aren’t lit like civil twilight */
+  renderer.toneMappingExposure=lerp(lerp(1.12,0.58,nightF),0.85,mapT)
     *lerp(1,0.68,wxBlend.cloud)*lerp(1,0.88,wxBlend.rain);
   const showDetail=!inOSM&&mapT<0.98;
   if(gDetail.visible!==showDetail)gDetail.visible=showDetail;

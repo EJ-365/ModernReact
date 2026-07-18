@@ -22,7 +22,7 @@ export function buildLatLngRuntimePack(geo, src) {
 
   const districts = (src.districts || []).map((d) => {
     const p = toXZ(d.lat, d.lng);
-    return { id: d.id, n: d.n, x: p.x, z: p.z, r: d.r, lat: d.lat, lng: d.lng };
+    return { id: d.id, n: d.n, x: p.x, z: p.z, r: d.r, lat: d.lat, lng: d.lng, noHouses: !!d.noHouses };
   });
 
   const airports = (src.airports || []).map((a) => {
@@ -73,6 +73,11 @@ export function buildLatLngRuntimePack(geo, src) {
     return { ...L, x: p.x, z: p.z };
   });
 
+  const skylinePockets = (src.skylinePockets || []).map((P) => {
+    const p = toXZ(P.lat, P.lng);
+    return { ...P, x: p.x, z: p.z };
+  });
+
   const attractions = (src.attractions || []).map((A) => {
     const p = toXZ(A.lat, A.lng);
     return { ...A, x: p.x, z: p.z };
@@ -121,6 +126,7 @@ export function buildLatLngRuntimePack(geo, src) {
     waters,
     camExtras,
     skyline,
+    skylinePockets,
     attractions,
     river,
     ladyBird: river,

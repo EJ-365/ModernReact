@@ -63,8 +63,8 @@ export const SANANTONIO_ROAD_LATLNG = [
 ];
 
 export const SANANTONIO_DISTRICTS = [
-  { id: 'downtown', n: 'Downtown', lat: 29.4246, lng: -98.4951, r: 320 },
-  { id: 'alamodistrict', n: 'Alamo District', lat: 29.4259, lng: -98.4861, r: 200 },
+  { id: 'downtown', n: 'Downtown', lat: 29.4246, lng: -98.4951, r: 320, noHouses: true },
+  { id: 'alamodistrict', n: 'Alamo District', lat: 29.4259, lng: -98.4861, r: 200, noHouses: true },
   { id: 'kingwilliam', n: 'King William', lat: 29.4145, lng: -98.4920, r: 220 },
   { id: 'southtown', n: 'Southtown', lat: 29.4100, lng: -98.4900, r: 240 },
   { id: 'pearl', n: 'Pearl District', lat: 29.4435, lng: -98.4800, r: 220 },
@@ -178,14 +178,26 @@ export const SANANTONIO_CAM_EXTRAS = [
 ];
 
 export const SANANTONIO_SKYLINE = [
-  { n: 'Frost Bank Tower', lat: 29.4275, lng: -98.4925, w: 32, d: 30, h: 175, s: 1, info: '535 ft · Downtown' },
-  { n: 'Tower of the Americas', lat: 29.4191, lng: -98.4836, w: 18, d: 18, h: 210, s: 0, info: '750 ft · Hemisfair' },
-  { n: 'Bank of America Plaza', lat: 29.4265, lng: -98.4910, w: 28, d: 26, h: 145, s: 2, info: 'CBD' },
-  { n: 'Weston Centre', lat: 29.4280, lng: -98.4900, w: 30, d: 28, h: 130, s: 1, info: 'Downtown office' },
-  { n: 'Grand Hyatt', lat: 29.4210, lng: -98.4845, w: 34, d: 30, h: 110, s: 2, info: 'River Walk hotel' },
-  { n: 'Marriott Rivercenter', lat: 29.4225, lng: -98.4855, w: 36, d: 32, h: 120, s: 3, info: 'Rivercenter' },
-  { n: 'Tower Life Building', lat: 29.4240, lng: -98.4935, w: 24, d: 24, h: 100, s: 0, info: 'Historic' },
-  { n: 'One Riverwalk Place', lat: 29.4235, lng: -98.4895, w: 26, d: 24, h: 95, s: 1, info: 'River Walk' },
+  /* feet / 3.16 · researched Downtown SA silhouette */
+  { n: 'Tower of the Americas', lat: 29.4191, lng: -98.4836, w: 14, d: 14, h: 237, s: 0, info: '750 ft · Hemisfair observation', cyl: true, spire: 55 },
+  { n: 'Frost Bank Tower', lat: 29.4275, lng: -98.4925, w: 32, d: 30, h: 169, s: 1, info: '535 ft · tallest office' },
+  { n: 'Marriott Rivercenter', lat: 29.4225, lng: -98.4855, w: 36, d: 32, h: 173, s: 3, info: '546 ft · 38 floors' },
+  { n: 'Grand Hyatt San Antonio', lat: 29.4210, lng: -98.4845, w: 34, d: 30, h: 132, s: 2, info: '416 ft · River Walk' },
+  { n: 'Bank of America Plaza', lat: 29.4265, lng: -98.4910, w: 28, d: 26, h: 122, s: 2, info: '~387 ft · CBD' },
+  { n: 'Weston Centre', lat: 29.4280, lng: -98.4900, w: 30, d: 28, h: 118, s: 1, info: '408 ft · Downtown office' },
+  { n: 'Tower Life Building', lat: 29.4240, lng: -98.4935, w: 24, d: 24, h: 128, s: 0, info: '404 ft · 1929 Gothic' },
+  { n: 'One Riverwalk Place', lat: 29.4235, lng: -98.4895, w: 26, d: 24, h: 95, s: 1, info: 'River Walk office' },
+  { n: 'San Antonio Savings Building', lat: 29.4255, lng: -98.4918, w: 26, d: 24, h: 100, s: 2, info: 'Historic downtown' },
+  { n: 'Nix Professional Building', lat: 29.4248, lng: -98.4885, w: 24, d: 22, h: 90, s: 3, info: 'Medical mid-rise' },
+  { n: 'Drury Plaza Hotel', lat: 29.4242, lng: -98.4878, w: 28, d: 26, h: 88, s: 0, info: 'Former Alamo National Bank' },
+  { n: 'Riverview Towers', lat: 29.4205, lng: -98.4880, w: 30, d: 28, h: 105, s: 1, info: 'Twin River Walk' },
+];
+
+export const SANANTONIO_SKYLINE_POCKETS = [
+  { n: 'Downtown CBD', lat: 29.4255, lng: -98.4915, count: 40, rad: 240, hmin: 35, hmax: 120 },
+  { n: 'River Walk / Hemisfair', lat: 29.4210, lng: -98.4860, count: 22, rad: 180, hmin: 30, hmax: 110 },
+  { n: 'Alamo / Commerce', lat: 29.4255, lng: -98.4865, count: 14, rad: 140, hmin: 28, hmax: 90 },
+  { n: 'Pearl District mid-rise', lat: 29.4435, lng: -98.4800, count: 12, rad: 140, hmin: 25, hmax: 80 },
 ];
 
 export const SANANTONIO_ATTRACTIONS = [

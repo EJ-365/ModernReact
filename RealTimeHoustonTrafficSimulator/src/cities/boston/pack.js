@@ -15,19 +15,19 @@ export const BOSTON_ROAD_LATLNG = [
 ];
 
 export const BOSTON_DISTRICTS = [
-  { id:'downtown', n:'Downtown Crossing', lat:42.3555, lng:-71.0605, r:260 },
-  { id:'backbay', n:'Back Bay', lat:42.3503, lng:-71.0810, r:280 },
+  { id:'downtown', n:'Downtown Crossing', lat:42.3555, lng:-71.0605, r:260, noHouses:true },
+  { id:'backbay', n:'Back Bay', lat:42.3503, lng:-71.0810, r:280, noHouses:true },
   { id:'beaconhill', n:'Beacon Hill', lat:42.3588, lng:-71.0707, r:200 },
   { id:'southend', n:'South End', lat:42.3380, lng:-71.0740, r:240 },
   { id:'fenway', n:'Fenway–Kenmore', lat:42.3467, lng:-71.0972, r:280 },
-  { id:'seaport', n:'Seaport', lat:42.3490, lng:-71.0400, r:260 },
+  { id:'seaport', n:'Seaport', lat:42.3490, lng:-71.0400, r:260, noHouses:true },
   { id:'northend', n:'North End', lat:42.3647, lng:-71.0542, r:200 },
   { id:'charlestown', n:'Charlestown', lat:42.3782, lng:-71.0602, r:240 },
   { id:'eastboston', n:'East Boston', lat:42.3702, lng:-71.0389, r:280 },
   { id:'southboston', n:'South Boston', lat:42.3334, lng:-71.0495, r:280 },
   { id:'dorchester', n:'Dorchester', lat:42.3016, lng:-71.0610, r:360 },
   { id:'cambridge', n:'Cambridge', lat:42.3736, lng:-71.1190, r:360 },
-  { id:'kendall', n:'Kendall Square', lat:42.3626, lng:-71.0862, r:240 },
+  { id:'kendall', n:'Kendall Square', lat:42.3626, lng:-71.0862, r:240, noHouses:true },
   { id:'somerville', n:'Somerville', lat:42.3876, lng:-71.0995, r:320 },
   { id:'brookline', n:'Brookline', lat:42.3318, lng:-71.1212, r:320 },
   { id:'newton', n:'Newton', lat:42.3370, lng:-71.2092, r:400 },
@@ -102,15 +102,31 @@ export const BOSTON_WATERS = [
 
 export const BOSTON_CAM_EXTRAS = [{ id:'fenway', lat:42.3467, lng:-71.0972, radius:300 }];
 
+/* World height ≈ real feet / 3.16 · Back Bay + Financial District */
 export const BOSTON_SKYLINE = [
-  { n:'200 Clarendon (Hancock)', lat:42.3491, lng:-71.0753, w:30, d:28, h:220, s:1, info:'790 ft mirrored rhomboid' },
-  { n:'Prudential Tower', lat:42.3473, lng:-71.0825, w:32, d:30, h:205, s:0, info:'749 ft' },
-  { n:'Millennium Tower', lat:42.3555, lng:-71.0595, w:28, d:28, h:185, s:2, info:'685 ft' },
-  { n:'One International Place', lat:42.3560, lng:-71.0515, w:30, d:30, h:165, s:1, info:'600 ft' },
-  { n:'Federal Reserve Bank', lat:42.3530, lng:-71.0535, w:26, d:26, h:170, s:3, info:'614 ft' },
-  { n:'One Financial Center', lat:42.3525, lng:-71.0555, w:28, d:26, h:160, s:0, info:'590 ft' },
-  { n:'111 Huntington', lat:42.3468, lng:-71.0818, w:26, d:24, h:150, s:2, info:'554 ft openwork crown' },
-  { n:'Custom House Tower', lat:42.3590, lng:-71.0525, w:18, d:18, h:140, s:0, info:'496 ft clock tower' },
+  { n:'200 Clarendon (Hancock)', lat:42.34927, lng:-71.07509, w:28, d:42, h:250, s:1, info:'790 ft · mirrored rhomboid', rot:0.45 },
+  { n:'Prudential Tower', lat:42.34716, lng:-71.08249, w:34, d:32, h:237, s:0, info:'749 ft · View Boston', spire:40 },
+  { n:'One Dalton Street', lat:42.3465, lng:-71.0855, w:26, d:26, h:235, s:3, info:'742 ft · Four Seasons' },
+  { n:'Millennium Tower', lat:42.3555, lng:-71.0595, w:28, d:28, h:217, s:2, info:'685 ft · Downtown Crossing' },
+  { n:'Federal Reserve Bank', lat:42.3530, lng:-71.0535, w:28, d:28, h:194, s:1, info:'614 ft' },
+  { n:'One International Place', lat:42.3560, lng:-71.0515, w:32, d:32, h:190, s:0, info:'600 ft · Financial District' },
+  { n:'One Financial Center', lat:42.3525, lng:-71.0555, w:28, d:26, h:187, s:2, info:'590 ft' },
+  { n:'111 Huntington Avenue', lat:42.3468, lng:-71.0818, w:26, d:24, h:175, s:3, info:'554 ft openwork crown' },
+  { n:'Two International Place', lat:42.3552, lng:-71.0510, w:28, d:28, h:168, s:1, info:'538 ft' },
+  { n:'Berkeley Building', lat:42.3500, lng:-71.0705, w:30, d:28, h:160, s:0, info:'500+ ft Back Bay' },
+  { n:'Custom House Tower', lat:42.3590, lng:-71.0525, w:18, d:18, h:157, s:2, info:'496 ft · 1915 clock tower' },
+  { n:'100 Federal Street', lat:42.3550, lng:-71.0565, w:28, d:26, h:155, s:1, info:'591 ft · First National Bank' },
+  { n:'Hub on Causeway', lat:42.3660, lng:-71.0625, w:30, d:28, h:145, s:0, info:'Near TD Garden' },
+  { n:'Ames Building', lat:42.3585, lng:-71.0585, w:22, d:22, h:65, s:3, info:'1893 · early skyscraper' },
+  { n:'MIT Site 4', lat:42.3608, lng:-71.0885, w:28, d:26, h:120, s:1, info:'Kendall Square high-rise' },
+];
+
+export const BOSTON_SKYLINE_POCKETS = [
+  { n:'Back Bay', lat:42.3495, lng:-71.0785, count:36, rad:220, hmin:45, hmax:170 },
+  { n:'Financial District', lat:42.3555, lng:-71.0550, count:42, rad:220, hmin:50, hmax:180 },
+  { n:'Downtown Crossing', lat:42.3555, lng:-71.0605, count:22, rad:160, hmin:45, hmax:160 },
+  { n:'Seaport', lat:42.3490, lng:-71.0400, count:24, rad:180, hmin:40, hmax:140 },
+  { n:'Kendall Square', lat:42.3626, lng:-71.0862, count:20, rad:160, hmin:35, hmax:130 },
 ];
 
 export const BOSTON_ATTRACTIONS = [

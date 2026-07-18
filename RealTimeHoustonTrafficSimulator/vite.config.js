@@ -172,6 +172,30 @@ export default defineConfig(({ mode }) => {
             });
           },
         },
+        "/api/nws": {
+          target: "https://api.weather.gov",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/nws/, ""),
+          configure: (proxy) => {
+            proxy.on("proxyReq", (proxyReq) => {
+              proxyReq.setHeader(
+                "User-Agent",
+                "HoustonTrafficSimulator/1.0 (edu; github.com/EJ-365/ModernReact)",
+              );
+              proxyReq.setHeader("Accept", "application/geo+json");
+            });
+          },
+        },
+        "/api/nhc": {
+          target: "https://www.nhc.noaa.gov",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/nhc/, ""),
+        },
+        "/api/spc": {
+          target: "https://mapservices.weather.noaa.gov",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/spc/, ""),
+        },
         "/api/opensky": {
           target: "https://opensky-network.org",
           changeOrigin: true,

@@ -174,9 +174,10 @@ export function createCinematic(opts) {
     }
 
     if (scene.environmentIntensity != null) {
+      /* Env bounce reads as fill light — crush it at night so darkness feels real */
       scene.environmentIntensity = isAus
-        ? 0.08 + (1 - nightF) * 0.14
-        : 0.35 + (1 - nightF) * 0.45;
+        ? 0.02 + (1 - nightF) * 0.2
+        : 0.04 + (1 - nightF) * 0.55;
     }
   }
 

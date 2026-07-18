@@ -59,6 +59,25 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/nws/*"
+  to = "https://api.weather.gov/:splat"
+  status = 200
+  force = true
+  headers = {User-Agent = "HoustonTrafficSimulator/1.0 (edu; github.com/EJ-365/ModernReact)", Accept = "application/geo+json"}
+
+[[redirects]]
+  from = "/api/nhc/*"
+  to = "https://www.nhc.noaa.gov/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/spc/*"
+  to = "https://mapservices.weather.noaa.gov/:splat"
+  status = 200
+  force = true
+
 # ——— Authenticated proxies (serverless injects secrets) ———
 # Path form /api/flightaware/aeroapi/... is required — Netlify keeps it in event.path.
 # Query-only ?path= is unreliable under function rewrites.

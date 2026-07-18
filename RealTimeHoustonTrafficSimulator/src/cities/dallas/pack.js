@@ -22,9 +22,9 @@ export const DALLAS_ROAD_LATLNG = [
 ];
 
 export const DALLAS_DISTRICTS = [
-  { id:'downtown', n:'Downtown Dallas', lat:32.7797, lng:-96.7980, r:360 },
-  { id:'uptown', n:'Uptown', lat:32.8010, lng:-96.8000, r:280 },
-  { id:'victory', n:'Victory Park', lat:32.7905, lng:-96.8103, r:240 },
+  { id:'downtown', n:'Downtown Dallas', lat:32.7797, lng:-96.7980, r:360, noHouses:true },
+  { id:'uptown', n:'Uptown', lat:32.8010, lng:-96.8000, r:280, noHouses:true },
+  { id:'victory', n:'Victory Park', lat:32.7905, lng:-96.8103, r:240, noHouses:true },
   { id:'deepellum', n:'Deep Ellum', lat:32.7845, lng:-96.7810, r:240 },
   { id:'bishoparts', n:'Bishop Arts', lat:32.7490, lng:-96.8280, r:240 },
   { id:'oaklawn', n:'Oak Lawn', lat:32.8050, lng:-96.8100, r:260 },
@@ -32,7 +32,7 @@ export const DALLAS_DISTRICTS = [
   { id:'lakewood', n:'Lakewood', lat:32.8200, lng:-96.7500, r:280 },
   { id:'prestonhollow', n:'Preston Hollow', lat:32.8700, lng:-96.8000, r:320 },
   { id:'parkcities', n:'Park Cities', lat:32.8450, lng:-96.7850, r:280 },
-  { id:'fortworth', n:'Downtown Fort Worth', lat:32.7555, lng:-97.3308, r:360 },
+  { id:'fortworth', n:'Downtown Fort Worth', lat:32.7555, lng:-97.3308, r:360, noHouses:true },
   { id:'arlington', n:'Arlington', lat:32.7357, lng:-97.1081, r:420 },
   { id:'irving', n:'Irving', lat:32.8140, lng:-96.9489, r:400 },
   { id:'plano', n:'Plano', lat:33.0198, lng:-96.6989, r:440 },
@@ -111,15 +111,34 @@ export const DALLAS_WATERS = [
 
 export const DALLAS_CAM_EXTRAS = [{ id:'arlington', lat:32.7473, lng:-97.0945, radius:380 }];
 
+/* World height ≈ real feet / 3.16 · coords from Wikipedia / SkyscraperCenter */
 export const DALLAS_SKYLINE = [
-  { n:'Bank of America Plaza', lat:32.7797, lng:-96.7965, w:36, d:34, h:260, s:1, info:'921 ft · tallest in Dallas' },
-  { n:'Reunion Tower', lat:32.7752, lng:-96.8091, w:20, d:20, h:180, s:0, info:'561 ft observation sphere' },
-  { n:'Fountain Place', lat:32.7845, lng:-96.7995, w:32, d:32, h:220, s:2, info:'720 ft prism' },
-  { n:'Comerica Bank Tower', lat:32.7805, lng:-96.7975, w:34, d:32, h:210, s:1, info:'787 ft' },
-  { n:'Renaissance Tower', lat:32.7800, lng:-96.7990, w:30, d:30, h:200, s:3, info:'886 ft twin' },
-  { n:'Chase Tower', lat:32.7815, lng:-96.7970, w:28, d:28, h:190, s:0, info:'738 ft' },
-  { n:'Trammell Crow Center', lat:32.7870, lng:-96.7985, w:30, d:28, h:175, s:2, info:'686 ft' },
-  { n:'Thanksgiving Tower', lat:32.7825, lng:-96.7960, w:28, d:26, h:165, s:1, info:'645 ft' },
+  { n:'Bank of America Plaza', lat:32.77997, lng:-96.80397, w:38, d:36, h:291, s:1, info:'921 ft · tallest in Dallas', spire:28 },
+  { n:'Renaissance Tower', lat:32.78119, lng:-96.80183, w:36, d:34, h:280, s:0, info:'886 ft · twin antennas' },
+  { n:'Comerica Bank Tower', lat:32.7815, lng:-96.7964, w:34, d:34, h:249, s:2, info:'787 ft · 60 floors' },
+  { n:'Dallas Arts Tower', lat:32.7878, lng:-96.7966, w:32, d:30, h:233, s:1, info:'738 ft · JPMorgan Chase' },
+  { n:'Fountain Place', lat:32.7846, lng:-96.8025, w:34, d:34, h:228, s:3, info:'720 ft prism' },
+  { n:'Trammell Crow Center', lat:32.7875, lng:-96.7988, w:30, d:28, h:217, s:2, info:'686 ft · 2001 Ross' },
+  { n:'1700 Pacific', lat:32.7830, lng:-96.7978, w:30, d:28, h:209, s:0, info:'660 ft' },
+  { n:'Santander Tower', lat:32.7825, lng:-96.7960, w:28, d:26, h:204, s:1, info:'645 ft · Thanksgiving Tower' },
+  { n:'The Sinclair', lat:32.7808, lng:-96.7995, w:28, d:26, h:199, s:3, info:'629 ft residential' },
+  { n:'The National', lat:32.7812, lng:-96.8008, w:32, d:30, h:198, s:0, info:'625 ft · Elm Place' },
+  { n:'Energy Plaza', lat:32.7840, lng:-96.7998, w:30, d:28, h:191, s:2, info:'627 ft' },
+  { n:'Museum Tower', lat:32.7885, lng:-96.8005, w:26, d:26, h:170, s:1, info:'560 ft · Arts District' },
+  { n:'Cityplace Tower', lat:32.8055, lng:-96.7925, w:34, d:32, h:170, s:0, info:'560 ft · North Central' },
+  { n:'Reunion Tower', lat:32.7752, lng:-96.8091, w:16, d:16, h:140, s:0, info:'561 ft observation sphere', cyl:true, spire:38 },
+  { n:'Burnett Plaza', lat:32.7558, lng:-97.3312, w:34, d:32, h:205, s:1, info:'873 ft · Fort Worth tallest' },
+  { n:'Wells Fargo Tower FTW', lat:32.7552, lng:-97.3320, w:30, d:28, h:168, s:2, info:'546 ft · Fort Worth' },
+  { n:'Frost Tower FTW', lat:32.7515, lng:-97.3308, w:28, d:26, h:155, s:3, info:'518 ft · Fort Worth' },
+];
+
+export const DALLAS_SKYLINE_POCKETS = [
+  { n:'Downtown Dallas core', lat:32.7810, lng:-96.7995, count:55, rad:280, hmin:60, hmax:200 },
+  { n:'Arts District', lat:32.7890, lng:-96.7980, count:18, rad:160, hmin:50, hmax:170 },
+  { n:'Uptown Dallas', lat:32.8010, lng:-96.8000, count:28, rad:200, hmin:45, hmax:150 },
+  { n:'Victory Park', lat:32.7905, lng:-96.8103, count:16, rad:150, hmin:40, hmax:140 },
+  { n:'Cityplace / Central', lat:32.8050, lng:-96.7930, count:14, rad:160, hmin:40, hmax:140 },
+  { n:'Downtown Fort Worth', lat:32.7555, lng:-97.3308, count:32, rad:240, hmin:45, hmax:170 },
 ];
 
 export const DALLAS_ATTRACTIONS = [

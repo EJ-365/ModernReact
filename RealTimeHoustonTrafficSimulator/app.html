@@ -158,6 +158,36 @@
   #wxReport .wrWatch{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
   #wxReport .wrWatch span{font-size:8.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
     padding:4px 7px;border-radius:999px;border:1px solid #2a3542;color:#8aa89a;background:#10161d}
+  #stormTrackRow{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  #stormTrackRow .stormBtn{flex:1;min-width:0;font-family:inherit;font-size:9px;font-weight:800;letter-spacing:.06em;
+    text-transform:uppercase;padding:8px 6px;border-radius:10px;border:1px solid #2c3642;background:#101820;color:#b8c0c8;cursor:pointer}
+  #stormTrackRow .stormBtn.on.tornado{background:#7f1d1d;border-color:#ef4444;color:#fecaca}
+  #stormTrackRow .stormBtn.on.hurricane{background:#4c1d95;border-color:#7c3aed;color:#e9d5ff}
+  #stormTrackChip{display:none;align-items:center;gap:4px;font-size:9px;font-weight:800;color:#fca5a5;
+    padding:4px 8px;border-radius:99px;background:rgba(127,29,29,.35);border:1px solid rgba(239,68,68,.35);margin-top:6px}
+  #stormLayerStatus{margin-top:6px;font-size:8.5px;font-weight:700;line-height:1.35;color:#8aa89a}
+  #stormLayerStatus.warn{color:#fbbf24}
+  .stormImpact{display:none;margin:8px 0 0;padding:8px 9px;border-radius:9px;font-size:9px;font-weight:800;
+    line-height:1.35;border:1px solid rgba(239,68,68,.4);background:rgba(127,29,29,.3);color:#fecaca}
+  .stormImpact.hurricane{border-color:rgba(124,58,237,.45);background:rgba(76,29,149,.3);color:#e9d5ff}
+  #wxReport .wrStormHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:14px 0 8px}
+  #wxReport .wrStormHead .wrSec{margin:0}
+  #wxReport .wrStormCount{font-size:10px;font-weight:800;color:#98a2ad;letter-spacing:.04em}
+  #wxReport .wrStormTrack{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  #wxReport .wrStormCard{border-radius:12px;border:1px solid #2a3542;background:#0d1218;padding:10px 11px;border-left:3px solid #64748b}
+  #wxReport .wrStormCard.clickable{cursor:pointer}
+  #wxReport .wrStormCard.clickable:hover{background:#141c24;border-color:#3b4755}
+  #wxReport .wrStormCard.hurricane{border-left-color:#7c3aed}
+  #wxReport .wrStormCard.tornado{border-left-color:#ef4444}
+  #wxReport .wrStormCard .tag{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:4px}
+  #wxReport .wrStormCard .ev{font-size:13px;font-weight:800;line-height:1.25;color:#f2f5f7;margin-bottom:4px}
+  #wxReport .wrStormCard .area{font-size:10px;font-weight:600;color:#8aa89a;line-height:1.35}
+  #wxReport .wrStormCard .until{font-size:9.5px;margin-top:6px}
+  #wxReport .wrStormCard .until a{color:#7fd6a0;text-decoration:none}
+  #wxReport .wrStormEmpty{border-radius:12px;border:1px dashed #2a3542;background:#0c1218;padding:12px;font-size:11px;line-height:1.45;color:#8aa89a}
+  #wxReport .wrStormEmpty b{color:#cfe0d4}
+  .alertSec.storm{color:#fca5a5}
+  .alert.storm.work{border-left-color:#ef4444}
   @media(max-width:720px){
     #wxReport{top:auto;bottom:0;left:0;right:0;transform:none;width:auto;max-width:none;
       max-height:min(82vh,640px);border-radius:16px 16px 0 0;padding-bottom:calc(16px + var(--m-safe-b,0px))}
@@ -769,7 +799,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.34</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.43</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -800,6 +830,13 @@
       <div class="wlMeta" id="wxLocalMeta">—</div>
     </div>
     <button type="button" id="wxReportBtn">NWS weather alerts</button>
+    <div id="stormTrackChip" aria-live="polite"></div>
+    <div id="stormTrackRow">
+      <button type="button" class="stormBtn tornado on" id="stormTornadoBtn">Tornado layer</button>
+      <button type="button" class="stormBtn hurricane on" id="stormHurricaneBtn">Hurricane layer</button>
+    </div>
+    <div id="stormLayerStatus" aria-live="polite">Storm feeds · fetching…</div>
+    <div id="stormImpactBanner" class="stormImpact" role="status"></div>
   </div>
   <div class="shields">
     <div class="shield"><svg viewBox="0 0 34 30"><path d="M17 1 C12 4 6 4.6 1.5 4.2 C1.5 16 6 25 17 29 C28 25 32.5 16 32.5 4.2 C28 4.6 22 4 17 1 Z" fill="#003f87" stroke="#fff" stroke-width="1.6"/><path d="M2 4.4 L32 4.4 L32 9.5 L2 9.5 Z" fill="#c8102e"/></svg><span>10</span></div>
@@ -1157,6 +1194,17 @@
     <div class="wrWarnCount" id="wrWarnCount">—</div>
   </div>
   <div class="wrWarns" id="wrWarns"></div>
+  <div class="wrStormHead">
+    <div class="wrSec">Hurricane tracker · NHC</div>
+    <div class="wrStormCount" id="wrHurCount">—</div>
+  </div>
+  <div class="wrStormTrack" id="wrHurTrack"></div>
+  <div class="wrStormHead">
+    <div class="wrSec">Tornado tracker · SPC + NWS</div>
+    <div class="wrStormCount" id="wrTorCount">—</div>
+  </div>
+  <div class="wrStormTrack" id="wrTorTrack"></div>
+  <div class="wrFoot" id="wrStormFoot">—</div>
   <div class="wrFoot" id="wrFoot">—</div>
 </div>
 

@@ -11,6 +11,7 @@ import {
   SANANTONIO_WATERS as waters,
   SANANTONIO_CAM_EXTRAS as camExtras,
   SANANTONIO_SKYLINE as skyline,
+  SANANTONIO_SKYLINE_POCKETS as skylinePockets,
   SANANTONIO_ATTRACTIONS as attractions,
   SANANTONIO_RIVER_LATLNG as riverLatLng,
   SANANTONIO_META as meta,
@@ -20,6 +21,6 @@ export function buildSanAntonioRuntimePack(geo) {
   return buildLatLngRuntimePack(geo, {
     ...meta,
     roads, districts, airports, pois, hotspots, corridors,
-    jumpGroups, nws, waters, camExtras, skyline, attractions, riverLatLng,
+    jumpGroups, nws, waters, camExtras, skyline, skylinePockets, attractions, riverLatLng,
   });
 }

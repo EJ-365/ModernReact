@@ -96,7 +96,8 @@ for (const c of PACK_CITIES) {
     assert.ok(pack.districts.some((d) =>
       d.id === 'downtown' || d.id === 'dtla' || d.id === 'fidi' || d.id === 'midtown'
     ));
-    assert.ok(pack.skyline.length >= 4);
+    assert.ok(pack.skyline.length >= 10, c.id + ' researched skyline');
+    assert.ok((pack.skylinePockets || []).length >= 3, c.id + ' CBD fabric pockets');
     assert.ok(pack.boardApts.includes(c.apt));
     const dt = pack.districts.find(
       (d) => d.id === 'downtown' || d.id === 'dtla' || d.id === 'fidi' || d.id === 'midtown',

@@ -19,7 +19,7 @@ export const LOSANGELES_ROAD_LATLNG = [
 ];
 
 export const LOSANGELES_DISTRICTS = [
-  { id:'dtla', n:'Downtown LA', lat:34.0522, lng:-118.2437, r:420 },
+  { id:'dtla', n:'Downtown LA', lat:34.0522, lng:-118.2437, r:420, noHouses:true },
   { id:'hollywood', n:'Hollywood', lat:34.0928, lng:-118.3287, r:360 },
   { id:'santamonica', n:'Santa Monica', lat:34.0195, lng:-118.4912, r:380 },
   { id:'beverlyhills', n:'Beverly Hills', lat:34.0736, lng:-118.4004, r:320 },
@@ -27,7 +27,7 @@ export const LOSANGELES_DISTRICTS = [
   { id:'pasadena', n:'Pasadena', lat:34.1478, lng:-118.1445, r:420 },
   { id:'glendale', n:'Glendale', lat:34.1425, lng:-118.2551, r:400 },
   { id:'burbank', n:'Burbank', lat:34.1808, lng:-118.3090, r:380 },
-  { id:'longbeach', n:'Long Beach', lat:33.7701, lng:-118.1937, r:480 },
+  { id:'longbeach', n:'Long Beach', lat:33.7701, lng:-118.1937, r:480, noHouses:true },
   { id:'anaheim', n:'Anaheim', lat:33.8366, lng:-117.9143, r:440 },
   { id:'irvine', n:'Irvine', lat:33.6846, lng:-117.8265, r:460 },
   { id:'torrance', n:'Torrance', lat:33.8358, lng:-118.3406, r:360 },
@@ -110,15 +110,37 @@ export const LOSANGELES_WATERS = [
 
 export const LOSANGELES_CAM_EXTRAS = [{ id:'hollywood', lat:34.0928, lng:-118.3287, radius:340 }];
 
+/* World height ≈ real feet / 3.16 · DTLA + satellite CBD icons */
 export const LOSANGELES_SKYLINE = [
-  { n:'Wilshire Grand Center', lat:34.0500, lng:-118.2595, w:34, d:32, h:300, s:1, info:'1100 ft · tallest in CA' },
-  { n:'US Bank Tower', lat:34.0509, lng:-118.2545, w:32, d:32, h:280, s:0, info:'1018 ft' },
-  { n:'Aon Center', lat:34.0493, lng:-118.2555, w:30, d:30, h:240, s:2, info:'858 ft' },
-  { n:'Two California Plaza', lat:34.0515, lng:-118.2515, w:28, d:28, h:210, s:1, info:'750 ft' },
-  { n:'Gas Company Tower', lat:34.0505, lng:-118.2530, w:28, d:26, h:205, s:3, info:'749 ft' },
-  { n:'Bank of America Plaza', lat:34.0528, lng:-118.2548, w:28, d:28, h:200, s:0, info:'735 ft' },
-  { n:'777 Tower', lat:34.0485, lng:-118.2615, w:30, d:26, h:195, s:2, info:'725 ft' },
-  { n:'City National Tower', lat:34.0482, lng:-118.2560, w:26, d:26, h:185, s:1, info:'699 ft' },
+  { n:'Wilshire Grand Center', lat:34.05011, lng:-118.25999, w:36, d:34, h:348, s:1, info:'1100 ft · tallest in CA', spire:52 },
+  { n:'U.S. Bank Tower', lat:34.0509, lng:-118.2545, w:34, d:34, h:322, s:0, info:'1018 ft · Library Tower' },
+  { n:'Aon Center', lat:34.0493, lng:-118.2555, w:32, d:32, h:271, s:2, info:'858 ft' },
+  { n:'Two California Plaza', lat:34.0515, lng:-118.2515, w:30, d:28, h:237, s:1, info:'750 ft' },
+  { n:'Gas Company Tower', lat:34.0505, lng:-118.2530, w:28, d:26, h:237, s:3, info:'749 ft' },
+  { n:'Bank of America Plaza', lat:34.0528, lng:-118.2548, w:30, d:28, h:232, s:0, info:'735 ft' },
+  { n:'777 Tower', lat:34.0485, lng:-118.2615, w:30, d:26, h:229, s:2, info:'725 ft · Figueroa' },
+  { n:'Wells Fargo Center North', lat:34.0520, lng:-118.2538, w:28, d:28, h:220, s:1, info:'699 ft' },
+  { n:'City National Plaza South', lat:34.0482, lng:-118.2560, w:28, d:26, h:221, s:0, info:'699 ft twin' },
+  { n:'Paul Hastings Tower', lat:34.0488, lng:-118.2568, w:28, d:26, h:215, s:2, info:'699 ft twin' },
+  { n:'Figueroa at Wilshire', lat:34.0478, lng:-118.2590, w:28, d:26, h:221, s:3, info:'717 ft' },
+  { n:'One California Plaza', lat:34.0522, lng:-118.2520, w:28, d:28, h:198, s:1, info:'578 ft' },
+  { n:'FourFortyFour South Flower', lat:34.0498, lng:-118.2565, w:30, d:28, h:198, s:0, info:'625 ft' },
+  { n:'CITI Group Center LA', lat:34.0480, lng:-118.2585, w:28, d:26, h:190, s:2, info:'625 ft' },
+  { n:'Ernst & Young Plaza', lat:34.0505, lng:-118.2575, w:30, d:28, h:185, s:1, info:'534 ft' },
+  { n:'Los Angeles City Hall', lat:34.0537, lng:-118.2427, w:40, d:36, h:144, s:0, info:'454 ft · 1928 tower' },
+  { n:'Ritz-Carlton / JW Marriott', lat:34.0435, lng:-118.2670, w:36, d:32, h:175, s:3, info:'LA Live twin hotels' },
+  { n:'Century Plaza Tower North', lat:34.0590, lng:-118.4165, w:32, d:30, h:180, s:0, info:'Century City · 571 ft' },
+  { n:'Century Plaza Tower South', lat:34.0582, lng:-118.4160, w:32, d:30, h:180, s:1, info:'Century City twin' },
+  { n:'One World Trade Center LB', lat:33.7675, lng:-118.1930, w:30, d:28, h:168, s:2, info:'Long Beach · Ocean Blvd' },
+];
+
+export const LOSANGELES_SKYLINE_POCKETS = [
+  { n:'Financial District DTLA', lat:34.0505, lng:-118.2555, count:60, rad:280, hmin:55, hmax:220 },
+  { n:'Bunker Hill', lat:34.0540, lng:-118.2510, count:28, rad:180, hmin:50, hmax:190 },
+  { n:'South Park / LA Live', lat:34.0440, lng:-118.2660, count:22, rad:180, hmin:40, hmax:160 },
+  { n:'Century City', lat:34.0588, lng:-118.4165, count:24, rad:200, hmin:50, hmax:170 },
+  { n:'Koreatown high-rise', lat:34.0610, lng:-118.3009, count:16, rad:180, hmin:35, hmax:120 },
+  { n:'Long Beach downtown', lat:33.7680, lng:-118.1950, count:22, rad:200, hmin:40, hmax:150 },
 ];
 
 export const LOSANGELES_ATTRACTIONS = [
