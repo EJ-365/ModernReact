@@ -95,6 +95,7 @@ export const LOSANGELES_JUMP_GROUPS = [
 ];
 
 export const LOSANGELES_NWS = {
+  areas: ['CA'],
   counties: /\b(Los Angeles|Orange|Ventura|San Bernardino|Riverside)\b/i,
   places: /Los Angeles|Long Beach|Anaheim|Santa Ana|Irvine|Pasadena|Glendale|Burbank|Santa Monica|Torrance|Inglewood|Pomona|Fullerton|Huntington Beach|Ontario|Riverside|Ventura|Oxnard/i,
   foot: 'Official NWS alerts for Los Angeles-area counties',

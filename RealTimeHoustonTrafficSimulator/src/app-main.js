@@ -9,6 +9,7 @@ import {
   openMeteoMultiUrl,
 } from './weather-zones.js';
 import { mergePackAirportCoords } from './cities/runtime-lookups.js';
+import { mergeNwsFeatures, nwsAreaCodes } from './feeds/nws.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -7632,10 +7633,12 @@ let _nwsNext=0;
 window.LIVE_NWS={ok:false,at:0,count:0,err:'',features:[]};
 async function fetchNWSAlerts(){
   const hdr={'Accept':'application/geo+json','User-Agent':'HoustonTrafficSimulator/1.0 (educational; contact via github.com/EJ-365/ModernReact)'};
-  const r=await fetch('https://api.weather.gov/alerts/active?area=TX',{headers:hdr,cache:'no-store'});
-  if(!r.ok)throw new Error('NWS '+r.status);
-  const j=await r.json();
-  return (j.features||[]).filter(f=>{
+  const payloads=await Promise.all(nwsAreaCodes(HTS_PACK).map(async area=>{
+    const r=await fetch('https://api.weather.gov/alerts/active?area='+encodeURIComponent(area),{headers:hdr,cache:'no-store'});
+    if(!r.ok)throw new Error('NWS '+area+' '+r.status);
+    return r.json();
+  }));
+  return mergeNwsFeatures(payloads).filter(f=>{
     const p=f.properties||{};
     if(p.status!=='Actual')return false;
     const area=String(p.areaDesc||'')+' '+String(p.event||'')+' '+String(p.headline||'');

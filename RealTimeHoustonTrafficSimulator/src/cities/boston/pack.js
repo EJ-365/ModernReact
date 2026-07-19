@@ -87,6 +87,7 @@ export const BOSTON_JUMP_GROUPS = [
 ];
 
 export const BOSTON_NWS = {
+  areas: ['MA'],
   counties: /\b(Suffolk|Middlesex|Essex|Norfolk|Plymouth)\b/i,
   places: /Boston|Cambridge|Somerville|Brookline|Quincy|Newton|Waltham|Medford|Malden|Chelsea|Revere|Lynn|Salem|Lexington|Dorchester/i,
   foot: 'Official NWS alerts for Boston-area counties',
