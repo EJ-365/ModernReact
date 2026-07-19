@@ -95,6 +95,7 @@ export const NEWYORK_JUMP_GROUPS = [
 ];
 
 export const NEWYORK_NWS = {
+  areas: ['NY', 'NJ'],
   counties: /\b(New York|Kings|Queens|Bronx|Richmond|Nassau|Suffolk|Westchester|Bergen|Hudson|Essex|Union)\b/i,
   places: /New York|Manhattan|Brooklyn|Queens|Bronx|Staten Island|Jersey City|Newark|Hoboken|Yonkers|Jamaica|Flushing|Astoria/i,
   foot: 'Official NWS alerts for New York-area counties',

@@ -8,6 +8,8 @@ import {
   rainIntensityAt,
   openMeteoMultiUrl,
 } from './weather-zones.js';
+import { mergePackAirportCoords } from './cities/runtime-lookups.js';
+import { mergeNwsFeatures, nwsAreaCodes } from './feeds/nws.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -517,7 +519,7 @@ function pickAnyActiveAeroFlight(flights,ctx){
   }
   return best;
 }
-const APT_COORDS={
+const APT_COORDS=mergePackAirportCoords({
   IAH:{lat:29.9844,lng:-95.3414},HOU:{lat:29.6454,lng:-95.2789},EFD:{lat:29.6073,lng:-95.1588},
   SGR:{lat:29.6223,lng:-95.6565},DWH:{lat:30.0619,lng:-95.5528},IWS:{lat:29.8182,lng:-95.6726},
   CXO:{lat:30.3518,lng:-95.4145},BMT:{lat:29.9508,lng:-94.0207},DEN:{lat:39.8561,lng:-104.6737},
@@ -526,7 +528,7 @@ const APT_COORDS={
   MSY:{lat:29.9934,lng:-90.2580},DAL:{lat:32.8471,lng:-96.8518},PHX:{lat:33.4373,lng:-112.0078},
   LAS:{lat:36.0840,lng:-115.1537},MIA:{lat:25.7959,lng:-80.2870},JFK:{lat:40.6413,lng:-73.7781},
   SEA:{lat:47.4502,lng:-122.3088},CUN:{lat:21.0365,lng:-86.8771},MEX:{lat:19.4361,lng:-99.0719},
-};
+},HTS_PACK);
 function flightPhase(f){
   const alt=flightAltFt(f);
   const spdKnown=flightGsKts(f); /* null = incomplete ADS-B — never treat as "stopped on final" */
@@ -7631,10 +7633,12 @@ let _nwsNext=0;
 window.LIVE_NWS={ok:false,at:0,count:0,err:'',features:[]};
 async function fetchNWSAlerts(){
   const hdr={'Accept':'application/geo+json','User-Agent':'HoustonTrafficSimulator/1.0 (educational; contact via github.com/EJ-365/ModernReact)'};
-  const r=await fetch('https://api.weather.gov/alerts/active?area=TX',{headers:hdr,cache:'no-store'});
-  if(!r.ok)throw new Error('NWS '+r.status);
-  const j=await r.json();
-  return (j.features||[]).filter(f=>{
+  const payloads=await Promise.all(nwsAreaCodes(HTS_PACK).map(async area=>{
+    const r=await fetch('https://api.weather.gov/alerts/active?area='+encodeURIComponent(area),{headers:hdr,cache:'no-store'});
+    if(!r.ok)throw new Error('NWS '+area+' '+r.status);
+    return r.json();
+  }));
+  return mergeNwsFeatures(payloads).filter(f=>{
     const p=f.properties||{};
     if(p.status!=='Actual')return false;
     const area=String(p.areaDesc||'')+' '+String(p.event||'')+' '+String(p.headline||'');
