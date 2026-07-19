@@ -13,6 +13,7 @@ import {
   fetchSpcTornadoOutlook,
   fetchStormAlerts,
   spcRiskLabel,
+  spcRiskAtPoint,
   stormsNearMetro,
   nhcClassLabel,
   nwsStatesForCity,
@@ -31,7 +32,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.43 (0718-storm-polish). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.44 (0719-spc-metro-label). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -7013,7 +7014,7 @@ let _stormNext=0;
 let _stormAlertEls=[];
 window.STORM_TRACKER={
   ok:false,at:0,err:'',
-  hurricanes:[],nearStorms:[],tornadoOutlook:[],alerts:{tornado:[],hurricane:[],all:[]},
+  hurricanes:[],nearStorms:[],tornadoOutlook:[],metroRisk:null,alerts:{tornado:[],hurricane:[],all:[]},
   showTornado:true,showHurricane:true,group:null,labels:[],
 };
 function stormTrackerOrigin(){
@@ -7132,6 +7133,13 @@ function stormTrackerRenderMap(){
         if(edge)grp.add(edge);
       }
     }
+    if(ST.metroRisk){
+      const org=stormTrackerOrigin();
+      const w=geoToWorld(org.lat,org.lng);
+      const tag=textSprite('SPC '+(ST.metroRisk.label||'')+' tornado risk — metro inside',0.3);
+      tag.position.set(w.x,54,w.z);
+      grp.add(tag);ST.labels.push(tag);
+    }
     for(const a of ST.alerts.tornado||[]){
       const col=a.tier==='warning'?0xef4444:0xf97316;
       for(const ring of stormGeoRings(a.feature&&a.feature.geometry)){
@@ -7182,7 +7190,8 @@ function renderStormTrackerPanel(){
   const hurN=(ST.alerts.hurricane||[]).length;
   const near=ST.nearStorms||[];
   if(hCount)hCount.textContent=near.length?(`${near.length} active · ${hurN} alert${hurN===1?'':'s'}`):(`${ST.hurricanes.length} basin · ${hurN} alert${hurN===1?'':'s'}`);
-  if(tCount)tCount.textContent=torN?(`${torN} NWS · SPC outlook`):spcRiskLabel(ST.tornadoOutlook);
+  if(tCount)tCount.textContent=torN?(`${torN} NWS · SPC outlook`)
+    :(ST.metroRisk?`Metro inside SPC ${ST.metroRisk.label||'risk'} area`:spcRiskLabel(ST.tornadoOutlook));
   if(chip){
     const hot=torN||hurN||near.length;
     chip.style.display=hot?'inline-flex':'none';
@@ -7196,7 +7205,8 @@ function renderStormTrackerPanel(){
   if(layerState){
     const age=ST.at?Math.max(0,Math.round((Date.now()-ST.at)/60000)):null;
     const tor=torN?(torN+' local alert'+(torN===1?'':'s'))
-      :((ST.tornadoOutlook||[]).length?spcRiskLabel(ST.tornadoOutlook).replace('SPC Day 1 tornado outlook · ','SPC '):'no active risk');
+      :(ST.metroRisk?('metro inside SPC '+(ST.metroRisk.label||'risk')+' area')
+      :((ST.tornadoOutlook||[]).length?'SPC risk areas elsewhere':'no active risk'));
     const hur=hurN?(hurN+' local alert'+(hurN===1?'':'s'))
       :(near.length?(near.length+' nearby storm'+(near.length===1?'':'s')):'none nearby');
     layerState.textContent='Tornado: '+tor+' · Hurricane: '+hur
@@ -7251,9 +7261,12 @@ function renderStormTrackerPanel(){
     }
   }
   if(tBox){
+    const metroLine=ST.metroRisk
+      ?('<b>This metro is inside today\u2019s '+escHtml(ST.metroRisk.label||'')+' tornado risk area</b> \u2014 that\u2019s the amber shading on the map.')
+      :((ST.tornadoOutlook||[]).length?'This metro is outside today\u2019s risk areas \u2014 nothing shades the map here.':'');
     const outlook=ST.tornadoOutlook&&ST.tornadoOutlook.length
       ?('<div class="wrStormCard tornado outlook"><div class="tag">SPC Day 1</div><div class="ev">'+escHtml(spcRiskLabel(ST.tornadoOutlook))+'</div>'
-        +'<div class="area">Probabilistic tornado outlook — shaded on map when tracker is on.</div></div>')
+        +'<div class="area">'+(metroLine||'Probabilistic tornado outlook \u2014 shaded on map when tracker is on.')+'</div></div>')
       :'<div class="wrStormEmpty">SPC Day 1 tornado outlook not available — will retry on next poll.</div>';
     const alertCards=(ST.alerts.tornado||[]).slice(0,6).map(a=>{
       const p=a.feature.properties||{};
@@ -7327,6 +7340,7 @@ async function refreshStormTracker(force){
     ST.hurricanes=hur;
     ST.nearStorms=stormsNearMetro(hur,origin.lat,origin.lng,950);
     ST.tornadoOutlook=outlook;
+    ST.metroRisk=spcRiskAtPoint(outlook,origin.lat,origin.lng);
     ST.alerts=alerts;
     ST.ok=true;ST.err='';ST.at=Date.now();
   }catch(e){

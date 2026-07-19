@@ -332,6 +332,36 @@ export async function fetchStormAlerts(pack, cityId) {
   };
 }
 
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Highest-probability SPC outlook area containing the point, or null. */
+export function spcRiskAtPoint(outlooks, lat, lng) {
+  if (!outlooks || !outlooks.length || lat == null || lng == null) return null;
+  let best = null;
+  for (const o of outlooks) {
+    const g = o.geometry;
+    if (!g || !g.coordinates) continue;
+    const polys = g.type === 'Polygon' ? [g.coordinates]
+      : (g.type === 'MultiPolygon' ? g.coordinates : []);
+    const hit = polys.some((poly) => {
+      if (!poly || !poly[0] || !pointInRing(lng, lat, poly[0])) return false;
+      return !poly.slice(1).some((hole) => pointInRing(lng, lat, hole));
+    });
+    if (hit && (!best || (o.dn || 0) > (best.dn || 0))) best = o;
+  }
+  return best;
+}
+
 export function spcRiskLabel(outlooks) {
   if (!outlooks || !outlooks.length) return 'No SPC tornado risk area today';
   const best = outlooks.reduce((a, b) => ((a.dn || 0) > (b.dn || 0) ? a : b), outlooks[0]);
