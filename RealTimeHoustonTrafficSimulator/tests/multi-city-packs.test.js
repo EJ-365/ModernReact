@@ -9,6 +9,7 @@ import { buildDallasRuntimePack } from '../src/cities/dallas/runtime.js';
 import { buildLosAngelesRuntimePack } from '../src/cities/losangeles/runtime.js';
 import { buildNewYorkRuntimePack } from '../src/cities/newyork/runtime.js';
 import { buildBostonRuntimePack } from '../src/cities/boston/runtime.js';
+import { mergePackAirportCoords } from '../src/cities/runtime-lookups.js';
 import { SANANTONIO_ROAD_LATLNG, SANANTONIO_AIRPORTS } from '../src/cities/sanantonio/pack.js';
 import { DALLAS_ROAD_LATLNG, DALLAS_AIRPORTS } from '../src/cities/dallas/pack.js';
 import { LOSANGELES_ROAD_LATLNG, LOSANGELES_AIRPORTS } from '../src/cities/losangeles/pack.js';
@@ -98,6 +99,14 @@ for (const c of PACK_CITIES) {
     ));
     assert.ok(pack.skyline.length >= 4);
     assert.ok(pack.boardApts.includes(c.apt));
+    const airportCoords = mergePackAirportCoords({ IAH: { lat: 29.9844, lng: -95.3414 } }, pack);
+    for (const airport of c.airports) {
+      assert.deepEqual(
+        airportCoords[airport.code],
+        pack.aptCoords[airport.code],
+        c.id + ' missing runtime coordinates for ' + airport.code,
+      );
+    }
     const dt = pack.districts.find(
       (d) => d.id === 'downtown' || d.id === 'dtla' || d.id === 'fidi' || d.id === 'midtown',
     );
