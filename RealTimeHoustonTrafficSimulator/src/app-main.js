@@ -326,7 +326,7 @@ function liveFlightEligible(f){
   const gsNow=flightGsKts(f);
   const alt=flightAltFt(f);
   if(f.onGround){
-    const taxiGs=Math.max(gsNow||0,(f._posMoved&&f._estGs)||0);
+    const taxiGs=Math.max(gsNow||0,(f._fixMoved&&f._estGs)||0);
     if(taxiGs<25&&(alt==null||alt<400))return false;
   }
   if(cls==='heli'||cls==='prop')return true;
@@ -2465,6 +2465,17 @@ const AIRPORTS=[
 if(HTS_PACK&&HTS_PACK.airports&&HTS_PACK.airports.length){
   AIRPORTS.length=0;
   for(const a of HTS_PACK.airports)AIRPORTS.push(a);
+}
+/* Pack metros ship aptCoords on HTS_PACK — sync into APT_COORDS so nearestDecorAirport / routeFitsPosition work (BOS, LGA, ADS, …). */
+if(HTS_PACK&&HTS_PACK.aptCoords){
+  for(const [code,c] of Object.entries(HTS_PACK.aptCoords)){
+    if(c&&Number.isFinite(c.lat)&&Number.isFinite(c.lng))APT_COORDS[code]=c;
+  }
+}
+for(const a of AIRPORTS){
+  if(a.code&&Number.isFinite(a.lat)&&Number.isFinite(a.lng)){
+    APT_COORDS[a.code]={lat:a.lat,lng:a.lng,x:a.x,z:a.z};
+  }
 }
 for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?540:320,airfield:true});
 /* Keep cars off runway/apron pads even if a road polyline clips the field */
@@ -8101,7 +8112,7 @@ function updateLiveFlights(dt){
     let flyGs=0;
     if(f.onGround){
       if(gs>=minGs&&gs<90)flyGs=gs;
-      else if(f._posMoved&&Number.isFinite(f._estGs)&&f._estGs>=minGs&&f._estGs<90)flyGs=f._estGs;
+      else if(f._fixMoved&&Number.isFinite(f._estGs)&&f._estGs>=minGs&&f._estGs<90)flyGs=f._estGs;
       else{flyGs=0;f._lastGoodGs=0;f._estGs=0;}
       f._assumedMotion=false;
     }else if(gs>=minGs){flyGs=gs;f._lastGoodGs=gs;}
