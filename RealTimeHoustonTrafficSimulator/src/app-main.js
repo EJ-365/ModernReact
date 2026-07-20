@@ -2466,17 +2466,6 @@ if(HTS_PACK&&HTS_PACK.airports&&HTS_PACK.airports.length){
   AIRPORTS.length=0;
   for(const a of HTS_PACK.airports)AIRPORTS.push(a);
 }
-/* Pack metros ship aptCoords on HTS_PACK — sync into APT_COORDS so nearestDecorAirport / routeFitsPosition work (BOS, LGA, ADS, …). */
-if(HTS_PACK&&HTS_PACK.aptCoords){
-  for(const [code,c] of Object.entries(HTS_PACK.aptCoords)){
-    if(c&&Number.isFinite(c.lat)&&Number.isFinite(c.lng))APT_COORDS[code]=c;
-  }
-}
-for(const a of AIRPORTS){
-  if(a.code&&Number.isFinite(a.lat)&&Number.isFinite(a.lng)){
-    APT_COORDS[a.code]={lat:a.lat,lng:a.lng,x:a.x,z:a.z};
-  }
-}
 for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?540:320,airfield:true});
 /* Keep cars off runway/apron pads even if a road polyline clips the field */
 window.AIRFIELDS=AIRPORTS.map(a=>({x:a.x,z:a.z,r:a.intl?420:260}));
