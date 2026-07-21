@@ -17,6 +17,10 @@ import {
   stormsNearMetro,
   nhcClassLabel,
   nwsStatesForCity,
+  distanceMi,
+  bearingDeg,
+  compassFromBearing,
+  clampTowardPoint,
 } from './feeds/storm-tracker.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
@@ -32,7 +36,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.44 (0719-spc-metro-label). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.45 (0720-offshore-storm-clamp). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -7094,24 +7098,38 @@ function stormGeometryBounds(geom){
   walk(geom.coordinates);
   return n?{lat:(minLat+maxLat)/2,lng:(minLng+maxLng)/2,minLat,maxLat,minLng,maxLng}:null;
 }
-function flyToStormLocation(lat,lng,geom){
+function flyToStormLocation(lat,lng,geom,meta){
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
   stopFollow();
   closePoiCard();
-  const w=geoToWorld(lat,lng);
+  const org=stormTrackerOrigin();
+  const MAX_FLY_MI=95;
+  const aim=clampTowardPoint(org.lat,org.lng,lat,lng,MAX_FLY_MI);
+  const w=geoToWorld(aim.lat,aim.lng);
   let radius=900;
-  const b=stormGeometryBounds(geom);
-  if(b){
-    const a=geoToWorld(b.minLat,b.minLng),z=geoToWorld(b.maxLat,b.maxLng);
-    radius=clamp(Math.hypot(z.x-a.x,z.z-a.z)*1.15,520,4200);
+  if(!aim.clamped){
+    const b=stormGeometryBounds(geom);
+    if(b){
+      const a=geoToWorld(b.minLat,b.minLng),z=geoToWorld(b.maxLat,b.maxLng);
+      radius=clamp(Math.hypot(z.x-a.x,z.z-a.z)*1.15,520,4200);
+    }
+  }else{
+    radius=2200;
   }
   camGoal.target.set(w.x,0,w.z);
   camGoal.radius=radius;camGoal.phi=0.94;
+  const status=$('stormLayerStatus');
+  if(status&&aim.clamped){
+    const name=(meta&&meta.name)||'Storm';
+    const br=compassFromBearing(bearingDeg(org.lat,org.lng,lat,lng));
+    status.textContent=name+' is ~'+Math.round(aim.mi)+' mi '+br+' of this metro — camera stopped at map edge (storm is offshore)';
+    status.classList.add('warn');
+  }
   closeWeatherReport();
 }
 function flyToStormAlert(alert){
   const b=stormGeometryBounds(alert&&alert.feature&&alert.feature.geometry);
-  if(b)flyToStormLocation(b.lat,b.lng,alert.feature.geometry);
+  if(b)flyToStormLocation(b.lat,b.lng,alert.feature.geometry,{name:(alert.label||'Alert')});
 }
 function stormTrackerClearMap(){
   const ST=window.STORM_TRACKER;
@@ -7151,22 +7169,37 @@ function stormTrackerRenderMap(){
     }
   }
   if(ST.showHurricane){
-    for(const s of ST.hurricanes||[]){
+    const org=stormTrackerOrigin();
+    const DRAW_FULL_MI=160;
+    const EDGE_MI=78;
+    const list=(ST.nearStorms&&ST.nearStorms.length)?ST.nearStorms:ST.hurricanes;
+    for(const s of list||[]){
       if(s.lat==null||s.lng==null)continue;
-      const w=geoToWorld(s.lat,s.lng);
+      const mi=distanceMi(org.lat,org.lng,s.lat,s.lng);
+      const br=compassFromBearing(bearingDeg(org.lat,org.lng,s.lat,s.lng));
+      const onMap=mi<=DRAW_FULL_MI;
+      const aim=onMap
+        ?{lat:s.lat,lng:s.lng,mi,clamped:false}
+        :clampTowardPoint(org.lat,org.lng,s.lat,s.lng,EDGE_MI);
+      const w=geoToWorld(aim.lat,aim.lng);
       const r=Math.max(80,120+(s.cat||0)*55);
       const col=s.cat>=3?0x7c3aed:s.cat>=1?0x6366f1:0x38bdf8;
-      if(s.cone&&s.cone.length>=3){
+      if(onMap&&s.cone&&s.cone.length>=3){
         const cone=stormMakePolyMesh([s.cone],0xa78bfa,0.13,11);
         const coneEdge=stormMakeLine([s.cone],0xc4b5fd,0.58,12);
         if(cone)grp.add(cone);
         if(coneEdge)grp.add(coneEdge);
       }
-      grp.add(hazMakeDisk(w.x,w.z,r,col,0.24,13));
+      grp.add(hazMakeDisk(w.x,w.z,onMap?r:r*1.15,col,onMap?0.24:0.32,13));
       grp.add(hazMakeDisk(w.x,w.z,Math.max(40,r*0.35),0xffffff,0.12,14));
-      const track=stormMakeTrackLine(s.track,0xc4b5fd,0.85,14);
-      if(track)grp.add(track);
-      const tag=textSprite((s.name||'Storm')+' · '+s.intensity+' mph',0.34);
+      if(onMap){
+        const track=stormMakeTrackLine(s.track,0xc4b5fd,0.85,14);
+        if(track)grp.add(track);
+      }
+      const label=onMap
+        ?((s.name||'Storm')+' · '+s.intensity+' mph')
+        :((s.name||'Storm')+' · ~'+Math.round(mi)+' mi '+br+' · '+s.intensity+' mph');
+      const tag=textSprite(label,0.34);
       tag.position.set(w.x,42,w.z);
       grp.add(tag);ST.labels.push(tag);
     }
@@ -7208,7 +7241,13 @@ function renderStormTrackerPanel(){
       :(ST.metroRisk?('metro inside SPC '+(ST.metroRisk.label||'risk')+' area')
       :((ST.tornadoOutlook||[]).length?'SPC risk areas elsewhere':'no active risk'));
     const hur=hurN?(hurN+' local alert'+(hurN===1?'':'s'))
-      :(near.length?(near.length+' nearby storm'+(near.length===1?'':'s')):'none nearby');
+      :(near.length?(function(){
+          const org=stormTrackerOrigin();
+          const s=near[0];
+          const mi=distanceMi(org.lat,org.lng,s.lat,s.lng);
+          const br=compassFromBearing(bearingDeg(org.lat,org.lng,s.lat,s.lng));
+          return (s.name||'Storm')+' ~'+Math.round(mi)+' mi '+br+(near.length>1?(' +'+(near.length-1)):'');
+        })():'none nearby');
     layerState.textContent='Tornado: '+tor+' · Hurricane: '+hur
       +' · '+(age==null?'fetching':(age===0?'just now':age+'m ago'));
     layerState.classList.toggle('warn',!!(torN||hurN));
@@ -7232,12 +7271,19 @@ function renderStormTrackerPanel(){
       const cards=(near.length?near:ST.hurricanes).slice(0,4).map(s=>{
         const cat=s.cat?('Cat '+s.cat+' · '):'';
         const mv=s.movementDir!=null?(' · moving '+Math.round(s.movementDir)+'° at '+s.movementSpeed+' kt'):'';
+        const org=stormTrackerOrigin();
+        const mi=Number.isFinite(s.lat)?distanceMi(org.lat,org.lng,s.lat,s.lng):null;
+        const br=mi!=null?compassFromBearing(bearingDeg(org.lat,org.lng,s.lat,s.lng)):'';
+        const offshore=mi!=null&&mi>160;
+        const distLine=mi!=null?(' · ~'+Math.round(mi)+' mi '+br+' of this metro'):'';
         return '<div class="wrStormCard hurricane clickable" data-storm-id="'+escHtml(s.id||'')+'">'
           +'<div class="tag">NHC · '+escHtml(s.classLabel||nhcClassLabel(s.classification))+'</div>'
           +'<div class="ev">'+escHtml(s.name||'Storm')+' · '+escHtml(String(s.intensity))+' mph</div>'
           +'<div class="area">'+cat+'Lat '+Number(s.lat).toFixed(1)+' · Lon '+Math.abs(Number(s.lng)).toFixed(1)+(Number(s.lng)<0?'W':'E')+mv
-          +' · '+escHtml(s.trackSource||'NHC track')+'</div>'
-          +'<div class="until">Tap card to fly to storm</div>'
+          +distLine+' · '+escHtml(s.trackSource||'NHC track')+'</div>'
+          +'<div class="until">'+(offshore
+            ?'Offshore — tap to look toward storm from metro edge'
+            :'Tap card to fly to storm')+'</div>'
           +(s.advisoryUrl?'<div class="until"><a href="'+escHtml(s.advisoryUrl)+'" target="_blank" rel="noopener">NHC advisory ↗</a></div>':'')
           +'</div>';
       }).join('');
@@ -7253,7 +7299,7 @@ function renderStormTrackerPanel(){
       hBox.querySelectorAll('[data-storm-id]').forEach(el=>el.addEventListener('click',e=>{
         if(e.target&&e.target.closest&&e.target.closest('a'))return;
         const s=(ST.hurricanes||[]).find(x=>String(x.id)===el.getAttribute('data-storm-id'));
-        if(s)flyToStormLocation(s.lat,s.lng);
+        if(s)flyToStormLocation(s.lat,s.lng,null,{name:s.name||'Storm'});
       }));
       hBox.querySelectorAll('[data-hur-alert]').forEach(el=>el.addEventListener('click',()=>{
         flyToStormAlert((ST.alerts.hurricane||[])[+el.getAttribute('data-hur-alert')]);
