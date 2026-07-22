@@ -36,7 +36,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.45 (0720-offshore-storm-clamp). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.49 (0721-chicago-miami). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -360,9 +360,13 @@ function liveFlightRank(f){
 }
 function getSyncedLiveFlights(limit){
   if(!window.LIVE_FLIGHT_LIST)return [];
-  const list=LIVE_FLIGHT_LIST
+  let list=LIVE_FLIGHT_LIST
     .filter(liveFlightEligible)
     .sort((a,b)=>liveFlightRank(b)-liveFlightRank(a));
+  const pinned=window._selectedFlight;
+  if(pinned&&liveFlightEligible(pinned)){
+    list=[pinned,...list.filter(x=>x!==pinned)];
+  }
   return (limit!=null)?list.slice(0,limit):list;
 }
 function syncLiveFlightVisibility(){
@@ -6537,8 +6541,8 @@ function enhanceGpsPlaceLabel(label,lat,lng){
   const city=cityPlaceCity();
   const generic=new RegExp('^('+[
     'houston','austin','dallas','san antonio','boston','los angeles','new york',
-    'fort worth','texas','california','massachusetts','new york city','nyc',
-    'near you','united states','usa',
+    'chicago','miami','fort worth','texas','california','massachusetts','illinois','florida',
+    'new york city','nyc','near you','united states','usa',
   ].map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')$', 'i');
   const dist=placeLabelFromDistricts(lat,lng,4.5);
   if(!label||generic.test(String(label).trim())||String(label).trim().toLowerCase()===city.toLowerCase())
@@ -6598,7 +6602,7 @@ async function reverseGeocodePlace(lat,lng){
       const picked=pickNominatimPlace(j);
       if(picked&&picked.display){
         const hood=picked.hood||picked.named||'';
-        const hoodWeak=!hood||/^(sugar land|houston|katy|missouri city|fort bend|fort bend county|harris county|texas|austin|travis county|williamson county|dallas|tarrant county|boston|suffolk county|los angeles|new york|manhattan|san antonio|bexar county|california|massachusetts)$/i.test(hood);
+        const hoodWeak=!hood||/^(sugar land|houston|katy|missouri city|fort bend|fort bend county|harris county|texas|austin|travis county|williamson county|dallas|tarrant county|boston|suffolk county|los angeles|new york|manhattan|san antonio|bexar county|chicago|cook county|miami|miami-dade|miami beach|california|massachusetts|illinois|florida)$/i.test(hood);
         if(localName&&(hoodWeak||(distHit&&distHit.mi<1.6)||(houHood&&houHood.mi<1.25))){
           _placeCache={lat,lng,name:localName,at:Date.now()};
           return localName;
@@ -7259,9 +7263,28 @@ function renderStormTrackerPanel(){
       ||[...(ST.alerts.tornado||[]),...(ST.alerts.hurricane||[])][0];
     banner.style.display=urgent?'block':'none';
     banner.className='stormImpact '+(urgent?urgent.kind:'');
-    banner.textContent=urgent
-      ?urgent.label+' in the metro · traffic model is applying a modest weather-response delay'
-      :'';
+    if(!urgent){
+      banner.textContent='';
+    }else{
+      const title=urgent.label||'Storm alert';
+      let stormName='';
+      if(urgent.kind==='hurricane'){
+        const p=(urgent.feature&&urgent.feature.properties)||{};
+        const blob=[p.headline,p.description,p.event,p.areaDesc].filter(Boolean).join(' ');
+        const named=(ST.nearStorms&&ST.nearStorms.length?ST.nearStorms:ST.hurricanes)||[];
+        const hit=named.find(s=>s&&s.name&&new RegExp('\\b'+String(s.name).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i').test(blob));
+        stormName=(hit&&hit.name)||(named[0]&&named[0].name)||'';
+      }
+      const head=stormName?(title+' for '+stormName):(title+' for the metro');
+      let trafficBit='Traffic is running a little slower while this is in effect.';
+      if(urgent.tier==='warning'||urgent.tier==='surge')
+        trafficBit='Expect heavier delays — traffic is slowed for this weather alert.';
+      else if(urgent.tier==='severe')
+        trafficBit='Traffic is slowed for severe weather in the area.';
+      else if(urgent.tier==='watch')
+        trafficBit='Not hitting yet — traffic is only slightly slower as a precaution.';
+      banner.textContent=head+'. '+trafficBit;
+    }
   }
   if(hBox){
     if(!ST.hurricanes.length&&!hurN){
@@ -9093,6 +9116,43 @@ function stopFollow(){
     followPlane.m.userData.halo.material.opacity=0;
   }
   follow=null;followPlane=null;document.getElementById('followChip').style.display='none';
+  clearFlightCardHighlight();
+}
+function flightIdKey(f){
+  if(!f)return '';
+  return String(f.icao24||f.faFlightId||'')+'|'+(f.cs||'')+'|'+(f.csIata||'');
+}
+function clearFlightCardHighlight(){
+  window._selectedFlight=null;
+  const fl=$('flights');
+  if(fl)fl.querySelectorAll('.fcard.selected').forEach(el=>el.classList.remove('selected'));
+}
+function applyFlightCardSelection(opts){
+  const fl=$('flights');
+  if(!fl)return;
+  const f=window._selectedFlight;
+  const key=flightIdKey(f);
+  const doScroll=!(opts&&opts.silent);
+  let scrolled=false;
+  fl.querySelectorAll('.fcard').forEach(el=>{
+    const on=!!(f&&key&&el.dataset.fkey===key);
+    const was=el.classList.contains('selected');
+    el.classList.toggle('selected',on);
+    if(on&&doScroll&&!was&&!scrolled){
+      scrolled=true;
+      try{el.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){try{el.scrollIntoView(false);}catch(e2){}}
+    }
+  });
+}
+function highlightFlightCard(f){
+  if(!f||f.kind==='board'){clearFlightCardHighlight();return;}
+  window._selectedFlight=f;
+  if(typeof syncLiveFlightVisibility==='function')syncLiveFlightVisibility();
+  if(window.htsMobile&&window.htsMobile.isMobile&&window.htsMobile.isMobile()){
+    try{window.htsMobile.openPanel('live');}catch(e){}
+  }
+  applyFlightCardSelection();
+  requestAnimationFrame(()=>applyFlightCardSelection());
 }
 function focusAircraftInSky(f){
   if(!f||f.kind==='board')return false;
@@ -9136,6 +9196,7 @@ function focusAircraftInSky(f){
   document.getElementById('followChip').style.display='flex';
   const cs=callsignPair(f.cs,f.csIata).main||f.cs||'aircraft';
   document.getElementById('fTxt').textContent='Following '+cs+' · '+(flightGsKts(f)!=null?flightGsKts(f)+' kts':'— kts')+' · scroll to zoom';
+  highlightFlightCard(f);
   return true;
 }
 function findNextAircraftInSky(){
@@ -11927,6 +11988,7 @@ function updateHUD(nightF,skyH){
         for(const f of list){
           const r=document.createElement('div');
           r.className='fcard';
+          r.dataset.fkey=flightIdKey(f);
           flEl.appendChild(r);
           f.cardEl=r;
           r.innerHTML=renderFlightCard(f);
@@ -11938,6 +12000,7 @@ function updateHUD(nightF,skyH){
         for(let i=0;i<list.length;i++){
           const f=list[i];
           f.cardEl=flEl.children[i];
+          if(f.cardEl)f.cardEl.dataset.fkey=flightIdKey(f);
           if(f.cardEl&&(!window._flightCardSigs||window._flightCardSigs[i]!==sigs[i])){
             f.cardEl.innerHTML=renderFlightCard(f);
           }
@@ -11949,12 +12012,14 @@ function updateHUD(nightF,skyH){
         for(let i=0;i<list.length;i++){
           const f=list[i];
           f.cardEl=flEl.children[i];
+          if(f.cardEl)f.cardEl.dataset.fkey=flightIdKey(f);
           if(f.cardEl&&(!window._flightStatsSigs||window._flightStatsSigs[i]!==stats[i])){
             patchFlightCardStats(f.cardEl,f);
           }
         }
         window._flightStatsSigs=stats;
       }
+      applyFlightCardSelection({silent:true});
     }
     const flSrc=$('flSrc');
     if(flSrc){

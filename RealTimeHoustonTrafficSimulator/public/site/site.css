@@ -312,6 +312,7 @@ a:hover{text-decoration:underline}
 .cities-section{position:relative}
 .city-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .city-grid-7{grid-template-columns:repeat(4,1fr)}
+.city-grid-9{grid-template-columns:repeat(3,1fr)}
 .city-footnote code{font-size:12px;padding:2px 6px;border-radius:6px;
   background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--teal)}
 .city-card{position:relative;padding:24px;border-radius:var(--radius);overflow:hidden;
@@ -428,12 +429,12 @@ a:hover{text-decoration:underline}
   animation:starTwinkle 5s ease-in-out infinite alternate}
 
 @media (max-width:1100px){
-  .city-grid-7{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .city-grid-7,.city-grid-9{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:960px){
   .pulse-bar{grid-template-columns:1fr 1fr;gap:20px}
   .pulse-item{border-right:0;border-bottom:1px solid var(--line);padding-bottom:16px}
-  .feature-rail,.dl-grid,.city-grid,.city-grid-7,.update-rail{grid-template-columns:1fr}
+  .feature-rail,.dl-grid,.city-grid,.city-grid-7,.city-grid-9,.update-rail{grid-template-columns:1fr}
   .about-grid{grid-template-columns:1fr}
   .nav{gap:10px;padding:max(12px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) 12px max(14px,env(safe-area-inset-left,0px))}
   .brand-text{font-size:12px;max-width:42vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

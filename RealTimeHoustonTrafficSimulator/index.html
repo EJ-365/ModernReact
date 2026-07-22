@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Houston Traffic Simulator · 7 metros live · by Ejay Gabriel</title>
-<meta name="description" content="Live 3D metro simulator across Houston, Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston — freeways, suburb weather, ADS-B flights. By Ejay Gabriel.">
+<meta name="description" content="Live 3D metro simulator across Houston, Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, Boston, Chicago, and Miami — freeways, suburb weather, ADS-B flights. By Ejay Gabriel.">
 <meta name="author" content="Ejay Gabriel">
 <meta name="theme-color" content="#0a0e14">
 <meta property="og:title" content="Houston Traffic Simulator · 7 metros live">
-<meta property="og:description" content="Seven U.S. metros live with researched freeways, per-suburb weather, and real aircraft. By Ejay Gabriel.">
+<meta property="og:description" content="Nine U.S. metros live with researched freeways, per-suburb weather, and real aircraft. By Ejay Gabriel.">
 <meta property="og:type" content="website">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -114,7 +114,7 @@
           <span>Open Houston</span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a class="btn soft lg" href="#cities">All 7 cities</a>
+        <a class="btn soft lg" href="#cities">All 9 cities</a>
       </div>
     </div>
 
@@ -126,8 +126,8 @@
 
   <div class="ticker" id="pulse" aria-hidden="true">
     <div class="ticker-track">
-      <span>Houston · Austin · San Antonio · Dallas–Fort Worth · Los Angeles · New York · Boston · suburb weather mosaic · ADS-B sky · TranStar · TomTom · Open-Meteo rain · IAH · AUS · DFW · LAX · JFK · BOS ·</span>
-      <span>Houston · Austin · San Antonio · Dallas–Fort Worth · Los Angeles · New York · Boston · suburb weather mosaic · ADS-B sky · TranStar · TomTom · Open-Meteo rain · IAH · AUS · DFW · LAX · JFK · BOS ·</span>
+      <span>Houston · Austin · San Antonio · Dallas–Fort Worth · Los Angeles · New York · Boston · Chicago · Miami · suburb weather mosaic · ADS-B sky · TranStar · TomTom · Open-Meteo rain · IAH · AUS · DFW · LAX · JFK · BOS · ORD · MIA ·</span>
+      <span>Houston · Austin · San Antonio · Dallas–Fort Worth · Los Angeles · New York · Boston · Chicago · Miami · suburb weather mosaic · ADS-B sky · TranStar · TomTom · Open-Meteo rain · IAH · AUS · DFW · LAX · JFK · BOS · ORD · MIA ·</span>
     </div>
   </div>
 
@@ -153,7 +153,7 @@
   <section class="section" id="features">
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">Craft</p>
-      <h2>One platform. Seven metros.</h2>
+      <h2>One platform. Nine metros.</h2>
       <p>Started as Space City — now a shared 3D engine with researched freeways, skylines, and feeds for each place.</p>
     </div>
     <div class="feature-rail">
@@ -205,10 +205,10 @@
   <section class="section cities-section" id="cities">
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">Atlas</p>
-      <h2>Seven metros. Launch any of them.</h2>
+      <h2>Nine metros. Launch any of them.</h2>
       <p>Each city ships with freeways, districts, airports, skyline, attractions, and live weather — pick one and fly.</p>
     </div>
-    <div class="city-grid city-grid-7">
+    <div class="city-grid city-grid-9">
       <article class="city-card live reveal" data-reveal>
         <div class="city-glow" aria-hidden="true"></div>
         <span class="city-status"><i class="live-pip"></i> Live now</span>
@@ -258,10 +258,24 @@
         <p>I-93 / Mass Pike · Fenway · Logan · Harbor</p>
         <a class="btn primary" href="/app.html?city=boston">Launch</a>
       </article>
+      <article class="city-card live reveal" data-reveal>
+        <div class="city-glow" aria-hidden="true"></div>
+        <span class="city-status"><i class="live-pip"></i> Live now</span>
+        <h3>Chicago</h3>
+        <p>The Loop · LSD · O'Hare &amp; Midway · Willis Tower</p>
+        <a class="btn primary" href="/app.html?city=chicago">Launch</a>
+      </article>
+      <article class="city-card live reveal" data-reveal>
+        <div class="city-glow" aria-hidden="true"></div>
+        <span class="city-status"><i class="live-pip"></i> Live now</span>
+        <h3>Miami</h3>
+        <p>I-95 · Brickell · South Beach · MIA &amp; FLL</p>
+        <a class="btn primary" href="/app.html?city=miami">Launch</a>
+      </article>
       <article class="city-card soon more reveal" data-reveal>
         <span class="city-status">Next up</span>
         <h3>And more…</h3>
-        <p>Chicago, Miami, Seattle, and other metros as the platform grows.</p>
+        <p>Seattle, Denver, Atlanta, and other metros as the platform grows.</p>
       </article>
     </div>
     <p class="city-footnote reveal" data-reveal>Tip: bookmark <code>?city=austin</code> (or any id) — packs load researched roads, NWS filters, and airport boards for that metro.</p>
@@ -271,13 +285,13 @@
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">What’s new · v10.16</p>
       <h2>Multi-city packs. Weather that stays put.</h2>
-      <p>Same engine across seven metros — with suburb weather mosaics, local rain, and airfield cleanup that matches how the sim actually works.</p>
+      <p>Same engine across nine metros — with suburb weather mosaics, local rain, and airfield cleanup that matches how the sim actually works.</p>
     </div>
     <div class="update-rail">
       <article class="update-card reveal" data-reveal>
         <span class="update-num">01</span>
-        <h3>Seven city packs</h3>
-        <p>Houston plus Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, and Boston — freeways, districts, airports, skylines, and attractions from one runtime builder.</p>
+        <h3>Nine city packs</h3>
+        <p>Houston plus Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, Boston, Chicago, and Miami — freeways, districts, airports, skylines, and attractions from one runtime builder.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">02</span>

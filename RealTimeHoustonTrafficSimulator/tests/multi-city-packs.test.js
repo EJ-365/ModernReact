@@ -9,11 +9,15 @@ import { buildDallasRuntimePack } from '../src/cities/dallas/runtime.js';
 import { buildLosAngelesRuntimePack } from '../src/cities/losangeles/runtime.js';
 import { buildNewYorkRuntimePack } from '../src/cities/newyork/runtime.js';
 import { buildBostonRuntimePack } from '../src/cities/boston/runtime.js';
+import { buildChicagoRuntimePack } from '../src/cities/chicago/runtime.js';
+import { buildMiamiRuntimePack } from '../src/cities/miami/runtime.js';
 import { SANANTONIO_ROAD_LATLNG, SANANTONIO_AIRPORTS } from '../src/cities/sanantonio/pack.js';
 import { DALLAS_ROAD_LATLNG, DALLAS_AIRPORTS } from '../src/cities/dallas/pack.js';
 import { LOSANGELES_ROAD_LATLNG, LOSANGELES_AIRPORTS } from '../src/cities/losangeles/pack.js';
 import { NEWYORK_ROAD_LATLNG, NEWYORK_AIRPORTS } from '../src/cities/newyork/pack.js';
 import { BOSTON_ROAD_LATLNG, BOSTON_AIRPORTS } from '../src/cities/boston/pack.js';
+import { CHICAGO_ROAD_LATLNG, CHICAGO_AIRPORTS } from '../src/cities/chicago/pack.js';
+import { MIAMI_ROAD_LATLNG, MIAMI_AIRPORTS } from '../src/cities/miami/pack.js';
 
 const PACK_CITIES = [
   {
@@ -56,6 +60,22 @@ const PACK_CITIES = [
     needRoads: ['i93', 'i90', 'i95'],
     apt: 'BOS',
   },
+  {
+    id: 'chicago',
+    build: buildChicagoRuntimePack,
+    roads: CHICAGO_ROAD_LATLNG,
+    airports: CHICAGO_AIRPORTS,
+    needRoads: ['i90', 'i290', 'lsd'],
+    apt: 'ORD',
+  },
+  {
+    id: 'miami',
+    build: buildMiamiRuntimePack,
+    roads: MIAMI_ROAD_LATLNG,
+    airports: MIAMI_AIRPORTS,
+    needRoads: ['i95', 'dolph', 'i395'],
+    apt: 'MIA',
+  },
 ];
 
 test('CITY_IDS lists all live metros', () => {
@@ -67,6 +87,8 @@ test('CITY_IDS lists all live metros', () => {
     'losangeles',
     'newyork',
     'boston',
+    'chicago',
+    'miami',
   ]) {
     assert.ok(CITY_IDS.includes(id), id);
     assert.ok(CITY_PACKS[id], id + ' in registry');
