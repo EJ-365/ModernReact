@@ -70,4 +70,7 @@ export const CITY_IDS = Object.freeze([
   'boston',
   'chicago',
   'miami',
+  'seattle',
+  'denver',
+  'atlanta',
 ]);

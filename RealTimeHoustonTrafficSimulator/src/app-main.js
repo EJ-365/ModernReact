@@ -36,7 +36,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.49 (0721-chicago-miami). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.50 (0721-seattle-denver-atlanta). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -6541,7 +6541,8 @@ function enhanceGpsPlaceLabel(label,lat,lng){
   const city=cityPlaceCity();
   const generic=new RegExp('^('+[
     'houston','austin','dallas','san antonio','boston','los angeles','new york',
-    'chicago','miami','fort worth','texas','california','massachusetts','illinois','florida',
+    'chicago','miami','seattle','denver','atlanta',
+    'fort worth','texas','california','massachusetts','illinois','florida','washington','colorado','georgia',
     'new york city','nyc','near you','united states','usa',
   ].map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')$', 'i');
   const dist=placeLabelFromDistricts(lat,lng,4.5);

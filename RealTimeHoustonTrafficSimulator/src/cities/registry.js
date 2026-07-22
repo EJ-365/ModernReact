@@ -10,6 +10,9 @@ import { newyorkManifest } from './newyork/manifest.js';
 import { bostonManifest } from './boston/manifest.js';
 import { chicagoManifest } from './chicago/manifest.js';
 import { miamiManifest } from './miami/manifest.js';
+import { seattleManifest } from './seattle/manifest.js';
+import { denverManifest } from './denver/manifest.js';
+import { atlantaManifest } from './atlanta/manifest.js';
 import { isCityManifest, CITY_IDS as TYPE_CITY_IDS } from './types.js';
 
 /** @type {Record<string, import('./types.js').CityManifest>} */
@@ -23,6 +26,9 @@ export const CITY_PACKS = Object.freeze({
   boston: bostonManifest,
   chicago: chicagoManifest,
   miami: miamiManifest,
+  seattle: seattleManifest,
+  denver: denverManifest,
+  atlanta: atlantaManifest,
 });
 
 export const CITY_IDS = TYPE_CITY_IDS;

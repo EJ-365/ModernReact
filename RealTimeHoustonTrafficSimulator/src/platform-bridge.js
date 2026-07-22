@@ -12,6 +12,9 @@ import { buildNewYorkRuntimePack } from './cities/newyork/runtime.js';
 import { buildBostonRuntimePack } from './cities/boston/runtime.js';
 import { buildChicagoRuntimePack } from './cities/chicago/runtime.js';
 import { buildMiamiRuntimePack } from './cities/miami/runtime.js';
+import { buildSeattleRuntimePack } from './cities/seattle/runtime.js';
+import { buildDenverRuntimePack } from './cities/denver/runtime.js';
+import { buildAtlantaRuntimePack } from './cities/atlanta/runtime.js';
 import { transtarAdapter } from './feeds/transtar.js';
 import { tomtomAdapter } from './feeds/tomtom.js';
 import * as core from './core/index.js';
@@ -25,6 +28,9 @@ const PACK_BUILDERS = {
   boston: buildBostonRuntimePack,
   chicago: buildChicagoRuntimePack,
   miami: buildMiamiRuntimePack,
+  seattle: buildSeattleRuntimePack,
+  denver: buildDenverRuntimePack,
+  atlanta: buildAtlantaRuntimePack,
 };
 
 const city = activeCity();

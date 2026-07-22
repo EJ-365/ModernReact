@@ -13,6 +13,9 @@ const CITY_NWS_STATES = {
   boston: ['MA', 'RI', 'NH', 'CT'],
   chicago: ['IL', 'IN', 'WI'],
   miami: ['FL'],
+  seattle: ['WA'],
+  denver: ['CO'],
+  atlanta: ['GA'],
 };
 
 const CITY_CENTERS = {
@@ -25,6 +28,9 @@ const CITY_CENTERS = {
   boston: [42.3601, -71.0589],
   chicago: [41.8781, -87.6298],
   miami: [25.7617, -80.1918],
+  seattle: [47.6062, -122.3321],
+  denver: [39.7392, -104.9903],
+  atlanta: [33.7490, -84.3880],
 };
 
 function apiHost(kind) {
