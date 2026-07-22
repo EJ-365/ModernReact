@@ -8,6 +8,7 @@ import {
   rainIntensityAt,
   openMeteoMultiUrl,
 } from './weather-zones.js';
+import { incidentCoordinateInBounds } from './live-incidents.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -7723,7 +7724,7 @@ function locateLiveIncident(inc){
       const ring=geom.coordinates[0];const mid=ring[Math.floor(ring.length/2)];
       lng=mid[0];lat=mid[1];
     }else if(typeof geom.coordinates[0]==='number'){lng=geom.coordinates[0];lat=geom.coordinates[1];}
-    if(lat!=null&&lng!=null&&lat>28&&lat<32&&lng>-97&&lng<-93){
+    if(incidentCoordinateInBounds(lat,lng,window.HTS_CITY&&window.HTS_CITY.bbox)){
       const w=geoToWorld(lat,lng);px=w.x;pz=w.z;
       if(!road){
         let best=null,bd=1e18;
