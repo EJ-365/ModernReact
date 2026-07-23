@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const appMainSource = readFileSync(new URL('../src/app-main.js', import.meta.url), 'utf8');
 
 /** Mirrors liveFlightEligible ground-cull rules after the AUS freeze fix. */
 function keepLiveGroundTrack({ onGround, gsNow, estGs, posMoved, altFt }) {
@@ -51,4 +54,5 @@ test('fast takeoff and landing rollouts keep their reported groundspeed', () => 
     flyGsWhileGround({ onGround: true, gs: 135, estGs: 0, posMoved: false, lastGoodGs: 0 }),
     135,
   );
+  assert.match(appMainSource, /if\(gs>=minGs\)flyGs=gs;/);
 });
