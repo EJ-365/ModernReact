@@ -160,16 +160,38 @@
     padding:4px 7px;border-radius:999px;border:1px solid #2a3542;color:#8aa89a;background:#10161d}
   #stormTrackRow{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
   #stormTrackRow .stormBtn{flex:1;min-width:0;font-family:inherit;font-size:9px;font-weight:800;letter-spacing:.06em;
-    text-transform:uppercase;padding:8px 6px;border-radius:10px;border:1px solid #2c3642;background:#101820;color:#b8c0c8;cursor:pointer}
-  #stormTrackRow .stormBtn.on.tornado{background:#7f1d1d;border-color:#ef4444;color:#fecaca}
-  #stormTrackRow .stormBtn.on.hurricane{background:#4c1d95;border-color:#7c3aed;color:#e9d5ff}
-  #stormTrackChip{display:none;align-items:center;gap:4px;font-size:9px;font-weight:800;color:#fca5a5;
-    padding:4px 8px;border-radius:99px;background:rgba(127,29,29,.35);border:1px solid rgba(239,68,68,.35);margin-top:6px}
+    text-transform:uppercase;padding:9px 6px;border-radius:11px;border:1px solid #2c3642;background:linear-gradient(180deg,#141c24,#101820);color:#b8c0c8;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04);transition:border-color .15s,box-shadow .15s,background .15s,color .15s}
+  #stormTrackRow .stormBtn:hover{border-color:#3d4d60}
+  #stormTrackRow .stormBtn.on.tornado{background:linear-gradient(180deg,#9f1239,#7f1d1d);border-color:#f87171;color:#fecaca;
+    box-shadow:0 0 0 1px rgba(248,113,113,.25),0 0 16px rgba(239,68,68,.28)}
+  #stormTrackRow .stormBtn.on.hurricane{background:linear-gradient(180deg,#6d28d9,#4c1d95);border-color:#a78bfa;color:#ede9fe;
+    box-shadow:0 0 0 1px rgba(167,139,250,.28),0 0 16px rgba(124,58,237,.3)}
+  #stormTrackChip{display:none;align-items:center;gap:5px;font-size:9px;font-weight:800;color:#fecaca;
+    padding:5px 10px;border-radius:99px;background:linear-gradient(90deg,rgba(127,29,29,.55),rgba(69,10,10,.4));
+    border:1px solid rgba(248,113,113,.45);margin-top:6px;box-shadow:0 0 14px rgba(239,68,68,.2)}
   #stormLayerStatus{margin-top:6px;font-size:8.5px;font-weight:700;line-height:1.35;color:#8aa89a}
   #stormLayerStatus.warn{color:#fbbf24}
-  .stormImpact{display:none;margin:8px 0 0;padding:8px 9px;border-radius:9px;font-size:9px;font-weight:800;
-    line-height:1.35;border:1px solid rgba(239,68,68,.4);background:rgba(127,29,29,.3);color:#fecaca}
-  .stormImpact.hurricane{border-color:rgba(124,58,237,.45);background:rgba(76,29,149,.3);color:#e9d5ff}
+  .stormImpact{display:none;margin:8px 0 0;padding:0;border-radius:12px;font-size:10px;font-weight:800;
+    line-height:1.4;border:1px solid rgba(248,113,113,.5);overflow:hidden;
+    background:linear-gradient(135deg,rgba(127,29,29,.55),rgba(40,10,10,.72));color:#fecaca;
+    box-shadow:0 0 0 1px rgba(248,113,113,.15),0 8px 22px rgba(0,0,0,.35)}
+  .stormImpact.hurricane{border-color:rgba(167,139,250,.55);
+    background:linear-gradient(135deg,rgba(76,29,149,.55),rgba(30,10,60,.75));color:#ede9fe;
+    box-shadow:0 0 0 1px rgba(167,139,250,.18),0 8px 22px rgba(0,0,0,.35)}
+  .stormImpact.tornado{border-color:rgba(251,146,60,.55);
+    background:linear-gradient(135deg,rgba(154,52,18,.5),rgba(69,26,3,.72));color:#ffedd5}
+  .stormImpact .siInner{display:flex;gap:10px;align-items:flex-start;padding:10px 11px}
+  .stormImpact .siIcon{flex:0 0 auto;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+    font-size:14px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.12)}
+  .stormImpact .siBody{min-width:0;flex:1}
+  .stormImpact .siTag{display:inline-block;font-size:8px;letter-spacing:.1em;text-transform:uppercase;
+    padding:2px 6px;border-radius:99px;margin-bottom:5px;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.22)}
+  .stormImpact .siText{font-size:10.5px;font-weight:800;line-height:1.35}
+  #dayBtns{display:flex;gap:5px;margin-top:7px}
+  #dayBtns .btn{flex:1;font-size:9px;padding:7px 4px}
+  #dayBtns .btn.on{background:#1a3a2a;border-color:#2c5c3f;color:#8fd4a8}
+  #timeDayLabel{margin-top:5px;font-size:9px;font-weight:800;letter-spacing:.04em;color:#8aa89a}
   #wxReport .wrStormHead{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:14px 0 8px}
   #wxReport .wrStormHead .wrSec{margin:0}
   #wxReport .wrStormCount{font-size:10px;font-weight:800;color:#98a2ad;letter-spacing:.04em}
@@ -177,9 +199,10 @@
   #wxReport .wrStormCard{border-radius:12px;border:1px solid #2a3542;background:#0d1218;padding:10px 11px;border-left:3px solid #64748b}
   #wxReport .wrStormCard.clickable{cursor:pointer}
   #wxReport .wrStormCard.clickable:hover{background:#141c24;border-color:#3b4755}
-  #wxReport .wrStormCard.hurricane{border-left-color:#7c3aed}
-  #wxReport .wrStormCard.tornado{border-left-color:#ef4444}
-  #wxReport .wrStormCard .tag{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:4px}
+  #wxReport .wrStormCard.hurricane{border-left-color:#8b5cf6;background:linear-gradient(90deg,rgba(139,92,246,.12),#0d1218 48%)}
+  #wxReport .wrStormCard.tornado{border-left-color:#ef4444;background:linear-gradient(90deg,rgba(239,68,68,.12),#0d1218 48%)}
+  #wxReport .wrStormCard .tag{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;
+    display:inline-block;padding:2px 7px;border-radius:99px;border:1px solid #2a3542;background:#121820}
   #wxReport .wrStormCard .ev{font-size:13px;font-weight:800;line-height:1.25;color:#f2f5f7;margin-bottom:4px}
   #wxReport .wrStormCard .area{font-size:10px;font-weight:600;color:#8aa89a;line-height:1.35}
   #wxReport .wrStormCard .until{font-size:9.5px;margin-top:6px}
@@ -349,7 +372,7 @@
   .alertSec{font-size:8.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#6d7883;
     margin:0 0 1px;padding:0 2px}
   .alert{background:rgba(16,20,26,.92);backdrop-filter:blur(10px);border:1px solid var(--panel-line);
-    border-left:3px solid var(--jam);border-radius:10px;padding:8px 10px 9px;
+    border-left:4px solid var(--jam);border-radius:12px;padding:9px 11px 10px;
     box-shadow:0 3px 12px rgba(0,0,0,.3);animation:slideIn .35s ease;
     flex:0 0 auto;width:100%;box-sizing:border-box}
   .alert:hover{border-color:#3a4450}
@@ -358,24 +381,32 @@
   .alert .at{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin-bottom:0;line-height:1.25;
     font-size:11px;font-weight:800}
   .alert .at svg{flex:0 0 auto}
+  .alert .warnPill{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-weight:900;letter-spacing:.08em;
+    text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid transparent}
+  .alert.flood .warnPill{color:#dbeafe;background:rgba(37,99,235,.35);border-color:rgba(96,165,250,.45)}
+  .alert.hurricane .warnPill,.alert.storm.hurricane .warnPill{color:#ede9fe;background:rgba(109,40,217,.4);border-color:rgba(167,139,250,.5)}
+  .alert.work .warnPill,.alert.storm.work .warnPill{color:#ffedd5;background:rgba(194,65,12,.4);border-color:rgba(251,146,60,.5)}
+  .alert.tornado .warnPill{color:#fecaca;background:rgba(185,28,28,.45);border-color:rgba(248,113,113,.5)}
   .alert .aMeta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
   .alert .aChip{font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
     color:#cfd6dd;background:#161c24;border:1px solid #2a3340;border-radius:6px;padding:2px 6px}
   .alert .ab{font-size:11px;color:#b8c0c8;margin-top:5px;line-height:1.4;word-break:break-word;
     display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
   .alert .aHint{font-size:8.5px;color:#5a646f;margin-top:4px;font-weight:700;letter-spacing:.03em}
-  .alert.work{border-left-color:#f59e0b}
+  .alert.work{border-left-color:#f59e0b;background:linear-gradient(90deg,rgba(245,158,11,.08),rgba(16,20,26,.92) 42%)}
   .alert.work .at{color:#f6b64b}
-  .alert.flood{border-left-color:#4aa3ff}
-  .alert.flood .at{color:#6cb8ff}
+  .alert.flood{border-left-color:#3b82f6;background:linear-gradient(90deg,rgba(59,130,246,.12),rgba(16,20,26,.92) 42%)}
+  .alert.flood .at{color:#93c5fd}
   .alert.event{border-left-color:#b07cf0}
   .alert.event .at{color:#c69bf5}
   .alert.police{border-left-color:#4a7dff}
   .alert.police .at{color:#7da2ff}
   .alert.clear{border-left-color:#2c5c3f}
   .alert.clear .at{color:#8fd4a8}
-  .alert.hurricane{border-left-color:#7c3aed}
-  .alert.hurricane .at{color:#c4b5fd}
+  .alert.hurricane{border-left-color:#8b5cf6;background:linear-gradient(90deg,rgba(139,92,246,.14),rgba(16,20,26,.92) 42%)}
+  .alert.hurricane .at{color:#ddd6fe}
+  .alert.tornado,.alert.storm.work{border-left-color:#ef4444;background:linear-gradient(90deg,rgba(239,68,68,.12),rgba(16,20,26,.92) 42%)}
+  .alert.tornado .at,.alert.storm.work .at{color:#fca5a5}
   .alert.wildfire{border-left-color:#ea580c}
   .alert.wildfire .at{color:#fdba74}
   .alert.nuclear{border-left-color:#a3e635}
@@ -802,7 +833,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.50</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.51</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1039,20 +1070,26 @@
   <div class="grp" id="tourTimeGrp">
     <label>Time of day</label>
     <select id="todSelect">
-      <option value="live" selected>● Live — real Houston time</option>
+      <option value="live" selected>● Live — real local time</option>
       <option value="preview">Time preview</option>
       <option value="dawn">Dawn (6:20 AM)</option>
       <option value="day">Midday (12:30 PM)</option>
       <option value="dusk">Dusk (8:20 PM)</option>
       <option value="night">Night (11:15 PM)</option>
     </select>
+    <div class="btnrow" id="dayBtns" aria-label="Forecast day">
+      <button type="button" class="btn on" data-day="0">Today</button>
+      <button type="button" class="btn" data-day="1">Tomorrow</button>
+      <button type="button" class="btn" data-day="2">+2 days</button>
+    </div>
     <div class="btnrow" id="speedBtns">
       <button class="btn" data-speed="60">1 min/s</button>
       <button class="btn" data-speed="300">5 min/s</button>
       <button class="btn" data-speed="1800">30 min/s</button>
     </div>
     <input type="range" id="timeSlider" min="0" max="1439" step="1" value="720">
-    <div class="hint" id="timeHint">Traffic &amp; sky follow live Houston time. Pick a speed for a day/night time-lapse.</div>
+    <div id="timeDayLabel">Preview day · Today</div>
+    <div class="hint" id="timeHint">Traffic &amp; sky follow live local time. Pick Tomorrow or a speed to scrub the forecast day/night.</div>
   </div>
   <div class="grp" id="tourWxGrp">
     <label>Weather</label>

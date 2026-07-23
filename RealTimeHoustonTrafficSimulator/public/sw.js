@@ -1,4 +1,4 @@
-const CACHE = "hts-shell-v135";
+const CACHE = "hts-shell-v136";
 const PRECACHE = [
   "/",
   "/index.html",

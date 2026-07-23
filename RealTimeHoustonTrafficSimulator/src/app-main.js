@@ -36,7 +36,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.50 (0721-seattle-denver-atlanta). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.51 (0722-nextday-warn-ui). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -2327,6 +2327,56 @@ function textSprite(txt,scaleK){
   const t=new THREE.CanvasTexture(c);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,fog:false}));
   sp.scale.set(c.width*0.55*scaleK,c.height*0.55*scaleK,1);
+  return sp;
+}
+/** High-visibility hazard / storm warning labels for the 3D map. */
+function warnSprite(kind,title,sub,scaleK){
+  const themes={
+    tornado:{bgTop:'#9f1239',bgBot:'#450a0a',accent:'#f87171',ink:'#fecaca',tag:'TORNADO'},
+    hurricane:{bgTop:'#6d28d9',bgBot:'#2e1065',accent:'#c4b5fd',ink:'#ede9fe',tag:'HURRICANE'},
+    flood:{bgTop:'#1d4ed8',bgBot:'#172554',accent:'#93c5fd',ink:'#dbeafe',tag:'FLOOD'},
+    severe:{bgTop:'#c2410c',bgBot:'#431407',accent:'#fdba74',ink:'#ffedd5',tag:'SEVERE'},
+    watch:{bgTop:'#a16207',bgBot:'#422006',accent:'#fde68a',ink:'#fef3c7',tag:'WATCH'},
+  };
+  const th=themes[kind]||themes.severe;
+  const c=document.createElement('canvas');const x=c.getContext('2d');
+  const titleTxt=String(title||th.tag).toUpperCase();
+  const subTxt=sub?String(sub).toUpperCase():'';
+  x.font='900 52px Overpass, sans-serif';
+  const tw=x.measureText(titleTxt).width;
+  x.font='800 28px Overpass, sans-serif';
+  const sw=subTxt?x.measureText(subTxt).width:0;
+  x.font='900 18px Overpass, sans-serif';
+  const tagW=x.measureText(th.tag).width+28;
+  c.width=Math.max(280,Math.ceil(Math.max(tw,sw,tagW)+88));
+  c.height=subTxt?128:96;
+  const g=x.createLinearGradient(0,0,0,c.height);
+  g.addColorStop(0,th.bgTop);g.addColorStop(1,th.bgBot);
+  x.fillStyle=g;
+  const r=22;x.beginPath();
+  x.moveTo(r,0);x.lineTo(c.width-r,0);x.quadraticCurveTo(c.width,0,c.width,r);
+  x.lineTo(c.width,c.height-r);x.quadraticCurveTo(c.width,c.height,c.width-r,c.height);
+  x.lineTo(r,c.height);x.quadraticCurveTo(0,c.height,0,c.height-r);
+  x.lineTo(0,r);x.quadraticCurveTo(0,0,r,0);x.fill();
+  x.fillStyle=th.accent;x.fillRect(0,0,10,c.height);
+  x.strokeStyle=th.accent;x.lineWidth=3;x.globalAlpha=0.85;x.stroke();x.globalAlpha=1;
+  x.fillStyle='rgba(0,0,0,.28)';
+  const pillW=Math.min(c.width-28,tagW);
+  const py=14,ph=26,px0=18,pr=12;
+  x.beginPath();
+  x.moveTo(px0+pr,py);x.lineTo(px0+pillW-pr,py);x.quadraticCurveTo(px0+pillW,py,px0+pillW,py+pr);
+  x.lineTo(px0+pillW,py+ph-pr);x.quadraticCurveTo(px0+pillW,py+ph,px0+pillW-pr,py+ph);
+  x.lineTo(px0+pr,py+ph);x.quadraticCurveTo(px0,py+ph,px0,py+ph-pr);
+  x.lineTo(px0,py+pr);x.quadraticCurveTo(px0,py,px0+pr,py);x.fill();
+  x.fillStyle=th.accent;x.font='900 18px Overpass, sans-serif';x.textAlign='left';x.textBaseline='middle';
+  x.fillText(th.tag,px0+10,py+ph/2+1);
+  x.fillStyle=th.ink;x.font='900 48px Overpass, sans-serif';
+  x.fillText(titleTxt,24,subTxt?78:68);
+  if(subTxt){x.fillStyle='rgba(255,255,255,.72)';x.font='800 26px Overpass, sans-serif';x.fillText(subTxt,24,108);}
+  const t=new THREE.CanvasTexture(c);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,fog:false}));
+  const sk=scaleK!=null?scaleK:0.38;
+  sp.scale.set(c.width*0.52*sk,c.height*0.52*sk,1);
   return sp;
 }
 /* Lakes / reservoirs / bay — labels + later hover hit volumes */
@@ -7159,7 +7209,7 @@ function stormTrackerRenderMap(){
     if(ST.metroRisk){
       const org=stormTrackerOrigin();
       const w=geoToWorld(org.lat,org.lng);
-      const tag=textSprite('SPC '+(ST.metroRisk.label||'')+' tornado risk — metro inside',0.3);
+      const tag=warnSprite('watch','SPC '+(ST.metroRisk.label||'')+' risk','metro inside outlook',0.34);
       tag.position.set(w.x,54,w.z);
       grp.add(tag);ST.labels.push(tag);
     }
@@ -7202,9 +7252,10 @@ function stormTrackerRenderMap(){
         if(track)grp.add(track);
       }
       const label=onMap
-        ?((s.name||'Storm')+' · '+s.intensity+' mph')
-        :((s.name||'Storm')+' · ~'+Math.round(mi)+' mi '+br+' · '+s.intensity+' mph');
-      const tag=textSprite(label,0.34);
+        ?(s.name||'Storm')
+        :((s.name||'Storm')+' · ~'+Math.round(mi)+' mi '+br);
+      const sub=onMap?(s.intensity+' mph'):(s.intensity+' mph · offshore');
+      const tag=warnSprite('hurricane',label,sub,0.36);
       tag.position.set(w.x,42,w.z);
       grp.add(tag);ST.labels.push(tag);
     }
@@ -7266,6 +7317,7 @@ function renderStormTrackerPanel(){
     banner.className='stormImpact '+(urgent?urgent.kind:'');
     if(!urgent){
       banner.textContent='';
+      banner.innerHTML='';
     }else{
       const title=urgent.label||'Storm alert';
       let stormName='';
@@ -7284,7 +7336,13 @@ function renderStormTrackerPanel(){
         trafficBit='Traffic is slowed for severe weather in the area.';
       else if(urgent.tier==='watch')
         trafficBit='Not hitting yet — traffic is only slightly slower as a precaution.';
-      banner.textContent=head+'. '+trafficBit;
+      const kindCls=urgent.kind==='hurricane'?'hurricane':(urgent.kind==='tornado'?'tornado':'');
+      banner.className='stormImpact '+(kindCls||urgent.kind||'');
+      const icon=urgent.kind==='hurricane'?'H':(urgent.kind==='tornado'?'T':'!');
+      const tag=urgent.tier==='watch'?'Watch':(urgent.tier==='warning'||urgent.tier==='surge'?'Warning':'Alert');
+      banner.innerHTML='<div class="siInner"><div class="siIcon" aria-hidden="true">'+icon+'</div>'
+        +'<div class="siBody"><span class="siTag">'+escHtml(tag)+'</span>'
+        +'<div class="siText">'+escHtml(head)+'. '+escHtml(trafficBit)+'</div></div></div>';
     }
   }
   if(hBox){
@@ -7380,8 +7438,8 @@ function syncStormTrackerAlerts(){
   for(const a of items){
     const p=a.feature.properties||{};
     const el=document.createElement('div');
-    el.className='alert '+(a.kind==='hurricane'?'hurricane':'work')+' clickable storm';
-    el.innerHTML='<div class="at">'+escHtml(a.label)+'</div>'
+    el.className='alert '+(a.kind==='hurricane'?'hurricane':(a.kind==='tornado'?'tornado':'work'))+' clickable storm';
+    el.innerHTML='<div class="at"><span class="warnPill">'+escHtml(a.label)+'</span></div>'
       +'<div class="aMeta"><span class="aChip">NWS live</span></div>'
       +'<div class="ab"><b>'+escHtml(p.headline||p.event||a.label)+'</b></div>'
       +'<div class="aHint">Tap for tracker details · map overlay</div>';
@@ -7538,7 +7596,7 @@ function phaseLabel(h){
 function forecastHourIndex(offsetSec){
   if(!liveWx||!liveWx.hourly||!liveWx.hourly.time||!liveWx.hourly.time.length)return null;
   const d=new Date(Date.now()+offsetSec*1000);
-  const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',
+  const p=new Intl.DateTimeFormat('en-CA',{timeZone:CHI_TZ||'America/Chicago',
     year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(d);
   const g=k=>{const x=p.find(t=>t.type===k);return x?x.value:'00';};
   const hour=g('hour')==='24'?'00':g('hour');
@@ -8445,15 +8503,15 @@ function syncNWSAlerts(features){
     const kind=typeof classifyNwsEvent==='function'?classifyNwsEvent(ev):{key:'other',label:'Alert'};
     const railCls=kind.key==='flood'?' flood'
       :(kind.key==='hurricane'?' hurricane'
-      :(kind.key==='tornado'||kind.key==='severe'||kind.key==='heat'||kind.key==='fire'?' work'
-      :(kind.key==='winter'?' flood':'')));
+      :(kind.key==='tornado'?' tornado'
+      :(kind.key==='severe'||kind.key==='heat'||kind.key==='fire'?' work'
+      :(kind.key==='winter'?' flood':''))));
     const el=document.createElement('div');
     el.className='alert'+railCls+(typeof openWeatherReport==='function'?' clickable':'');
     const headline=p.headline||ev||'Weather alert';
     const desc=p.description?String(p.description).replace(/\s+/g,' ').slice(0,160):'';
     const sev=p.severity&&p.severity!=='Unknown'?(' · '+p.severity):'';
-    el.innerHTML='<div class="at"><svg width="12" height="12" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm0 6.5 6.3 11H5.7L12 8.5z" fill="#6cb8ff"/></svg>'
-      +escHtml(kind.label)+'</div>'
+    el.innerHTML='<div class="at"><span class="warnPill">'+escHtml(kind.label)+'</span></div>'
       +'<div class="aMeta"><span class="aChip">NWS'+escHtml(sev)+'</span></div>'
       +'<div class="ab"><b>'+escHtml(headline)+'</b>'+(desc?' — '+escHtml(desc)+(desc.length>=160?'…':'') :'')+'</div>'
       +(typeof openWeatherReport==='function'?'<div class="aHint">Tap for alert details</div>':'');
@@ -9435,6 +9493,44 @@ for(const p of FACILITY_POIS){
 
 /* ---------------- simulation clock ---------------- */
 let liveMode=true,timeScale=60,simH=12,weekend=false,scrubbing=false;
+window.simDayOffset=0;
+function simDayLabel(off){
+  const d=off!=null?off:(window.simDayOffset||0);
+  if(d<=0)return 'Today';
+  if(d===1)return 'Tomorrow';
+  return '+'+d+' days';
+}
+function recomputeSimOffset(){
+  const nowH=houstonNow(true);
+  window.simOffsetSec=((window.simDayOffset||0)*24+simH-nowH)*3600;
+}
+function setSimDayOffset(day){
+  window.simDayOffset=clamp(Math.round(+day||0),0,2);
+  document.querySelectorAll('#dayBtns .btn').forEach(b=>{
+    b.classList.toggle('on',String(b.dataset.day)===String(window.simDayOffset));
+  });
+  const lab=$('timeDayLabel');
+  if(lab){
+    const d=new Date(Date.now()+((window.simDayOffset||0)*86400)*1000);
+    const pretty=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:CHI_TZ});
+    lab.textContent='Preview day · '+simDayLabel()+' · '+pretty;
+  }
+  recomputeSimOffset();
+}
+function syncDayButtons(){
+  document.querySelectorAll('#dayBtns .btn').forEach(b=>{
+    b.classList.toggle('on',String(b.dataset.day)===String(window.simDayOffset||0));
+  });
+  const lab=$('timeDayLabel');
+  if(lab){
+    if(liveMode)lab.textContent='Live clock · '+simDayLabel(0);
+    else{
+      const d=new Date(Date.now()+(window.simOffsetSec||0)*1000);
+      const pretty=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:CHI_TZ});
+      lab.textContent='Preview day · '+simDayLabel()+' · '+pretty;
+    }
+  }
+}
 const CHI_TZ=(window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.timezone)||'America/Chicago';
 let _houClock={at:0,h:12,weekend:false};
 let _calSyncT=0;
@@ -10702,7 +10798,7 @@ function hazBuildFlood(){
     const sp=textSprite(z.name,0.32);
     sp.position.set(z.x,22,z.z);H.group.add(sp);H.labels.push(sp);
   }
-  const banner=textSprite('100% LIKELY FLOOD ZONES',0.55);
+  const banner=warnSprite('flood','Likely flood zones','educational overlay',0.48);
   const banAt=HTS_IS_AUS?geoToWorld(30.26,-97.75):{x:-900,z:200};
   banner.position.set(banAt.x,55,banAt.z);H.group.add(banner);H.labels.push(banner);
   /* activate underpasses that sit inside certain flood footprints */
@@ -10796,7 +10892,7 @@ function hazActivate(mode){
       H.group.add(hazMakeDisk(core.x,core.z,2200*catScale,0x312e81,0.08,1.8));
       const r1=hazMakeRing(core.x,core.z,800*catScale,1050*catScale,0xa78bfa,4,0.42);H.group.add(r1.mesh);H.rings.push(r1);
       const r2=hazMakeRing(core.x,core.z,1500*catScale,1850*catScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
-      const trackSp=textSprite('Rain shield · Central Texas',0.42);
+      const trackSp=warnSprite('hurricane','Rain shield','Central Texas',0.4);
       trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
       for(const [lat,lng,lr] of [[30.245,-97.77,380],[30.265,-97.75,320],[30.21,-97.69,360],[30.35,-97.68,300]]){
         const p=geoToWorld(lat,lng);
@@ -10814,7 +10910,7 @@ function hazActivate(mode){
       H.group.add(hazMakeDisk(core.x,core.z,2800*catScale,0x312e81,0.08,1.8));
       const r1=hazMakeRing(core.x,core.z,1000*catScale,1300*catScale,0xa78bfa,4,0.42);H.group.add(r1.mesh);H.rings.push(r1);
       const r2=hazMakeRing(core.x,core.z,2000*catScale,2400*catScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
-      const trackSp=textSprite('Landfall cone · Galveston Bay',0.42);
+      const trackSp=warnSprite('hurricane','Landfall cone','Galveston Bay',0.4);
       trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
       for(const [lx,lz,lr] of [[2050,3020,500],[7150,2700,1400],[3800,-200,600],[2450,420,450]]){
         H.group.add(hazMakeDisk(lx,lz,lr*catScale,0x2563eb,0.22,2));
@@ -11805,7 +11901,7 @@ function updateHUD(nightF,skyH){
   $('clock').textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
   const mTime=$('mHudTime');if(mTime)mTime.textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
   const mPhase=$('mHudPhase');if(mPhase)mPhase.textContent=$('phase')?$('phase').textContent:'';
-  $('phase').textContent=phaseLabel(simH)+(liveMode?' · LIVE traffic':' · time-lapse');
+  $('phase').textContent=phaseLabel(simH)+(liveMode?' · LIVE traffic':' · '+simDayLabel()+' time-lapse');
   const now=(!liveMode&&window.simOffsetSec)
     ?new Date(Date.now()+window.simOffsetSec*1000)
     :new Date();
@@ -12255,52 +12351,63 @@ function enterTimePreview(fromLive){
   liveMode=false;
   if(fromLive){
     simH=houstonNow(true);
+    window.simDayOffset=0;
   }
   const sel=$('todSelect');
   if(sel)sel.value='preview';
-  window.simOffsetSec=((simH-houstonNow()+24)%24)*3600;
+  recomputeSimOffset();
   syncSimCalendar();
+  syncDayButtons();
   const sl=$('timeSlider');
   if(sl&&!scrubbing)sl.value=Math.round(simH*60);
   const hint=$('timeHint');
   if(hint){
     const spd=timeScale>=1800?'30 min/s':(timeScale>=300?'5 min/s':(timeScale>=60?'1 min/s':(Math.round(timeScale)+'×')));
-    hint.textContent='Time-lapse '+spd+' — slider, sky, lights & weather follow the simulated clock.';
+    hint.textContent='Time-lapse '+spd+' on '+simDayLabel()+' — sky, traffic & forecast weather follow the simulated clock. Cross midnight to keep going.';
   }
 }
 $('todSelect').addEventListener('change',e=>{
   const v=e.target.value;
   if(v==='live'){
-    liveMode=true;simH=houstonNow(true);window.simOffsetSec=0;syncSimCalendar();
+    liveMode=true;simH=houstonNow(true);window.simDayOffset=0;window.simOffsetSec=0;syncSimCalendar();syncDayButtons();
     document.querySelectorAll('#speedBtns .btn').forEach(x=>x.classList.remove('on'));
     timeScale=60;
     const hint=$('timeHint');
-    if(hint)hint.textContent='Traffic & sky follow live Houston time. Pick a speed for a day/night time-lapse.';
+    if(hint)hint.textContent='Traffic & sky follow live local time. Pick Tomorrow or a speed to scrub the forecast day/night.';
   }else if(v==='preview'){
-    liveMode=false;syncSimCalendar();
+    liveMode=false;recomputeSimOffset();syncSimCalendar();syncDayButtons();
     const hint=$('timeHint');
-    if(hint)hint.textContent='Time-lapse preview — use 1 / 5 / 30 min/s. Sky & weather track the slider.';
+    if(hint)hint.textContent='Time-lapse preview — use Today / Tomorrow and 1 / 5 / 30 min/s. Weather tracks Open-Meteo forecast hours.';
   }else{
-    liveMode=false;simH=TOD[v];window.simOffsetSec=((simH-houstonNow(true)+24)%24)*3600;syncSimCalendar();
+    liveMode=false;simH=TOD[v];recomputeSimOffset();syncSimCalendar();syncDayButtons();
     const sl=$('timeSlider');if(sl)sl.value=Math.round(simH*60);
     const hint=$('timeHint');
-    if(hint)hint.textContent='Jumped to '+e.target.options[e.target.selectedIndex].textContent.replace(/^[^·]+·\s*/,'')+'. Hit 5 or 30 min/s to run the time-lapse.';
+    if(hint)hint.textContent='Jumped to '+e.target.options[e.target.selectedIndex].textContent.replace(/^[^·]+·\s*/,'')+' on '+simDayLabel()+'. Hit 5 or 30 min/s to run the time-lapse.';
   }
   shuffleTraffic();
 });
+document.querySelectorAll('#dayBtns .btn').forEach(b=>b.addEventListener('click',()=>{
+  if(liveMode)enterTimePreview(true);
+  setSimDayOffset(b.dataset.day);
+  const sel=$('todSelect');if(sel&&sel.value==='live')sel.value='preview';
+  syncSimCalendar();
+  shuffleTraffic();
+  const hint=$('timeHint');
+  if(hint)hint.textContent='Previewing '+simDayLabel()+' — drag the slider or run 1 / 5 / 30 min/s. Weather uses the Open-Meteo forecast for that day.';
+}));
 document.querySelectorAll('#speedBtns .btn').forEach(b=>b.addEventListener('click',()=>{
   enterTimePreview($('todSelect').value==='live'||$('todSelect').value==='preview');
   document.querySelectorAll('#speedBtns .btn').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');timeScale=+b.dataset.speed;
   const sl=$('timeSlider');if(sl)sl.value=Math.round(simH*60);
   const hint=$('timeHint');
-  if(hint)hint.textContent='Time-lapse '+b.textContent+' — watch dawn → day → dusk → night. Drag slider to scrub.';
+  if(hint)hint.textContent='Time-lapse '+b.textContent+' on '+simDayLabel()+' — watch dawn → day → dusk → night, then into the next day.';
 }));
 const slider=$('timeSlider');
 slider.addEventListener('input',()=>{scrubbing=true;
   if(liveMode)enterTimePreview(true);
   const sel=$('todSelect');if(sel)sel.value='preview';
-  simH=+slider.value/60;window.simOffsetSec=((simH-houstonNow()+24)%24)*3600;});
+  simH=+slider.value/60;recomputeSimOffset();syncDayButtons();});
 slider.addEventListener('change',()=>{scrubbing=false;shuffleTraffic();});
 $('wxSelect').addEventListener('change',e=>{wxMode=e.target.value;});
 document.querySelectorAll('#volBtns .btn').forEach(b=>b.addEventListener('click',()=>{
@@ -12489,13 +12596,25 @@ function frame(now){
   /* Live = real clock; preview = simulated clock drives sky, lights, weather, slider */
   if(liveMode){
     simH=skyH;
+    window.simDayOffset=0;
     window.simOffsetSec=0;
     weekend=_houClock.weekend;
   }else{
-    if(!scrubbing)simH=(simH+dt*timeScale/3600)%24;
-    window.simOffsetSec=((simH-skyH+24)%24)*3600;
+    if(!scrubbing){
+      simH=simH+dt*timeScale/3600;
+      while(simH>=24){
+        simH-=24;
+        window.simDayOffset=Math.min(2,(window.simDayOffset||0)+1);
+      }
+      while(simH<0){
+        simH+=24;
+        window.simDayOffset=Math.max(0,(window.simDayOffset||0)-1);
+      }
+    }
+    recomputeSimOffset();
     const sl=$('timeSlider');
     if(sl&&!scrubbing)sl.value=Math.round(simH*60);
+    if(!scrubbing)syncDayButtons();
   }
   /* Keep weekday/weekend pattern locked to the same instant as HUD date */
   _calSyncT-=dt;
