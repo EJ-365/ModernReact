@@ -11,7 +11,7 @@ function keepLiveGroundTrack({ onGround, gsNow, estGs, posMoved, altFt }) {
 
 function flyGsWhileGround({ onGround, gs, estGs, posMoved, lastGoodGs }) {
   if (!onGround) return lastGoodGs || gs || 0;
-  if (gs >= 8 && gs < 90) return gs;
+  if (gs >= 8) return gs;
   if (posMoved && estGs >= 8 && estGs < 90) return estGs;
   return 0; /* never coast on cruise lastGoodGs */
 }
@@ -43,5 +43,12 @@ test('ground update never coasts at last cruise groundspeed', () => {
   assert.equal(
     flyGsWhileGround({ onGround: true, gs: 28, estGs: 0, posMoved: false, lastGoodGs: 280 }),
     28,
+  );
+});
+
+test('fast takeoff and landing rollouts keep their reported groundspeed', () => {
+  assert.equal(
+    flyGsWhileGround({ onGround: true, gs: 135, estGs: 0, posMoved: false, lastGoodGs: 0 }),
+    135,
   );
 });
