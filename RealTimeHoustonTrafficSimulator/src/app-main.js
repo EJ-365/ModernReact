@@ -8,6 +8,12 @@ import {
   rainIntensityAt,
   openMeteoMultiUrl,
 } from './weather-zones.js';
+import {
+  boardCacheStorageKey,
+  pickBoardCacheForApts,
+  flattenBoardFlights,
+  flightBoardTimeZone,
+} from './boards/cache-scope.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -94,8 +100,9 @@ function packDowntown(){
   if(HTS_IS_AUS)return geoToWorld(30.2672,-97.7431);
   return {x:60,z:60};
 }
+const FLIGHT_BOARD_TZ=flightBoardTimeZone(window.HTS_CITY);
 function fmtFlightTime(t){
-  return t?new Date(t).toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}):'—';
+  return t?new Date(t).toLocaleTimeString('en-US',{timeZone:FLIGHT_BOARD_TZ,hour:'numeric',minute:'2-digit'}):'—';
 }
 function icaoToDisp(code){
   if(code==null||code==='')return '—';
@@ -4286,7 +4293,7 @@ window.FLIGHTS=[];
   const BOARD_TTL_MS=5*60*1000;
   const BOARD_POLL_MS=5*60*1000;
   const BOARD_429_COOLDOWN_MS=10*60*1000;
-  const BOARD_CACHE_KEY='houstonSim.boardCache.v1';
+  const BOARD_CACHE_KEY=boardCacheStorageKey(HTS_CITY_ID);
   let boardCooldownUntil=0;
   let boardRefreshTimer=null;
   let boardInFlight=null;
@@ -4297,8 +4304,9 @@ window.FLIGHTS=[];
       if(!raw)return;
       const j=JSON.parse(raw);
       if(!j||typeof j!=='object')return;
-      for(const apt of Object.keys(j)){
-        const pack=j[apt];
+      const scoped=pickBoardCacheForApts(j,BOARD_APTS);
+      for(const apt of Object.keys(scoped)){
+        const pack=scoped[apt];
         if(!pack||!pack.at)continue;
         if(Date.now()-pack.at>BOARD_TTL_MS*3)continue; /* keep stale UI up to 15 min */
         window.HOUSTON_BOARDS[apt]=pack;
@@ -4308,22 +4316,17 @@ window.FLIGHTS=[];
   }
   function saveBoardDisk(){
     try{
+      const scoped=pickBoardCacheForApts(window.HOUSTON_BOARDS||{},BOARD_APTS);
       const out={};
-      for(const apt of Object.keys(window.HOUSTON_BOARDS||{})){
-        const p=window.HOUSTON_BOARDS[apt];
+      for(const apt of Object.keys(scoped)){
+        const p=scoped[apt];
         if(p&&p.at)out[apt]={departures:p.departures||[],arrivals:p.arrivals||[],err:p.err||'',at:p.at,cached:!!p.cached};
       }
       localStorage.setItem(BOARD_CACHE_KEY,JSON.stringify(out));
     }catch(e){}
   }
   function rebuildFlatBoard(){
-    const flat=[];
-    for(const apt of Object.keys(window.HOUSTON_BOARDS||{})){
-      const p=window.HOUSTON_BOARDS[apt];
-      if(!p)continue;
-      for(const f of (p.departures||[]))flat.push(f);
-      for(const f of (p.arrivals||[]))flat.push(f);
-    }
+    const flat=flattenBoardFlights(window.HOUSTON_BOARDS||{},BOARD_APTS);
     const key=f=>[f.cs,f.dep,f.arr,f.etd||f.eta||''].join('|');
     const seen=new Set();
     window.HOUSTON_BOARD=flat.filter(f=>{const k=key(f);if(seen.has(k))return false;seen.add(k);return true;});
