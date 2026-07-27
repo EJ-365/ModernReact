@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 export default function Body({ toggle }) {
 
@@ -7,31 +7,27 @@ export default function Body({ toggle }) {
     text: "Do what makes you happy.",
   });
 
-  const [allAdvice, setAllAdvice] = useState({});
-
-  const handleAdvice = useCallback(() => {
-    setAdvice(prevAdvice => ({
-      ...prevAdvice, id: allAdvice.id, text: allAdvice.advice
-    }))
-  }, [allAdvice]);
-
-
-  async function fetchAdvice() {
+  async function fetchAdvice({ signal } = {}) {
     try {
-      const response = await fetch("https://api.adviceslip.com/advice");
+      const response = await fetch("https://api.adviceslip.com/advice", { signal });
       const data = await response.json();
-      setAllAdvice(data.slip);
+      const slip = data?.slip;
+      if (!slip || slip.advice == null) return;
+      setAdvice({ id: slip.id, text: slip.advice });
     } catch (error) {
+      if (error?.name === "AbortError") return;
       console.log("Error fetching data:", error);
     }
   }
 
+  // Mount-only fetch. Do not depend on advice/setters that change after the
+  // response — that previously retriggered this effect in an infinite loop.
   useEffect(() => {
-    // Fetch advice on component mount
-    (async () => {
-      await fetchAdvice();
-    })();
-  }, [handleAdvice]); // Runs once on mount
+    const controller = new AbortController();
+    fetchAdvice({ signal: controller.signal });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only
+  }, []);
 
   return (
     <main className={` ${toggle ? "bg-slate-950 text-white" : "bg-linear-to-b from-purple-100 to-purple-100 text-black"}`}>
@@ -56,7 +52,7 @@ export default function Body({ toggle }) {
           <div className="flex items-center justify-center">
             <button
               className="bg-purple-700 text-white px-3 py-2 rounded-full text-center mr-4 w-1/2 text-md font-semibold align-middle cursor-pointer hover:bg-purple-800 shadow-xl shadow-purple-200 capitalize"
-              onClick={handleAdvice}
+              onClick={() => fetchAdvice()}
             >
               {" "}
               <i className="bx bx-shuffle text-md mx-2 align-middle"></i>
