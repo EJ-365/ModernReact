@@ -755,6 +755,7 @@
     body.m-tab-more #tourTimeGrp,
     body.m-tab-more #tourWxGrp,
     body.m-tab-more #tourHazGrp,
+    body.m-tab-more #tourCityGrp,
     body.m-tab-more #tourVolGrp,
     body.m-tab-more #tourReplayGrp{display:block}
     .btn{min-height:44px;padding:11px 8px;font-size:13px}
@@ -834,7 +835,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.58</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.60</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1132,6 +1133,13 @@
     <button type="button" class="btn" id="hazClear" style="width:100%;margin-top:6px">Clear prediction</button>
     <div id="hazStatus">No active hazard prediction. Pick a scenario to preview impacts on traffic &amp; the map.</div>
   </div>
+  <div class="grp" id="tourCityGrp">
+    <label>Metro</label>
+    <div class="sublabel">Switch city — reloads the simulator for that pack</div>
+    <select id="citySelect" aria-label="Choose metro">
+      <option value="houston">Houston</option>
+    </select>
+  </div>
   <div class="grp" id="tourVolGrp">
     <label>Traffic volume</label>
     <div class="sublabel">How many simulated cars on freeways — Auto follows rush-hour patterns</div>
@@ -1259,7 +1267,7 @@
     <h2 id="tourTitle">Welcome</h2>
     <p id="tourBody"></p>
     <div class="tourNav">
-      <span class="tourStep" id="tourStep">1 / 8</span>
+      <span class="tourStep" id="tourStep">1 / 9</span>
       <button type="button" class="ghost" id="tourSkip">Skip</button>
       <button type="button" id="tourBack">Back</button>
       <button type="button" class="primary" id="tourNext">Next</button>

@@ -16,9 +16,10 @@ export const phoenixManifest = {
     weatherProvider: 'open-meteo',
     timezone: 'America/Phoenix',
   },
-  airportCodes: ['PHX'],
+  airportCodes: ['PHX', 'SDL'],
   boardAirports: {
     PHX: 'Phoenix Sky Harbor International',
+    SDL: 'Scottsdale Airport',
   },
 };
 

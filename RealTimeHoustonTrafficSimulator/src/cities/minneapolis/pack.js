@@ -33,6 +33,7 @@ export const MINNEAPOLIS_DISTRICTS = [
 
 export const MINNEAPOLIS_AIRPORTS = [
   { id:'msp', code:'MSP', name:'Minneapolis–Saint Paul International', lat:44.8848, lng:-93.2223, rot:0.15, intl:true, runLen:800, city:'Minneapolis', elev:'841 ft', note:'Delta hub · Twin Cities', addr:'4300 Glumack Dr, St Paul, MN 55111' },
+  { id:'stp', code:'STP', name:'St. Paul Downtown Airport (Holman Field)', lat:44.9346, lng:-93.0600, rot:0.05, intl:false, runLen:420, city:'Saint Paul', elev:'705 ft', note:'Downtown Saint Paul GA', addr:'644 Bayfield St, St Paul, MN 55107' },
 ];
 
 export const MINNEAPOLIS_POIS = [
@@ -66,7 +67,7 @@ export const MINNEAPOLIS_CORRIDORS = [
 export const MINNEAPOLIS_JUMP_GROUPS = [
   { label:'Minneapolis', options:[['downtown','Downtown'],['northloop','North Loop'],['uptown','Uptown'],['dinkytown','Dinkytown'],['northeast','Northeast'],['lindenhills','Linden Hills']] },
   { label:'Saint Paul & south', options:[['stpaul','Saint Paul'],['midway','Midway'],['como','Como Park'],['bloomington','Bloomington'],['airport','MSP area']] },
-  { label:'Airports', options:[['msp','MSP — Twin Cities Intl']] },
+  { label:'Airports', options:[['msp','MSP — Twin Cities Intl'],['stp','STP — Holman Field']] },
   { label:'Attractions', options:[['poi_usbank','U.S. Bank Stadium'],['poi_targetfield','Target Field'],['poi_moa','Mall of America'],['poi_ids','IDS Center'],['poi_umn','U of M'],['poi_falls','Minnehaha Falls']] },
 ];
 

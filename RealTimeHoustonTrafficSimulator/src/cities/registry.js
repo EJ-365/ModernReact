@@ -59,7 +59,11 @@ export function activeCityId() {
   if (typeof window === 'undefined') return 'houston';
   try {
     const q = new URLSearchParams(window.location.search).get('city');
-    if (q && CITY_PACKS[String(q).toLowerCase()]) return String(q).toLowerCase();
+    if (q && CITY_PACKS[String(q).toLowerCase()]) {
+      const id = String(q).toLowerCase();
+      try { window.localStorage.setItem('hts-city', id); } catch { /* ignore */ }
+      return id;
+    }
     const stored = window.localStorage.getItem('hts-city');
     if (stored && CITY_PACKS[String(stored).toLowerCase()]) return String(stored).toLowerCase();
   } catch {

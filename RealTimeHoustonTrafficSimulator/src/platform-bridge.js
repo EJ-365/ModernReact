@@ -92,7 +92,7 @@ if (!isCityManifest(city)) {
         counties:
           /\b(Harris|Fort Bend|Montgomery|Brazoria|Galveston|Chambers|Liberty|Waller|Austin|San Jacinto)\b/i,
         places:
-          /Houston|Galveston Bay|Clear Lake|Woodlands|Sugar Land|Katy|Brazoria|Conroe/i,
+          /Houston|Galveston Bay|Clear Lake|The Woodlands|Woodlands|Sugar Land|Katy|Brazoria|Conroe|Pearland|Pasadena|Baytown|Cypress|Spring|League City|Humble|Kingwood|Missouri City|Stafford|Richmond|Rosenberg|Fulshear|Tomball|Jersey Village|Alief|Bellaire|West University|Heights|Montrose|Midtown|Galleria|Energy Corridor|Medical Center|Hobby|Intercontinental|IAH/i,
         foot: 'Official NWS alerts for Houston-area counties',
         empty: 'No active NWS warnings for the Houston metro.',
       },

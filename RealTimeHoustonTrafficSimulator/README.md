@@ -4,7 +4,7 @@
 
 Award-ready **3D live city traffic simulator** with a full marketing website, Progressive Web App install, Windows desktop package, and developer documentation.
 
-**Houston is live today.** More metros are on the roadmap — including **Los Angeles, New York, Austin, San Antonio, Boston**, and others — each with local freeways, weather, flights, and landmarks.
+**Sixteen metros live today** — Houston, Austin, San Antonio, Dallas–Fort Worth, Los Angeles, New York, Boston, Chicago, Miami, Seattle, Denver, Atlanta, Phoenix, Philadelphia, Minneapolis–St. Paul, and New Orleans — each with local freeways, weather, flights, and landmarks.
 
 The project is **updated often** with **continuous integration** (GitHub Actions on every push/PR): install, verify surfaces, production build, and Windows package artifacts on main.
 

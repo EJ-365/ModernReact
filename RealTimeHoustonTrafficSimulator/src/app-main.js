@@ -22,6 +22,7 @@ import {
   compassFromBearing,
   clampTowardPoint,
 } from './feeds/storm-tracker.js';
+import { buildCityHazards } from './cities/hazard-packs.js';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -36,14 +37,14 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.58 (0723-city-tour). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.60 (0728-city-hazards). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
 const HTS_HAS_PACK=!!(HTS_PACK&&HTS_PACK.useBuiltinRoads===false);
 const CITY_NAME=(window.HTS_CITY&&window.HTS_CITY.name)||'Houston';
-const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':'Greater Houston');
-const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':'Houston-area');
+const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':(HTS_CITY_ID==='houston'?'Greater Houston':(CITY_NAME+' metro')));
+const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':(HTS_CITY_ID==='houston'?'Houston-area':(CITY_NAME+'-area')));
 const METRO_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
 const METRO_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lng)||-95.3698;
 const DEFAULT_APT=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts[0])||'IAH';
@@ -5789,7 +5790,7 @@ window.updateCrowds=(function(){
   })();
   const bikes=new THREE.InstancedMesh(bikeGeom,new THREE.MeshLambertMaterial({}),NB);
   scene.add(bikes);
-  const bikeTrails=(HTS_IS_AUS?[LADYBIRD,SHOAL,BARTON_CK]:[BAYOU,WHITEOAK,BRAYS])
+  const bikeTrails=(HTS_IS_AUS?[LADYBIRD,SHOAL,BARTON_CK]:(HTS_HAS_PACK?(LADYBIRD.length>=2?[LADYBIRD]:[]):[BAYOU,WHITEOAK,BRAYS]))
     .filter(pts=>pts&&pts.length>=2)
     .map(pts=>sampleCurve(pts,false,30))
     .filter(t=>t&&t.total>1);
@@ -7378,9 +7379,9 @@ function renderStormTrackerPanel(){
       const title=urgent.label||'Storm alert';
       let stormName='';
       if(urgent.kind==='hurricane'){
-        /* Always use the live NHC storm name — every active storm has one */
+        /* Nearby NHC storms only — never attach a distant basin name to a local warning */
         const org=stormTrackerOrigin();
-        const pool=(ST.nearStorms&&ST.nearStorms.length)?ST.nearStorms:(ST.hurricanes||[]);
+        const pool=ST.nearStorms||[];
         let best=null,bestMi=Infinity;
         for(const s of pool){
           if(!s||!s.name||s.lat==null||s.lng==null)continue;
@@ -8524,7 +8525,7 @@ function clearNwsAlertEls(){
 const HOU_MSA_COUNTIES=(HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.counties)
   ||/\b(Harris|Fort Bend|Montgomery|Brazoria|Galveston|Chambers|Liberty|Waller|Austin|San Jacinto)\b/i;
 const HOU_MSA_PLACES=(HTS_PACK&&HTS_PACK.nws&&HTS_PACK.nws.places)
-  ||/Houston|Galveston Bay|Clear Lake|Woodlands|Sugar Land|Katy|Brazoria|Conroe/i;
+  ||/Houston|Galveston Bay|Clear Lake|The Woodlands|Woodlands|Sugar Land|Katy|Brazoria|Conroe|Pearland|Pasadena|Baytown|Cypress|Spring|League City|Humble|Kingwood|Missouri City|Stafford|Richmond|Rosenberg|Fulshear|Tomball|Jersey Village|Alief|Bellaire|West University|Heights|Montrose|Midtown|Galleria|Energy Corridor|Medical Center|Hobby|Intercontinental|IAH/i;
 const NWS_POLL_MS=2*60*1000;
 let _nwsNext=0;
 window.LIVE_NWS={ok:false,at:0,count:0,err:'',features:[]};
@@ -10439,73 +10440,14 @@ function updateFloods(dt){
    Simulated forecast overlays for the active metro — educational / what-if, not live NWS alerts. */
 window.HAZARD={mode:null,active:false,t:0,intensity:0,congBoost:0,group:null,alertEl:null,rings:[],smoke:[],yieldKt:10,labels:[],
   nukeOrigin:null,nukePlaceMode:false,targetMarkers:[]};
-const HAZ_SCENARIOS=HTS_IS_AUS?{
-  hurricane:{
-    title:'Tropical remnant / flood outlook',
-    cls:'hurricane',
-    status:'Gulf tropical moisture track into Central Texas · 36–48 hr outlook. Heavy rain + flash flooding on Onion / Shoal / Walnut creeks and Lady Bird corridor. Evac/relief: I-35 N–S, MoPac, US-183, SH-71, SH-130.',
-    alert:'Tropical rain event — modeled Gulf moisture over Greater Austin. Flash-flood risk on creeks & low-water crossings. Freeways jammed outbound.',
-    fly:{x:60,z:200,r:2800},
-    cong:0.5
-  },
-  wildfire:{
-    title:'Wildfire outlook',
-    cls:'wildfire',
-    status:'Elevated fire weather west of Austin (Balcones / Bee Cave / Lake Travis / Dripping Springs juniper-oak). Dry fuels + SW winds. Smoke drift toward MoPac & downtown if winds W–SW.',
-    alert:'Wildfire prediction — Hill Country brush fire risk west of MoPac. Smoke reducing visibility on Loop 360, Bee Caves Rd & RM 2222.',
-    fly:{x:-1600,z:-400,r:2600},
-    cong:0.28
-  },
-  flood:{
-    title:'Flood prediction',
-    cls:'flood',
-    status:'Certain inundation corridors (Memorial Day / Onion Creek–class): Lady Bird Lake shore, Onion Creek, Shoal Creek, Waller Creek, Walnut Creek, Barton Creek, Colorado River flats near AUS.',
-    alert:'Flood prediction — historic Austin flood footprints lit. Creeks, low-water crossings & riverside neighborhoods underwater. Avoid flooded roadways.',
-    fly:{x:60,z:120,r:2400},
-    cong:0.48
-  },
-  nuclear:{
-    title:'Nuclear blast model',
-    cls:'nuclear',
-    status:'Strategic targeting model — ranked likely ground zeros (Capitol, downtown, AUS, Camp Mabry, tech campuses). Click map for any point; rings use Glasstone W^(1/3) scaling + live wind for fallout.',
-    alert:'NUCLEAR DRILL (SIMULATED) — educational blast / thermal / fallout model. Not a real event.',
-    fly:{x:60,z:60,r:2200},
-    cong:0.75
-  }
-}:{
-  hurricane:{
-    title:'Hurricane forecast',
-    cls:'hurricane',
-    status:'Category 2–3 Gulf track toward Galveston Bay · 36–48 hr outlook. Evacuation corridors: I-45 N, I-10 W, US-59 N. Expect surge on the Ship Channel & bayou flooding inland.',
-    alert:'Hurricane watch — modeled Gulf storm approaching Galveston / Clear Lake. Coastal surge + inland flooding risk. Freeways jammed outbound.',
-    fly:{x:3200,z:2800,r:4200},
-    cong:0.55
-  },
-  wildfire:{
-    title:'Wildfire outlook',
-    cls:'wildfire',
-    status:'Elevated fire weather NW of Houston (Katy prairie / Cypress / Magnolia pine belt). Dry fuels + SW winds. Smoke drift toward the Energy Corridor & Spring Branch.',
-    alert:'Wildfire prediction — brush / pine fire risk NW Harris & Montgomery Counties. Smoke reducing visibility on US-290 & SH-249.',
-    fly:{x:-2800,z:-2200,r:3200},
-    cong:0.28
-  },
-  flood:{
-    title:'Flood prediction',
-    cls:'flood',
-    status:'Certain inundation corridors only (Harvey-class): Addicks/Barker pools + releases, Buffalo/Brays/White Oak/Sims bayous, Meyerland, Greenspoint, Ship Channel surge fringe.',
-    alert:'Flood prediction — 100% likely inundation zones lit. Reservoirs, bayou corridors & historic repeat-flood neighborhoods underwater. Avoid flooded roadways.',
-    fly:{x:-900,z:200,r:3400},
-    cong:0.48
-  },
-  nuclear:{
-    title:'Nuclear blast model',
-    cls:'nuclear',
-    status:'Strategic targeting model — ranked likely ground zeros (Ship Channel, CBD, refineries, NASA, airports). Click map for any point; rings use Glasstone W^(1/3) scaling + live wind for fallout.',
-    alert:'NUCLEAR DRILL (SIMULATED) — educational blast / thermal / fallout model. Not a real event.',
-    fly:{x:2400,z:150,r:2800},
-    cong:0.75
-  }
-};
+const CITY_HAZ=buildCityHazards({
+  cityId:HTS_CITY_ID,
+  pack:HTS_PACK,
+  cityName:CITY_NAME,
+  metroName:METRO_NAME,
+  geoToWorld,
+});
+const HAZ_SCENARIOS=CITY_HAZ.scenarios;
 /* Approximate airburst radii (miles) — Glasstone-style W^(1/3) scaling (educational, not weapons design) */
 function nukeRadiiMi(kt){
   const W=Math.max(0.001,Number(kt)||10);
@@ -10523,69 +10465,8 @@ function nukeRadiiMi(kt){
 const NUK_YIELDS={};
 [1,10,100,1000].forEach(kt=>{NUK_YIELDS[kt]=nukeRadiiMi(kt);});
 /* Strategic / high-value metro targets — weighted for likelihood scoring (simulated targeting model) */
-const NUK_TARGETS=(function(){
-  const raw=HTS_IS_AUS?[
-    {id:'downtown',n:'Downtown Austin CBD',short:'Downtown',cat:'government',w:94,lat:30.2672,lng:-97.7431,
-      why:'State capital metro core — dense employment & nightlife'},
-    {id:'capitol',n:'Texas State Capitol',short:'Capitol',cat:'government',w:96,lat:30.2747,lng:-97.7404,
-      why:'Seat of Texas government — legislature, agencies, symbolism'},
-    {id:'ut',n:'University of Texas',short:'UT Austin',cat:'critical',w:82,lat:30.2862,lng:-97.7394,
-      why:'Flagship research university · stadium · dense campus population'},
-    {id:'aus',n:'AUS — Austin-Bergstrom',short:'AUS',cat:'transport',w:88,lat:30.1945,lng:-97.6699,
-      why:'Primary commercial airport & air-cargo gateway'},
-    {id:'edc',n:'Austin Executive Airport',short:'EDC',cat:'transport',w:62,lat:30.3975,lng:-97.5664,
-      why:'Corporate / GA field northeast of metro'},
-    {id:'mabry',n:'Camp Mabry',short:'Camp Mabry',cat:'military',w:80,lat:30.316,lng:-97.763,
-      why:'Texas Military Department HQ · National Guard'},
-    {id:'domain',n:'The Domain / tech north',short:'Domain',cat:'economic',w:74,lat:30.402,lng:-97.725,
-      why:'Major employment / retail / tech campus cluster'},
-    {id:'tesla',n:'Tesla Gigafactory Texas',short:'Giga Texas',cat:'economic',w:86,lat:30.221,lng:-97.618,
-      why:'Large manufacturing plant · critical industrial infrastructure'},
-    {id:'samsung',n:'Samsung / NE tech',short:'Samsung corridor',cat:'economic',w:78,lat:30.35,lng:-97.48,
-      why:'Semiconductor & advanced manufacturing corridor'},
-    {id:'oracle',n:'Oracle campus / waterfront',short:'Oracle',cat:'economic',w:70,lat:30.262,lng:-97.75,
-      why:'Large corporate campus on Lady Bird Lake'},
-    {id:'abby',n:'ABIA cargo / Del Valle',short:'ABIA cargo',cat:'logistics',w:72,lat:30.20,lng:-97.66,
-      why:'Airport logistics & south-east industrial belt'},
-    {id:'zilker',n:'Zilker / ACL grounds',short:'Zilker',cat:'gathering',w:66,lat:30.2671,lng:-97.7729,
-      why:'Mass-gathering park · festivals · west downtown'},
-  ]:[
-    {id:'downtown',n:'Downtown CBD',short:'Downtown',cat:'government',w:92,lat:29.7604,lng:-95.3698,
-      why:'State & county government, financial core, dense population'},
-    {id:'shipchannel',n:'Houston Ship Channel',short:'Ship Channel',cat:'energy',w:98,lat:29.723,lng:-95.238,
-      why:'Largest petrochemical port in the U.S. — refineries, terminals, pipelines'},
-    {id:'pasadena',n:'Pasadena Refinery Row',short:'Pasadena',cat:'energy',w:94,lat:29.691,lng:-95.209,
-      why:'Major refinery & chemical complex along SH-146'},
-    {id:'baytown',n:'Baytown Exxon Complex',short:'Baytown',cat:'energy',w:90,lat:29.735,lng:-94.977,
-      why:'One of the largest integrated refining/petrochemical sites in the world'},
-    {id:'medcenter',n:'Texas Medical Center',short:'Med Center',cat:'critical',w:88,lat:29.706,lng:-95.398,
-      why:'World\'s largest medical complex — hospitals, research, emergency infrastructure'},
-    {id:'nasa',n:'NASA Johnson Space Center',short:'NASA JSC',cat:'federal',w:85,lat:29.559,lng:-95.089,
-      why:'Human spaceflight, Mission Control, federal aerospace assets'},
-    {id:'iah',n:'IAH — Bush Intercontinental',short:'IAH',cat:'transport',w:82,lat:29.990,lng:-95.337,
-      why:'Primary international airport & logistics hub'},
-    {id:'hou',n:'Hobby Airport',short:'Hobby',cat:'transport',w:72,lat:29.645,lng:-95.279,
-      why:'Secondary airport, military adjacency, southeast metro access'},
-    {id:'efd',n:'Ellington Field / JRB',short:'Ellington',cat:'military',w:78,lat:29.607,lng:-95.158,
-      why:'Joint Reserve Base, aerospace, Coast Guard air station'},
-    {id:'nrg',n:'NRG Park / Stadiums',short:'NRG Park',cat:'gathering',w:70,lat:29.685,lng:-95.411,
-      why:'Mass-gathering venue cluster — Texans, rodeo, concerts'},
-    {id:'galleria',n:'Galleria / Uptown',short:'Uptown',cat:'economic',w:75,lat:29.740,lng:-95.461,
-      why:'Second CBD, Fortune-500 HQs, dense commercial core'},
-    {id:'energycorridor',n:'Energy Corridor',short:'Energy Corridor',cat:'economic',w:73,lat:29.780,lng:-95.630,
-      why:'Major oil & gas corporate headquarters belt'},
-    {id:'texascity',n:'Texas City Refineries',short:'Texas City',cat:'energy',w:86,lat:29.384,lng:-94.903,
-      why:'Historic refinery city — BP/Marathon/Valero complexes'},
-    {id:'clearlake',n:'Clear Lake / NASA Strip',short:'Clear Lake',cat:'federal',w:68,lat:29.560,lng:-95.100,
-      why:'Aerospace contractors, federal contractors, bay access'},
-    {id:'port',n:'Barbours Cut / Bayport',short:'Port terminals',cat:'logistics',w:80,lat:29.620,lng:-95.010,
-      why:'Container terminals — critical import/export infrastructure'},
-  ];
-  return raw.map(t=>{
-    const w=geoToWorld(t.lat,t.lng);
-    return {...t,x:w.x,z:w.z,radiusMi:2.2+Math.sqrt(t.w)/18};
-  });
-})();
+const NUK_TARGETS=CITY_HAZ.nukeTargets||[];
+const HOUSTON_WILDFIRE_XZ=[[-3200,-1800,380],[-2800,-2600,320],[-2100,-3200,280],[-3600,-900,260],[-2400,-3950,300]];
 function hazNukeLikelihoodAt(x,z){
   let score=0;const hits=[];
   for(const t of NUK_TARGETS){
@@ -10597,10 +10478,12 @@ function hazNukeLikelihoodAt(x,z){
       if(contrib>8)hits.push({n:t.short,w:contrib,why:t.why});
     }
   }
-  const dt=HTS_IS_AUS?geoToWorld(30.2672,-97.7431):{x:60,z:60};
+  const dtLL=CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+  const dt=geoToWorld(dtLL[0],dtLL[1]);
   const dDownMi=Math.hypot(x-dt.x,z-dt.z)/UNITS_PER_MILE;
   score+=55*Math.exp(-dDownMi/8);
-  const hub=HTS_IS_AUS?geoToWorld(30.1945,-97.6699):{x:2400,z:150};
+  const hubLL=CITY_HAZ.hubLatLng||dtLL;
+  const hub=geoToWorld(hubLL[0],hubLL[1]);
   const dHubMi=Math.hypot(x-hub.x,z-hub.z)/UNITS_PER_MILE;
   score+=40*Math.exp(-dHubMi/6);
   hits.sort((a,b)=>b.w-a.w);
@@ -10610,7 +10493,10 @@ function hazNukeLikelihoodAt(x,z){
 function hazNukeRankTargets(){
   const pts=[];
   for(const t of NUK_TARGETS)pts.push({...t,lik:hazNukeLikelihoodAt(t.x,t.z)});
-  const districtPool=(DISTRICTS&&DISTRICTS.length)?DISTRICTS:(DISTRICTS_CORE||[]);
+  /* Never fall back to Houston DISTRICTS_CORE for other metros — that leaked suburb names into nuke UI. */
+  const districtPool=(DISTRICTS&&DISTRICTS.length)
+    ?DISTRICTS
+    :(HTS_CITY_ID==='houston'?DISTRICTS_CORE:[]);
   for(const d of districtPool.slice(0,20)){
     const lik=hazNukeLikelihoodAt(d.x,d.z);
     if(lik.pct>25)pts.push({id:d.id,n:d.n,short:d.n,x:d.x,z:d.z,why:'Urban / economic density',lik});
@@ -10632,63 +10518,35 @@ function hazWindRad(){
 }
 function miToUnits(mi){return mi*UNITS_PER_MILE;}
 /* Metro corridors that historically flood in major storms */
-const FLOOD_CERTAIN=HTS_IS_AUS?(function(){
-  const z=(lat,lng,r,name)=>{const p=geoToWorld(lat,lng);return {x:p.x,z:p.z,r,name};};
-  return [
-    z(30.265,-97.772,280,'Lady Bird · Zilker'),
-    z(30.262,-97.75,220,'Lady Bird · downtown'),
-    z(30.250,-97.736,200,'Lady Bird · I-35'),
-    z(30.245,-97.77,360,'Onion Creek'),
-    z(30.22,-97.75,300,'Onion / South Austin'),
-    z(30.20,-97.70,280,'Onion · Del Valle'),
-    z(30.29,-97.76,240,'Shoal Creek mid'),
-    z(30.275,-97.755,200,'Shoal · Pease'),
-    z(30.268,-97.74,160,'Waller Creek'),
-    z(30.35,-97.68,280,'Walnut Creek'),
-    z(30.32,-97.70,220,'Walnut mid'),
-    z(30.264,-97.771,200,'Barton Creek'),
-    z(30.27,-97.80,220,'Barton / Lost Creek'),
-    z(30.31,-97.78,200,'Bull Creek'),
-    z(30.24,-97.72,240,'Riverside low'),
-    z(30.21,-97.69,260,'AUS floodplain fringe'),
-    z(30.19,-97.67,240,'Bergstrom low'),
-    z(30.40,-97.91,320,'Lake Travis shore'),
-  ];
-})():[
-  /* Addicks / Barker reservoir pools + release paths */
+const HOUSTON_FLOOD_XZ=[
   {x:-2650,z:-780,r:520,name:'Addicks pool'},
   {x:-2850,z:300,r:540,name:'Barker pool'},
   {x:-2200,z:-200,r:380,name:'Addicks release'},
   {x:-2400,z:180,r:360,name:'Barker release'},
-  /* Buffalo Bayou corridor (reservoirs → downtown → channel) */
   {x:-1600,z:-100,r:220,name:'Buffalo W'},
   {x:-880,z:-130,r:260,name:'Memorial / Bayou'},
   {x:-350,z:-70,r:240,name:'Buffalo Bayou Park'},
   {x:60,z:40,r:200,name:'Downtown bayou'},
   {x:500,z:20,r:210,name:'EaDo / channel head'},
   {x:1200,z:80,r:240,name:'Ship Channel W'},
-  /* Brays Bayou — Meyerland / Med Center / Gulfton */
   {x:-1480,z:520,r:280,name:'Gulfton / Brays'},
   {x:-920,z:680,r:300,name:'Meyerland'},
   {x:-600,z:750,r:240,name:'Brays mid'},
   {x:-290,z:800,r:220,name:'Med Center low'},
   {x:200,z:900,r:200,name:'Brays E'},
-  /* White Oak / Near Northside / Heights low spots */
   {x:-400,z:-350,r:220,name:'White Oak'},
   {x:0,z:-120,r:180,name:'White Oak join'},
   {x:280,z:-180,r:200,name:'Fifth Ward low'},
-  /* Sims / southside */
   {x:200,z:2400,r:220,name:'Sims Bayou'},
   {x:800,z:2000,r:200,name:'Sims mid'},
-  /* Greenspoint / Greens Bayou */
   {x:-420,z:-1180,r:320,name:'Greenspoint'},
   {x:200,z:-1400,r:240,name:'Greens Bayou'},
-  /* Clear Lake / coastal surge fringe (certain in major surge) */
   {x:2050,z:3020,r:380,name:'Clear Lake'},
   {x:2750,z:3280,r:300,name:'Kemah / Seabrook'},
   {x:2450,z:420,r:340,name:'Pasadena channel'},
   {x:3800,z:-200,r:360,name:'Baytown channel'}
 ];
+const FLOOD_CERTAIN=CITY_HAZ.floodZones||(CITY_HAZ.floodRibbonMode==='houston'?HOUSTON_FLOOD_XZ:[]);
 function hazClearVisuals(){
   const H=window.HAZARD;
   if(H.group){scene.remove(H.group);H.group=null;}
@@ -10848,13 +10706,14 @@ function hazBuildFlood(){
     H.group.add(hazMakeDisk(z.x,z.z,z.r,0x1e40af,0.42,2.0));
     H.group.add(hazMakeDisk(z.x,z.z,z.r*1.08,0x3b82f6,0.18,2.4));
   }
-  /* continuous inundation ribbons (bayous Houston / Lady Bird + creeks Austin) */
-  const ribbons=HTS_IS_AUS
-    ?[[LADYBIRD,160,0x1d4ed8,0.5]]
-    :[
-      [BAYOU,140,0x1d4ed8,0.5],[BRAYS,110,0x1e40af,0.48],[WHITEOAK,100,0x1d4ed8,0.46],
-      [SIMS,95,0x1e3a8a,0.44],[GREENS,100,0x1e40af,0.44],[SANJAC,160,0x1e3a8a,0.4]
-    ];
+  /* continuous inundation ribbons — city-local only */
+  let ribbons=[];
+  if(CITY_HAZ.floodRibbonMode==='austin')ribbons=[[LADYBIRD,160,0x1d4ed8,0.5]];
+  else if(CITY_HAZ.floodRibbonMode==='houston')ribbons=[
+    [BAYOU,140,0x1d4ed8,0.5],[BRAYS,110,0x1e40af,0.48],[WHITEOAK,100,0x1d4ed8,0.46],
+    [SIMS,95,0x1e3a8a,0.44],[GREENS,100,0x1e40af,0.44],[SANJAC,160,0x1e3a8a,0.4]
+  ];
+  else if(LADYBIRD&&LADYBIRD.length>=2)ribbons=[[LADYBIRD,140,0x1d4ed8,0.48]];
   for(const [pts,w,hex,op] of ribbons){
     if(pts&&pts.length>=2)H.group.add(hazBayouFloodRibbon(pts,w,hex,op));
   }
@@ -10864,7 +10723,8 @@ function hazBuildFlood(){
     sp.position.set(z.x,22,z.z);H.group.add(sp);H.labels.push(sp);
   }
   const banner=warnSprite('flood','Likely flood zones','educational overlay',0.48);
-  const banAt=HTS_IS_AUS?geoToWorld(30.26,-97.75):{x:-900,z:200};
+  const banLL=CITY_HAZ.floodBannerLatLng||CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+  const banAt=geoToWorld(banLL[0],banLL[1]);
   banner.position.set(banAt.x,55,banAt.z);H.group.add(banner);H.labels.push(banner);
   /* activate underpasses that sit inside certain flood footprints */
   if(UNDERPASSES.length){
@@ -10889,16 +10749,28 @@ function hazLiveHurricaneStatus(){
   const cat=w>=130?4:w>=100?3:w>=75?2:w>=40?1:0;
   const catTxt=cat?('Category '+cat+(cat>=3?'–'+(cat+1):'')+' potential'):'Tropical-storm force winds';
   const hum=wx.hum!=null?wx.hum:65;
-  if(HTS_IS_AUS){
+  if(HTS_CITY_ID==='austin'){
     const rainIn=cat>=3?8:cat>=2?5:cat>=1?3:1.5;
     return catTxt+' · live wind '+w+' mph · humidity '+hum+'%'
       +' · modeled rain '+rainIn+'–'+(rainIn+3)+' in Central Texas'
       +' · relief: I-35 N–S, MoPac, US-183, SH-71, SH-130';
   }
-  const surgeFt=cat>=3?12:cat>=2?8:cat>=1?4:2;
+  if(HTS_CITY_ID==='houston'){
+    const surgeFt=cat>=3?12:cat>=2?8:cat>=1?4:2;
+    return catTxt+' · live wind '+w+' mph · humidity '+hum+'%'
+      +' · modeled surge '+surgeFt+'–'+(surgeFt+4)+' ft Galveston Bay'
+      +' · evac: I-45 N, I-10 W, US-59 N, SH-288 N';
+  }
+  if(CITY_HAZ.coastal){
+    const surgeFt=cat>=3?10:cat>=2?6:cat>=1?3:1;
+    return catTxt+' · live wind '+w+' mph · humidity '+hum+'%'
+      +' · modeled coastal surge '+surgeFt+'–'+(surgeFt+3)+' ft near '+CITY_NAME
+      +' · outbound freeways congested';
+  }
+  const rainIn=cat>=2?5:cat>=1?3:1.5;
   return catTxt+' · live wind '+w+' mph · humidity '+hum+'%'
-    +' · modeled surge '+surgeFt+'–'+(surgeFt+4)+' ft Galveston Bay'
-    +' · evac: I-45 N, I-10 W, US-59 N, SH-288 N';
+    +' · modeled rain '+rainIn+'–'+(rainIn+3)+'" over '+METRO_NAME
+    +' · flash-flood risk on local corridors';
 }
 function hazLiveWildfireStatus(){
   const wx=liveWx||{};
@@ -10907,14 +10779,19 @@ function hazLiveWildfireStatus(){
   const rain=wxBlend.rain||0;
   const idx=clamp((100-hum)/100*(w/22)*(1-rain*0.85),0,1);
   const risk=idx>0.65?'EXTREME':idx>0.4?'ELEVATED':idx>0.2?'MODERATE':'LOW';
-  if(HTS_IS_AUS){
+  if(HTS_CITY_ID==='austin'){
     return risk+' fire weather · humidity '+hum+'% · wind '+w+' mph'
       +' · Balcones / Bee Cave / Lake Travis / Dripping Springs most exposed'
       +' · smoke drift toward MoPac & downtown if winds W–SW';
   }
+  if(HTS_CITY_ID==='houston'){
+    return risk+' fire weather · humidity '+hum+'% · wind '+w+' mph'
+      +' · NW prairie / Cypress / Magnolia / Montgomery pine belt most exposed'
+      +' · smoke drift toward Energy Corridor if winds SW';
+  }
   return risk+' fire weather · humidity '+hum+'% · wind '+w+' mph'
-    +' · NW prairie / Cypress / Magnolia / Montgomery pine belt most exposed'
-    +' · smoke drift toward Energy Corridor if winds SW';
+    +' · dry fringe west / northwest of '+CITY_NAME+' most exposed'
+    +' · smoke may drift toward the metro core';
 }
 function hazLiveFloodStatus(){
   let precip24=0;
@@ -10922,16 +10799,22 @@ function hazLiveFloodStatus(){
     const h=liveWx.hourly.precipitation;
     for(let i=0;i<Math.min(24,h.length);i++)precip24+=h[i]||0;
   }
-  if(HTS_IS_AUS){
+  if(HTS_CITY_ID==='austin'){
     const cls=precip24>=3?'>Memorial Day–class rain forecast':'Onion Creek / Memorial Day footprint';
     return cls+' ('+precip24.toFixed(2)+'" /24h forecast) · '
       +FLOOD_CERTAIN.length+' certain zones + Lady Bird ribbon'
       +' · Shoal / Onion / Walnut light when forecast >2"';
   }
-  const harveyClass=precip24>=3?'>Harvey-class rain forecast':'Harvey-class footprint';
-  return harveyClass+' ('+precip24.toFixed(2)+'" /24h forecast) · '
-    +FLOOD_CERTAIN.length+' certain zones + bayou ribbons'
-    +' · Addicks/Barker release paths light when forecast >2"';
+  if(HTS_CITY_ID==='houston'){
+    const harveyClass=precip24>=3?'>Harvey-class rain forecast':'Harvey-class footprint';
+    return harveyClass+' ('+precip24.toFixed(2)+'" /24h forecast) · '
+      +FLOOD_CERTAIN.length+' certain zones + bayou ribbons'
+      +' · Addicks/Barker release paths light when forecast >2"';
+  }
+  const cls=precip24>=3?'Heavy rain forecast':'Local flood footprint';
+  return cls+' ('+precip24.toFixed(2)+'" /24h forecast) · '
+    +FLOOD_CERTAIN.length+' flood-prone zones for '+CITY_NAME
+    +' · educational overlay';
 }
 function hazActivate(mode){
   const sc=HAZ_SCENARIOS[mode];if(!sc)return;
@@ -10968,7 +10851,8 @@ function hazActivate(mode){
         H.group.add(hazMakeDisk(p.x,p.z,r,0xc4b5fd,0.14,5));
         const ev=textSprite('Relief · '+nm,0.32);ev.position.set(p.x,24,p.z);H.group.add(ev);H.labels.push(ev);
       }
-    }else{
+      sc.fly={x:core.x,z:core.z,r:clamp(2400*catScale,1800,4200)};
+    }else if(HTS_CITY_ID==='houston'){
       const core=geoToWorld(29.35,-94.85);
       H.group.add(hazMakeDisk(core.x,core.z,900*catScale,0x6366f1,0.28,3));
       H.group.add(hazMakeDisk(core.x,core.z,1800*catScale,0x4c1d95,0.14,2.2));
@@ -10984,6 +10868,35 @@ function hazActivate(mode){
         H.group.add(hazMakeDisk(x,z,r,0xc4b5fd,0.14,5));
         const ev=textSprite('Evac · '+nm,0.32);ev.position.set(x,24,z);H.group.add(ev);H.labels.push(ev);
       }
+      sc.fly={x:core.x,z:core.z,r:clamp(2800*catScale,2200,5200)};
+    }else{
+      /* Pack metros — storm core SE of origin; never reuse Galveston / Houston freeway labels */
+      const [oLat,oLng]=CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+      const core=geoToWorld(oLat-(CITY_HAZ.coastal?0.28:0.12),oLng+(CITY_HAZ.coastal?0.22:0.10));
+      const coreScale=CITY_HAZ.coastal?1:0.72;
+      H.group.add(hazMakeDisk(core.x,core.z,800*catScale*coreScale,0x6366f1,0.28,3));
+      H.group.add(hazMakeDisk(core.x,core.z,1600*catScale*coreScale,0x4c1d95,0.14,2.2));
+      H.group.add(hazMakeDisk(core.x,core.z,2400*catScale*coreScale,0x312e81,0.08,1.8));
+      const r1=hazMakeRing(core.x,core.z,900*catScale*coreScale,1200*catScale*coreScale,0xa78bfa,4,0.42);H.group.add(r1.mesh);H.rings.push(r1);
+      const r2=hazMakeRing(core.x,core.z,1700*catScale*coreScale,2100*catScale*coreScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
+      const trackSp=warnSprite('hurricane',CITY_HAZ.coastal?'Landfall cone':'Storm shield',METRO_NAME,0.4);
+      trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
+      const dt=geoToWorld(oLat,oLng);
+      H.group.add(hazMakeDisk(dt.x,dt.z,320*catScale,0x2563eb,0.22,2));
+      const roads=(HTS_PACK&&HTS_PACK.roads)||[];
+      for(const road of roads.slice(0,4)){
+        const pts=road.pts;if(!pts||pts.length<2)continue;
+        const mid=pts[Math.floor(pts.length/2)];
+        H.group.add(hazMakeDisk(mid[0],mid[1],240,0xc4b5fd,0.14,5));
+        const ev=textSprite((CITY_HAZ.coastal?'Evac':'Relief')+' · '+(road.short||road.name||'Corridor'),0.32);
+        ev.position.set(mid[0],24,mid[1]);H.group.add(ev);H.labels.push(ev);
+      }
+      sc.fly={x:core.x,z:core.z,r:clamp(2600*catScale,2000,4800)};
+    }
+    if(!sc.fly){
+      const ll=CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+      const p=geoToWorld(ll[0],ll[1]);
+      sc.fly={x:p.x,z:p.z,r:3600};
     }
     const st=$('hazStatus');if(st)st.textContent=hazLiveHurricaneStatus();
   }else if(mode==='wildfire'){
@@ -10991,9 +10904,9 @@ function hazActivate(mode){
     const hum=wx.hum!=null?wx.hum:50;
     const w=wx.wind||0;
     const idx=clamp((100-hum)/100*(w/22),0.2,1);
-    const fires=HTS_IS_AUS
-      ?[[30.31,-97.95,360],[30.36,-97.90,300],[30.28,-97.88,280],[30.22,-98.02,260],[30.41,-97.91,320]].map(([lat,lng,r])=>{const p=geoToWorld(lat,lng);return [p.x,p.z,r];})
-      :[[-3200,-1800,380],[-2800,-2600,320],[-2100,-3200,280],[-3600,-900,260],[-2400,-3950,300]];
+    const fires=CITY_HAZ.wildfireLatLng
+      ?CITY_HAZ.wildfireLatLng.map(([lat,lng,r])=>{const p=geoToWorld(lat,lng);return [p.x,p.z,r];})
+      :(HTS_CITY_ID==='houston'?HOUSTON_WILDFIRE_XZ:[]);
     for(const [x,z,r] of fires){
       const rs=r*(0.7+idx*0.5);
       H.group.add(hazMakeDisk(x,z,rs,0xea580c,0.35+idx*0.15,2.5));
@@ -11005,7 +10918,8 @@ function hazActivate(mode){
       }
     }
     const wr=hazWindRad();
-    const smokeOrigin=HTS_IS_AUS?geoToWorld(30.32,-97.92):{x:-2800,z:-2200};
+    const smokeLL=CITY_HAZ.smokeOriginLatLng||CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+    const smokeOrigin=geoToWorld(smokeLL[0],smokeLL[1]);
     for(let i=1;i<=6;i++){
       const t=i/6;
       const sx=smokeOrigin.x+Math.cos(wr)*1200*t;
@@ -11013,14 +10927,23 @@ function hazActivate(mode){
       H.group.add(hazMakeDisk(sx,sz,200+120*t,0x57534e,0.1*(1-t*0.3),10+t*2));
     }
     const st=$('hazStatus');if(st)st.textContent=hazLiveWildfireStatus();
+    const smokeAt=smokeOrigin;
+    sc.fly={x:smokeAt.x,z:smokeAt.z,r:3200};
   }else if(mode==='flood'){
     hazBuildFlood();
     const precip=hazLiveFloodStatus();
     const st=$('hazStatus');if(st)st.textContent=precip;
+    const banLL=CITY_HAZ.floodBannerLatLng||CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+    const banAt=geoToWorld(banLL[0],banLL[1]);
+    sc.fly={x:banAt.x,z:banAt.z,r:2800};
   }else if(mode==='nuclear'){
     hazPopulateNukeUI();
     const top=hazNukeRankTargets()[0];
-    const origin=top?{x:top.x,z:top.z}:(HTS_IS_AUS?geoToWorld(30.2672,-97.7431):geoToWorld(29.73,-95.12));
+    const origin=top?{x:top.x,z:top.z}:(function(){
+      const ll=CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+      const p=geoToWorld(ll[0],ll[1]);
+      return {x:p.x,z:p.z};
+    })();
     hazBuildNuclear(origin,H.yieldKt||10);
     hazBuildNukeTargetMarkers(H.yieldKt||10);
     const R=hazNukeRanges(H.yieldKt||10);
@@ -11047,6 +10970,11 @@ function hazActivate(mode){
   H.alertEl=el;
 
   stopFollow();
+  if(!sc.fly){
+    const ll=CITY_HAZ.downtownLatLng||[METRO_LAT,METRO_LNG];
+    const p=geoToWorld(ll[0],ll[1]);
+    sc.fly={x:p.x,z:p.z,r:3200};
+  }
   camGoal.target.set(sc.fly.x,0,sc.fly.z);
   camGoal.radius=sc.fly.r;
   camGoal.phi=1.05;
@@ -13001,9 +12929,31 @@ setTimeout(()=>{
   });
   if(isMobile())setTab('go');
 })();
+/* ==================== Metro switcher ==================== */
+(function setupCitySelect(){
+  const sel=$('citySelect');
+  if(!sel)return;
+  const packs=window.HTS_CITIES||{};
+  const ids=window.HTS_CITY_IDS||Object.keys(packs);
+  const order=Array.isArray(ids)&&ids.length?ids:Object.keys(packs);
+  sel.innerHTML=order.map(id=>{
+    const m=packs[id]||{};
+    const label=m.name||id;
+    return '<option value="'+escHtml(id)+'">'+escHtml(label)+'</option>';
+  }).join('');
+  sel.value=HTS_CITY_ID||'houston';
+  sel.addEventListener('change',()=>{
+    const id=String(sel.value||'houston').toLowerCase();
+    try{localStorage.setItem('hts-city',id);}catch(e){}
+    const url=new URL(location.href);
+    if(id==='houston')url.searchParams.delete('city');
+    else url.searchParams.set('city',id);
+    location.assign(url.pathname+url.search+url.hash);
+  });
+})();
 /* ==================== First-visit guided tour ==================== */
 (function setupTour(){
-  const KEY='houstonSim.tour.v2';
+  const KEY='houstonSim.tour.v3.'+(HTS_CITY_ID||'houston');
   const root=$('tourRoot');
   const spot=$('tourSpot');
   const card=$('tourCard');
@@ -13056,6 +13006,11 @@ setTimeout(()=>{
       sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',
       title:'Time & sky',
       body:'Scrub Today / Tomorrow / +2 days, speed up the clock, or force Clear, Rain, or Storm. Traffic and the sky follow the clock you set.',
+    },
+    {
+      sel:'#tourCityGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',fallback:'#tourTimeGrp',
+      title:'Sixteen metros',
+      body:'Use Metro under More to jump to another city — Phoenix, Philly, New Orleans, and more. Each pack reloads with its own freeways and weather.',
     },
     {
       sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',

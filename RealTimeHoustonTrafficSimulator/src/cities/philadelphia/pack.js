@@ -33,6 +33,7 @@ export const PHILADELPHIA_DISTRICTS = [
 
 export const PHILADELPHIA_AIRPORTS = [
   { id:'phl', code:'PHL', name:'Philadelphia International', lat:39.8721, lng:-75.2411, rot:0.2, intl:true, runLen:760, city:'Philadelphia', elev:'36 ft', note:'American hub · Delaware River', addr:'8000 Essington Ave, Philadelphia, PA 19153' },
+  { id:'pne', code:'PNE', name:'Northeast Philadelphia Airport', lat:40.0819, lng:-75.0106, rot:0.1, intl:false, runLen:480, city:'Philadelphia', elev:'120 ft', note:'Northeast Philly GA', addr:'9800 Ashton Rd, Philadelphia, PA 19114' },
 ];
 
 export const PHILADELPHIA_POIS = [
@@ -67,7 +68,7 @@ export const PHILADELPHIA_CORRIDORS = [
 export const PHILADELPHIA_JUMP_GROUPS = [
   { label:'Center City', options:[['downtown','Center City'],['rittenhouse','Rittenhouse'],['oldcity','Old City'],['university','University City'],['fishtown','Fishtown']] },
   { label:'Neighborhoods', options:[['southphilly','South Philly'],['northphilly','North Philly'],['westphilly','West Philly'],['manayunk','Manayunk'],['noliberty','Northern Liberties']] },
-  { label:'Airports', options:[['phl','PHL — Philadelphia Intl']] },
+  { label:'Airports', options:[['phl','PHL — Philadelphia Intl'],['pne','PNE — Northeast Philly']] },
   { label:'Attractions', options:[['poi_liberty','Independence Hall'],['poi_art','Art Museum'],['poi_lincoln','Lincoln Financial Field'],['poi_citizens','Citizens Bank Park'],['poi_wells','Wells Fargo Center'],['poi_penn','Penn']] },
 ];
 

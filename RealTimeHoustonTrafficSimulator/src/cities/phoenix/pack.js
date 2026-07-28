@@ -33,6 +33,7 @@ export const PHOENIX_DISTRICTS = [
 
 export const PHOENIX_AIRPORTS = [
   { id:'phx', code:'PHX', name:'Phoenix Sky Harbor International', lat:33.4343, lng:-112.0116, rot:0.1, intl:true, runLen:780, city:'Phoenix', elev:'1,135 ft', note:'Sky Harbor · Southwest & American hub', addr:'3400 E Sky Harbor Blvd, Phoenix, AZ 85034' },
+  { id:'sdl', code:'SDL', name:'Scottsdale Airport', lat:33.6229, lng:-111.9105, rot:0.05, intl:false, runLen:420, city:'Scottsdale', elev:'1,510 ft', note:'Busy GA / corporate field', addr:'15000 N Airport Dr, Scottsdale, AZ 85260' },
 ];
 
 export const PHOENIX_POIS = [
@@ -67,7 +68,7 @@ export const PHOENIX_JUMP_GROUPS = [
   { label:'Phoenix core', options:[['downtown','Downtown'],['midtown','Midtown'],['roosevelt','Roosevelt Row'],['arcadia','Arcadia'],['airport','Sky Harbor area']] },
   { label:'East Valley', options:[['scottsdale','Scottsdale'],['tempe','Tempe'],['mesa','Mesa'],['chandler','Chandler'],['gilbert','Gilbert']] },
   { label:'West Valley', options:[['glendale','Glendale'],['peoria','Peoria'],['ahwatukee','Ahwatukee']] },
-  { label:'Airports', options:[['phx','PHX — Sky Harbor']] },
+  { label:'Airports', options:[['phx','PHX — Sky Harbor'],['sdl','SDL — Scottsdale']] },
   { label:'Attractions', options:[['poi_chase','Chase Field'],['poi_foothills','Footprint Center'],['poi_statefarm','State Farm Stadium'],['poi_asu','ASU'],['poi_camelback','Camelback Mountain']] },
 ];
 

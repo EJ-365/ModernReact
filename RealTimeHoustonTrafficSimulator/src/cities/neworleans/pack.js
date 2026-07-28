@@ -33,6 +33,7 @@ export const NEWORLEANS_DISTRICTS = [
 
 export const NEWORLEANS_AIRPORTS = [
   { id:'msy', code:'MSY', name:'Louis Armstrong New Orleans International', lat:29.9934, lng:-90.2580, rot:0.1, intl:true, runLen:760, city:'Kenner', elev:'4 ft', note:'MSY · Gulf Coast hub', addr:'1 Terminal Dr, Kenner, LA 70062' },
+  { id:'new', code:'NEW', name:'Lakefront Airport', lat:30.0424, lng:-90.0283, rot:0.0, intl:false, runLen:400, city:'New Orleans', elev:'7 ft', note:'Historic Art Deco GA field', addr:'6001 Stars & Stripes Blvd, New Orleans, LA 70126' },
 ];
 
 export const NEWORLEANS_POIS = [
@@ -66,7 +67,7 @@ export const NEWORLEANS_CORRIDORS = [
 export const NEWORLEANS_JUMP_GROUPS = [
   { label:'New Orleans core', options:[['downtown','CBD'],['frenchquarter','French Quarter'],['warehouse','Warehouse District'],['garden','Garden District'],['marigny','Marigny'],['bywater','Bywater']] },
   { label:'Neighborhoods', options:[['midcity','Mid-City'],['uptown','Uptown'],['lakeview','Lakeview'],['gentilly','Gentilly'],['metairie','Metairie'],['algiers','Algiers'],['airport','Kenner / Airport']] },
-  { label:'Airports', options:[['msy','MSY — Louis Armstrong']] },
+  { label:'Airports', options:[['msy','MSY — Louis Armstrong'],['new','NEW — Lakefront']] },
   { label:'Attractions', options:[['poi_superdome','Caesars Superdome'],['poi_jackson','Jackson Square'],['poi_bourbon','Bourbon Street'],['poi_audubon','Audubon'],['poi_citypark','City Park'],['poi_aquarium','Aquarium']] },
 ];
 

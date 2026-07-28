@@ -16,9 +16,10 @@ export const neworleansManifest = {
     weatherProvider: 'open-meteo',
     timezone: 'America/Chicago',
   },
-  airportCodes: ['MSY'],
+  airportCodes: ['MSY', 'NEW'],
   boardAirports: {
     MSY: 'Louis Armstrong New Orleans International',
+    NEW: 'Lakefront Airport',
   },
 };
 

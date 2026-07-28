@@ -16,9 +16,10 @@ export const philadelphiaManifest = {
     weatherProvider: 'open-meteo',
     timezone: 'America/New_York',
   },
-  airportCodes: ['PHL'],
+  airportCodes: ['PHL', 'PNE'],
   boardAirports: {
     PHL: 'Philadelphia International',
+    PNE: 'Northeast Philadelphia',
   },
 };
 

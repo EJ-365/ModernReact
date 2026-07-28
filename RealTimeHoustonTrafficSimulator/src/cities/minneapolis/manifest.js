@@ -16,9 +16,10 @@ export const minneapolisManifest = {
     weatherProvider: 'open-meteo',
     timezone: 'America/Chicago',
   },
-  airportCodes: ['MSP'],
+  airportCodes: ['MSP', 'STP'],
   boardAirports: {
     MSP: 'Minneapolis–Saint Paul International',
+    STP: 'St. Paul Downtown (Holman)',
   },
 };
 
