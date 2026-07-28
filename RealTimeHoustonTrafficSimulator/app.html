@@ -792,22 +792,22 @@
   /* ——— First-visit tour ——— */
   #tourRoot{position:fixed;inset:0;z-index:45;pointer-events:none;display:none}
   #tourRoot.on{display:block}
-  #tourScrim{position:absolute;inset:0;background:rgba(4,8,14,.62);pointer-events:auto;
-    transition:opacity .35s ease}
+  #tourScrim{position:absolute;inset:0;background:rgba(3,7,12,.68);pointer-events:auto;
+    transition:opacity .35s ease;backdrop-filter:blur(1.5px)}
   #tourSpot{position:absolute;border-radius:14px;pointer-events:none;
-    box-shadow:0 0 0 9999px rgba(4,8,14,.72),0 0 0 2px rgba(127,214,160,.85),0 12px 40px rgba(0,0,0,.45);
+    box-shadow:0 0 0 9999px rgba(3,7,12,.58),0 0 0 2px rgba(127,214,160,.9),0 0 32px rgba(62,207,190,.3);
     transition:top .35s cubic-bezier(.22,1,.36,1),left .35s cubic-bezier(.22,1,.36,1),
       width .35s cubic-bezier(.22,1,.36,1),height .35s cubic-bezier(.22,1,.36,1),border-radius .35s;
     background:transparent}
-  #tourCard{position:absolute;z-index:2;width:min(340px,calc(100vw - 28px));pointer-events:auto;
-    background:linear-gradient(165deg,#121a24f5,#0b1118f8);border:1px solid rgba(255,255,255,.1);
-    border-radius:18px;padding:18px 18px 14px;box-shadow:0 24px 60px rgba(0,0,0,.55);
+  #tourCard{position:absolute;z-index:2;width:min(360px,calc(100vw - 28px));pointer-events:auto;
+    background:linear-gradient(165deg,#141e28f7,#0a1018fa);border:1px solid rgba(127,214,160,.2);
+    border-radius:18px;padding:18px 18px 14px;box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.04);
     color:#e8eef4;font-family:inherit;animation:tourIn .4s cubic-bezier(.22,1,.36,1)}
   @keyframes tourIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
   #tourCard .tourKicker{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
     color:#7fd6a0;margin:0 0 8px}
-  #tourCard h2{font-size:17px;font-weight:800;margin:0 0 8px;letter-spacing:-.02em;line-height:1.25;color:#f3f1ea}
-  #tourCard p{font-size:13px;line-height:1.55;color:#a8b4c0;margin:0 0 14px}
+  #tourCard h2{font-size:18px;font-weight:800;margin:0 0 8px;letter-spacing:-.02em;line-height:1.25;color:#f3f1ea}
+  #tourCard p{font-size:13.5px;line-height:1.55;color:#a8b4c0;margin:0 0 14px}
   #tourCard .tourNav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   #tourCard .tourNav .tourStep{font-size:11px;font-weight:700;color:#6b7785;margin-right:auto}
   #tourCard .tourNav button{font-family:inherit;font-size:12px;font-weight:700;border-radius:999px;
@@ -816,11 +816,12 @@
   #tourCard .tourNav button.ghost{background:transparent;color:#8a939c;border-color:transparent;padding-inline:10px}
   #tourCard .tourNav button:hover{filter:brightness(1.08)}
   .tour-target-pulse{outline:2px solid rgba(127,214,160,.9)!important;outline-offset:3px;
-    position:relative;z-index:46!important}
+    position:relative;z-index:46!important;animation:tourPulse 1.4s ease-in-out infinite}
+  @keyframes tourPulse{0%,100%{outline-color:rgba(127,214,160,.5)}50%{outline-color:rgba(127,214,160,1)}}
   #tourReplay{display:none}
   #tourReplayMobile{display:none}
   @media (prefers-reduced-motion:reduce){
-    #tourSpot,#tourCard{transition:none;animation:none}
+    #tourSpot,#tourCard,.tour-target-pulse{transition:none;animation:none}
   }
 </style>
 </head>
@@ -833,7 +834,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.51</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.58</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1254,11 +1255,11 @@
   <div id="tourScrim"></div>
   <div id="tourSpot"></div>
   <div id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
-    <div class="tourKicker" id="tourKicker">Quick tour</div>
+    <div class="tourKicker" id="tourKicker">City tour</div>
     <h2 id="tourTitle">Welcome</h2>
     <p id="tourBody"></p>
     <div class="tourNav">
-      <span class="tourStep" id="tourStep">1 / 7</span>
+      <span class="tourStep" id="tourStep">1 / 8</span>
       <button type="button" class="ghost" id="tourSkip">Skip</button>
       <button type="button" id="tourBack">Back</button>
       <button type="button" class="primary" id="tourNext">Next</button>

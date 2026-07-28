@@ -187,11 +187,11 @@ export function createRainSystem(deps) {
       rainF > 0.02
         ? rainF * 5
         : (liveWx?.precip != null ? liveWx.precip : 0);
-    const active = rainF > 0.045 || camRain > 0.045 || precip > 0.04;
+    const active = rainF > 0.04 || camRain > 0.04 || precip > 0.03;
 
     if (active) {
-      cumRain = clamp(cumRain + dt * (0.15 + precip * 0.08), 0, 120);
-      wetLevel = clamp(wetLevel + dt * (0.25 + rainF * 0.55), 0, 1);
+      cumRain = clamp(cumRain + dt * (0.12 + precip * 0.1), 0, 120);
+      wetLevel = clamp(wetLevel + dt * (0.18 + rainF * 0.65), 0, 1);
       dryTimer = 0;
     } else {
       dryTimer += dt;
@@ -204,24 +204,28 @@ export function createRainSystem(deps) {
       applyWetRoadMaterials._last = wet;
     }
 
-    /* Floor opacity so light drizzle is actually visible */
+    /* Opacity tracks intensity — light drizzle stays faint, heavy pours look thick */
     rain.material.opacity = active
-      ? Math.max(0.32, rainF * lerp(0.6, 1.0, clamp(precip / 6, 0, 1)))
+      ? lerp(0.14, 0.92, Math.pow(clamp(rainF, 0, 1), 0.85))
       : 0;
 
     if (active && cam) {
       rain.position.set(0, 0, 0);
       const p = rainGeo.getAttribute('position');
-      const fallSpd = 200 + 260 * rainF + precip * 8;
+      const fallSpd = lerp(140, 520, rainF) + precip * 10;
       const fall = dt * fallSpd;
       const slantX = rainWindX + (liveWx?.wind ? Math.sin(((liveWx.windDir || 0) + 180) * Math.PI / 180) * 0.02 * liveWx.wind : 0);
       const slantZ = rainWindZ + (liveWx?.wind ? Math.cos(((liveWx.windDir || 0) + 180) * Math.PI / 180) * 0.02 * liveWx.wind : 0);
-      const streakLen = lerp(0.45, 2.8, rainF) * lerp(14, 5, rainF);
-      const splashRate = clamp(precip * Math.max(rainF, camRain) * 0.45, 0, 1);
-      const stride = rainF < 0.18 ? 2 : 1;
+      /* Light = short sparse streaks; heavy = long dense sheets */
+      const streakLen = lerp(6, 22, rainF);
+      const splashRate = clamp(lerp(0.08, 0.95, rainF) * Math.max(rainF, camRain), 0, 1);
+      /* Density: light uses every 4th drop, moderate every 2nd, heavy every drop */
+      const stride = rainF < 0.28 ? 4 : (rainF < 0.55 ? 2 : 1);
       const start = (update._tick = ((update._tick || 0) + 1) % stride);
-      /* Keep drops tight around the viewed suburb so drizzle concentrates where the card says */
-      const spawnR = lerp(520, 1100, clamp(rainF, 0, 1));
+      const spawnR = lerp(380, 1200, clamp(rainF, 0, 1));
+      /* Light rain: only keep a fraction of candidates so the sky isn’t a wall of streaks */
+      const keepChance = rainF < 0.28 ? lerp(0.22, 0.45, rainF / 0.28)
+        : (rainF < 0.55 ? lerp(0.5, 0.85, (rainF - 0.28) / 0.27) : 1);
 
       for (let i = start; i < RAIN_N; i += stride) {
         let y = rainDrop[i * 3 + 1] - fall;
@@ -233,7 +237,7 @@ export function createRainSystem(deps) {
             const nx = cam.target.x + (rand() - 0.5) * spawnR * 2;
             const nz = cam.target.z + (rand() - 0.5) * spawnR * 2;
             const localRain = localAt(nx, nz);
-            if (localRain > 0.045) {
+            if (localRain > 0.04 && rand() < Math.max(keepChance, localRain * 0.9)) {
               if (y < 1.1 && rand() < splashRate * Math.max(localRain, rainF)) {
                 spawnSplash(nx, nz, Math.max(localRain, rainF));
               }
@@ -244,14 +248,17 @@ export function createRainSystem(deps) {
             }
           }
           if (!placed) {
-            /* Still rain around the camera when sky blend says wet (forced storm / feed) */
-            x = cam.target.x + (rand() - 0.5) * (mosaicDriving ? 160 : spawnR);
-            z = cam.target.z + (rand() - 0.5) * (mosaicDriving ? 160 : spawnR);
-            y = mosaicDriving ? (980 + rand() * 160) : (420 + rand() * 220);
+            if (rand() < keepChance) {
+              x = cam.target.x + (rand() - 0.5) * (mosaicDriving ? 160 : spawnR);
+              z = cam.target.z + (rand() - 0.5) * (mosaicDriving ? 160 : spawnR);
+              y = mosaicDriving ? (980 + rand() * 160) : (420 + rand() * 220);
+            } else {
+              y = 980 + rand() * 200;
+            }
           }
         } else if (mosaicDriving) {
           const here = localAt(x, z);
-          if (here < 0.045) y = 2.0;
+          if (here < 0.04) y = 2.0;
         }
         rainDrop[i * 3] = x;
         rainDrop[i * 3 + 1] = y;
@@ -260,7 +267,7 @@ export function createRainSystem(deps) {
         const dx = Math.sin(ang) * streakLen;
         const dz = Math.cos(ang) * streakLen * 0.35;
         const localHere = localAt(x, z);
-        if (localHere < 0.045) {
+        if (localHere < 0.04) {
           p.setXYZ(i * 2, x, -50, z);
           p.setXYZ(i * 2 + 1, x, -50, z);
         } else {
@@ -292,7 +299,7 @@ export function createRainSystem(deps) {
     }
     splashes.count = splashCount;
     splashes.instanceMatrix.needsUpdate = splashCount > 0;
-    splashMat.opacity = rainF > 0.05 ? lerp(0.28, 0.75, rainF) : 0;
+    splashMat.opacity = rainF > 0.05 ? lerp(0.12, 0.85, rainF) : 0;
 
     const puddleWet = clamp(cumRain / 45, 0, 1) * wet;
     for (const m of puddleMeshes) {

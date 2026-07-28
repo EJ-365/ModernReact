@@ -16,6 +16,10 @@ const CITY_NWS_STATES = {
   seattle: ['WA'],
   denver: ['CO'],
   atlanta: ['GA'],
+  phoenix: ['AZ'],
+  philadelphia: ['PA', 'NJ', 'DE'],
+  minneapolis: ['MN', 'WI'],
+  neworleans: ['LA'],
 };
 
 const CITY_CENTERS = {
@@ -31,6 +35,10 @@ const CITY_CENTERS = {
   seattle: [47.6062, -122.3321],
   denver: [39.7392, -104.9903],
   atlanta: [33.7490, -84.3880],
+  phoenix: [33.4484, -112.0740],
+  philadelphia: [39.9526, -75.1652],
+  minneapolis: [44.9778, -93.2650],
+  neworleans: [29.9511, -90.0715],
 };
 
 function apiHost(kind) {
@@ -226,17 +234,39 @@ export function clampTowardPoint(fromLat, fromLng, toLat, toLng, maxMi) {
   };
 }
 
+function geometryContainsPoint(geometry, lng, lat) {
+  if (!geometry || !geometry.coordinates) return false;
+  const polys = geometry.type === 'Polygon' ? [geometry.coordinates]
+    : (geometry.type === 'MultiPolygon' ? geometry.coordinates : []);
+  return polys.some((poly) => {
+    if (!poly || !poly[0] || !pointInRing(lng, lat, poly[0])) return false;
+    return !poly.slice(1).some((hole) => pointInRing(lng, lat, hole));
+  });
+}
+
+/** Keep alerts only when they cover this metro (or a tight nearby zone). */
 function filterMetroAlert(f, pack, cityId) {
   const p = f.properties || {};
   if (p.status && p.status !== 'Actual') return false;
   const area = `${p.areaDesc || ''} ${p.event || ''} ${p.headline || ''}`;
   const counties = pack && pack.nws && pack.nws.counties;
   const places = pack && pack.nws && pack.nws.places;
-  if (counties && counties.test(area)) return true;
-  if (places && places.test(area)) return true;
+  const textHit = !!(counties && counties.test(area)) || !!(places && places.test(area));
   const center = CITY_CENTERS[cityId];
-  if (!center) return false;
-  return geometryPoints(f.geometry).some(([lng, lat]) => distanceMi(center[0], center[1], lat, lng) <= 140);
+  if (!center) return textHit;
+  const [clat, clng] = center;
+  const cls = classifyStormAlert(p.event);
+  const tropical = cls && cls.kind === 'hurricane';
+  /* Tropical polygons can span entire coastlines — require metro inside the polygon or local text. */
+  if (tropical) {
+    if (geometryContainsPoint(f.geometry, clng, clat)) return true;
+    if (textHit) return true;
+    return false;
+  }
+  if (textHit) return true;
+  if (geometryContainsPoint(f.geometry, clng, clat)) return true;
+  /* Tornado / severe cells: allow nearby polygon vertices within ~90 mi */
+  return geometryPoints(f.geometry).some(([lng, lat]) => distanceMi(clat, clng, lat, lng) <= 90);
 }
 
 async function fetchJson(url, headers, ms) {
@@ -408,7 +438,7 @@ export function spcRiskLabel(outlooks) {
   return `SPC Day 1 tornado outlook · ${pct} within shaded area`;
 }
 
-export function stormsNearMetro(storms, lat, lng, maxMi = 900) {
+export function stormsNearMetro(storms, lat, lng, maxMi = 280) {
   if (!storms || !storms.length || lat == null || lng == null) return [];
   const R = 3958.8;
   return storms.filter((s) => {

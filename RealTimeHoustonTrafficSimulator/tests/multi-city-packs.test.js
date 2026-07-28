@@ -14,6 +14,10 @@ import { buildMiamiRuntimePack } from '../src/cities/miami/runtime.js';
 import { buildSeattleRuntimePack } from '../src/cities/seattle/runtime.js';
 import { buildDenverRuntimePack } from '../src/cities/denver/runtime.js';
 import { buildAtlantaRuntimePack } from '../src/cities/atlanta/runtime.js';
+import { buildPhoenixRuntimePack } from '../src/cities/phoenix/runtime.js';
+import { buildPhiladelphiaRuntimePack } from '../src/cities/philadelphia/runtime.js';
+import { buildMinneapolisRuntimePack } from '../src/cities/minneapolis/runtime.js';
+import { buildNewOrleansRuntimePack } from '../src/cities/neworleans/runtime.js';
 import { SANANTONIO_ROAD_LATLNG, SANANTONIO_AIRPORTS } from '../src/cities/sanantonio/pack.js';
 import { DALLAS_ROAD_LATLNG, DALLAS_AIRPORTS } from '../src/cities/dallas/pack.js';
 import { LOSANGELES_ROAD_LATLNG, LOSANGELES_AIRPORTS } from '../src/cities/losangeles/pack.js';
@@ -24,6 +28,10 @@ import { MIAMI_ROAD_LATLNG, MIAMI_AIRPORTS } from '../src/cities/miami/pack.js';
 import { SEATTLE_ROAD_LATLNG, SEATTLE_AIRPORTS } from '../src/cities/seattle/pack.js';
 import { DENVER_ROAD_LATLNG, DENVER_AIRPORTS } from '../src/cities/denver/pack.js';
 import { ATLANTA_ROAD_LATLNG, ATLANTA_AIRPORTS } from '../src/cities/atlanta/pack.js';
+import { PHOENIX_ROAD_LATLNG, PHOENIX_AIRPORTS } from '../src/cities/phoenix/pack.js';
+import { PHILADELPHIA_ROAD_LATLNG, PHILADELPHIA_AIRPORTS } from '../src/cities/philadelphia/pack.js';
+import { MINNEAPOLIS_ROAD_LATLNG, MINNEAPOLIS_AIRPORTS } from '../src/cities/minneapolis/pack.js';
+import { NEWORLEANS_ROAD_LATLNG, NEWORLEANS_AIRPORTS } from '../src/cities/neworleans/pack.js';
 
 const PACK_CITIES = [
   {
@@ -106,6 +114,38 @@ const PACK_CITIES = [
     needRoads: ['i75', 'i85', 'i285'],
     apt: 'ATL',
   },
+  {
+    id: 'phoenix',
+    build: buildPhoenixRuntimePack,
+    roads: PHOENIX_ROAD_LATLNG,
+    airports: PHOENIX_AIRPORTS,
+    needRoads: ['i10', 'i17', 'loop202'],
+    apt: 'PHX',
+  },
+  {
+    id: 'philadelphia',
+    build: buildPhiladelphiaRuntimePack,
+    roads: PHILADELPHIA_ROAD_LATLNG,
+    airports: PHILADELPHIA_AIRPORTS,
+    needRoads: ['i95', 'i76', 'i676'],
+    apt: 'PHL',
+  },
+  {
+    id: 'minneapolis',
+    build: buildMinneapolisRuntimePack,
+    roads: MINNEAPOLIS_ROAD_LATLNG,
+    airports: MINNEAPOLIS_AIRPORTS,
+    needRoads: ['i94', 'i35w', 'i494'],
+    apt: 'MSP',
+  },
+  {
+    id: 'neworleans',
+    build: buildNewOrleansRuntimePack,
+    roads: NEWORLEANS_ROAD_LATLNG,
+    airports: NEWORLEANS_AIRPORTS,
+    needRoads: ['i10', 'i610', 'causeway'],
+    apt: 'MSY',
+  },
 ];
 
 test('CITY_IDS lists all live metros', () => {
@@ -122,6 +162,10 @@ test('CITY_IDS lists all live metros', () => {
     'seattle',
     'denver',
     'atlanta',
+    'phoenix',
+    'philadelphia',
+    'minneapolis',
+    'neworleans',
   ]) {
     assert.ok(CITY_IDS.includes(id), id);
     assert.ok(CITY_PACKS[id], id + ' in registry');

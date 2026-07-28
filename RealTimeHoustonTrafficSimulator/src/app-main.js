@@ -36,7 +36,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.51 (0722-nextday-warn-ui). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.58 (0723-city-tour). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -6154,8 +6154,8 @@ const WX={
  partly: {icon:'partly',nIcon:'moonCloud',desc:'Partly cloudy',cloud:0.45,fogK:0.95,speed:1.0, cong:0,  rain:0,  storm:false,tempD:-1},
  overcast:{icon:'cloud',nIcon:'cloud',desc:'Overcast',     cloud:0.9, fogK:0.72,speed:0.97,cong:.04,rain:0,  storm:false,tempD:-4},
  fog:    {icon:'fog',   nIcon:'fog',  desc:'Fog',          cloud:0.7, fogK:0.2, speed:0.8, cong:.12,rain:0,  storm:false,tempD:-5},
- rain:   {icon:'rain',  nIcon:'rain', desc:'Rain',         cloud:1.0, fogK:0.45,speed:0.85,cong:.14,rain:0.6,storm:false,tempD:-8},
- storm:  {icon:'storm', nIcon:'storm',desc:'Thunderstorm', cloud:1.0, fogK:0.3, speed:0.72,cong:.22,rain:1.0,storm:true, tempD:-11},
+ rain:   {icon:'rain',  nIcon:'rain', desc:'Rain',         cloud:1.0, fogK:0.45,speed:0.85,cong:.14,rain:0.65,storm:false,tempD:-8},
+ storm:  {icon:'storm', nIcon:'storm',desc:'Thunderstorm', cloud:1.0, fogK:0.3, speed:0.72,cong:.22,rain:0.95,storm:true, tempD:-11},
 };
 /* crisp SVG weather glyphs (no emoji) */
 const _sunCore='<circle cx="20" cy="20" r="8" fill="#ffd35c"/><g stroke="#ffd35c" stroke-width="2.6" stroke-linecap="round">'
@@ -6184,11 +6184,11 @@ const HOU_WX_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origi
 const WMO_MAP=[
   [[0],'clear','Clear',0],[[1],'partly','Mostly clear',0],[[2],'partly','Partly cloudy',0],
   [[3],'overcast','Overcast',0],[[45,48],'fog','Fog',0],
-  [[51,53,56],'rain','Light drizzle',0.3],[[55,57],'rain','Drizzle',0.45],
-  [[61,80],'rain','Light rain',0.5],[[63,81],'rain','Rain',0.7],
+  [[51,53,56],'rain','Light drizzle',0.18],[[55,57],'rain','Drizzle',0.32],
+  [[61,80],'rain','Light rain',0.42],[[63,81],'rain','Rain',0.68],
   [[65,66,67,82],'rain','Heavy rain',0.95],
-  [[71,73,75,77,85,86],'overcast','Wintry mix',0.2],
-  [[95],'storm','Thunderstorm',0.9],[[96,99],'storm','Severe thunderstorm',1.0],
+  [[71,73,75,77,85,86],'overcast','Wintry mix',0.22],
+  [[95],'storm','Thunderstorm',0.88],[[96,99],'storm','Severe thunderstorm',1.0],
 ];
 function wmoLookup(code){
   for(const [codes,preset,label,rain] of WMO_MAP)
@@ -6262,9 +6262,11 @@ function nwsVisMi(obj){
 }
 function nwsTextToPreset(text){
   const t=String(text||'').toLowerCase();
-  if(/thunder|tstm|lightning/.test(t))return {preset:'storm',label:text||'Thunderstorm',rain:0.9};
-  if(/heavy rain|downpour/.test(t))return {preset:'rain',label:text||'Heavy rain',rain:0.95};
-  if(/rain|shower|drizzle/.test(t))return {preset:'rain',label:text||'Rain',rain:0.55};
+  if(/thunder|tstm|lightning/.test(t))return {preset:'storm',label:text||'Thunderstorm',rain:0.88};
+  if(/heavy rain|downpour|torrential/.test(t))return {preset:'rain',label:text||'Heavy rain',rain:0.95};
+  if(/light rain|sprinkle/.test(t))return {preset:'rain',label:text||'Light rain',rain:0.4};
+  if(/drizzle/.test(t))return {preset:'rain',label:text||'Drizzle',rain:0.25};
+  if(/rain|shower/.test(t))return {preset:'rain',label:text||'Rain',rain:0.65};
   if(/fog|mist|haze/.test(t))return {preset:'fog',label:text||'Fog',rain:0};
   if(/overcast|cloudy/.test(t)&&!/partly|mostly clear|fair/.test(t))return {preset:'overcast',label:text||'Overcast',rain:0};
   if(/partly|mostly cloudy|broken/.test(t))return {preset:'partly',label:text||'Partly cloudy',rain:0};
@@ -6386,10 +6388,11 @@ function parseDailyForecast(j){
 function parseOpenMeteo(j,extra){
   const c=j.current;const m=wmoLookup(c.weather_code);
   const precip=c.precipitation!=null?c.precipitation:0;
-  /* Guarantee visible drizzle even when inch precip rounds near zero */
+  /* Keep WMO intensity — do not floor light drizzle up to “medium” */
   let rainAmt=m.rain;
-  if(rainAmt<=0&&precip>0.01)rainAmt=clamp(precip*6,0.15,0.7);
-  if(rainAmt>0&&rainAmt<0.22&&/driz|rain|shower|thunder/i.test(m.label))rainAmt=Math.max(rainAmt,0.28);
+  if(rainAmt<=0&&precip>0.02)rainAmt=clamp(precip*5,0.12,0.55);
+  if(precip>=0.15)rainAmt=Math.max(rainAmt,0.7);
+  if(precip>=0.35)rainAmt=Math.max(rainAmt,0.9);
   return {temp:Math.round(c.temperature_2m),feels:Math.round(c.apparent_temperature),
     hum:Math.round(c.relative_humidity_2m),wind:Math.round(c.wind_speed_10m),
     windDir:c.wind_direction_10m,precip,cloud:c.cloud_cover/100,
@@ -7074,8 +7077,41 @@ let _stormAlertEls=[];
 window.STORM_TRACKER={
   ok:false,at:0,err:'',
   hurricanes:[],nearStorms:[],tornadoOutlook:[],metroRisk:null,alerts:{tornado:[],hurricane:[],all:[]},
-  showTornado:true,showHurricane:true,group:null,labels:[],
+  showTornado:false,showHurricane:false,group:null,labels:[],
 };
+const STORM_LOCAL_HUR_MI=280; /* only treat storms this close as “nearby” for the map layer */
+function stormHasLocalTornado(ST){
+  ST=ST||window.STORM_TRACKER;
+  return !!((ST.alerts&&ST.alerts.tornado&&ST.alerts.tornado.length)||ST.metroRisk);
+}
+function stormHasLocalHurricane(ST){
+  ST=ST||window.STORM_TRACKER;
+  return !!((ST.alerts&&ST.alerts.hurricane&&ST.alerts.hurricane.length)
+    ||(ST.nearStorms&&ST.nearStorms.length));
+}
+function syncStormLayerAvailability(){
+  const ST=window.STORM_TRACKER;
+  const torOn=stormHasLocalTornado(ST);
+  const hurOn=stormHasLocalHurricane(ST);
+  if(torOn&&!ST._hadLocalTor)ST.showTornado=true;
+  if(!torOn)ST.showTornado=false;
+  if(hurOn&&!ST._hadLocalHur)ST.showHurricane=true;
+  if(!hurOn)ST.showHurricane=false;
+  ST._hadLocalTor=torOn;
+  ST._hadLocalHur=hurOn;
+  const tBtn=$('stormTornadoBtn'),hBtn=$('stormHurricaneBtn'),row=$('stormTrackRow');
+  if(tBtn){
+    tBtn.style.display=torOn?'':'none';
+    tBtn.disabled=!torOn;
+    tBtn.title=torOn?'Toggle local tornado / SPC risk overlay':'No tornado watch, warning, or SPC risk over this metro';
+  }
+  if(hBtn){
+    hBtn.style.display=hurOn?'':'none';
+    hBtn.disabled=!hurOn;
+    hBtn.title=hurOn?'Toggle local tropical storm / hurricane overlay':'No tropical storm or hurricane nearby';
+  }
+  if(row)row.style.display=(torOn||hurOn)?'flex':'none';
+}
 function stormTrackerOrigin(){
   if(HTS_PACK&&Number.isFinite(HTS_PACK.originLat)&&Number.isFinite(HTS_PACK.originLng))
     return {lat:HTS_PACK.originLat,lng:HTS_PACK.originLng};
@@ -7197,17 +7233,16 @@ function stormTrackerRenderMap(){
   if(!scene||typeof THREE==='undefined')return;
   const grp=new THREE.Group();
   ST.group=grp;
-  if(ST.showTornado){
-    for(const o of ST.tornadoOutlook||[]){
-      for(const ring of stormGeoRings(o.geometry)){
+  const org=stormTrackerOrigin();
+  if(ST.showTornado&&stormHasLocalTornado(ST)){
+    /* Only shade SPC polygons that actually cover this metro — never national risk elsewhere */
+    if(ST.metroRisk&&ST.metroRisk.geometry){
+      for(const ring of stormGeoRings(ST.metroRisk.geometry)){
         const fill=stormMakePolyMesh([ring],0xfbbf24,0.18,9);
         const edge=stormMakeLine([ring],0xf59e0b,0.75,10);
         if(fill)grp.add(fill);
         if(edge)grp.add(edge);
       }
-    }
-    if(ST.metroRisk){
-      const org=stormTrackerOrigin();
       const w=geoToWorld(org.lat,org.lng);
       const tag=warnSprite('watch','SPC '+(ST.metroRisk.label||'')+' risk','metro inside outlook',0.34);
       tag.position.set(w.x,54,w.z);
@@ -7221,21 +7256,27 @@ function stormTrackerRenderMap(){
         if(fill)grp.add(fill);
         if(edge)grp.add(edge);
       }
+      const b=stormGeometryBounds(a.feature&&a.feature.geometry);
+      if(b){
+        const w=geoToWorld(b.lat,b.lng);
+        const tag=warnSprite(a.tier==='warning'?'tornado':'severe',a.label||'Tornado alert','local NWS',0.32);
+        tag.position.set(w.x,48,w.z);
+        grp.add(tag);ST.labels.push(tag);
+      }
     }
   }
-  if(ST.showHurricane){
-    const org=stormTrackerOrigin();
+  if(ST.showHurricane&&stormHasLocalHurricane(ST)){
     const DRAW_FULL_MI=160;
-    const EDGE_MI=78;
-    const list=(ST.nearStorms&&ST.nearStorms.length)?ST.nearStorms:ST.hurricanes;
-    for(const s of list||[]){
+    const list=ST.nearStorms||[];
+    for(const s of list){
       if(s.lat==null||s.lng==null)continue;
       const mi=distanceMi(org.lat,org.lng,s.lat,s.lng);
+      if(mi>STORM_LOCAL_HUR_MI)continue;
       const br=compassFromBearing(bearingDeg(org.lat,org.lng,s.lat,s.lng));
       const onMap=mi<=DRAW_FULL_MI;
       const aim=onMap
         ?{lat:s.lat,lng:s.lng,mi,clamped:false}
-        :clampTowardPoint(org.lat,org.lng,s.lat,s.lng,EDGE_MI);
+        :clampTowardPoint(org.lat,org.lng,s.lat,s.lng,78);
       const w=geoToWorld(aim.lat,aim.lng);
       const r=Math.max(80,120+(s.cat||0)*55);
       const col=s.cat>=3?0x7c3aed:s.cat>=1?0x6366f1:0x38bdf8;
@@ -7251,10 +7292,8 @@ function stormTrackerRenderMap(){
         const track=stormMakeTrackLine(s.track,0xc4b5fd,0.85,14);
         if(track)grp.add(track);
       }
-      const label=onMap
-        ?(s.name||'Storm')
-        :((s.name||'Storm')+' · ~'+Math.round(mi)+' mi '+br);
-      const sub=onMap?(s.intensity+' mph'):(s.intensity+' mph · offshore');
+      const label=onMap?(s.name||'Storm'):((s.name||'Storm')+' · ~'+Math.round(mi)+' mi '+br);
+      const sub=onMap?(s.intensity+' mph'):(s.intensity+' mph · nearby');
       const tag=warnSprite('hurricane',label,sub,0.36);
       tag.position.set(w.x,42,w.z);
       grp.add(tag);ST.labels.push(tag);
@@ -7267,6 +7306,13 @@ function stormTrackerRenderMap(){
         if(fill)grp.add(fill);
         if(edge)grp.add(edge);
       }
+      const b=stormGeometryBounds(a.feature&&a.feature.geometry);
+      if(b){
+        const w=geoToWorld(b.lat,b.lng);
+        const tag=warnSprite('hurricane',a.label||'Tropical alert','local NWS',0.32);
+        tag.position.set(w.x,48,w.z);
+        grp.add(tag);ST.labels.push(tag);
+      }
     }
   }
   if(grp.children.length)scene.add(grp);
@@ -7278,35 +7324,45 @@ function renderStormTrackerPanel(){
   const torN=(ST.alerts.tornado||[]).length;
   const hurN=(ST.alerts.hurricane||[]).length;
   const near=ST.nearStorms||[];
-  if(hCount)hCount.textContent=near.length?(`${near.length} active · ${hurN} alert${hurN===1?'':'s'}`):(`${ST.hurricanes.length} basin · ${hurN} alert${hurN===1?'':'s'}`);
-  if(tCount)tCount.textContent=torN?(`${torN} NWS · SPC outlook`)
-    :(ST.metroRisk?`Metro inside SPC ${ST.metroRisk.label||'risk'} area`:spcRiskLabel(ST.tornadoOutlook));
+  const localTor=stormHasLocalTornado(ST);
+  const localHur=stormHasLocalHurricane(ST);
+  syncStormLayerAvailability();
+  if(hCount)hCount.textContent=near.length?(`${near.length} nearby · ${hurN} alert${hurN===1?'':'s'}`)
+    :(hurN?(`${hurN} local alert${hurN===1?'':'s'}`):(ST.hurricanes.length?(`${ST.hurricanes.length} basin · none near this metro`):'none nearby'));
+  if(tCount)tCount.textContent=torN?(`${torN} local NWS alert${torN===1?'':'s'}`)
+    :(ST.metroRisk?`Metro inside SPC ${ST.metroRisk.label||'risk'} area`:'No local tornado risk');
   if(chip){
-    const hot=torN||hurN||near.length;
+    const hot=torN||hurN;
     chip.style.display=hot?'inline-flex':'none';
     const parts=[];
     if(torN)parts.push(torN+' tornado alert'+(torN===1?'':'s'));
     if(hurN)parts.push(hurN+' tropical alert'+(hurN===1?'':'s'));
-    if(!torN&&!hurN&&near.length)parts.push(near.length+' active storm'+(near.length===1?'':'s'));
     chip.textContent=hot?parts.join(' · '):'';
   }
   const layerState=$('stormLayerStatus');
   if(layerState){
     const age=ST.at?Math.max(0,Math.round((Date.now()-ST.at)/60000)):null;
-    const tor=torN?(torN+' local alert'+(torN===1?'':'s'))
-      :(ST.metroRisk?('metro inside SPC '+(ST.metroRisk.label||'risk')+' area')
-      :((ST.tornadoOutlook||[]).length?'SPC risk areas elsewhere':'no active risk'));
-    const hur=hurN?(hurN+' local alert'+(hurN===1?'':'s'))
-      :(near.length?(function(){
-          const org=stormTrackerOrigin();
-          const s=near[0];
-          const mi=distanceMi(org.lat,org.lng,s.lat,s.lng);
-          const br=compassFromBearing(bearingDeg(org.lat,org.lng,s.lat,s.lng));
-          return (s.name||'Storm')+' ~'+Math.round(mi)+' mi '+br+(near.length>1?(' +'+(near.length-1)):'');
-        })():'none nearby');
-    layerState.textContent='Tornado: '+tor+' · Hurricane: '+hur
-      +' · '+(age==null?'fetching':(age===0?'just now':age+'m ago'));
-    layerState.classList.toggle('warn',!!(torN||hurN));
+    if(!localTor&&!localHur){
+      layerState.textContent='No tornado or hurricane warnings near this metro'
+        +(age==null?' · fetching':(age===0?' · just now':' · '+age+'m ago'));
+      layerState.classList.remove('warn');
+    }else{
+      const tor=torN?(torN+' local alert'+(torN===1?'':'s'))
+        :(ST.metroRisk?('metro inside SPC '+(ST.metroRisk.label||'risk')+' area'):'none local');
+      const hur=hurN?(hurN+' local alert'+(hurN===1?'':'s'))
+        :(near.length?(function(){
+            const org=stormTrackerOrigin();
+            const s=near[0];
+            const mi=distanceMi(org.lat,org.lng,s.lat,s.lng);
+            const br=compassFromBearing(bearingDeg(org.lat,org.lng,s.lat,s.lng));
+            return (s.name||'Storm')+' ~'+Math.round(mi)+' mi '+br+(near.length>1?(' +'+(near.length-1)):'');
+          })():'none nearby');
+      layerState.textContent=(localTor?('Tornado: '+tor):'')
+        +(localTor&&localHur?' · ':'')
+        +(localHur?('Hurricane: '+hur):'')
+        +' · '+(age==null?'fetching':(age===0?'just now':age+'m ago'));
+      layerState.classList.toggle('warn',!!(torN||hurN));
+    }
   }
   const banner=$('stormImpactBanner');
   if(banner){
@@ -7322,35 +7378,37 @@ function renderStormTrackerPanel(){
       const title=urgent.label||'Storm alert';
       let stormName='';
       if(urgent.kind==='hurricane'){
-        const p=(urgent.feature&&urgent.feature.properties)||{};
-        const blob=[p.headline,p.description,p.event,p.areaDesc].filter(Boolean).join(' ');
-        const named=(ST.nearStorms&&ST.nearStorms.length?ST.nearStorms:ST.hurricanes)||[];
-        const hit=named.find(s=>s&&s.name&&new RegExp('\\b'+String(s.name).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i').test(blob));
-        stormName=(hit&&hit.name)||(named[0]&&named[0].name)||'';
+        /* Always use the live NHC storm name — every active storm has one */
+        const org=stormTrackerOrigin();
+        const pool=(ST.nearStorms&&ST.nearStorms.length)?ST.nearStorms:(ST.hurricanes||[]);
+        let best=null,bestMi=Infinity;
+        for(const s of pool){
+          if(!s||!s.name||s.lat==null||s.lng==null)continue;
+          const mi=distanceMi(org.lat,org.lng,s.lat,s.lng);
+          if(mi<bestMi){bestMi=mi;best=s;}
+        }
+        if(!best)best=(pool.find(s=>s&&s.name))||null;
+        stormName=best?String(best.name):'';
       }
-      const head=stormName?(title+' for '+stormName):(title+' for the metro');
-      let trafficBit='Traffic is running a little slower while this is in effect.';
-      if(urgent.tier==='warning'||urgent.tier==='surge')
-        trafficBit='Expect heavier delays — traffic is slowed for this weather alert.';
-      else if(urgent.tier==='severe')
-        trafficBit='Traffic is slowed for severe weather in the area.';
-      else if(urgent.tier==='watch')
-        trafficBit='Not hitting yet — traffic is only slightly slower as a precaution.';
+      const head=stormName?(title+' for '+stormName):(title+' for this metro');
       const kindCls=urgent.kind==='hurricane'?'hurricane':(urgent.kind==='tornado'?'tornado':'');
       banner.className='stormImpact '+(kindCls||urgent.kind||'');
       const icon=urgent.kind==='hurricane'?'H':(urgent.kind==='tornado'?'T':'!');
       const tag=urgent.tier==='watch'?'Watch':(urgent.tier==='warning'||urgent.tier==='surge'?'Warning':'Alert');
       banner.innerHTML='<div class="siInner"><div class="siIcon" aria-hidden="true">'+icon+'</div>'
         +'<div class="siBody"><span class="siTag">'+escHtml(tag)+'</span>'
-        +'<div class="siText">'+escHtml(head)+'. '+escHtml(trafficBit)+'</div></div></div>';
+        +'<div class="siText">'+escHtml(head)+'</div></div></div>';
     }
   }
   if(hBox){
-    if(!ST.hurricanes.length&&!hurN){
-      hBox.innerHTML='<div class="wrStormEmpty"><b>No active NHC storms in the Atlantic / East Pacific right now.</b><br>'
-        +'When hurricanes or tropical storms form, live position, projected track, and NWS watch/warning polygons appear on the map.</div>';
+    if(!near.length&&!hurN){
+      const basin=ST.hurricanes.length
+        ?('Active basin storms are too far from this metro to show on the map (within ~'+STORM_LOCAL_HUR_MI+' mi).')
+        :'No active NHC storms in the Atlantic / East Pacific right now.';
+      hBox.innerHTML='<div class="wrStormEmpty"><b>No tropical storm or hurricane threats near this metro.</b><br>'
+        +basin+' Local NWS watches/warnings appear here only when they cover this city.</div>';
     }else{
-      const cards=(near.length?near:ST.hurricanes).slice(0,4).map(s=>{
+      const cards=near.slice(0,4).map(s=>{
         const cat=s.cat?('Cat '+s.cat+' · '):'';
         const mv=s.movementDir!=null?(' · moving '+Math.round(s.movementDir)+'° at '+s.movementSpeed+' kt'):'';
         const org=stormTrackerOrigin();
@@ -7389,25 +7447,30 @@ function renderStormTrackerPanel(){
     }
   }
   if(tBox){
-    const metroLine=ST.metroRisk
-      ?('<b>This metro is inside today\u2019s '+escHtml(ST.metroRisk.label||'')+' tornado risk area</b> \u2014 that\u2019s the amber shading on the map.')
-      :((ST.tornadoOutlook||[]).length?'This metro is outside today\u2019s risk areas \u2014 nothing shades the map here.':'');
-    const outlook=ST.tornadoOutlook&&ST.tornadoOutlook.length
-      ?('<div class="wrStormCard tornado outlook"><div class="tag">SPC Day 1</div><div class="ev">'+escHtml(spcRiskLabel(ST.tornadoOutlook))+'</div>'
-        +'<div class="area">'+(metroLine||'Probabilistic tornado outlook \u2014 shaded on map when tracker is on.')+'</div></div>')
-      :'<div class="wrStormEmpty">SPC Day 1 tornado outlook not available — will retry on next poll.</div>';
-    const alertCards=(ST.alerts.tornado||[]).slice(0,6).map(a=>{
-      const p=a.feature.properties||{};
-      return '<div class="wrStormCard tornado alert clickable" data-tor-alert="'+String((ST.alerts.tornado||[]).indexOf(a))+'">'
-        +'<div class="tag">NWS · '+escHtml(a.label)+'</div>'
-        +'<div class="ev">'+escHtml(p.headline||p.event||a.label)+'</div>'
-        +'<div class="area">'+escHtml(String(p.areaDesc||'').slice(0,120))+'</div>'
-        +'</div>';
-    }).join('');
-    tBox.innerHTML=outlook+(alertCards||('<div class="wrStormEmpty">No active tornado or severe t-storm alerts for this metro.</div>'));
-    tBox.querySelectorAll('[data-tor-alert]').forEach(el=>el.addEventListener('click',()=>{
-      flyToStormAlert((ST.alerts.tornado||[])[+el.getAttribute('data-tor-alert')]);
-    }));
+    if(!localTor&&!torN){
+      tBox.innerHTML='<div class="wrStormEmpty"><b>No tornado watch, warning, or SPC risk over this metro.</b><br>'
+        +'The tornado layer stays hidden until a local NWS alert or today\u2019s SPC outlook covers this city.</div>';
+    }else{
+      const metroLine=ST.metroRisk
+        ?('<b>This metro is inside today\u2019s '+escHtml(ST.metroRisk.label||'')+' tornado risk area</b> \u2014 that\u2019s the amber shading on the map.')
+        :'';
+      const outlook=ST.metroRisk
+        ?('<div class="wrStormCard tornado outlook"><div class="tag">SPC Day 1</div><div class="ev">Metro inside '+escHtml(ST.metroRisk.label||'risk')+' area</div>'
+          +'<div class="area">'+(metroLine||'')+'</div></div>')
+        :'';
+      const alertCards=(ST.alerts.tornado||[]).slice(0,6).map(a=>{
+        const p=a.feature.properties||{};
+        return '<div class="wrStormCard tornado alert clickable" data-tor-alert="'+String((ST.alerts.tornado||[]).indexOf(a))+'">'
+          +'<div class="tag">NWS · '+escHtml(a.label)+'</div>'
+          +'<div class="ev">'+escHtml(p.headline||p.event||a.label)+'</div>'
+          +'<div class="area">'+escHtml(String(p.areaDesc||'').slice(0,120))+'</div>'
+          +'</div>';
+      }).join('');
+      tBox.innerHTML=outlook+alertCards+(outlook||alertCards?'':'<div class="wrStormEmpty">No active tornado alerts for this metro.</div>');
+      tBox.querySelectorAll('[data-tor-alert]').forEach(el=>el.addEventListener('click',()=>{
+        flyToStormAlert((ST.alerts.tornado||[])[+el.getAttribute('data-tor-alert')]);
+      }));
+    }
   }
   const foot=$('wrStormFoot');
   if(foot){
@@ -7466,7 +7529,7 @@ async function refreshStormTracker(force){
       fetchStormAlerts(HTS_PACK,HTS_CITY_ID),
     ]);
     ST.hurricanes=hur;
-    ST.nearStorms=stormsNearMetro(hur,origin.lat,origin.lng,950);
+    ST.nearStorms=stormsNearMetro(hur,origin.lat,origin.lng,STORM_LOCAL_HUR_MI);
     ST.tornadoOutlook=outlook;
     ST.metroRisk=spcRiskAtPoint(outlook,origin.lat,origin.lng);
     ST.alerts=alerts;
@@ -7482,10 +7545,12 @@ async function refreshStormTracker(force){
 (function wireStormTracker(){
   const tBtn=$('stormTornadoBtn'),hBtn=$('stormHurricaneBtn');
   if(tBtn)tBtn.addEventListener('click',()=>{
+    if(!stormHasLocalTornado())return;
     window.STORM_TRACKER.showTornado=!window.STORM_TRACKER.showTornado;
     stormTrackerRenderMap();renderStormTrackerPanel();
   });
   if(hBtn)hBtn.addEventListener('click',()=>{
+    if(!stormHasLocalHurricane())return;
     window.STORM_TRACKER.showHurricane=!window.STORM_TRACKER.showHurricane;
     stormTrackerRenderMap();renderStormTrackerPanel();
   });
@@ -12938,7 +13003,7 @@ setTimeout(()=>{
 })();
 /* ==================== First-visit guided tour ==================== */
 (function setupTour(){
-  const KEY='houstonSim.tour.v1';
+  const KEY='houstonSim.tour.v2';
   const root=$('tourRoot');
   const spot=$('tourSpot');
   const card=$('tourCard');
@@ -12955,19 +13020,52 @@ setTimeout(()=>{
   const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const mobileMq=window.matchMedia('(max-width:680px)');
   let idx=0,activeEl=null,running=false,renderTimer=0;
+  const city=CITY_NAME||'this metro';
   const STEPS=[
-    {sel:'#sign',mobileSel:'#mHud',fallback:'#scene',rail:'left',title:'Welcome to '+CITY_NAME,body:'This is a living 3D '+CITY_NAME+' metro. Drag to rotate, scroll to zoom, right-drag to pan. On a phone: one finger rotates, pinch zooms, two fingers pan.'},
-    {sel:'#sign',mobileSel:'#mHudChip',fallback:'#whereami',rail:'left',title:'Live clock and weather',body:'Time and '+CITY_NAME+' weather stay on screen — including per-suburb conditions as you fly. On a phone, tap locate to mark where you are.'},
-    {sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',rail:'right',title:'Go anywhere',body:'Open Go (or the right-hand panel), then pick a district, airport, or landmark. The camera flies there.'},
-    {sel:'#whereami',fallback:'#mHudLoc',title:'Where you are looking',body:'This pill tracks the district and road under the camera as you move around.'},
-    {sel:'#tourFlightGrp',mobileOpen:'live',mobileSel:'#mLiveFab',rail:'right',title:'Live flights',body:'Open Live for aircraft in the sky and airport boards. Find a plane, then jump to it.'},
-    {sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',title:'Time, weather, hazards',body:'Open More for time of day, sky presets, traffic volume, and hazard overlays.'},
-    {sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',title:'Explore freely',body:'On a phone, tap Map anytime to close the sheet. Replay this tour anytime from Replay tour under More / the cam hint.'}
+    {
+      sel:'#sign',mobileSel:'#mHud',fallback:'#scene',rail:'left',
+      title:'Welcome to '+city,
+      body:'A live 3D map of freeways, weather, and flights. Drag to look around, scroll to zoom, right-drag to pan. Phone: one finger rotates, pinch zooms, two fingers pan.',
+    },
+    {
+      sel:'#wxCard',mobileSel:'#mHudChip',fallback:'#sign',rail:'left',
+      title:'Weather follows the view',
+      body:'The card shows conditions for the suburb under the camera — rain intensity included. Tap NWS weather alerts for watches and warnings. Storm layers appear only when a tornado or tropical threat is near this city.',
+    },
+    {
+      sel:'#legend',mobileSel:'#mHud',fallback:'#sign',rail:'left',
+      title:'Read the freeways',
+      body:'Green is free-flowing. Orange and red mean heavy traffic. Rings mark the worst hotspots right now.',
+    },
+    {
+      sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',rail:'right',
+      title:'Fly anywhere',
+      body:'Open Go and pick a district, airport, or landmark. The camera flies there instantly.',
+    },
+    {
+      sel:'#whereami',fallback:'#mHudLoc',
+      title:'Know where you are',
+      body:'This pill names the district and road under the camera as you move.',
+    },
+    {
+      sel:'#tourFlightGrp',mobileOpen:'live',mobileSel:'#mLiveFab',rail:'right',
+      title:'Live aircraft',
+      body:'Open Live for planes overhead and airport boards. Tap a flight to jump to it in the sky.',
+    },
+    {
+      sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',
+      title:'Time & sky',
+      body:'Scrub Today / Tomorrow / +2 days, speed up the clock, or force Clear, Rain, or Storm. Traffic and the sky follow the clock you set.',
+    },
+    {
+      sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',
+      title:'You’re set',
+      body:'Explore on your own. Replay this tour anytime from Replay tour under More (or the cam hint). On a phone, tap Map to close the sheet.',
+    },
   ];
   function isMobile(){return mobileMq.matches;}
   function expandDesktopRails(step){
     if(isMobile())return;
-    /* Ensure tour targets aren’t off-screen behind collapsed rails */
     if(step.rail==='left'&&document.body.classList.contains('left-collapsed')){
       document.body.classList.remove('left-collapsed');
       try{localStorage.setItem('hts-left-collapsed','0');}catch(e){}
@@ -13020,7 +13118,6 @@ setTimeout(()=>{
   }
   function placeCard(targetRect){
     if(isMobile()){
-      /* Keep card above the sheet / dock — CSS media query pins bottom; clear inline desktop coords */
       card.style.left='';card.style.top='';card.style.transform='';
       return;
     }
@@ -13044,24 +13141,23 @@ setTimeout(()=>{
       spot.style.display='block';
       spot.style.top=(r.top-m)+'px';spot.style.left=(r.left-m)+'px';
       spot.style.width=Math.max(24,r.width+m*2)+'px';spot.style.height=Math.max(24,r.height+m*2)+'px';
-      spot.style.borderRadius=(el.id==='whereami'||el.id==='locBtn'||el.id==='mHudLoc'||el.id==='mGoFab'||el.id==='mLiveFab'||el.id==='mMoreFab'||el.id==='mMapFab')?'14px':'14px';
+      spot.style.borderRadius='14px';
       placeCard(r);
     }else{
       spot.style.display='none';
       placeCard({left:0,top:0,bottom:0,right:0,width:0,height:0});
     }
-    kickerEl.textContent='Quick tour';
+    kickerEl.textContent='City tour · '+city;
     titleEl.textContent=step.title;
     bodyEl.textContent=step.body;
     stepEl.textContent=(idx+1)+' / '+STEPS.length;
     backBtn.style.visibility=idx===0?'hidden':'visible';
-    nextBtn.textContent=idx===STEPS.length-1?'Got it':'Next';
+    nextBtn.textContent=idx===STEPS.length-1?'Let’s go':'Next';
   }
   function render(){
     const step=STEPS[idx];
     prepareStep(step);
     if(renderTimer)clearTimeout(renderTimer);
-    /* Wait for rail / sheet open animation so spot lands on real layout */
     const delay=reduce?0:(step.mobileOpen||step.rail==='right'?320:40);
     requestAnimationFrame(()=>{
       paintStep();
@@ -13081,7 +13177,6 @@ setTimeout(()=>{
     }
     running=true;idx=0;root.classList.add('on');root.setAttribute('aria-hidden','false');
     if(replay)replay.style.display='none';
-    /* On mobile, Replay tour lives under More — keep floating button optional */
     if(replayMobile&&!isMobile())replayMobile.style.display='none';
     hideGeoToast();render();
   }
@@ -13103,11 +13198,12 @@ setTimeout(()=>{
     const wrap=document.createElement('div');
     wrap.className='grp';
     wrap.id='tourReplayGrp';
-    wrap.innerHTML='<button type="button" class="btn" id="tourReplayPanel" style="width:100%">Replay quick tour</button>';
+    wrap.innerHTML='<button type="button" class="btn" id="tourReplayPanel" style="width:100%">Replay city tour</button>';
     panel.appendChild(wrap);
     $('tourReplayPanel').addEventListener('click',()=>start(true));
+  }else if($('tourReplayPanel')){
+    $('tourReplayPanel').textContent='Replay city tour';
   }
-  /* Large app-main can finish after loading timeout — never miss the first-visit tour */
   whenHtsReady(()=>setTimeout(()=>start(false),reduce?200:500));
 })();
 /* Last-chance ready: if loading already gone and timeout somehow skipped, still unlock tour */

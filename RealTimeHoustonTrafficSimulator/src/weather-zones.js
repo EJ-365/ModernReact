@@ -133,8 +133,12 @@ export function rainIntensityAt(zones, x, z) {
   const wx = zn.wx;
   if (!wx) return 0;
   const codeRain = wx.rainAmt != null ? wx.rainAmt : 0;
-  const precipBoost = wx.precip != null ? Math.min(1, wx.precip * 8) : 0;
-  return Math.max(0, Math.min(1, Math.max(codeRain, precipBoost)));
+  /* Soft precip hint only — don’t turn a light drizzle code into a downpour */
+  const precipBoost = wx.precip != null ? Math.min(0.85, wx.precip * 3.5) : 0;
+  if (codeRain <= 0 && precipBoost <= 0) return 0;
+  if (codeRain <= 0) return Math.max(0, Math.min(1, precipBoost));
+  /* Prefer the weather-code intensity; only lift toward precip when precip is clearly wetter */
+  return Math.max(0, Math.min(1, Math.max(codeRain, Math.min(codeRain + 0.12, precipBoost))));
 }
 
 /**
