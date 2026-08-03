@@ -10,36 +10,15 @@ export default defineConfig(({ mode }) => {
       {
         name: "tomtom-proxy",
         configureServer(server) {
-          server.middlewares.use("/api/tomtom", async (req, res) => {
-            try {
-              const key = env.TOMTOM_API_KEY || process.env.TOMTOM_API_KEY;
-              if (!key) {
-                res.statusCode = 500;
-                res.setHeader("content-type", "application/json");
-                res.end(JSON.stringify({ error: "TOMTOM_API_KEY missing" }));
-                return;
-              }
-              const url = new URL(req.url || "/", "http://local");
-              const targetPath = url.pathname.replace(/^\/+/, "");
-              const target = new URL(`https://api.tomtom.com/${targetPath}`);
-              url.searchParams.forEach((v, k) => target.searchParams.set(k, v));
-              if (!target.searchParams.has("key")) target.searchParams.set("key", key);
-
-              const upstream = await fetch(target.toString(), {
-                method: req.method || "GET",
-                headers: { accept: req.headers.accept || "*/*" },
-              });
-              res.statusCode = upstream.status;
-              res.setHeader(
-                "content-type",
-                upstream.headers.get("content-type") || "application/json",
-              );
-              res.end(await upstream.text());
-            } catch {
-              res.statusCode = 502;
-              res.setHeader("content-type", "application/json");
-              res.end(JSON.stringify({ error: "tomtom_proxy_failed" }));
-            }
+          /* TomTom — hard-disabled (billing). Free TranStar / modeled traffic only. */
+          server.middlewares.use("/api/tomtom", async (_req, res) => {
+            res.statusCode = 503;
+            res.setHeader("content-type", "application/json");
+            res.setHeader("cache-control", "no-store");
+            res.end(JSON.stringify({
+              error: "tomtom_disabled",
+              hint: "TomTom is turned off. Traffic uses free TranStar RSS / modeled flow only.",
+            }));
           });
 
           server.middlewares.use("/api/transtar", async (req, res) => {
@@ -78,58 +57,15 @@ export default defineConfig(({ mode }) => {
             }
           });
 
-          /* Path form: /api/flightaware/aeroapi/...  (also accepts legacy ?path=) */
-          server.middlewares.use("/api/flightaware", async (req, res) => {
-            try {
-              const key = env.FLIGHTAWARE_API_KEY || process.env.FLIGHTAWARE_API_KEY;
-              if (!key) {
-                res.statusCode = 500;
-                res.setHeader("content-type", "application/json");
-                res.end(JSON.stringify({
-                  error: "FLIGHTAWARE_API_KEY_missing",
-                  hint: "Set FLIGHTAWARE_API_KEY in .env.local",
-                }));
-                return;
-              }
-              const url = new URL(req.url || "/", "http://local");
-              let aeroPath = url.searchParams.get("path") || url.pathname.replace(/^\/+/, "");
-              aeroPath = String(aeroPath).replace(/^\/+/, "")
-                .replace(/^api\/flightaware\/?/i, "")
-                .replace(/^flightaware\/?/i, "");
-              if (!aeroPath.startsWith("aeroapi")) {
-                res.statusCode = 400;
-                res.setHeader("content-type", "application/json");
-                res.end(JSON.stringify({
-                  error: "missing_upstream_path",
-                  hint: "Use /api/flightaware/aeroapi/airports/KIAH/flights/departures",
-                  debug: { pathname: url.pathname, aeroPath },
-                }));
-                return;
-              }
-              const target = new URL(`https://aeroapi.flightaware.com/${aeroPath}`);
-              url.searchParams.forEach((v, k) => {
-                if (k !== "path") target.searchParams.set(k, v);
-              });
-              if (!target.searchParams.has("max_pages")) target.searchParams.set("max_pages", "1");
-              const upstream = await fetch(target.toString(), {
-                method: "GET",
-                headers: {
-                  accept: req.headers.accept || "application/json,*/*",
-                  "x-apikey": key,
-                  "user-agent": "HoustonTrafficSimulator/1.0 (local)",
-                },
-              });
-              res.statusCode = upstream.status;
-              res.setHeader(
-                "content-type",
-                upstream.headers.get("content-type") || "application/json",
-              );
-              res.end(await upstream.text());
-            } catch {
-              res.statusCode = 502;
-              res.setHeader("content-type", "application/json");
-              res.end(JSON.stringify({ error: "flightaware_proxy_failed" }));
-            }
+          /* FlightAware AeroAPI — hard-disabled (billing). Free ADS-B/OpenSky only. */
+          server.middlewares.use("/api/flightaware", async (_req, res) => {
+            res.statusCode = 503;
+            res.setHeader("content-type", "application/json");
+            res.setHeader("cache-control", "no-store");
+            res.end(JSON.stringify({
+              error: "flightaware_disabled",
+              hint: "FlightAware AeroAPI is turned off. Sky uses free OpenSky / ADS-B only.",
+            }));
           });
         },
       },

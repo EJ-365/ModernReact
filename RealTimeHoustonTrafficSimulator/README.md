@@ -107,15 +107,15 @@ Deploy the **`dist/`** folder (or connect the repo to Netlify / Vercel; configs 
 | Marketing site + PWA | Yes |
 | First visit tour in simulator | Yes (`localStorage` key `houstonSim.tour.v1`) |
 | Public live feeds (weather, TranStar, ADS-B) | Netlify functions + Open-Meteo direct |
-| FlightAware airport boards | Set `FLIGHTAWARE_API_KEY` in Netlify env, then redeploy |
-| TomTom | Optional `TOMTOM_API_KEY` in Netlify env |
+| FlightAware airport boards | **Disabled** — do not set `FLIGHTAWARE_API_KEY` |
+| TomTom traffic | **Disabled** — do not set `TOMTOM_API_KEY` |
 | Secrets | Keep `.env.local` local; never commit |
 
-### Netlify env (required for boards)
+### Netlify env
 
 1. Netlify → Site configuration → Environment variables  
-2. Add `FLIGHTAWARE_API_KEY` = your AeroAPI key (same as `.env.local`)  
-3. Redeploy  
+2. **Delete** `FLIGHTAWARE_API_KEY` and `TOMTOM_API_KEY` if present  
+3. Redeploy when you push the free-feeds release 
 
 Replay the tour anytime from **Replay tour** (desktop cam hint or mobile Controls).
 
@@ -128,8 +128,8 @@ Replay the tour anytime from **Replay tour** (desktop cam hint or mobile Control
 | Weather / forecast | Open-Meteo | No |
 | Traffic incidents | Houston TranStar RSS | No |
 | Aircraft | ADS-B / OpenSky | No (rate limits) |
-| Airport boards | FlightAware AeroAPI | Optional |
-| Flow speeds | TomTom Traffic | Optional |
+| Airport boards | FlightAware AeroAPI | Disabled |
+| Flow speeds | TomTom Traffic | Disabled (TranStar / modeled) |
 
 Copy `.env.example` → `.env.local` for optional keys. **Never commit secrets.**
 
@@ -171,7 +171,7 @@ Educational overlays (not official alerts): hurricane, wildfire, **certain flood
 ## Credits
 
 **Created by Ejay Gabriel.**  
-Three.js · Vite · Open-Meteo · Houston TranStar · optional FlightAware & TomTom.
+Three.js · Vite · Open-Meteo · Houston TranStar · free ADS-B / OpenSky.
 
 ---
 

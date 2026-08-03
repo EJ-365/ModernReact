@@ -42,40 +42,35 @@
   <article class="docs-body">
     <p class="eyebrow">Configuration</p>
     <h1>API keys</h1>
-    <p class="lead">Most of the sim runs without secrets. Keys unlock richer live boards and flow.</p>
+    <p class="lead"><strong>Paid APIs are hard-disabled.</strong> The sim runs on free / open public feeds only. Do not add commercial keys.</p>
+
+    <h2>Do not set (billing risk)</h2>
+    <ul>
+      <li><code>FLIGHTAWARE_API_KEY</code> — AeroAPI (paid). Proxies return 503.</li>
+      <li><code>TOMTOM_API_KEY</code> — Traffic API (paid). Proxies return 503.</li>
+    </ul>
+    <p>On Netlify: delete both env vars if they still exist, then redeploy after the free-feeds release is pushed.</p>
+
+    <h2>Free stack (no billing)</h2>
+    <ul>
+      <li><strong>Open-Meteo</strong> — weather</li>
+      <li><strong>NWS / NHC / SPC</strong> — alerts &amp; storm outlooks</li>
+      <li><strong>Houston TranStar</strong> — public RSS traffic (Houston)</li>
+      <li><strong>OpenSky / airplanes.live / adsb.lol / adsbdb / hexdb</strong> — aircraft</li>
+      <li><strong>Nominatim / OSM</strong> — geocoding / map data (fair-use)</li>
+    </ul>
 
     <h2>Environment file</h2>
-    <pre><code># .env.local (never commit)
-FLIGHTAWARE_API_KEY=
-TOMTOM_API_KEY=
-# Optional TranStar authenticated JSON endpoints:
+    <pre><code># .env.local — leave paid keys commented out
+# FLIGHTAWARE_API_KEY=
+# TOMTOM_API_KEY=
+# Optional TranStar agency JSON (not a commercial billable key):
 # TRANSTAR_SPEED_URL=
 # TRANSTAR_INCIDENT_URL=
 # TRANSTAR_CLOSURE_URL=</code></pre>
 
-    <h2>What needs a key?</h2>
-    <ul>
-      <li><strong>Open-Meteo weather</strong> — no key</li>
-      <li><strong>TranStar public RSS</strong> — no key</li>
-      <li><strong>ADS-B / OpenSky</strong> — no key (rate limits apply)</li>
-      <li><strong>FlightAware AeroAPI</strong> — airport boards + route enrichment</li>
-      <li><strong>TomTom Traffic</strong> — optional flow / incident fill-in</li>
-    </ul>
-
-    <h2>Netlify production</h2>
-    <p>Public feeds (ADS-B, OpenSky, weather, TranStar) use Netlify edge rewrites. Only FlightAware and TomTom need serverless functions so keys stay server-side.</p>
-    <ol>
-      <li>Site settings → <strong>Environment variables</strong></li>
-      <li>Add <code>FLIGHTAWARE_API_KEY</code> (required for airport boards)</li>
-      <li>Optional: <code>TOMTOM_API_KEY</code></li>
-      <li><strong>Clear cache and deploy site</strong> (or push a new commit)</li>
-      <li>After deploy, hard-refresh <code>/app.html</code> (service worker cache bumps each release)</li>
-    </ol>
-    <p>Live planes in the sky do <strong>not</strong> need a FlightAware key. Boards (IAH/HOU departures) do.</p>
-    <p>Never put these keys in client code or a <code>VITE_</code> variable.</p>
-
     <h2>Security</h2>
-    <p>Vite injects keys only in server middleware. Do not prefix traffic secrets with <code>VITE_</code> or they will leak into the client bundle.</p>
+    <p>Never put secrets in client code or a <code>VITE_</code> variable. Google Fonts / “open in Maps” links are free website loads, not billed developer APIs.</p>
   </article>
 </main>
 <script src="/site/site.js" type="module"></script>

@@ -37,7 +37,9 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.16.60 (0728-city-hazards). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.16.62 (0803-free-feeds-only). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
+window.HTS_PAID_APIS_DISABLED=true;
 const HTS_PACK=window.HTS_PACK||null;
 const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
@@ -3817,45 +3819,19 @@ window.FLIGHTS=[];
     return {src:'OpenSky',rows:mapOpenSky(j&&j.states)};
   }
   function flightAwareUrl(aeroPath, query){
-    const clean=String(aeroPath||'').replace(/^\/+/,'');
-    const aero=clean.startsWith('aeroapi/')?clean:('aeroapi/'+clean);
-    const q=new URLSearchParams(query||{});
-    const qs=q.toString();
-    let proxyBase='';
-    try{proxyBase=localStorage.getItem('fa_proxy')||'';}catch(e){}
-    if(proxyBase){
-      return proxyBase.replace(/\/$/,'')+'/api/flightaware/'+aero+(qs?('?'+qs):'');
-    }
-    return '/api/flightaware/'+aero+(qs?('?'+qs):'');
+    /* FlightAware AeroAPI disabled — never hit the paid proxy. */
+    return '';
   }
   window.flightAwareUrl=flightAwareUrl;
-  /* Client cache for AeroAPI callsign lookups — saves credits across enrich passes */
+  window.HTS_FLIGHTAWARE_ENABLED=false;
+  /* Client cache for AeroAPI callsign lookups — unused while FA is off */
   const FA_CS_CACHE=new Map(); /* cs -> {at, data, err, status} */
   const FA_CS_TTL_MS=12*60*1000;
   const FA_CS_NEG_TTL_MS=3*60*1000;
   let faCsCooldownUntil=0;
   async function fetchAeroAPI(callsign){
-    const cs=cleanCS(callsign);
-    if(!cs)return null;
-    const now=Date.now();
-    if(now<faCsCooldownUntil)throw new Error('AeroAPI cooldown (429)');
-    const hit=FA_CS_CACHE.get(cs);
-    if(hit&&(now-hit.at)<(hit.err?FA_CS_NEG_TTL_MS:FA_CS_TTL_MS)){
-      if(hit.err)throw new Error(hit.err);
-      return hit.data;
-    }
-    const r=await fetchWithTimeout(flightAwareUrl('aeroapi/flights/'+encodeURIComponent(cs),{max_pages:'1'}),{cache:'no-store'},10000);
-    if(!r.ok){
-      let detail='';
-      try{const j=await r.json();detail=j&&(j.error||j.hint)||'';}catch(e){}
-      const msg='AeroAPI '+r.status+(detail?(' · '+detail):'');
-      if(r.status===429)faCsCooldownUntil=now+5*60*1000;
-      FA_CS_CACHE.set(cs,{at:now,data:null,err:msg,status:r.status});
-      throw new Error(msg);
-    }
-    const data=await r.json();
-    FA_CS_CACHE.set(cs,{at:now,data,err:'',status:200});
-    return data;
+    /* Paid FlightAware AeroAPI off — free ADS-B / OpenSky / route DBs only */
+    return null;
   }
   async function fetchAdsbLol(callsign,icao24){
     const cs=cleanCS(callsign);
@@ -3995,10 +3971,10 @@ window.FLIGHTS=[];
         }
       }
     }
-    /* FlightAware only if free DBs missed the route — boards own most FA quota */
+    /* FlightAware AeroAPI disabled — skip paid route enrichment */
     let gotFa=false;
     let faFlights=null;
-    if(f.cs&&!f._routeVerified){
+    if(false&&f.cs&&!f._routeVerified){
       try{
         const data=await fetchAeroAPI(f.cs);
         faFlights=(data&&data.flights)||null;
@@ -4392,194 +4368,24 @@ window.FLIGHTS=[];
   })();
 })();
 
-/* ---- Houston airport departure / arrival boards (FlightAware AeroAPI) ---- */
+/* ---- Airport departure / arrival boards (FlightAware AeroAPI DISABLED) ---- */
 (function(){
-  window.HOUSTON_BOARD_STATUS={ok:false,err:'',at:0};
+  window.HOUSTON_BOARD_STATUS={ok:false,err:'FlightAware disabled — free ADS-B sky only',at:Date.now()};
   window.HOUSTON_BOARD=[];
   window.HOUSTON_BOARDS={}; /* apt -> {departures:[], arrivals:[]} */
   const BOARD_APTS=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts.length)
     ?HTS_PACK.boardApts.slice()
     :['IAH','HOU','EFD','SGR','DWH','IWS','CXO'];
   window.BOARD_UI={apt:BOARD_APTS[0]||'IAH',kind:'departures'};
-  /* Was 14 FA calls/min (7 apts × 2). Now: only the selected airport, every 5 min. */
-  const BOARD_TTL_MS=5*60*1000;
-  const BOARD_POLL_MS=5*60*1000;
-  const BOARD_429_COOLDOWN_MS=10*60*1000;
-  const BOARD_CACHE_KEY='houstonSim.boardCache.v1';
-  let boardCooldownUntil=0;
-  let boardRefreshTimer=null;
-  let boardInFlight=null;
-
-  function loadBoardDisk(){
-    try{
-      const raw=localStorage.getItem(BOARD_CACHE_KEY);
-      if(!raw)return;
-      const j=JSON.parse(raw);
-      if(!j||typeof j!=='object')return;
-      for(const apt of Object.keys(j)){
-        const pack=j[apt];
-        if(!pack||!pack.at)continue;
-        if(Date.now()-pack.at>BOARD_TTL_MS*3)continue; /* keep stale UI up to 15 min */
-        window.HOUSTON_BOARDS[apt]=pack;
-      }
-      rebuildFlatBoard();
-    }catch(e){}
-  }
-  function saveBoardDisk(){
-    try{
-      const out={};
-      for(const apt of Object.keys(window.HOUSTON_BOARDS||{})){
-        const p=window.HOUSTON_BOARDS[apt];
-        if(p&&p.at)out[apt]={departures:p.departures||[],arrivals:p.arrivals||[],err:p.err||'',at:p.at,cached:!!p.cached};
-      }
-      localStorage.setItem(BOARD_CACHE_KEY,JSON.stringify(out));
-    }catch(e){}
-  }
-  function rebuildFlatBoard(){
-    const flat=[];
-    for(const apt of Object.keys(window.HOUSTON_BOARDS||{})){
-      const p=window.HOUSTON_BOARDS[apt];
-      if(!p)continue;
-      for(const f of (p.departures||[]))flat.push(f);
-      for(const f of (p.arrivals||[]))flat.push(f);
-    }
-    const key=f=>[f.cs,f.dep,f.arr,f.etd||f.eta||''].join('|');
-    const seen=new Set();
-    window.HOUSTON_BOARD=flat.filter(f=>{const k=key(f);if(seen.has(k))return false;seen.add(k);return true;});
-  }
-  function boardCacheFresh(apt){
-    const p=window.HOUSTON_BOARDS&&window.HOUSTON_BOARDS[apt];
-    return !!(p&&p.at&&(Date.now()-p.at)<BOARD_TTL_MS&&!p.err);
-  }
-  async function fetchBoard(apt,kind){
-    const icao='K'+String(apt).toUpperCase();
-    const path='aeroapi/airports/'+encodeURIComponent(icao)+'/flights/'+kind;
-    const url=(typeof window.flightAwareUrl==='function')
-      ?window.flightAwareUrl(path,{max_pages:'1'})
-      :('/api/flightaware/'+path+'?max_pages=1');
-    const r=await fetchWithTimeout(url,{cache:'no-store'},10000);
-    if(!r.ok){
-      let detail='';
-      try{const j=await r.json();detail=j&& (j.error||j.hint||j.title)||'';}catch(e){}
-      if(r.status===429)boardCooldownUntil=Date.now()+BOARD_429_COOLDOWN_MS;
-      const msg='Board '+apt+' '+kind+' '+r.status+(detail?(' · '+detail):'');
-      throw new Error(msg);
-    }
-    return await r.json();
-  }
-  function boardRows(j,kind){
-    if(!j)return [];
-    if(Array.isArray(j[kind]))return j[kind];
-    if(Array.isArray(j.flights))return j.flights;
-    if(Array.isArray(j.departures))return j.departures;
-    if(Array.isArray(j.arrivals))return j.arrivals;
-    return [];
-  }
-  function normFlight(fl,kind,apt){
-    if(isStaleOrLandedAero(fl))return null;
-    let depRaw=extractAptCode(fl.origin);
-    if(depRaw==='—')depRaw=extractAptCode(fl.origin_code);
-    if(depRaw==='—')depRaw=icaoToDisp(fl.origin_iata||fl.origin_icao||'');
-    let arrRaw=extractAptCode(fl.destination);
-    if(arrRaw==='—')arrRaw=extractAptCode(fl.destination_code);
-    if(arrRaw==='—')arrRaw=icaoToDisp(fl.destination_iata||fl.destination_icao||'');
-    const dep=depRaw!=='—'?depRaw:(kind==='departures'?icaoToDisp(apt):'—');
-    const arr=arrRaw!=='—'?arrRaw:(kind==='arrivals'?icaoToDisp(apt):'—');
-    const eta=(fl.estimated_in||fl.scheduled_in||null);
-    const etd=(fl.estimated_out||fl.scheduled_out||fl.actual_out||null);
-    const cs=fl.ident_iata||fl.ident||fl.ident_icao||'—';
-    const row={
-      kind:'board',
-      boardApt:icaoToDisp(apt),
-      boardKind:kind,
-      cs:cs,
-      csIata:fl.ident_iata||null,
-      faFlightId:fl.fa_flight_id||null,
-      dep,
-      arr,
-      reg:fl.registration||null,
-      actype:fl.aircraft_type||'—',
-      etd:etd,
-      atd:(fl.actual_out||null),
-      eta:eta,
-      ata:(fl.actual_in||null),
-      status:fl.status||(kind==='arrivals'?'Arriving':'Departing'),
-      gate:fl.gate_origin||fl.gate_destination||fl.terminal_origin||fl.terminal_destination||null,
-      _faOk:true,
-      _routeVerified:!!(dep&&dep!=='—'&&arr&&arr!=='—'),
-      _guessRoute:false,
-      _guessArr:false,
-    };
-    applyFaLastPosition(row,fl);
-    if(!isBoardFlightCurrent(row))return null;
-    return row;
-  }
-  async function refreshBoard(forceApt){
-    const apt=String(forceApt||(window.BOARD_UI&&window.BOARD_UI.apt)||'IAH').toUpperCase();
-    if(!BOARD_APTS.includes(apt))return;
-    if(!forceApt&&boardCacheFresh(apt)){
-      window.HOUSTON_BOARD_STATUS.ok=true;
-      window.HOUSTON_BOARD_STATUS.err='';
-      window.HOUSTON_BOARD_STATUS.at=window.HOUSTON_BOARDS[apt].at;
-      window.HOUSTON_BOARD_STATUS.cached=true;
-      if(typeof window.renderAirportBoard==='function')window.renderAirportBoard();
-      return;
-    }
-    if(Date.now()<boardCooldownUntil){
-      const wait=Math.ceil((boardCooldownUntil-Date.now())/60000);
-      window.HOUSTON_BOARD_STATUS.ok=!!(window.HOUSTON_BOARDS[apt]&&((window.HOUSTON_BOARDS[apt].departures||[]).length||(window.HOUSTON_BOARDS[apt].arrivals||[]).length));
-      window.HOUSTON_BOARD_STATUS.err='Rate limited · retry in ~'+wait+' min (showing cache)';
-      window.HOUSTON_BOARD_STATUS.at=Date.now();
-      if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
-      return;
-    }
-    if(boardInFlight)return boardInFlight;
-    boardInFlight=(async()=>{
-      try{
-        /* Only the visible airport — 2 FA calls instead of 14 */
-        const [depJ,arrJ]=await Promise.all([
-          fetchBoard(apt,'departures').catch(e=>({_err:String(e&&e.message?e.message:e)})),
-          fetchBoard(apt,'arrivals').catch(e=>({_err:String(e&&e.message?e.message:e)})),
-        ]);
-        const err=(depJ&&depJ._err)||(arrJ&&arrJ._err)||'';
-        if(/429/.test(err)&&window.HOUSTON_BOARDS[apt]){
-          /* Keep last good board; don't wipe on rate limit */
-          window.HOUSTON_BOARD_STATUS.ok=true;
-          window.HOUSTON_BOARD_STATUS.err='Rate limited · showing cached '+apt;
-          window.HOUSTON_BOARD_STATUS.at=Date.now();
-          window.HOUSTON_BOARD_STATUS.cached=true;
-          if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
-          return;
-        }
-        const deps=boardRows(depJ,'departures').map(fl=>normFlight(fl,'departures',apt)).filter(Boolean);
-        const arrs=boardRows(arrJ,'arrivals').map(fl=>normFlight(fl,'arrivals',apt)).filter(Boolean);
-        window.HOUSTON_BOARDS[apt]={departures:deps,arrivals:arrs,err,at:Date.now(),cached:false};
-        rebuildFlatBoard();
-        const any=deps.length||arrs.length;
-        window.HOUSTON_BOARD_STATUS.ok=!!any;
-        window.HOUSTON_BOARD_STATUS.err=any?'':(err||'No board data');
-        window.HOUSTON_BOARD_STATUS.at=Date.now();
-        window.HOUSTON_BOARD_STATUS.cached=false;
-        saveBoardDisk();
-        if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
-      }catch(e){
-        window.HOUSTON_BOARD_STATUS.ok=!!(window.HOUSTON_BOARDS[apt]&&((window.HOUSTON_BOARDS[apt].departures||[]).length||(window.HOUSTON_BOARDS[apt].arrivals||[]).length));
-        window.HOUSTON_BOARD_STATUS.err=String(e&&e.message?e.message:e);
-        window.HOUSTON_BOARD_STATUS.at=Date.now();
-        if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
-      }finally{
-        boardInFlight=null;
-      }
-    })();
-    return boardInFlight;
-  }
-  window.refreshAirportBoard=function(force){
-    const apt=(window.BOARD_UI&&window.BOARD_UI.apt)||'IAH';
-    return refreshBoard(force?apt:null);
+  /* Paid FlightAware boards off — no polling, no AeroAPI calls */
+  window.refreshAirportBoard=function(){
+    window.HOUSTON_BOARD_STATUS={ok:false,err:'flightaware_disabled',at:Date.now()};
+    if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+    return Promise.resolve();
   };
-  loadBoardDisk();
-  refreshBoard(BOARD_APTS[0]||DEFAULT_APT);
-  boardRefreshTimer=setInterval(()=>refreshBoard(null),BOARD_POLL_MS);
+  /* Clear any cached FA board rows so UI does not look "live" from old paid data */
+  try{localStorage.removeItem('houstonSim.boardCache.v1');}catch(e){}
+  if(typeof window.renderAirportBoard==='function')setTimeout(()=>window.renderAirportBoard(true),0);
 })();
 /* Simulated airport-cycle / cruise planes removed — sky is live ADS-B only.
    FLIGHTS stays as an empty array so click/follow helpers remain safe. */
@@ -8393,125 +8199,44 @@ async function fetchTranStarOptionalJson(path){
   }catch(e){return null;}
 }
 function tomtomKey(){
-  try{return localStorage.getItem('tt_key')||window.TOMTOM_KEY||'';}catch(e){return window.TOMTOM_KEY||'';}
+  /* Paid TomTom disabled — ignore env / localStorage keys so nothing can bill. */
+  return '';
 }
 function trafficPrimary(){
-  return (window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.primaryTraffic)||'transtar';
+  const raw=(window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.primaryTraffic)||'transtar';
+  /* Never prefer TomTom while paid APIs are off */
+  return raw==='tomtom'?'transtar':raw;
 }
 async function tomtomFetch(pathAndQuery){
-  const clean=String(pathAndQuery||'').replace(/^\/+/,'');
-  try{
-    const r=await fetchWithTimeout('/api/tomtom/'+clean,{cache:'no-store'},10000);
-    if(r.status===401||r.status===403)window.LIVE_TRAFFIC.authOk=false;
-    if(r.ok){window.LIVE_TRAFFIC.authOk=true;return r;}
-    /* Proxy may return 500 when TOMTOM_API_KEY is missing — mark auth so UI doesn’t hang on Connecting */
-    if(r.status>=400){
-      try{
-        const body=await r.clone().json();
-        if(body&&/TOMTOM_API_KEY|missing|unauthorized/i.test(JSON.stringify(body))){
-          window.LIVE_TRAFFIC.authOk=false;
-        }
-      }catch(_e){/* ignore */}
-    }
-  }catch(e){/* proxy unavailable — try direct */}
-  const key=tomtomKey();
-  if(!key){
-    window.LIVE_TRAFFIC.authOk=false;
-    throw new Error('TomTom unauthorized — set TOMTOM_API_KEY or localStorage tt_key');
-  }
-  const sep=clean.includes('?')?'&':'?';
-  const direct='https://api.tomtom.com/'+clean+sep+'key='+encodeURIComponent(key);
-  const r=await fetchWithTimeout(direct,{cache:'no-store'},10000);
-  if(r.status===401||r.status===403){
-    window.LIVE_TRAFFIC.authOk=false;
-    throw new Error('TomTom unauthorized ('+r.status+') — use a Traffic API key');
-  }
-  if(!r.ok)throw new Error('TomTom '+r.status);
-  window.LIVE_TRAFFIC.authOk=true;
-  return r;
+  window.LIVE_TRAFFIC.authOk=false;
+  throw new Error('tomtom_disabled');
 }
-async function fetchTomTomFlowAt(lat,lng){
-  const zoom=10,style='relative0',fmt='json';
-  const path='traffic/services/4/flowSegmentData/'+style+'/'+zoom+'/'+fmt
-    +'?point='+lat.toFixed(6)+','+lng.toFixed(6)+'&unit=mph';
-  const r=await tomtomFetch(path);
-  return await r.json();
-}
-async function fetchTomTomIncidents(){
-  const b=window.HTS_CITY&&window.HTS_CITY.bbox;
-  const minLat=b?b.south:28.7,minLon=b?b.west:-96.6,maxLat=b?b.north:30.6,maxLon=b?b.east:-94.3;
-  const fields=encodeURIComponent('{incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code,iconCategory},from,to,length,delay,roadNumbers,timeValidity}}}');
-  const path='traffic/services/5/incidentDetails'
-    +'?bbox='+minLon+','+minLat+','+maxLon+','+maxLat
-    +'&fields='+fields
-    +'&language=en-US&timeValidityFilter=present';
-  const r=await tomtomFetch(path);
-  return await r.json();
-}
-/* Traffic-aware door-to-door ETAs — fills gaps TranStar RSS doesn't cover. */
-const LIVE_ROUTE_POLL_MS=120*1000;
-let _liveRouteNext=0;
-async function fetchTomTomRouteMinutes(lat1,lng1,lat2,lng2){
-  const path='routing/1/calculateRoute/'
-    +lat1.toFixed(5)+','+lng1.toFixed(5)+':'
-    +lat2.toFixed(5)+','+lng2.toFixed(5)
-    +'/json?traffic=true&travelMode=car&routeType=fastest&vehicleEngineType=combustion';
-  const r=await tomtomFetch(path);
-  if(!r.ok)return null;
-  const j=await r.json();
-  const sum=j&&j.routes&&j.routes[0]&&j.routes[0].summary;
-  if(!sum||!(sum.travelTimeInSeconds>0))return null;
-  return {
-    mins:Math.round(sum.travelTimeInSeconds/60),
-    miles:sum.lengthInMeters?sum.lengthInMeters/1609.344:null
-  };
+async function refreshTomTomFallback(missingKeys){
+  return 0; /* TomTom disabled */
 }
 async function refreshTomTomCorridorRoutes(){
-  if(typeof DOWNTOWN_CORRIDORS!=='function')return 0;
-  if(!window.LIVE_TRAFFIC.corridorTimes)window.LIVE_TRAFFIC.corridorTimes=new Map();
-  const pool=DOWNTOWN_CORRIDORS();
-  const jobs=[];
-  for(const c of pool){
-    for(const outbound of [false,true]){
-      const sign=corridorTravelSign(c,outbound);
-      const key=corridorPanelKey(c,sign);
-      const existing=window.LIVE_TRAFFIC.corridorTimes.get(key);
-      /* Never replace a fresh TranStar downtown sample */
-      if(existing&&existing.src==='transtar'&&(Date.now()-existing.at)<LIVE_FLOW_STALE_MS)continue;
-      const a=worldToGeo(c.ax,c.az), b=worldToGeo(c.bx,c.bz);
-      const from=outbound?b:a, to=outbound?a:b;
-      jobs.push({c,key,from,to});
-    }
-  }
-  /* Parallel fan-out (capped) — was serial await and held the traffic lock too long */
-  const capped=jobs.slice(0,14);
-  const settled=await Promise.allSettled(capped.map(async j=>{
-    const route=await fetchTomTomRouteMinutes(j.from.lat,j.from.lng,j.to.lat,j.to.lng);
-    return {j,route};
-  }));
-  let got=0;
-  for(const r of settled){
-    if(r.status!=='fulfilled'||!r.value||!r.value.route)continue;
-    const {j,route}=r.value;
-    /* TomTom is door-to-door on corridor endpoints — do NOT add tsPadMin (that's for BW8 TranStar stubs) */
-    const okMins=saneCorridorMinutes(j.c,route.mins);
-    if(okMins==null)continue;
-    window.LIVE_TRAFFIC.corridorTimes.set(j.key,{
-      mins:okMins,at:Date.now(),src:'tomtom-route',
-      title:'TomTom traffic route',miles:route.miles,rawMins:route.mins
-    });
-    got++;
-  }
-  return got;
+  return 0; /* TomTom disabled */
 }
+async function fetchTomTomFlowAt(lat,lng){
+  throw new Error('tomtom_disabled');
+}
+async function fetchTomTomIncidents(){
+  throw new Error('tomtom_disabled');
+}
+async function fetchTomTomRouteMinutes(){
+  return null;
+}
+/* (TomTom helpers above are stubs — paid API off) */
 let _liveTrafficNext=0;
 let _liveTrafficInFlight=null;
 let _liveTrafficTimer=null;
-const LIVE_TRAFFIC_POLL_MS=45*1000; /* TranStar / TomTom flow — stay fresh */
+const LIVE_TRAFFIC_POLL_MS=45*1000; /* TranStar flow — stay fresh */
 const LIVE_FLOW_STALE_MS=3.5*60*1000; /* discard probes older than ~3.5 min */
 const LIVE_INCIDENT_POLL_MS=40*1000; /* closures / incidents for map markers */
 const LIVE_TRAFFIC_RETRY_MS=75*1000;
 let _liveIncidentNext=0;
+let _liveRouteNext=0;
+const LIVE_ROUTE_POLL_MS=120*1000;
 let _liveIncidentEls=[];
 let _nwsAlertEls=[];
 function clearLiveIncidentEls(){
@@ -8761,53 +8486,13 @@ function normalizeTranStarIncidents(items,kind){
     };
   });
 }
-async function refreshTomTomFallback(missingKeys){
-  let got=0;
-  const samples=[];
-  for(const road of roads){
-    if(road.def.arterial)continue;
-    const mid=Math.floor(road.segCount/2);
-    for(const dir of road.dirs){
-      const key=road.def.id+'_'+dir.sign;
-      if(missingKeys){
-        const existing=window.LIVE_TRAFFIC.flows.get(key);
-        if(existing&&liveFlowFresh(existing))continue;
-        if(!missingKeys.has(key))continue;
-      }
-      const x=road.segX[mid],z=road.segZ[mid];
-      const g=worldToGeo(x,z);
-      samples.push({key,lat:g.lat,lng:g.lng});
-    }
-  }
-  if(!samples.length)return 0;
-  /* Cap fan-out — sample missing + stale segments each poll */
-  const capped=samples.slice(0,40);
-  const results=await Promise.allSettled(capped.map(s=>fetchTomTomFlowAt(s.lat,s.lng)));
-  for(let i=0;i<capped.length;i++){
-    const s=capped[i];
-    const rr=results[i];
-    if(rr.status!=='fulfilled')continue;
-    const f=rr.value&&rr.value.flowSegmentData;
-    if(!f)continue;
-    const roadId=s.key.split('_')[0];
-    const road=findRoadByKey(roadId);
-    const ff=f.freeFlowSpeed||road?.def?.ff||60;
-    const cur=sanitizeLiveMph(f.currentSpeed||0,ff,road);
-    if(!(cur>0))continue;
-    const ratio=ff>0?clamp(cur/ff,0,1.2):1;
-    const cong=clamp(1-ratio,0,1);
-    window.LIVE_TRAFFIC.flows.set(s.key,{cur,ff,ratio,cong,at:Date.now(),src:'tomtom'});
-    got++;
-  }
-  return got;
-}
 async function refreshLiveTraffic(){
   if(_liveTrafficInFlight)return _liveTrafficInFlight;
   _liveTrafficInFlight=(async()=>{
   try{
     let flowGot=0;
     let usedTranStar=false;
-    let usedTomTom=false;
+    let usedTomTom=false; /* always false — TomTom billing disabled */
     const now=Date.now();
     const doFlow=now>_liveTrafficNext;
     if(doFlow)_liveTrafficNext=now+LIVE_TRAFFIC_POLL_MS;
@@ -8860,54 +8545,12 @@ async function refreshLiveTraffic(){
       }
     }
 
-    /* 4) TomTom fills missing segments / incidents when key works (flow cadence) */
-    if(doFlow){
-      try{
-        const need=new Set();
-        for(const road of roads){
-          if(road.def.arterial)continue;
-          for(const dir of road.dirs){
-            const key=road.def.id+'_'+dir.sign;
-            if(!window.LIVE_TRAFFIC.flows.has(key))need.add(key);
-          }
-        }
-        if(need.size>0||flowGot===0){
-          const n=await refreshTomTomFallback(need.size?need:null);
-          if(n>0){flowGot+=n;usedTomTom=true;window.LIVE_TRAFFIC.tomtom=true;}
-        }else{
-          /* Refresh stale TomTom probes even when TranStar covers most freeways */
-          const stale=new Set();
-          for(const [key,flow] of window.LIVE_TRAFFIC.flows){
-            if(flow&&flow.src==='tomtom'&&!liveFlowFresh(flow))stale.add(key);
-          }
-          if(stale.size)await refreshTomTomFallback(stale);
-        }
-        if((!window.LIVE_TRAFFIC.incidents||!window.LIVE_TRAFFIC.incidents.length)&&window.LIVE_TRAFFIC.authOk!==false){
-          try{
-            const inc=await fetchTomTomIncidents();
-            if(inc&&inc.incidents&&inc.incidents.length){
-              window.LIVE_TRAFFIC.incidents=inc.incidents;
-              window.LIVE_TRAFFIC.tomtom=true;
-              syncLiveIncidentAlerts();
-            }
-          }catch(ie2){}
-        }
-        /* 5) TomTom traffic-aware routes for suburb↔downtown (beyond TranStar segment titles) */
-        if(now>_liveRouteNext){
-          _liveRouteNext=now+LIVE_ROUTE_POLL_MS;
-          try{
-            const rn=await refreshTomTomCorridorRoutes();
-            if(rn>0){usedTomTom=true;window.LIVE_TRAFFIC.tomtom=true;}
-          }catch(re){}
-        }
-      }catch(ttErr){
-        /* TomTom optional */
-      }
-    }
+    /* 4) TomTom DISABLED (billing) — free TranStar / modeled only */
+    window.LIVE_TRAFFIC.authOk=false;
+    window.LIVE_TRAFFIC.tomtom=false;
 
     window.LIVE_TRAFFIC.transtar=!!usedTranStar||window.LIVE_TRAFFIC.transtar;
-    window.LIVE_TRAFFIC.tomtom=!!usedTomTom||window.LIVE_TRAFFIC.tomtom;
-    window.LIVE_TRAFFIC.src=usedTranStar&&usedTomTom?'TranStar + TomTom':(usedTranStar?'TranStar':(usedTomTom?'TomTom':window.LIVE_TRAFFIC.src||''));
+    window.LIVE_TRAFFIC.src=usedTranStar?'TranStar':(window.LIVE_TRAFFIC.src||'');
     if(flowGot>0||(window.LIVE_TRAFFIC.incidents&&window.LIVE_TRAFFIC.incidents.length)){
       window.LIVE_TRAFFIC.ok=flowGot>0;
       window.LIVE_TRAFFIC.err='';
@@ -8915,16 +8558,9 @@ async function refreshLiveTraffic(){
       if(flowGot===0)window.LIVE_TRAFFIC.err='Incidents live · waiting on travel-time mapping';
     }else{
       window.LIVE_TRAFFIC.ok=false;
-      const primary=trafficPrimary();
-      if(window.LIVE_TRAFFIC.authOk===false){
-        window.LIVE_TRAFFIC.err=primary==='tomtom'
-          ? 'TomTom Traffic API key missing or denied'
-          : 'TranStar offline · TomTom key has no Traffic API access';
-      }else if(primary==='tomtom'){
-        window.LIVE_TRAFFIC.err='Waiting on TomTom flow samples';
-      }else{
-        window.LIVE_TRAFFIC.err='No live traffic samples yet';
-      }
+      window.LIVE_TRAFFIC.err=usedTranStar
+        ? 'No live traffic samples yet'
+        : 'Free feeds only · TranStar unavailable here · using modeled traffic';
       window.LIVE_TRAFFIC.at=Date.now();
     }
   }catch(e){
@@ -12276,14 +11912,16 @@ window.renderAirportBoard=function(force){
     empty.style.display=rows.length?'none':'block';
     if(!rows.length){
       const err=(pack&&pack.err)||(window.HOUSTON_BOARD_STATUS&&HOUSTON_BOARD_STATUS.err)||'';
-      if(/FLIGHTAWARE_API_KEY_missing|missing/i.test(err)){
-        empty.textContent='Airport boards need FLIGHTAWARE_API_KEY in Netlify env vars. Add it under Site settings → Environment variables, then redeploy.';
+      if(/flightaware_disabled|FlightAware disabled/i.test(err)){
+        empty.textContent='Airport boards are off (FlightAware disabled). Live planes still use free OpenSky / ADS-B.';
+      }else if(/FLIGHTAWARE_API_KEY_missing|missing/i.test(err)){
+        empty.textContent='Airport boards are off — FlightAware AeroAPI is disabled to avoid billing.';
       }else if(/429|Rate limited|Too many/i.test(err)){
-        empty.textContent='FlightAware rate limit — boards refresh every 5 minutes and reuse cache. Wait a few minutes, then hard-refresh.';
+        empty.textContent='Airport boards are off (FlightAware disabled).';
       }else if(/404/.test(err)){
-        empty.textContent='Board request failed (404). On Netlify, redeploy with the FlightAware function and set FLIGHTAWARE_API_KEY.';
+        empty.textContent='Airport boards are off (FlightAware disabled).';
       }else{
-        empty.textContent=err||('No '+ui.kind+' for '+ui.apt+' yet…');
+        empty.textContent=err||('Airport boards paused — free ADS-B sky only.');
       }
     }
   }
@@ -12435,7 +12073,7 @@ const patrolBadges=(function(){
   return arr;
 })();
 document.getElementById('legend').insertAdjacentHTML('beforeend',
-  '<div class="dataline"><b>LIVE</b> clock · Open-Meteo weather · NWS alerts · NHC hurricane + SPC tornado tracker · TranStar incidents/closures · TomTom flow · ADS-B flights · FlightAware boards · your GPS weather<br>'
+  '<div class="dataline"><b>LIVE</b> clock · Open-Meteo weather · NWS alerts · NHC hurricane + SPC tornado tracker · TranStar (free) · ADS-B / OpenSky flights (free) · your GPS weather<br>'
   +'<i>MODELED</i> vehicle physics driven by live congestion · patrol motion · hazard drills &nbsp;·&nbsp; <b style="color:#9fb2c2">78 districts</b> · 10-county MSA · Created by <b style="color:#9fb2c2">Ejay Gabriel</b></div>');
 seedPatrols();
 spawnWorkZone('i45',0,0.30,420,'the North Side');

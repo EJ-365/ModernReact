@@ -57,10 +57,10 @@ npm install
 npm run dev</code></pre>
     <p>Open <code>http://localhost:5176/</code> for the marketing site, or <code>http://localhost:5176/app.html</code> for the simulator.</p>
 
-    <h2>Optional live keys</h2>
-    <p>Copy <code>.env.example</code> → <code>.env.local</code> and add keys you have. Weather and TranStar RSS work without keys.</p>
+    <h2>Live feeds (free only)</h2>
+    <p>Copy <code>.env.example</code> → <code>.env.local</code> if you need optional TranStar agency URLs. <strong>Do not set FlightAware or TomTom keys</strong> — both are hard-disabled to prevent billing.</p>
     <pre><code>cp .env.example .env.local
-# edit FLIGHTAWARE_API_KEY / TOMTOM_API_KEY as needed</code></pre>
+# leave FLIGHTAWARE_API_KEY / TOMTOM_API_KEY commented out</code></pre>
 
     <h2>Production build</h2>
     <pre><code>npm run build

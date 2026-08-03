@@ -98,7 +98,7 @@ export function buildAustinRuntimePack(geo) {
     wxPlace: 'Austin · Downtown',
     liveTimeLabel: 'Live — real Austin time',
     timeHint: 'Traffic & sky follow live Austin time. Pick a speed for a day/night time-lapse.',
-    boardSublabel: 'Austin airports · live FlightAware departures & arrivals',
+    boardSublabel: 'Austin airports · boards paused · free ADS-B sky',
     flightsEmpty: 'Listening for live Austin ADS-B…',
     freewayJumpLabel: 'Freeway level — I-35 @ Downtown',
     liveFlightsOnly: 'Austin arrivals & departures only',

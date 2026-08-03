@@ -105,7 +105,7 @@ export function buildLatLngRuntimePack(geo, src) {
       src.timeHint ||
       ('Traffic & sky follow live ' + name + ' time. Pick a speed for a day/night time-lapse.'),
     boardSublabel:
-      src.boardSublabel || (name + ' airports · live FlightAware departures & arrivals'),
+      boardSublabel || (name + ' airports · boards paused · free ADS-B sky'),
     flightsEmpty: src.flightsEmpty || ('Listening for live ' + name + ' ADS-B…'),
     freewayJumpLabel: src.freewayJumpLabel || ('Freeway level — Downtown'),
     liveFlightsOnly: src.liveFlightsOnly || (name + ' arrivals & departures only'),
