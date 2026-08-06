@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contributing — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/contributing.html" aria-current="page">Contributing</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/about.html">About</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/contributing.html">Contributing</a>
+  <a href="/about.html">About</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a href="/docs/">Overview</a>
+    <a href="/docs/getting-started.html">Getting started</a>
+    <a href="/docs/architecture.html">Architecture</a>
+    <a href="/docs/api-keys.html">API keys</a>
+    <a href="/docs/desktop.html">Desktop packaging</a>
+    <a href="/docs/ci.html">CI &amp; updates</a>
+    <a class="on" href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Community</p>
+    <h1>Contributing</h1>
+    <p class="lead">Created by <strong>Ejay Gabriel</strong>. Improvements that make Houston feel truer are always welcome. The project updates often — CI must stay green.</p>
+
+    <h2>Guidelines</h2>
+    <ul>
+      <li>Keep marketing pages flexible and mobile-friendly.</li>
+      <li>Prefer small, focused changes in <code>app.html</code> — bump the <code>#vtag</code> / console build string when behavior changes.</li>
+      <li>Never commit <code>.env.local</code> or API keys.</li>
+      <li>Hazard overlays must stay clearly labeled as simulations.</li>
+      <li>Match the existing visual language (teal / sun / coral on deep navy) — avoid generic purple-AI defaults.</li>
+      <li>Run <code>npm run ci</code> (or rely on GitHub Actions) before merging — build must pass.</li>
+    </ul>
+
+    <h2>CI checklist</h2>
+    <ul>
+      <li>PRs trigger <code>.github/workflows/ci.yml</code></li>
+      <li>Required pages and PWA assets must exist</li>
+      <li><code>npm run build</code> must succeed</li>
+      <li>See <a href="/docs/ci.html">CI &amp; updates</a> for the full pipeline</li>
+    </ul>
+
+    <h2>Suggested contribution areas</h2>
+    <ul>
+      <li>More accurate road / bayou geometry</li>
+      <li>Additional suburb fun facts</li>
+      <li>Performance passes on instancing</li>
+      <li>Electron packaging polish</li>
+      <li>Accessibility on the marketing site</li>
+      <li>Multi-city modules (LA, NYC, Austin, …)</li>
+    </ul>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

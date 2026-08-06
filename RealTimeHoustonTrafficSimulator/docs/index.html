@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docs — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<meta name="theme-color" content="#07101c">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div><div class="sky-glow sky-glow-a"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/" aria-current="page">Docs</a><a href="/docs/getting-started.html">Start</a><a href="/docs/architecture.html">Architecture</a><a href="/docs/desktop.html">Desktop</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/getting-started.html">Getting started</a>
+  <a href="/docs/architecture.html">Architecture</a>
+  <a href="/docs/api-keys.html">API keys</a>
+  <a href="/docs/desktop.html">Desktop</a>
+  <a href="/docs/ci.html">CI &amp; updates</a>
+  <a href="/docs/contributing.html">Contributing</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a class="on" href="/docs/">Overview</a>
+    <a href="/docs/getting-started.html">Getting started</a>
+    <a href="/docs/architecture.html">Architecture</a>
+    <a href="/docs/api-keys.html">API keys</a>
+    <a href="/docs/desktop.html">Desktop packaging</a>
+    <a href="/docs/ci.html">CI &amp; updates</a>
+    <a href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Developer handbook</p>
+    <h1>Houston Traffic Simulator docs</h1>
+    <p class="lead">Everything you need to run, extend, and ship the Space City sim — created by <strong>Ejay Gabriel</strong>. Sixteen U.S. metros ship today on one engine; city modules plug in freeways, weather, flights, and landmarks per metro.</p>
+
+    <div class="docs-cards">
+      <a class="docs-card" href="/docs/getting-started.html"><h3>Getting started</h3><p>Install Node, run Vite, open the marketing site and the 3D app.</p></a>
+      <a class="docs-card" href="/docs/architecture.html"><h3>Architecture</h3><p>How <code>app.html</code>, proxies, hazards, and live feeds fit together.</p></a>
+      <a class="docs-card" href="/docs/api-keys.html"><h3>API keys</h3><p>FlightAware, TomTom, TranStar — what is optional vs required.</p></a>
+      <a class="docs-card" href="/docs/desktop.html"><h3>Desktop builds</h3><p>Package a Windows zip or Electron shell for demos.</p></a>
+      <a class="docs-card" href="/docs/ci.html"><h3>CI &amp; updates</h3><p>GitHub Actions, release rhythm, and how often we ship.</p></a>
+    </div>
+
+    <h2>Project map</h2>
+    <pre><code>RealTimeHoustonTrafficSimulator/
+├── index.html          # Marketing home
+├── about.html          # Creator — Ejay Gabriel
+├── download.html       # Web install + desktop download
+├── app.html            # Full 3D simulator
+├── public/
+│   ├── site/           # Marketing CSS/JS
+│   ├── icons/          # PWA icons
+│   ├── manifest.webmanifest
+│   └── sw.js           # Service worker
+├── docs/               # This documentation set
+├── downloads/          # Desktop zip artifacts
+├── vite.config.js      # Dev proxies + multi-page build
+└── package.json</code></pre>
+
+    <h2>Quick links</h2>
+    <ul>
+      <li><a href="/">Marketing site</a></li>
+      <li><a href="/app.html">Live simulator</a></li>
+      <li><a href="/download.html">Install &amp; download</a></li>
+      <li><a href="/about.html">About Ejay Gabriel</a></li>
+    </ul>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

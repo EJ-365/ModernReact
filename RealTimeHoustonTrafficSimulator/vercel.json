@@ -1,0 +1,23 @@
+{
+  "rewrites": [
+    { "source": "/api/openmeteo/:path*", "destination": "https://api.open-meteo.com/:path*" },
+    { "source": "/api/nominatim/:path*", "destination": "https://nominatim.openstreetmap.org/:path*" },
+    { "source": "/api/nws/:path*", "destination": "https://api.weather.gov/:path*" },
+    { "source": "/api/nhc/:path*", "destination": "https://www.nhc.noaa.gov/:path*" },
+    { "source": "/api/spc/:path*", "destination": "https://mapservices.weather.noaa.gov/:path*" },
+    { "source": "/api/opensky/:path*", "destination": "https://opensky-network.org/:path*" },
+    { "source": "/api/airplanes/:path*", "destination": "https://api.airplanes.live/:path*" },
+    { "source": "/api/adsblol/:path*", "destination": "https://api.adsb.lol/:path*" },
+    { "source": "/api/adsbdb/:path*", "destination": "https://api.adsbdb.com/:path*" },
+    { "source": "/api/hexdb/:path*", "destination": "https://hexdb.io/:path*" },
+    { "source": "/api/transtar/:path*", "destination": "https://traffic.houstontranstar.org/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getting started — Houston Traffic Simulator</title>
+<meta name="author" content="Ejay Gabriel">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+<link rel="stylesheet" href="/site/docs.css">
+</head>
+<body class="page-docs">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/getting-started.html" aria-current="page">Start</a><a href="/docs/architecture.html">Architecture</a></nav>
+  <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/docs/">Overview</a>
+  <a href="/docs/getting-started.html">Getting started</a>
+  <a href="/docs/architecture.html">Architecture</a>
+  <a href="/docs/api-keys.html">API keys</a>
+  <a href="/docs/desktop.html">Desktop</a>
+  <a href="/docs/ci.html">CI &amp; updates</a>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+<main class="docs-layout">
+  <aside class="docs-side">
+    <p class="docs-kicker">Documentation</p>
+    <a href="/docs/">Overview</a>
+    <a class="on" href="/docs/getting-started.html">Getting started</a>
+    <a href="/docs/architecture.html">Architecture</a>
+    <a href="/docs/api-keys.html">API keys</a>
+    <a href="/docs/desktop.html">Desktop packaging</a>
+    <a href="/docs/ci.html">CI &amp; updates</a>
+    <a href="/docs/contributing.html">Contributing</a>
+  </aside>
+  <article class="docs-body">
+    <p class="eyebrow">Setup</p>
+    <h1>Getting started</h1>
+    <p class="lead">Run the marketing site and the 3D simulator locally in a few minutes.</p>
+
+    <h2>Requirements</h2>
+    <ul>
+      <li>Node.js 20+ (18+ may work)</li>
+      <li>npm 9+</li>
+      <li>Modern browser (Chrome / Edge recommended for PWA install)</li>
+    </ul>
+
+    <h2>Install &amp; run</h2>
+    <pre><code>cd RealTimeHoustonTrafficSimulator
+npm install
+npm run dev</code></pre>
+    <p>Open <code>http://localhost:5176/</code> for the marketing site, or <code>http://localhost:5176/app.html</code> for the simulator.</p>
+
+    <h2>Live feeds (free only)</h2>
+    <p>Copy <code>.env.example</code> → <code>.env.local</code> if you need optional TranStar agency URLs. <strong>Do not set FlightAware or TomTom keys</strong> — both are hard-disabled to prevent billing.</p>
+    <pre><code>cp .env.example .env.local
+# leave FLIGHTAWARE_API_KEY / TOMTOM_API_KEY commented out</code></pre>
+
+    <h2>Production build</h2>
+    <pre><code>npm run build
+npm run preview</code></pre>
+    <p>Static assets land in <code>dist/</code>. Deploy that folder to any static host; keep API proxies on a small Node/Vite server if you need live keys server-side.</p>
+
+    <h2>Web app install</h2>
+    <p>With the site served over <strong>HTTPS</strong> (or localhost), Chrome/Edge will fire <code>beforeinstallprompt</code>. Use <a href="/download.html">Download</a> → <strong>Install web app</strong>, or the browser’s Install menu.</p>
+  </article>
+</main>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>

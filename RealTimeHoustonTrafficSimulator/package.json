@@ -1,0 +1,31 @@
+{
+  "name": "houston-traffic-simulator",
+  "private": true,
+  "version": "10.16.62",
+  "type": "module",
+  "description": "Award-ready 3D Houston metro simulator + marketing site. Created by Ejay Gabriel.",
+  "author": "Ejay Gabriel",
+  "scripts": {
+    "dev": "vite --port 5176 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5176 --strictPort",
+    "package:win": "node scripts/package-win.mjs",
+    "docs:serve": "vite --port 5176 --strictPort",
+    "ci": "npm ci && npm run test && npm run build",
+    "test": "node --test tests/*.test.js",
+    "roads:fetch": "node scripts/fetch-osm-roads.mjs",
+    "roads:merge": "node scripts/merge-osm-roads.mjs",
+    "roads:stitch": "node scripts/stitch-houston-corridors.mjs && node -e \"const fs=require('fs');const j=fs.readFileSync('public/data/roads-corridors.json');fs.writeFileSync('public/data/roads-corridors.js','window.OSM_CORRIDORS='+j+'\\n')\"",
+    "roads:build": "npm run roads:fetch && npm run roads:merge && npm run roads:stitch",
+    "buildings:fetch": "node scripts/fetch-osm-buildings.mjs",
+    "buildings:fetch:all": "node scripts/fetch-osm-buildings.mjs all",
+    "transition:check": "node --test tests/city-manifest.test.js"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4"
+  }
+}

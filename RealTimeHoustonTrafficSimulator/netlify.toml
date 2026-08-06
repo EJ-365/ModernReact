@@ -1,0 +1,111 @@
+# Netlify: Vite static site + API proxies
+# Base directory in Netlify UI must be: RealTimeHoustonTrafficSimulator
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# ——— Public feeds: edge rewrite (no function, no key) ———
+# These mirror Vite's /api/* proxies. Prefer edge over functions so
+# path/query forwarding stays reliable on Netlify.
+[[redirects]]
+  from = "/api/airplanes/*"
+  to = "https://api.airplanes.live/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/adsblol/*"
+  to = "https://api.adsb.lol/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/opensky/*"
+  to = "https://opensky-network.org/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/adsbdb/*"
+  to = "https://api.adsbdb.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/hexdb/*"
+  to = "https://hexdb.io/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/transtar/*"
+  to = "https://traffic.houstontranstar.org/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/openmeteo/*"
+  to = "https://api.open-meteo.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/nominatim/*"
+  to = "https://nominatim.openstreetmap.org/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/nws/*"
+  to = "https://api.weather.gov/:splat"
+  status = 200
+  force = true
+  headers = {User-Agent = "HoustonTrafficSimulator/1.0 (edu; github.com/EJ-365/ModernReact)", Accept = "application/geo+json"}
+
+[[redirects]]
+  from = "/api/nhc/*"
+  to = "https://www.nhc.noaa.gov/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/spc/*"
+  to = "https://mapservices.weather.noaa.gov/:splat"
+  status = 200
+  force = true
+
+# ——— Authenticated proxies (serverless injects secrets) ———
+# Path form /api/flightaware/aeroapi/... is required — Netlify keeps it in event.path.
+# Query-only ?path= is unreliable under function rewrites.
+[[redirects]]
+  from = "/api/flightaware/*"
+  to = "/.netlify/functions/flightaware"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/flightaware"
+  to = "/.netlify/functions/flightaware"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/tomtom/*"
+  to = "/.netlify/functions/tomtom"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/tomtom"
+  to = "/.netlify/functions/tomtom"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"

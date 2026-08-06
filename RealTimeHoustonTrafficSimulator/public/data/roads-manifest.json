@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-07-09T16:27:56.765Z",
+  "origin": {
+    "lat": 29.7604,
+    "lng": -95.3698
+  },
+  "unitsPerMile": 210,
+  "counts": {
+    "freeway": 6775,
+    "ramp": 11873,
+    "arterial": 45756,
+    "local": 122365,
+    "total": 186769
+  },
+  "files": {
+    "freeway": "/data/roads-freeway.json",
+    "ramp": "/data/roads-ramp.json",
+    "arterial": "/data/roads-arterial.json",
+    "local": "/data/roads-local.json"
+  }
+}

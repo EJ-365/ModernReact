@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download · Houston Traffic Simulator</title>
+<meta name="description" content="Install Houston Traffic Simulator as a web app or download the standalone Windows desktop build. Created by Ejay Gabriel.">
+<meta name="author" content="Ejay Gabriel">
+<meta name="theme-color" content="#07101c">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site/site.css">
+</head>
+<body class="page-download">
+<div class="sky" aria-hidden="true"><div class="sky-grid"></div><div class="sky-glow sky-glow-a"></div><div class="sky-glow sky-glow-b"></div><div class="sky-stars"></div></div>
+
+<header class="nav">
+  <a class="brand" href="/">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-text">Houston Traffic Simulator</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="/#features">Features</a>
+    <a href="/#cities">Cities</a>
+    <a href="/about.html">About</a>
+    <a href="/download.html" aria-current="page">Download</a>
+    <a href="/docs/">Docs</a>
+  </nav>
+  <div class="nav-cta">
+    <button type="button" class="btn ghost" id="installBtn" hidden>Install web app</button>
+    <a class="btn primary" href="/app.html">Launch simulator</a>
+  </div>
+  <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
+</header>
+<button type="button" class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden aria-label="Close menu"></button>
+<div class="nav-drawer" id="navDrawer" hidden role="dialog" aria-label="Menu">
+  <a href="/#features">Features</a>
+  <a href="/#cities">Cities</a>
+  <a href="/#updates">Updates</a>
+  <a href="/about.html">About</a>
+  <a href="/download.html">Download</a>
+  <a href="/docs/">Docs</a>
+  <button type="button" class="btn soft" id="installBtnDrawer" hidden style="width:100%;margin-top:4px">Install web app</button>
+  <a class="btn primary" href="/app.html">Launch simulator</a>
+</div>
+
+<main class="dl-main">
+  <section class="dl-hero reveal" data-reveal>
+    <p class="eyebrow">Get the app</p>
+    <h1>Install Space City<br>your way</h1>
+    <p class="dl-lede">Use it instantly in the browser, pin it as a web app, or run the standalone desktop build. Sixteen metros are live — Houston through New Orleans, including Phoenix, Philly, and the Twin Cities — in the same app.</p>
+  </section>
+
+  <section class="dl-grid">
+    <article class="dl-card featured reveal" data-reveal>
+      <div class="dl-tag">Recommended</div>
+      <h2>Web app install</h2>
+      <p>Add Houston Traffic Simulator to your home screen or desktop from Chrome, Edge, or Safari. Same live sim, app like window.</p>
+      <ul class="dl-list">
+        <li>One click install when the browser offers it</li>
+        <li>Works on Windows, macOS, ChromeOS, Android</li>
+        <li>Always opens the latest hosted build</li>
+      </ul>
+      <div class="dl-actions">
+        <button type="button" class="btn primary lg" id="installBtnMain">Install web app</button>
+        <a class="btn soft" href="/app.html">Or open in browser</a>
+      </div>
+      <p class="dl-hint" id="installHint">If the install button stays quiet, open the sim in Chrome/Edge → menu → <strong>Install app</strong> / <strong>Cast, save, and share</strong>.</p>
+    </article>
+
+    <article class="dl-card reveal" data-reveal>
+      <div class="dl-tag desk">Desktop</div>
+      <h2>Windows standalone</h2>
+      <p>Portable style package for Windows 10/11. Unzip and run. Ideal for demos, classrooms, and kiosks.</p>
+      <ul class="dl-list">
+        <li>x64 build · no store account required</li>
+        <li>Includes launcher + local static host notes</li>
+        <li>Optional API keys via <code>.env.local</code></li>
+      </ul>
+      <div class="dl-actions">
+        <a class="btn primary lg" id="winDownload" href="/downloads/HoustonTrafficSimulator-Setup-win-x64.zip">Download for Windows</a>
+        <a class="btn soft" href="/docs/desktop.html">Desktop setup guide</a>
+      </div>
+      <p class="dl-hint">Package ships as a zip with a README. Replace the placeholder zip after you run <code>npm run package:win</code>.</p>
+    </article>
+
+    <article class="dl-card reveal" data-reveal>
+      <div class="dl-tag mac">macOS / Linux</div>
+      <h2>Run from source</h2>
+      <p>Best path on Mac and Linux today: clone, install, and launch the Vite app, or build a static folder for any local server.</p>
+      <ul class="dl-list">
+        <li><code>npm install && npm run dev</code></li>
+        <li><code>npm run build</code> → serve <code>dist/</code></li>
+        <li>See developer docs for Electron packaging</li>
+      </ul>
+      <div class="dl-actions">
+        <a class="btn soft lg" href="/docs/getting-started.html">Getting started</a>
+        <a class="btn ghost" href="/docs/desktop.html">Package desktop</a>
+      </div>
+    </article>
+  </section>
+
+  <section class="dl-compare reveal" data-reveal>
+    <h2>Which should I pick?</h2>
+    <div class="compare-table" role="table">
+      <div class="compare-row head" role="row">
+        <span></span><span>Web install</span><span>Windows zip</span><span>From source</span>
+      </div>
+      <div class="compare-row" role="row"><span>Setup time</span><span>Seconds</span><span>~1 minute</span><span>Developer</span></div>
+      <div class="compare-row" role="row"><span>Updates</span><span>Automatic</span><span>Re download</span><span>Git pull</span></div>
+      <div class="compare-row" role="row"><span>Live APIs</span><span>Hosted proxies</span><span>Local Vite / keys</span><span>Full control</span></div>
+      <div class="compare-row" role="row"><span>Best for</span><span>Everyday use</span><span>Demos / offline ish</span><span>Contributors</span></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="footer-brand">
+    <span class="brand-mark sm"></span>
+    <div>
+      <strong>Houston Traffic Simulator</strong>
+      <p>Created by <a href="/about.html">Ejay Gabriel</a></p>
+    </div>
+  </div>
+  <p class="footer-fine">Need help packaging? Read <a href="/docs/desktop.html">Desktop packaging</a>.</p>
+</footer>
+<script src="/site/site.js" type="module"></script>
+</body>
+</html>
