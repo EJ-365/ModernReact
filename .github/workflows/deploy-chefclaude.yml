@@ -36,9 +36,6 @@ jobs:
 
       - name: Build
         working-directory: ./ChefClaude
-        env:
-          VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
-          VITE_HF_ACCESS_TOKEN: ${{ secrets.VITE_HF_ACCESS_TOKEN }}
         run: npm run build
 
       - name: Commit dist folder
