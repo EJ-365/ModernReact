@@ -15,6 +15,7 @@ function ShowDetail() {
   const [showCredit, setShowCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [showError, setShowError] = useState(false);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,10 +25,36 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
-    fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
-      .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+    const controller = new AbortController();
+
+    async function fetchShow() {
+      try {
+        const res = await fetch(
+          `https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`,
+          { signal: controller.signal },
+        );
+        const data = await res.json();
+
+        if (!res.ok || !data?.id) {
+          throw new Error(data?.status_message || "TV show not found");
+        }
+
+        setShowCredit(null);
+        setRuntime(undefined);
+        setShowMoreCast(false);
+        setShowError(false);
+        setCurrentShow(data);
+      } catch (err) {
+        if (err.name === "AbortError") return;
+
+        console.log("Error fetching data", err);
+        setShowError(true);
+      }
+    }
+
+    fetchShow();
+
+    return () => controller.abort();
   }, [showId]);
 
   useEffect(() => {
@@ -51,6 +78,22 @@ function ShowDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentShow?.id]);
 
+  if (showError)
+    return (
+      <section className="dark:text-white text-center h-screen w-full flex flex-col items-center justify-center px-4">
+        <h1 className="text-3xl font-bold mb-4">TV show not found</h1>
+        <p className="text-zinc-400 mb-8">
+          We could not load details for this show.
+        </p>
+        <button
+          onClick={redirectToShows}
+          className="text-white capitalize bg-[#8b5cf6] px-6 py-3 rounded-xl font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </section>
+    );
+
   if (!currentShow)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -60,11 +103,16 @@ function ShowDetail() {
     );
 
   const isSaved = isLibraryItemSaved(currentShow.id, "show");
+  const showGenres = Array.isArray(currentShow.genres) ? currentShow.genres : [];
+  const voteAverage =
+    typeof currentShow.vote_average === "number"
+      ? currentShow.vote_average.toFixed(2)
+      : "N/A";
 
   // redirecting to shows page chevron icon
-  const redirectToShows = () => {
+  function redirectToShows() {
     navigate("/shows");
-  };
+  }
 
   function toggleLibraryItem() {
     if (isSaved) {
@@ -142,7 +190,7 @@ function ShowDetail() {
           <div className="md:text-xl text-lg my-4 flex flex-wrap justify-center gap-x-4 gap-y-2 md:block md:space-x-8">
             <span>
               <i className="bxf bx-star align-middle text-violet-500 mx-2" />
-              {`${currentShow.vote_average.toFixed(2)}`}
+              {voteAverage}
             </span>
             <span>
               <i className="bx bx-calendar dark:text-white mx-2 align-middle" />
@@ -155,7 +203,7 @@ function ShowDetail() {
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
-            {currentShow.genres.map((genre) => (
+            {showGenres.map((genre) => (
               <span
                 key={genre.id}
                 className="dark:bg-[#19192d] bg-gray-200/60 px-4 py-2 text-zinc-500 rounded-3xl font-medium capitalize dark:text-zinc-300 hover:text-white hover:bg-[#0f0f1d] transition-all duration-300"
