@@ -7,13 +7,34 @@ function useFetch(url) {
 
   useEffect(() => {
     if (!url) return;
-    fetch(url)
-      .then((res) => res.json())
+
+    const controller = new AbortController();
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
+
+        return res.json();
+      })
       .then((data) => {
         setData(data);
-        setLoading(false);
+        setError(null);
       })
-      .catch((err) => setError(err));
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setData(null);
+          setError(err);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
   }, [url]);
 
   return { data, loading, error };
