@@ -7,6 +7,16 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+
+function isValidMovieDetail(movie) {
+  return (
+    movie &&
+    typeof movie.id === "number" &&
+    typeof movie.vote_average === "number" &&
+    Array.isArray(movie.genres)
+  );
+}
+
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
@@ -14,6 +24,7 @@ function MoviesDetail() {
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
+  const [detailErrorMovieId, setDetailErrorMovieId] = useState(null);
   const [, setLibraryVersion] = useState(0);
   // show more cast function
   function showMore() {
@@ -22,35 +33,83 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
+    let ignore = false;
+
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (isValidMovieDetail(data)) {
+          setCurrentMovie(data);
+          setDetailErrorMovieId(null);
+          return;
+        }
+
+        setDetailErrorMovieId(movieId);
+      })
+      .catch((err) => {
+        if (!ignore) setDetailErrorMovieId(movieId);
+        console.log("Error fetching data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [movieId]);
 
   useEffect(() => {
     if (!currentMovie?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
+      .then((data) => {
+        if (!ignore) setRuntime(data.runtime);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
     if (!currentMovie?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
+      .then((data) => {
+        if (!ignore) setMovieCredit(data);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
 
-  if (!currentMovie)
+  if (detailErrorMovieId === movieId)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">Movie details are unavailable.</p>
+        <button
+          onClick={() => navigate("/movies")}
+          className="mt-6 capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-5 py-2 rounded-xl font-medium dark:text-white text-base cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+        >
+          back to movies
+        </button>
+      </div>
+    );
+
+  if (!currentMovie || currentMovie.id !== Number(movieId))
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
@@ -91,6 +150,8 @@ function MoviesDetail() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!runtime) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
