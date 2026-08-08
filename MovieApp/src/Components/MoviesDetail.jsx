@@ -7,14 +7,28 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+
+function isValidMovieDetail(movie) {
+  return Boolean(
+    movie?.id &&
+      typeof movie.vote_average === "number" &&
+      Array.isArray(movie.genres),
+  );
+}
+
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
-  const [currentMovie, setCurrentMovie] = useState(null);
+  const [fetchedMovie, setCurrentMovie] = useState(null);
+  const [detailErrorId, setDetailErrorId] = useState(null);
   const [, setLibraryVersion] = useState(0);
+  const currentMovie =
+    String(fetchedMovie?.id) === movieId ? fetchedMovie : null;
+  const detailError = detailErrorId === movieId;
+
   // show more cast function
   function showMore() {
     setShowMoreCast((prev) => !prev);
@@ -22,10 +36,33 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
+    let ignore = false;
+
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (!isValidMovieDetail(data)) {
+          setCurrentMovie(null);
+          setDetailErrorId(movieId);
+          return;
+        }
+
+        setCurrentMovie(data);
+        setDetailErrorId(null);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setCurrentMovie(null);
+          setDetailErrorId(movieId);
+        }
+        console.log("Error fetching data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [movieId]);
 
   useEffect(() => {
@@ -50,6 +87,25 @@ function MoviesDetail() {
       .catch((err) => console.log("Error while fetching the data", err));
   }, [currentMovie?.id]);
 
+  // redirecting to movies page chevron icon
+  const redirectToMovies = () => {
+    navigate("/movies");
+  };
+
+  if (detailError)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center gap-4 px-4">
+        <p>Movie details are unavailable.</p>
+        <button
+          type="button"
+          onClick={redirectToMovies}
+          className="text-white capitalize bg-[#8b5cf6] px-4 py-2 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to movies
+        </button>
+      </div>
+    );
+
   if (!currentMovie)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
@@ -59,11 +115,6 @@ function MoviesDetail() {
     );
 
   const isSaved = isLibraryItemSaved(currentMovie.id, "movie");
-
-  // redirecting to home chevron icon
-  const redirectToHome = () => {
-    navigate("/movies");
-  };
 
   function toggleLibraryItem() {
     if (isSaved) {
@@ -114,7 +165,7 @@ function MoviesDetail() {
 
       {/* back chevron arrow left */}
       <span
-        onClick={redirectToHome}
+        onClick={redirectToMovies}
         role="button"
         className="bx bx-chevron-left dark:text-white/70 text-white text-4xl font-thin top-4 left-4 md:left-12 z-20 absolute hover:cursor-pointer"
       />
