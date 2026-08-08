@@ -343,7 +343,7 @@ function liveFlightEligible(f){
   const gsNow=flightGsKts(f);
   const alt=flightAltFt(f);
   if(f.onGround){
-    const taxiGs=Math.max(gsNow||0,(f._posMoved&&f._estGs)||0);
+    const taxiGs=Math.max(gsNow||0,(f._fixMoved&&f._estGs)||0);
     if(taxiGs<25&&(alt==null||alt<400))return false;
   }
   if(cls==='heli'||cls==='prop')return true;
@@ -8650,7 +8650,7 @@ function updateLiveFlights(dt){
     let flyGs=0;
     if(f.onGround){
       if(gs>=minGs&&gs<90)flyGs=gs;
-      else if(f._posMoved&&Number.isFinite(f._estGs)&&f._estGs>=minGs&&f._estGs<90)flyGs=f._estGs;
+      else if(f._fixMoved&&Number.isFinite(f._estGs)&&f._estGs>=minGs&&f._estGs<90)flyGs=f._estGs;
       else{flyGs=0;f._lastGoodGs=0;f._estGs=0;}
       f._assumedMotion=false;
     }else if(gs>=minGs){flyGs=gs;f._lastGoodGs=gs;}

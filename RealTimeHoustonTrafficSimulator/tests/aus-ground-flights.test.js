@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const appMainSource = readFileSync(new URL('../src/app-main.js', import.meta.url), 'utf8');
 
 /** Mirrors liveFlightEligible ground-cull rules after the AUS freeze fix. */
 function keepLiveGroundTrack({ onGround, gsNow, estGs, posMoved, altFt }) {
@@ -33,6 +36,10 @@ test('active taxi near the field stays eligible', () => {
     keepLiveGroundTrack({ onGround: true, gsNow: 32, estGs: 0, posMoved: false, altFt: 40 }),
     true,
   );
+  assert.equal(
+    keepLiveGroundTrack({ onGround: true, gsNow: 0, estGs: 32, posMoved: true, altFt: 40 }),
+    true,
+  );
 });
 
 test('ground update never coasts at last cruise groundspeed', () => {
@@ -44,4 +51,14 @@ test('ground update never coasts at last cruise groundspeed', () => {
     flyGsWhileGround({ onGround: true, gs: 28, estGs: 0, posMoved: false, lastGoodGs: 280 }),
     28,
   );
+  assert.equal(
+    flyGsWhileGround({ onGround: true, gs: 0, estGs: 28, posMoved: true, lastGoodGs: 0 }),
+    28,
+  );
+});
+
+test('runtime ground motion reads the movement flag written by feed refresh', () => {
+  assert.match(appMainSource, /f\._fixMoved=!!posMoved/);
+  assert.match(appMainSource, /f\._fixMoved&&f\._estGs/);
+  assert.doesNotMatch(appMainSource, /f\._posMoved/);
 });
