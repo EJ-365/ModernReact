@@ -8,14 +8,19 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+import { getMovieDetailGenres, isValidMovieDetail } from "../utils/tmdbDetails";
 function CardDetails() {
   const { topFiveTrending, topFivePopular, movieGenres } =
     useContext(FeaturedMovieContext);
   const { cardId } = useParams();
   const navigate = useNavigate();
-  const currentMovie =
+  const contextMovie =
     topFiveTrending?.find((movie) => movie.id === Number(cardId)) ||
-    topFivePopular?.find((movie) => movie.id === Number(cardId))
+    topFivePopular?.find((movie) => movie.id === Number(cardId));
+  const [fetchedMovie, setFetchedMovie] = useState(null);
+  const [detailErrorCardId, setDetailErrorCardId] = useState(null);
+  const currentMovie =
+    contextMovie || (fetchedMovie?.id === Number(cardId) ? fetchedMovie : null);
   const [runtime, setRuntime] = useState();
   const [movieCredit, setMovieCredit] = useState(null);
   const [showMoreCast, setShowMoreCast] = useState(false);
@@ -27,40 +32,100 @@ function CardDetails() {
   }
 
   useEffect(() => {
+    if (contextMovie?.id) return;
+
+    let ignore = false;
+
+    fetch(`https://api.themoviedb.org/3/movie/${cardId}?api_key=${API_KEY}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (ignore) return;
+
+        if (isValidMovieDetail(data)) {
+          setFetchedMovie(data);
+          setDetailErrorCardId(null);
+          return;
+        }
+
+        setFetchedMovie(null);
+        setDetailErrorCardId(cardId);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setFetchedMovie(null);
+          setDetailErrorCardId(cardId);
+        }
+        console.log("Error fetching data", err);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [cardId, contextMovie?.id]);
+
+  useEffect(() => {
     if (!currentMovie?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
+      .then((data) => {
+        if (!ignore) setRuntime(data.runtime);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
     if (!currentMovie?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
+      .then((data) => {
+        if (!ignore) setMovieCredit(data);
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
 
-  if (!currentMovie) return (
-    <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
-      <GridLoader size={8} color="#ffffff" /> <p className="mx-3">Loading...</p>;
-    </div>
-  )
+  if (!currentMovie && detailErrorCardId === cardId)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center">
+        <p className="mx-3">Movie details are unavailable.</p>
+        <button
+          onClick={() => navigate("/home")}
+          className="mt-6 capitalize dark:bg-violet-500 bg-violet-400 text-white/90 px-5 py-2 rounded-xl font-medium dark:text-white text-base cursor-pointer dark:hover:bg-violet-600 duration-300 transition-colors hover:bg-violet-300"
+        >
+          back to home
+        </button>
+      </div>
+    );
+
+  if (!currentMovie || currentMovie.id !== Number(cardId))
+    return (
+      <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
+        <GridLoader size={8} color="#ffffff" />{" "}
+        <p className="mx-3">Loading...</p>
+      </div>
+    );
 
   const isSaved = isLibraryItemSaved(currentMovie.id, "movie");
 
   // movie genre implementation
-  const genreId = currentMovie.genre_ids.map((id) => id); // [10,20,15]
-  const matchedGenres = movieGenres.filter((genre) =>
-    genreId.includes(genre.id),
-  );
+  const matchedGenres = getMovieDetailGenres(currentMovie, movieGenres);
 
   // redirecting to home chevron icon
   const redirectToHome = () => {
@@ -93,6 +158,8 @@ function CardDetails() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!runtime) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
