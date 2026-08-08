@@ -8649,7 +8649,8 @@ function updateLiveFlights(dt){
        On the ground NEVER coast at last cruise GS (Austin Bergstrom "statue" bug). */
     let flyGs=0;
     if(f.onGround){
-      if(gs>=minGs&&gs<90)flyGs=gs;
+      /* A reported ground speed is current for accepted ground rows; keep fast runway rollouts moving. */
+      if(gs>=minGs)flyGs=gs;
       else if(f._posMoved&&Number.isFinite(f._estGs)&&f._estGs>=minGs&&f._estGs<90)flyGs=f._estGs;
       else{flyGs=0;f._lastGoodGs=0;f._estGs=0;}
       f._assumedMotion=false;
