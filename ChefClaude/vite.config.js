@@ -12,7 +12,6 @@ export default defineConfig({
                 manualChunks: {
                     'react-vendor': ['react', 'react-dom'],
                     'markdown-vendor': ['react-markdown'],
-                    'ai-vendor': ['@anthropic-ai/sdk', '@huggingface/inference'],
                 },
             },
         },
