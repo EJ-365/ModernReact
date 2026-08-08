@@ -13,8 +13,13 @@ function UpcomingMatches() {
 
   if (error) return <p>Error: {error}</p>;
 
-  const matches = data?.data?.slice(0, 4) ?? [];
+  const matches = Array.isArray(data?.data) ? data.data.slice(0, 4) : [];
+  const hasInvalidMatchData = data && !Array.isArray(data.data);
   // 2026 World Cup teams → ISO codes for flagcdn (keys match API: match.home / match.away)
+
+  if (hasInvalidMatchData) {
+    return <p>Match schedule is unavailable.</p>;
+  }
 
   return (
     <section>
