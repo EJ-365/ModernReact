@@ -6,7 +6,8 @@ export function getLibraryItems() {
   if (!savedItems) return [];
 
   try {
-    return JSON.parse(savedItems);
+    const parsedItems = JSON.parse(savedItems);
+    return Array.isArray(parsedItems) ? parsedItems : [];
   } catch {
     return [];
   }
