@@ -8,13 +8,27 @@ import {
   saveLibraryItem,
 } from "../utils/libraryStorage";
 
+function isValidShowResponse(show) {
+  return (
+    show &&
+    show.success !== false &&
+    show.id &&
+    Array.isArray(show.genres) &&
+    typeof show.vote_average === "number"
+  );
+}
+
 function ShowDetail() {
   const { showId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
-  const [showCredit, setShowCredit] = useState(null);
+  const [runtime, setRuntime] = useState({ showId: null, value: undefined });
+  const [showCredit, setShowCredit] = useState({
+    showId: null,
+    data: null,
+  });
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentShow, setCurrentShow] = useState(null);
+  const [detailError, setDetailError] = useState(null);
   const [, setLibraryVersion] = useState(0);
 
   // show more cast function
@@ -24,34 +38,100 @@ function ShowDetail() {
 
   // fetches a specific TV show object
   useEffect(() => {
+    let ignore = false;
+
     fetch(`https://api.themoviedb.org/3/tv/${showId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentShow(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (!isValidShowResponse(data)) {
+          setDetailError({
+            showId,
+            message: "We couldn't find this TV show.",
+          });
+          return;
+        }
+
+        setDetailError(null);
+        setCurrentShow(data);
+      })
+      .catch((err) => {
+        if (ignore) return;
+
+        console.log("Error fetching data", err);
+        setDetailError({
+          showId,
+          message: "Unable to load this TV show.",
+        });
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [showId]);
 
   useEffect(() => {
     if (!currentShow?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.episode_run_time?.[0]))
+      .then((data) => {
+        if (!ignore) {
+          setRuntime({
+            showId: currentShow.id,
+            value: data.episode_run_time?.[0],
+          });
+        }
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentShow?.id]);
 
   // useEffect for the TV show credits
   useEffect(() => {
     if (!currentShow?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/tv/${currentShow.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setShowCredit(data))
+      .then((data) => {
+        if (!ignore) setShowCredit({ showId: currentShow.id, data });
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentShow?.id]);
 
-  if (!currentShow)
+  const showIdNumber = Number(showId);
+  const detailErrorMessage =
+    detailError?.showId === showId ? detailError.message : "";
+  const isCurrentShowLoaded = currentShow?.id === showIdNumber;
+
+  if (detailErrorMessage)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center px-4">
+        <p className="mx-3">{detailErrorMessage}</p>
+        <button
+          onClick={() => navigate("/shows")}
+          className="mt-6 text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to shows
+        </button>
+      </div>
+    );
+
+  if (!isCurrentShowLoaded)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
@@ -59,6 +139,10 @@ function ShowDetail() {
       </div>
     );
 
+  const currentRuntime =
+    runtime.showId === currentShow.id ? runtime.value : undefined;
+  const currentShowCredit =
+    showCredit.showId === currentShow.id ? showCredit.data : null;
   const isSaved = isLibraryItemSaved(currentShow.id, "show");
 
   // redirecting to shows page chevron icon
@@ -151,7 +235,7 @@ function ShowDetail() {
             <span>
               {" "}
               <i className=" mr-2 bx bx-clock dark:text-white  align-middle" />
-              {getRuntime(runtime)}
+              {getRuntime(currentRuntime)}
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
@@ -200,8 +284,8 @@ function ShowDetail() {
       </div>
       {showMoreCast ? (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {showCredit?.cast?.length > 0 ? (
-            showCredit.cast.slice(11).map((actor) => (
+          {currentShowCredit?.cast?.length > 0 ? (
+            currentShowCredit.cast.slice(11).map((actor) => (
               <div
                 key={actor.id}
                 className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-3 text-center my-2"
@@ -233,8 +317,8 @@ function ShowDetail() {
         </div>
       ) : (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {showCredit?.cast?.length > 0 ? (
-            showCredit.cast.slice(0, 10).map((actor) => (
+          {currentShowCredit?.cast?.length > 0 ? (
+            currentShowCredit.cast.slice(0, 10).map((actor) => (
               <div
                 key={actor.id}
                 className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-auto text-center my-2"

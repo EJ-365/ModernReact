@@ -7,13 +7,28 @@ import {
   removeLibraryItem,
   saveLibraryItem,
 } from "../utils/libraryStorage";
+
+function isValidMovieResponse(movie) {
+  return (
+    movie &&
+    movie.success !== false &&
+    movie.id &&
+    Array.isArray(movie.genres) &&
+    typeof movie.vote_average === "number"
+  );
+}
+
 function MoviesDetail() {
   const { movieId } = useParams();
   const navigate = useNavigate();
-  const [runtime, setRuntime] = useState();
-  const [movieCredit, setMovieCredit] = useState(null);
+  const [runtime, setRuntime] = useState({ movieId: null, value: undefined });
+  const [movieCredit, setMovieCredit] = useState({
+    movieId: null,
+    data: null,
+  });
   const [showMoreCast, setShowMoreCast] = useState(false);
   const [currentMovie, setCurrentMovie] = useState(null);
+  const [detailError, setDetailError] = useState(null);
   const [, setLibraryVersion] = useState(0);
   // show more cast function
   function showMore() {
@@ -22,35 +37,98 @@ function MoviesDetail() {
 
   // fetches a specific movie object
   useEffect(() => {
+    let ignore = false;
+
     fetch(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setCurrentMovie(data))
-      .catch((err) => console.log("Error fetching data", err));
+      .then((data) => {
+        if (ignore) return;
+
+        if (!isValidMovieResponse(data)) {
+          setDetailError({
+            movieId,
+            message: "We couldn't find this movie.",
+          });
+          return;
+        }
+
+        setDetailError(null);
+        setCurrentMovie(data);
+      })
+      .catch((err) => {
+        if (ignore) return;
+
+        console.log("Error fetching data", err);
+        setDetailError({
+          movieId,
+          message: "Unable to load this movie.",
+        });
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [movieId]);
 
   useEffect(() => {
     if (!currentMovie?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setRuntime(data.runtime))
+      .then((data) => {
+        if (!ignore) {
+          setRuntime({ movieId: currentMovie.id, value: data.runtime });
+        }
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
 
   // useEffect for the movie credits
 
   useEffect(() => {
     if (!currentMovie?.id) return;
+    let ignore = false;
+
     fetch(
       `https://api.themoviedb.org/3/movie/${currentMovie.id}/credits?api_key=${API_KEY}`,
     )
       .then((res) => res.json())
-      .then((data) => setMovieCredit(data))
+      .then((data) => {
+        if (!ignore) setMovieCredit({ movieId: currentMovie.id, data });
+      })
       .catch((err) => console.log("Error while fetching the data", err));
+
+    return () => {
+      ignore = true;
+    };
   }, [currentMovie?.id]);
 
-  if (!currentMovie)
+  const movieIdNumber = Number(movieId);
+  const detailErrorMessage =
+    detailError?.movieId === movieId ? detailError.message : "";
+  const isCurrentMovieLoaded = currentMovie?.id === movieIdNumber;
+
+  if (detailErrorMessage)
+    return (
+      <div className="text-center dark:text-white text-2xl font-bold h-screen w-full flex flex-col items-center justify-center px-4">
+        <p className="mx-3">{detailErrorMessage}</p>
+        <button
+          onClick={() => navigate("/movies")}
+          className="mt-6 text-white capitalize bg-[#8b5cf6] px-5 py-3 rounded-xl text-base font-medium hover:cursor-pointer duration-300 hover:bg-violet-600"
+        >
+          Back to movies
+        </button>
+      </div>
+    );
+
+  if (!isCurrentMovieLoaded)
     return (
       <div className="text-center dark:text-white  text-2xl font-bold h-screen w-full flex items-center justify-center">
         <GridLoader size={8} color="#ffffff" />{" "}
@@ -58,6 +136,10 @@ function MoviesDetail() {
       </div>
     );
 
+  const currentRuntime =
+    runtime.movieId === currentMovie.id ? runtime.value : undefined;
+  const currentMovieCredit =
+    movieCredit.movieId === currentMovie.id ? movieCredit.data : null;
   const isSaved = isLibraryItemSaved(currentMovie.id, "movie");
 
   // redirecting to home chevron icon
@@ -91,6 +173,8 @@ function MoviesDetail() {
   // runtime conversion to hours
 
   const getRuntime = (runtime) => {
+    if (!runtime) return "N/A";
+
     const toHours = Math.floor(runtime / 60);
     const toMins = runtime % 60;
 
@@ -149,7 +233,7 @@ function MoviesDetail() {
             <span>
               {" "}
               <i className=" mr-2 bx bx-clock dark:text-white  align-middle" />
-              {getRuntime(runtime)}
+              {getRuntime(currentRuntime)}
             </span>
           </div>
           <div className="mb-6 flex flex-wrap justify-center gap-2 md:block md:space-x-4">
@@ -199,8 +283,8 @@ function MoviesDetail() {
       </div>
       {showMoreCast ? (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {movieCredit?.cast?.length > 0 ? (
-            movieCredit.cast.slice(11).map((actor) => (
+          {currentMovieCredit?.cast?.length > 0 ? (
+            currentMovieCredit.cast.slice(11).map((actor) => (
               <div key={actor.id} className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-3 text-center my-2">
                 <div>
                   <img
@@ -227,8 +311,8 @@ function MoviesDetail() {
         </div>
       ) : (
         <div className="dark:text-white grid grid-cols-2 gap-x-4 gap-y-6 px-4 md:flex md:flex-wrap md:justify-start md:gap-0 md:space-x-3 md:px-20 md:text-left text-center mx-auto ">
-          {movieCredit?.cast?.length > 0 ? (
-            movieCredit.cast.slice(0, 10).map((actor) => (
+          {currentMovieCredit?.cast?.length > 0 ? (
+            currentMovieCredit.cast.slice(0, 10).map((actor) => (
               <div key={actor.id} className="w-full max-w-32 mx-auto md:max-w-none md:w-auto md:mx-auto text-center my-2">
                 <div>
                   <img

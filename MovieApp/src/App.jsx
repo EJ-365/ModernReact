@@ -71,7 +71,9 @@ function App() {
   useEffect(() => {
     fetch(`${BASE_URL}/genre/movie/list?api_key=${API_KEY}`)
       .then((res) => res.json())
-      .then((data) => setMovieGenres(data.genres))
+      .then((data) =>
+        setMovieGenres(Array.isArray(data.genres) ? data.genres : []),
+      )
       .catch((err) => console.log("Error finding movie genre", err));
   }, []);
 
