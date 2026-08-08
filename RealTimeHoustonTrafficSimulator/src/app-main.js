@@ -1,6 +1,7 @@
 /* Extracted from app.html — loaded via src/boot.js after Three Vite bridge */
 import { loadOsmCbdBuildings } from './render/osm-buildings.js';
 import { createCinematic } from './render/cinematic.js';
+import { shouldProcessGroundTrack } from './live-ground.js';
 import {
   buildWeatherZones,
   chunkWeatherZones,
@@ -4187,10 +4188,12 @@ window.FLIGHTS=[];
           const near=nearestDecorAirport(x.lat,x.lon);
           const nearTerm=near&&near.mi<20;
           if(x.onGround){
-            /* Active taxi/rollout only — parked gate traffic freezes into AUS piles */
-            const g=feedGsKts(x);
-            if(g==null||g<25)return false;
-            return nearTerm&&near.mi<4;
+            /* Existing tracks must receive landing/parking updates so stale cruise motion is cleared. */
+            return shouldProcessGroundTrack({
+              distanceMi:near&&near.mi,
+              groundSpeedKts:feedGsKts(x),
+              wasTracked:!!(x.icao24&&LIVE_FLIGHTS.has(x.icao24)),
+            });
           }
           if(altFt!=null&&altFt<500&&!nearTerm)return false;
           return true;
@@ -4262,8 +4265,8 @@ window.FLIGHTS=[];
         const gs=feedGsKts(x);
         /* Only update speed when the feed actually reports it — keep last GS to keep flying */
         if(gs!=null&&gs>0){f.kts=gs;f.gsKts=gs;f._lastGoodGs=gs;}
-        else if(gs===0&&x.onGround){
-          /* Parked: wipe cruise cache or planes stay visible but stand still at AUS */
+        else if(x.onGround){
+          /* Parked/unknown ground speed: wipe cruise state instead of dead-reckoning after landing. */
           f.kts=0;f.gsKts=0;f._lastGoodGs=0;f._estGs=0;f._assumedMotion=false;
         }
         if(x.onGround&&(gs==null||gs<25)){
