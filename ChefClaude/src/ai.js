@@ -1,63 +1,36 @@
-import Anthropic from "@anthropic-ai/sdk"
-import { HfInference } from '@huggingface/inference'
+const recipeEndpoint = import.meta.env.VITE_RECIPE_API_URL || "/.netlify/functions/recipe"
 
-const SYSTEM_PROMPT = `
-You are an assistant that receives a list of ingredients that a user has
-could make with some or all of those ingredients. You don't need to use e
-mention in your recipe. The recipe can include additional ingredients the
-not to include too many extra ingredients. Format your response in markdo
-render to a web page
-`
-
-// --------------------------------------------------------
-// 1. ANTHROPIC (Claude) Configuration
-// --------------------------------------------------------
-export async function getRecipeFromChefClaude(ingredientsArr) {
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!apiKey) {
-        throw new Error("Missing VITE_ANTHROPIC_API_KEY")
-    }
-
-    const anthropic = new Anthropic({
-        apiKey,
-        dangerouslyAllowBrowser: true,
+async function requestRecipe(ingredientsArr) {
+    const response = await fetch(recipeEndpoint, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ingredients: ingredientsArr }),
     })
 
-    const ingredientsString = ingredientsArr.join(", ")
+    let payload = {}
+    try {
+        payload = await response.json()
+    } catch {
+        // Keep the user-facing error stable when the function returns non-JSON.
+    }
 
-    const msg = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        messages: [
-            { role: "user", content: `I have ${ingredientsString}. Please recommend I make!` },
-        ],
-    });
-    return msg.content[0].text
+    if (!response.ok) {
+        throw new Error(payload.error || "Recipe service is unavailable")
+    }
+
+    if (typeof payload.recipe !== "string" || payload.recipe.trim() === "") {
+        throw new Error("Recipe service returned an empty response")
+    }
+
+    return payload.recipe
 }
 
-// --------------------------------------------------------
-// 2. HUGGING FACE (Mistral) Configuration
-// --------------------------------------------------------
-export async function getRecipeFromLlama(ingredientsArr) {
-    const hfToken = import.meta.env.VITE_HF_ACCESS_TOKEN
-    if (!hfToken) {
-        throw new Error("Missing VITE_HF_ACCESS_TOKEN")
-    }
+export async function getRecipeFromChefClaude(ingredientsArr) {
+    return requestRecipe(ingredientsArr)
+}
 
-    const hf = new HfInference(hfToken)
-    const ingredientsString = ingredientsArr.join(", ")
-    try {
-        const response = await hf.chatCompletion({
-            model: "meta-llama/Llama-3.1-8B-Instruct",
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: `I have ${ingredientsString}. Please recommend I make!` },
-            ],
-            max_tokens: 1024,
-        })
-        return response.choices[0].message.content
-    } catch (err) {
-        console.error(err.message)
-    }
+export async function getRecipeFromLlama(ingredientsArr) {
+    return requestRecipe(ingredientsArr)
 }
