@@ -1,12 +1,22 @@
 const LIBRARY_KEY = "movieAppLibrary";
 
+function isLibraryItem(item) {
+  return (
+    item &&
+    typeof item === "object" &&
+    "id" in item &&
+    (item.mediaType === "movie" || item.mediaType === "show")
+  );
+}
+
 export function getLibraryItems() {
   const savedItems = localStorage.getItem(LIBRARY_KEY);
 
   if (!savedItems) return [];
 
   try {
-    return JSON.parse(savedItems);
+    const parsedItems = JSON.parse(savedItems);
+    return Array.isArray(parsedItems) ? parsedItems.filter(isLibraryItem) : [];
   } catch {
     return [];
   }

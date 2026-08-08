@@ -19,10 +19,15 @@ import MoviesDetail from "./Components/MoviesDetail";
 import ShowDetail from "./Components/ShowDetail";
 
 function App() {
-  const [genres, setGenres] = useState([]); // for movies page
-  const [selectedGenre, setSelectedGenre] = useState(""); // holds the genre id
+  const [movieBrowseGenres, setMovieBrowseGenres] = useState([]);
+  const [movieSelectedGenre, setMovieSelectedGenre] = useState("");
+  const [movieSearchQuery, setMovieSearchQuery] = useState("");
+  const [moviePage, setMoviePage] = useState(1);
+  const [showGenres, setShowGenres] = useState([]);
+  const [showSelectedGenre, setShowSelectedGenre] = useState("");
+  const [showSearchQuery, setShowSearchQuery] = useState("");
+  const [showPage, setShowPage] = useState(1);
   const [movieGenres, setMovieGenres] = useState([]); // movie page genre
-  const [searchQuery, setSearchQuery] = useState("");
   const [allMovies, setAllMovies] = useState({
     movies: [],
     totalPages: 0,
@@ -32,7 +37,6 @@ function App() {
     shows: [],
     showsTotalPages: 0,
   });
-  const [page, setPage] = useState(1);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved === "dark") return true;
@@ -99,16 +103,16 @@ function App() {
   /* ---------- Movies page------ */
   // useEffect for movies
   useEffect(() => {
-    const genreParam = selectedGenre ? `&with_genres=${selectedGenre}` : "";
+    const genreParam = movieSelectedGenre ? `&with_genres=${movieSelectedGenre}` : "";
     const url =
-      searchQuery === ""
-        ? `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${page}${genreParam}`
-        : `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
+      movieSearchQuery === ""
+        ? `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${moviePage}${genreParam}`
+        : `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(movieSearchQuery)}&page=${moviePage}`;
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (page === 1) {
+        if (moviePage === 1) {
           setAllMovies({
             movies: data.results ?? [],
             totalPages: data.total_pages > 500 ? 500 : data.total_pages,
@@ -128,25 +132,25 @@ function App() {
         }
       })
       .catch((err) => console.log("Error fetching movies:", err));
-  }, [page, selectedGenre, searchQuery]);
+  }, [moviePage, movieSelectedGenre, movieSearchQuery]);
 
   // see more page incrementation
-  function pageIncrement() {
-    setPage((prev) => prev + 1);
+  function moviePageIncrement() {
+    setMoviePage((prev) => prev + 1);
   }
 
   /*------------------TV Shows useEffect and endpoint -----------------*/
   useEffect(() => {
-    const genreParam = selectedGenre ? `&with_genres=${selectedGenre}` : "";
+    const genreParam = showSelectedGenre ? `&with_genres=${showSelectedGenre}` : "";
     const url =
-      searchQuery === ""
-        ? `${BASE_URL}/discover/tv?api_key=${API_KEY}&page=${page}${genreParam}`
-        : `${BASE_URL}/search/tv?api_key=${API_KEY}&query=${searchQuery}&page=${page}`;
+      showSearchQuery === ""
+        ? `${BASE_URL}/discover/tv?api_key=${API_KEY}&page=${showPage}${genreParam}`
+        : `${BASE_URL}/search/tv?api_key=${API_KEY}&query=${encodeURIComponent(showSearchQuery)}&page=${showPage}`;
 
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (page === 1) {
+        if (showPage === 1) {
           setAllShows({
             shows: data.results ?? [],
             showsTotalPages: data.total_pages > 500 ? 500 : data.total_pages,
@@ -166,7 +170,11 @@ function App() {
         }
       })
       .catch((err) => console.log("Error fetching shows:", err));
-  }, [page, selectedGenre, searchQuery]);
+  }, [showPage, showSelectedGenre, showSearchQuery]);
+
+  function showPageIncrement() {
+    setShowPage((prev) => prev + 1);
+  }
 
   return (
     <>
@@ -188,16 +196,16 @@ function App() {
                       path="/movies"
                       element={
                         <Movies
-                          setPage={setPage}
-                          pageIncrement={pageIncrement}
-                          page={page}
+                          setPage={setMoviePage}
+                          pageIncrement={moviePageIncrement}
+                          page={moviePage}
                           allMovies={allMovies}
                           setAllMovies={setAllMovies}
-                          genres={genres}
-                          setGenres={setGenres}
-                          selectedGenre={selectedGenre}
-                          setSelectedGenre={setSelectedGenre}
-                          setSearchQuery={setSearchQuery}
+                          genres={movieBrowseGenres}
+                          setGenres={setMovieBrowseGenres}
+                          selectedGenre={movieSelectedGenre}
+                          setSelectedGenre={setMovieSelectedGenre}
+                          setSearchQuery={setMovieSearchQuery}
                         />
                       }
                     />
@@ -207,14 +215,14 @@ function App() {
                         <Shows
                           shows={shows}
                           setAllShows={setAllShows}
-                          setPage={setPage}
-                          page={page}
-                          pageIncrement={pageIncrement}
-                          genres={genres}
-                          setGenres={setGenres}
-                          selectedGenre={selectedGenre}
-                          setSelectedGenre={setSelectedGenre}
-                          setSearchQuery={setSearchQuery}
+                          setPage={setShowPage}
+                          page={showPage}
+                          pageIncrement={showPageIncrement}
+                          genres={showGenres}
+                          setGenres={setShowGenres}
+                          selectedGenre={showSelectedGenre}
+                          setSelectedGenre={setShowSelectedGenre}
+                          setSearchQuery={setShowSearchQuery}
                         />
                       }
                     />
