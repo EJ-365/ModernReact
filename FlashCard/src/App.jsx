@@ -16,6 +16,8 @@ function App() {
 
   // quizFlashcard state
   const [flashcard, setFlashCard] = useState(SAMPLE_FLASHCARDS.results);
+  // Bumped on each successful generate so Cards remount and drop stale answers
+  const [quizRound, setQuizRound] = useState(0);
 
   // quiz stats
   const [score, setScore] = useState(0);
@@ -35,7 +37,9 @@ function App() {
         `https://opentdb.com/api.php?amount=${amount}&category=${categoryId}`,
       );
       const data = await response.json();
-      setFlashCard(data.results);
+      const nextCards = data.results ?? [];
+      setFlashCard(nextCards);
+      setQuizRound((prev) => prev + 1);
       setScore(0);
       setAnsweredCount(0);
     } catch (error) {
@@ -75,7 +79,12 @@ function App() {
         setAmount={setAmount}
       />
       <StatsCard toggle={toggle} data={flashcard} score={score} answeredCount={answeredCount} />
-      <CardList data={flashcard} toggle={toggle} checkAnswer={checkAnswer} />
+      <CardList
+        data={flashcard}
+        quizRound={quizRound}
+        toggle={toggle}
+        checkAnswer={checkAnswer}
+      />
       <Footer toggle={toggle} />
     </div>
   );
