@@ -8203,9 +8203,15 @@ function tomtomKey(){
   return '';
 }
 function trafficPrimary(){
-  const raw=(window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.primaryTraffic)||'transtar';
-  /* Never prefer TomTom while paid APIs are off */
-  return raw==='tomtom'?'transtar':raw;
+  const city=window.HTS_CITY;
+  const raw=(city&&city.feeds&&city.feeds.primaryTraffic)||'transtar';
+  /* Paid TomTom disabled — use modeled traffic for former TomTom metros.
+     Never remap them onto Houston TranStar (shared ids like i10/i45 would
+     paint Houston congestion onto San Antonio, Dallas, LA, Phoenix, etc.). */
+  if(raw==='tomtom')return 'none';
+  /* TranStar public RSS is Houston-only */
+  if(raw==='transtar'&&city&&city.id&&city.id!=='houston')return 'none';
+  return raw;
 }
 async function tomtomFetch(pathAndQuery){
   window.LIVE_TRAFFIC.authOk=false;
