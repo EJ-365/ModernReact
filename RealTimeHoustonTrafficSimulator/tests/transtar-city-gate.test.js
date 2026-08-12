@@ -27,13 +27,16 @@ test('applying Houston travel times without a city gate poisons San Antonio i10'
   const n = applyTranStarTravelTimes(
     [
       {
-        title: 'IH-10 Katy Freeway Westbound at Beltway 8',
-        desc: 'Travel Time: 28 minutes',
+        title: 'IH-10 Katy Freeway Westbound from Downtown',
+        desc: 'Travel Time: 28 min',
       },
     ],
     {
       findRoadByKey: (id) => roads.get(id) || null,
+      nearestArc: () => 0,
+      unitsPerMile: 210,
       flows,
+      mapDirSign: () => 1,
     },
   );
   assert.ok(n > 0, 'Houston I-10 sample must match San Antonio road id i10');
