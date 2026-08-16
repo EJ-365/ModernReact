@@ -77,16 +77,30 @@ function stripPath(path, stripPrefixes) {
   return p.replace(/^\/+/, "");
 }
 
-function looksLikeAeroPath(p) {
+/** Reject empty, traversal, and absolute-URL smuggling in upstream paths. */
+function isSafeUpstreamPath(p) {
   if (!p) return false;
   const s = String(p).replace(/^\/+/, "");
-  return s.startsWith("aeroapi/") || s === "aeroapi";
+  if (!s) return false;
+  if (s.includes("..")) return false;
+  if (/^https?:/i.test(s)) return false;
+  return true;
 }
 
-function resolveIncomingPath(event, stripPrefixes) {
+const FUNCTION_PATH_PREFIXES = [
+  "flightaware/",
+  "tomtom/",
+  "opensky/",
+  "hexdb/",
+  "adsblol/",
+  "adsbdb/",
+  "transtar/",
+];
+
+export function resolveIncomingPath(event, stripPrefixes) {
   const params = collectQuery(event);
   const fromQ = params.get("path") || params.get("p");
-  if (fromQ && looksLikeAeroPath(fromQ)) {
+  if (fromQ && isSafeUpstreamPath(fromQ)) {
     return String(fromQ).replace(/^\/+/, "");
   }
 
@@ -108,11 +122,13 @@ function resolveIncomingPath(event, stripPrefixes) {
       }
     } catch (_) {}
     const stripped = stripPath(raw, stripPrefixes);
-    if (looksLikeAeroPath(stripped)) return stripped;
-    /* Direct function invoke: /.netlify/functions/flightaware/aeroapi/... */
-    if (stripped.startsWith("flightaware/")) {
-      const rest = stripped.slice("flightaware/".length);
-      if (looksLikeAeroPath(rest)) return rest;
+    if (isSafeUpstreamPath(stripped)) return stripped;
+    /* Direct function invoke: /.netlify/functions/<name>/<upstream...> */
+    for (const prefix of FUNCTION_PATH_PREFIXES) {
+      if (stripped.startsWith(prefix)) {
+        const rest = stripped.slice(prefix.length);
+        if (isSafeUpstreamPath(rest)) return rest;
+      }
     }
   }
   return "";
@@ -165,7 +181,7 @@ export async function proxyRequest(event, {
       headers: headersOut,
       body: JSON.stringify({
         error: "missing_upstream_path",
-        hint: "Use /api/flightaware/aeroapi/... or /api/flightaware?path=aeroapi/...",
+        hint: "Use /api/tomtom/traffic/... or /api/flightaware/aeroapi/...",
         debug: {
           path: event.path || null,
           rawUrl: event.rawUrl || null,
