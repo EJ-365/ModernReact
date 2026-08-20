@@ -24,12 +24,67 @@ const validateUsername = function (username) {
 
 console.log(validateUsername("Ben"));
 
-
 // another faster way with arrow function
-const validateUsername1 = (username) =>
-  username === "" || username === undefined
-    ? "Username is required"
-    : username.length <= 3
-      ? "Username too short"
-      : "Username looks good";
+// const validateUsername1 = (username) =>
+//   username === "" || username === undefined
+//     ? "Username is required"
+//     : username.length <= 3
+//       ? "Username too short"
+//       : "Username looks good";
 // console.log(validateUsername1("Moses"));
+
+// back to arrow function:
+
+const person = {
+  firstName: "sam",
+  lastName: "Williams",
+  personWalk: function () {
+    console.log("Sam can walk");
+  },
+
+  personRun: function () {
+    const run = () => {
+      console.log(`${this.firstName} can run very fast`);
+    };
+    run();
+  },
+};
+
+person.personRun();
+person.personWalk();
+
+
+const cat = {
+  name: "whisky",
+  sayHi: () => {
+    console.log(`Hi, ${this.name}`);
+  },
+};
+
+cat.sayHi();
+
+
+const dog = {
+  name: "barry",
+  sayHi: function(){
+    console.log(`Hi, ${this.name}`);
+  },
+};
+
+dog.sayHi();
+
+
+// closure refresh
+function closure(){
+  const num = 10;
+  console.log("I'm their parent")
+  return function(){
+    const myNum = 3;
+    console.log("This is mine personal number", myNum)
+    console.log(`I remember this number: "${num}" from my parent`)
+  }
+}
+
+closure(); // output only variable associated with the parent
+const myFunc = closure(); // remembers the parent values and itself
+myFunc()
