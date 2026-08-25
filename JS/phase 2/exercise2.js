@@ -1,0 +1,55 @@
+function createCart(){
+    let items = [];
+    return {
+        addItem: (item) => {
+              items.push(item);
+             return items;
+        },
+        removeItem:(name) => {
+            items = items.filter(item => item.name !== name )
+            return items;
+        },
+        getExpensiveItems: (minPrice) => {
+           return items.filter(min => min.price > minPrice );
+           
+        },
+        getTotal: () => {
+            return items.reduce((acc, currentVal) => acc + currentVal.price,0)
+        }
+    }
+}
+
+const cart = createCart();
+console.log(cart.addItem({name: "apple", price: 3}))
+console.log(cart.addItem({name: "orange", price: 5}))
+console.log(cart.addItem({name: "mango", price: 10}))
+console.log(cart.addItem({name: "tangerine", price: 25}))
+console.log(cart.removeItem("mango"))
+console.log(cart.getTotal())
+console.log(cart.getExpensiveItems(5))
+
+
+
+
+
+// let items = [
+//     {name: "apple", price: 3},
+//     {name: "mango", price: 5},
+//     {name: "orange", price:10},
+//     {name: "watermelon", price: 6}
+// ]
+
+// items.push({name: "tangerine", price: 30})
+// let remove = "mango";
+
+// const removed = items.filter(value => value.name !== remove);
+// console.log(removed)
+
+// const sum = items.reduce((acc, currentVal) =>{
+//   return acc + currentVal.price
+// },0);
+// // console.log(sum)
+
+// for (let i = 0; i < items.length; i++){
+//     console.log(items[i].name)
+// }
