@@ -88,3 +88,12 @@ function closure(){
 closure(); // output only variable associated with the parent
 const myFunc = closure(); // remembers the parent values and itself
 myFunc()
+
+
+
+// closure contd 
+for(let i = 0; i < 3; i++) {
+  setTimeout(function (){
+    console.log(i)
+  }, 100)
+}
