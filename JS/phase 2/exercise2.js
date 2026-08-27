@@ -31,7 +31,6 @@ console.log(cart.getExpensiveItems(5))
 
 
 
-
 // let items = [
 //     {name: "apple", price: 3},
 //     {name: "mango", price: 5},
@@ -48,8 +47,34 @@ console.log(cart.getExpensiveItems(5))
 // const sum = items.reduce((acc, currentVal) =>{
 //   return acc + currentVal.price
 // },0);
-// // console.log(sum)
+// console.log(sum)
 
 // for (let i = 0; i < items.length; i++){
 //     console.log(items[i].name)
 // }
+
+
+// misc: Functions As Values
+function add(x,y){
+    return x + y;
+}
+
+function mul(x,y){
+    return x * y;
+}
+
+function aggregate(a,b,c, arithmetic){
+const firstResult = arithmetic(a,b);
+const secondResult = arithmetic(firstResult, c);
+return secondResult;
+}
+
+function main(){
+    const sum = aggregate(1,2,3, add);
+    console.log(sum);
+
+    const product = aggregate(1,2,3, mul);
+    console.log(product)
+}
+
+main()

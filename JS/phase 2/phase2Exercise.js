@@ -55,7 +55,7 @@ function multiply(){
     }
 }
 
-const result = multiply();
+// const result = multiply();
 // console.log(result())
 
 // multiply()
