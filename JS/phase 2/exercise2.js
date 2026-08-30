@@ -5,6 +5,12 @@ function createCart(){
               items.push(item);
              return items;
         },
+
+        addItems: (...newItems) => {
+            items = [...items, ...newItems];
+            return items;
+        },
+
         removeItem:(name) => {
             items = items.filter(item => item.name !== name )
             return items;
@@ -20,13 +26,16 @@ function createCart(){
 }
 
 const cart = createCart();
-console.log(cart.addItem({name: "apple", price: 3}))
-console.log(cart.addItem({name: "orange", price: 5}))
-console.log(cart.addItem({name: "mango", price: 10}))
-console.log(cart.addItem({name: "tangerine", price: 25}))
-console.log(cart.removeItem("mango"))
-console.log(cart.getTotal())
-console.log(cart.getExpensiveItems(5))
+
+console.log(cart.addItem({ name: "apple", price: 3 }));
+console.log(cart.addItem({ name: "orange", price: 5 }));
+console.log(cart.addItem({ name: "mango", price: 10 }));
+
+console.log(cart.removeItem("mango"));
+
+console.log(cart.addItems({ name: "banana", price: 2 }, { name: "grape", price: 4 }));
+
+console.log(cart.getTotal());
 
 
 
