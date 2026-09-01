@@ -352,6 +352,16 @@ a:hover{text-decoration:underline}
 .live-row span{color:var(--muted)}
 .live-row b{font-weight:700}
 
+.faq-section{padding-bottom:clamp(64px,10vw,120px)}
+.faq-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.faq-item{border:1px solid var(--line);background:rgba(255,255,255,.025);border-radius:12px;padding:0 16px;transition:border-color .2s,background .2s}
+.faq-item[open]{border-color:rgba(62,207,190,.35);background:rgba(62,207,190,.045)}
+.faq-item summary{list-style:none;cursor:pointer;padding:15px 28px 15px 0;font-family:var(--display);font-size:17px;font-weight:700;line-height:1.25;position:relative}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary::after{content:'+';position:absolute;right:0;top:12px;color:var(--teal);font:400 24px/1 var(--font);transition:transform .2s var(--ease)}
+.faq-item[open] summary::after{transform:rotate(45deg)}
+.faq-item p{margin:0 0 15px;color:var(--muted);font-size:13px;line-height:1.55}
+
 .cta-band{position:relative;overflow:hidden;padding:clamp(72px,12vw,140px) clamp(16px,4vw,40px);
   background:radial-gradient(900px 400px at 50% 0%,rgba(62,207,190,.2),transparent 65%),
     linear-gradient(180deg,transparent,rgba(0,0,0,.25))}
@@ -434,7 +444,7 @@ a:hover{text-decoration:underline}
 @media (max-width:960px){
   .pulse-bar{grid-template-columns:1fr 1fr;gap:20px}
   .pulse-item{border-right:0;border-bottom:1px solid var(--line);padding-bottom:16px}
-  .feature-rail,.dl-grid,.city-grid,.city-grid-7,.city-grid-9,.update-rail{grid-template-columns:1fr}
+  .feature-rail,.dl-grid,.city-grid,.city-grid-7,.city-grid-9,.update-rail,.faq-list{grid-template-columns:1fr}
   .about-grid{grid-template-columns:1fr}
   .nav{gap:10px;padding:max(12px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) 12px max(14px,env(safe-area-inset-left,0px))}
   .brand-text{font-size:12px;max-width:42vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

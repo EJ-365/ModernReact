@@ -79,17 +79,10 @@
   force = true
 
 # ——— Authenticated proxies (serverless injects secrets) ———
-# Path form /api/flightaware/aeroapi/... is required — Netlify keeps it in event.path.
-# Query-only ?path= is unreliable under function rewrites.
-[[redirects]]
-  from = "/api/flightaware/*"
-  to = "/.netlify/functions/flightaware"
-  status = 200
-  force = true
 
 [[redirects]]
-  from = "/api/flightaware"
-  to = "/.netlify/functions/flightaware"
+  from = "/api/news"
+  to = "/.netlify/functions/news"
   status = 200
   force = true
 

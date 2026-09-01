@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>API keys — Houston Traffic Simulator</title>
+<title>Free data policy — Live Traffic Simulator</title>
 <meta name="author" content="Ejay Gabriel">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body class="page-docs">
 <div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
 <header class="nav">
-  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Live Traffic Simulator</span></a>
   <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/api-keys.html" aria-current="page">API keys</a></nav>
   <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
   <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
@@ -41,28 +41,27 @@
   </aside>
   <article class="docs-body">
     <p class="eyebrow">Configuration</p>
-    <h1>API keys</h1>
+    <h1>Free data policy</h1>
     <p class="lead"><strong>Paid APIs are hard-disabled.</strong> The sim runs on free / open public feeds only. Do not add commercial keys.</p>
 
     <h2>Do not set (billing risk)</h2>
     <ul>
-      <li><code>FLIGHTAWARE_API_KEY</code> — AeroAPI (paid). Proxies return 503.</li>
       <li><code>TOMTOM_API_KEY</code> — Traffic API (paid). Proxies return 503.</li>
     </ul>
-    <p>On Netlify: delete both env vars if they still exist, then redeploy after the free-feeds release is pushed.</p>
+    <p>On Netlify: delete <code>TOMTOM_API_KEY</code> if it still exists, then redeploy after the free-feeds release is pushed.</p>
 
     <h2>Free stack (no billing)</h2>
     <ul>
       <li><strong>Open-Meteo</strong> — weather</li>
       <li><strong>NWS / NHC / SPC</strong> — alerts &amp; storm outlooks</li>
       <li><strong>Houston TranStar</strong> — public RSS traffic (Houston)</li>
-      <li><strong>OpenSky / airplanes.live / adsb.lol / adsbdb / hexdb</strong> — aircraft</li>
+      <li><strong>airplanes.live / OpenSky / adsb.lol / adsbdb / hexdb</strong> — aircraft (open-source ADS-B)</li>
+      <li><strong>Google News RSS</strong> — metro-specific local headlines through <code>/api/news</code></li>
       <li><strong>Nominatim / OSM</strong> — geocoding / map data (fair-use)</li>
     </ul>
 
     <h2>Environment file</h2>
     <pre><code># .env.local — leave paid keys commented out
-# FLIGHTAWARE_API_KEY=
 # TOMTOM_API_KEY=
 # Optional TranStar agency JSON (not a commercial billable key):
 # TRANSTAR_SPEED_URL=

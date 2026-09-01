@@ -109,11 +109,6 @@ function resolveIncomingPath(event, stripPrefixes) {
     } catch (_) {}
     const stripped = stripPath(raw, stripPrefixes);
     if (looksLikeAeroPath(stripped)) return stripped;
-    /* Direct function invoke: /.netlify/functions/flightaware/aeroapi/... */
-    if (stripped.startsWith("flightaware/")) {
-      const rest = stripped.slice("flightaware/".length);
-      if (looksLikeAeroPath(rest)) return rest;
-    }
   }
   return "";
 }
@@ -165,7 +160,7 @@ export async function proxyRequest(event, {
       headers: headersOut,
       body: JSON.stringify({
         error: "missing_upstream_path",
-        hint: "Use /api/flightaware/aeroapi/... or /api/flightaware?path=aeroapi/...",
+        hint: "Use /api/airplanes/... or /api/opensky/...",
         debug: {
           path: event.path || null,
           rawUrl: event.rawUrl || null,

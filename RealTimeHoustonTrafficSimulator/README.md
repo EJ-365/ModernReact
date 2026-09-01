@@ -1,4 +1,4 @@
-# Houston Traffic Simulator
+# Live Traffic Simulator
 
 **Created by Ejay Gabriel**
 
@@ -25,7 +25,7 @@ npm run dev
 | [http://localhost:5176/download.html](http://localhost:5176/download.html) | Web install + Windows download |
 | [http://localhost:5176/docs/](http://localhost:5176/docs/) | Developer handbook |
 
-**Latest progress:** [docs/PROGRESS.md](docs/PROGRESS.md) — v10.16.6  
+**Latest progress:** [docs/PROGRESS.md](docs/PROGRESS.md) — v10.17.0  
 **Platform transition:** [docs/TECH_TRANSITION.md](docs/TECH_TRANSITION.md) — Vite + city packs + feed adapters (cities after platform).
 
 ---
@@ -43,13 +43,10 @@ Visual language: deep navy, teal, sun, and coral — flexible, cute, and mobile-
 
 | City | Status |
 |------|--------|
-| **Houston** | Live |
-| Los Angeles | Coming soon |
-| New York | Coming soon |
-| Austin | Coming soon |
-| San Antonio | Coming soon |
-| Boston | Coming soon |
-| More (DFW, Chicago, Miami, Seattle, …) | On the list |
+| Houston, Austin, San Antonio, Dallas–Fort Worth | Live |
+| Los Angeles, New York, Boston, Chicago | Live |
+| Miami, Seattle, Denver, Atlanta | Live |
+| Phoenix, Philadelphia, Minneapolis–St. Paul, New Orleans | Live |
 
 ---
 
@@ -105,16 +102,16 @@ Deploy the **`dist/`** folder (or connect the repo to Netlify / Vercel; configs 
 | Ready | Notes |
 |------|--------|
 | Marketing site + PWA | Yes |
-| First visit tour in simulator | Yes (`localStorage` key `houstonSim.tour.v1`) |
-| Public live feeds (weather, TranStar, ADS-B) | Netlify functions + Open-Meteo direct |
-| FlightAware airport boards | **Disabled** — do not set `FLIGHTAWARE_API_KEY` |
+| First visit tour in simulator | Yes (`localStorage` key `liveTrafficSim.tour.v4.<city>`) |
+| Public live feeds (weather, traffic, news, ADS-B) | Netlify/Vercel proxies + public sources |
+| Aircraft tracking (airplanes.live) | Yes — free, open-source ADS-B |
 | TomTom traffic | **Disabled** — do not set `TOMTOM_API_KEY` |
 | Secrets | Keep `.env.local` local; never commit |
 
 ### Netlify env
 
 1. Netlify → Site configuration → Environment variables  
-2. **Delete** `FLIGHTAWARE_API_KEY` and `TOMTOM_API_KEY` if present  
+2. **Delete** `TOMTOM_API_KEY` if present  
 3. Redeploy when you push the free-feeds release 
 
 Replay the tour anytime from **Replay tour** (desktop cam hint or mobile Controls).
@@ -127,9 +124,11 @@ Replay the tour anytime from **Replay tour** (desktop cam hint or mobile Control
 |---------|--------|---------------|
 | Weather / forecast | Open-Meteo | No |
 | Traffic incidents | Houston TranStar RSS | No |
-| Aircraft | ADS-B / OpenSky | No (rate limits) |
-| Airport boards | FlightAware AeroAPI | Disabled |
-| Flow speeds | TomTom Traffic | Disabled (TranStar / modeled) |
+| Aircraft | airplanes.live / OpenSky / ADS-B | No (rate limits) |
+| Aircraft tracking links | globe.airplanes.live | No |
+| Airport boards | Reconstructed from live ADS-B flights | No |
+| Local news | Google News RSS by active metro | No |
+| Flow speeds | Houston TranStar / modeled elsewhere | No |
 
 Copy `.env.example` → `.env.local` for optional keys. **Never commit secrets.**
 
@@ -171,7 +170,7 @@ Educational overlays (not official alerts): hurricane, wildfire, **certain flood
 ## Credits
 
 **Created by Ejay Gabriel.**  
-Three.js · Vite · Open-Meteo · Houston TranStar · free ADS-B / OpenSky.
+Three.js · Vite · Open-Meteo · Houston TranStar · Google News RSS · OSM · airplanes.live / free ADS-B.
 
 ---
 

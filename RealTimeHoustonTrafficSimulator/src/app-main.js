@@ -23,6 +23,8 @@ import {
   clampTowardPoint,
 } from './feeds/storm-tracker.js';
 import { buildCityHazards } from './cities/hazard-packs.js';
+import { preferredBoardAirport, resolveBoardAirportCodes } from './cities/airport-set.js';
+import 'boxicons/css/boxicons.min.css';
 const THREE = window.THREE;
 if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load first");
 
@@ -49,7 +51,10 @@ const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':(H
 const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':(HTS_CITY_ID==='houston'?'Houston-area':(CITY_NAME+'-area')));
 const METRO_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
 const METRO_LNG=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lng)||-95.3698;
-const DEFAULT_APT=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts[0])||'IAH';
+const DEFAULT_APT=preferredBoardAirport(window.HTS_CITY, HTS_PACK, ['IAH','HOU','EFD','SGR','DWH','IWS','CXO']);
+function primaryBoardApt(){
+  return preferredBoardAirport(window.HTS_CITY, HTS_PACK, ['IAH','HOU','EFD','SGR','DWH','IWS','CXO']);
+}
 /* Failsafe: never leave the loading screen stuck if a later error occurs.
    Ready can fire before late listeners register (large app-main parse) — use whenHtsReady(). */
 let htsReadyFired=false;
@@ -184,11 +189,7 @@ function resolveFlightAirports(f){
   if(!arr||arr==='—')arr='…';
   return {dep,arr,pending};
 }
-const HOU_APT=new Set(
-  (HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts.length)
-    ?HTS_PACK.boardApts
-    :['IAH','HOU','EFD','SGR','DWH','IWS','CXO']
-);
+const HOU_APT=new Set(resolveBoardAirportCodes(window.HTS_CITY, HTS_PACK, ['IAH','HOU','EFD','SGR','DWH','IWS','CXO']));
 const APT_DB={
   IAH:{n:'George Bush Intercontinental',c:'Houston'},HOU:{n:'William P. Hobby',c:'Houston'},
   EFD:{n:'Ellington Field',c:'Houston'},SGR:{n:'Sugar Land Regional',c:'Sugar Land'},
@@ -238,12 +239,21 @@ function aptInfo(code){
   if(c.length===4&&c[0]==='K'&&APT_DB[c.slice(1)])return APT_DB[c.slice(1)];
   return {n:c+' Airport',c:''};
 }
-function isHoustonApt(c){return HOU_APT.has(String(c||'').toUpperCase());}
+function activeCityAirportSet(){
+  const pack=window.HTS_PACK||HTS_PACK;
+  const codes=resolveBoardAirportCodes(window.HTS_CITY || (HTS_PACK && { airportCodes: (HTS_PACK.boardApts || []) }) , pack, ['IAH','HOU','EFD','SGR','DWH','IWS','CXO']);
+  return new Set(codes.map(code=>String(code||'').trim().toUpperCase()).filter(Boolean));
+}
+function isHoustonApt(c){
+  const key=String(c||'').trim().toUpperCase();
+  if(!key||key==='—'||key==='...')return false;
+  return activeCityAirportSet().has(key);
+}
 function isHoustonFlight(f){return isHoustonApt(f.dep)||isHoustonApt(f.arr);}
 function nearestHoustonApt(lat,lon){
   if(!Number.isFinite(lat)||!Number.isFinite(lon))return DEFAULT_APT;
   let best=DEFAULT_APT,bd=1e9;
-  for(const code of HOU_APT){
+  for(const code of activeCityAirportSet()){
     const a=APT_COORDS[code];if(!a)continue;
     const d=Math.hypot((a.lat-lat)*69,(a.lng-lon)*59.9*Math.cos(lat*Math.PI/180));
     if(d<bd){bd=d;best=code;}
@@ -273,7 +283,7 @@ function callsignPair(cs,csIata){
   return {main:iata,iata:c}; /* show airline flight number first */
 }
 function hasFlightNumber(f){
-  if(f.faFlightId)return true;
+  if(f.icao24)return true;
   if(f.csIata&&/[A-Z0-9]{2,}\d/i.test(f.csIata))return true;
   const cs=String(f.cs||'').trim();
   return !!(cs&&/^[A-Z]{2,3}\d/i.test(cs)&&!/^[A-F0-9]{6}$/i.test(cs));
@@ -356,7 +366,7 @@ function liveFlightRank(f){
   const named=!/^[a-f0-9]{6}$/i.test(cs);
   const corr=classifyLiveCorridor(f);
   const cls=(f.m&&f.m.userData&&f.m.userData.acClass)||classifyAcModel(f.actype,f.category,f.cs);
-  return (f._houston===true?40:0)+(f._routeVerified?20:0)+(f._faOk?15:0)+(f.faFlightId?10:0)
+  return (f._houston===true?40:0)+(f._routeVerified?20:0)+(f.icao24?10:0)
     +(hasFlightNumber(f)?8:0)+(named?12:0)+(corr?55:0)+(corr&&corr.mi<8?25:0)
     +(cls==='heli'?30:0)+(cls==='prop'?12:0)
     +(flightGsKts(f)||0)*0.01+(flightAltFt(f)||0)*0.0001;
@@ -566,6 +576,13 @@ function flightPhase(f){
   if(vs<-200)return {label:'Descending',cls:'land'};
   return {label:'En route',cls:''};
 }
+function flightRouteIcon(f,phase=flightPhase(f)){
+  const direction=flightDirection(f);
+  if(phase.cls==='takeoff'||direction==='dep')return {cls:'departure',icon:'bxs-plane-take-off',label:'Departing'};
+  if(phase.cls==='land'||direction==='arr')return {cls:'arrival',icon:'bxs-plane-land',label:'Arriving'};
+  if(phase.cls==='climb')return {cls:'climb',icon:'bxs-plane-alt',label:'Climbing'};
+  return {cls:'cruise',icon:'bxs-plane-alt',label:'In the air'};
+}
 /* Decorative airport mesh for a Houston code (IAH/HOU/…) */
 function airportByCode(code){
   const c=String(code||'').toUpperCase();
@@ -684,20 +701,19 @@ function estimateEtaFromNow(f){
   return null;
 }
 function flightVerifyUrl(f){
-  /* Prefer FlightAware flight id — most accurate deep link for THIS leg */
-  if(f.faFlightId)return 'https://www.flightaware.com/live/flight/id/'+encodeURIComponent(f.faFlightId);
+  /* Prefer ICAO24 — use globe.airplanes.live for the live aircraft page */
+  if(f.icao24)return 'https://globe.airplanes.live/?icao='+encodeURIComponent(String(f.icao24).toLowerCase());
   const iata=cleanCSPublic(f.csIata||'');
-  if(iata&&/[A-Z0-9]{2,}\d/i.test(iata))return 'https://www.flightaware.com/live/flight/'+encodeURIComponent(iata);
+  if(iata&&/[A-Z0-9]{2,}\d/i.test(iata))return 'https://globe.airplanes.live/?query='+encodeURIComponent(iata);
   const cs=cleanCSPublic(f.cs);
-  if(cs&&/^[A-Z]{2,3}\d/i.test(cs)&&!/^[A-F0-9]{6}$/i.test(cs))return 'https://www.flightaware.com/live/flight/'+encodeURIComponent(cs);
-  /* No reliable flight number — open ADS-B track, not a wrong FA search */
-  if(f.icao24)return 'https://globe.adsb.lol/?icao='+encodeURIComponent(String(f.icao24).toLowerCase());
-  if(f.reg)return 'https://www.flightaware.com/live/flight/'+encodeURIComponent(String(f.reg).replace(/\s+/g,''));
-  return 'https://globe.adsb.lol/?lat='+METRO_LAT+'&lon='+METRO_LNG+'&zoom=9';
+  if(cs&&/^[A-Z]{2,3}\d/i.test(cs)&&!/^[A-F0-9]{6}$/i.test(cs))return 'https://globe.airplanes.live/?query='+encodeURIComponent(cs);
+  /* No reliable flight number — open ADS-B track */
+  if(f.reg)return 'https://globe.airplanes.live/?query='+encodeURIComponent(String(f.reg).replace(/\s+/g,''));
+  return 'https://globe.airplanes.live/?lat='+METRO_LAT+'&lon='+METRO_LNG+'&zoom=9';
 }
 function flightLinkLabel(f){
-  if(f.faFlightId||(f.csIata&&/[A-Z0-9]{2,}\d/i.test(f.csIata))||(f.cs&&/^[A-Z]{2,3}\d/i.test(String(f.cs))))return 'Track on FlightAware ↗';
-  return 'Track on ADS-B ↗';
+  if(f.icao24||(f.csIata&&/[A-Z0-9]{2,}\d/i.test(f.csIata))||(f.cs&&/^[A-Z]{2,3}\d/i.test(String(f.cs))))return 'Track on airplanes.live ↗';
+  return 'Track on airplanes.live ↗';
 }
 function numOrNull(v){
   if(v==null||v==='')return null;
@@ -790,7 +806,7 @@ function hasVerifiedRoute(f){
 }
 function flightCardSig(f){
   /* Identity + route only — do NOT include alt/speed or links get destroyed mid-click */
-  return [f.kind,f.cs,f.dep,f.arr,f.reg,f.actype,f._routeVerified?1:0,f.faFlightId||'',f.csIata||'',f.atd||'',f.etd||'',f.ata||'',Math.round((parseMaybeTime(f.eta)||0)/60000)].join('|');
+  return [f.kind,f.cs,f.dep,f.arr,f.reg,f.actype,f._routeVerified?1:0,f.icao24||'',f.csIata||'',f.atd||'',f.etd||'',f.ata||'',Math.round((parseMaybeTime(f.eta)||0)/60000)].join('|');
 }
 function flightStatsSig(f){
   return [flightAltFt(f),flightGsKts(f),f.baroInHg,f.status||'',f.vsFpm||0].join('|');
@@ -810,11 +826,20 @@ function patchFlightCardStats(el,f){
   const type=f.actype&&f.actype!=='—'?String(f.actype).toUpperCase():'';
   const isLive=f.kind==='live';
   const isBoard=f.kind==='board';
-  const srcTag=isLive?('Live ADS-B'+(f._faOk?' + FlightAware':'')):(isBoard?'FlightAware board':'');
+  const srcTag=isLive?'Live ADS-B (airplanes.live)':(isBoard?'airplanes.live':'');
   const ph=el.querySelector('.fphase');
   if(ph){
     ph.className='fphase'+(phase.cls?' '+phase.cls:'');
     ph.innerHTML='<span class="dot"></span>'+phase.label+(type?' · '+type:'')+(srcTag?' · '+srcTag:'');
+  }
+  const routeIcon=el.querySelector('.frouteflight');
+  if(routeIcon){
+    const icon=flightRouteIcon(f,phase);
+    routeIcon.className='frouteflight '+icon.cls;
+    const glyph=routeIcon.querySelector('i');
+    if(glyph)glyph.className='bx '+icon.icon;
+    routeIcon.setAttribute('aria-label',icon.label);
+    routeIcon.setAttribute('title',icon.label);
   }
   const chips=el.querySelectorAll('.fchip .v');
   /* order in renderFlightCard: GS, Alt, Baro, ETA */
@@ -862,13 +887,14 @@ function renderFlightCard(f){
   const posTxt=(lat!=null&&lon!=null)?(lat.toFixed(3)+'°, '+lon.toFixed(3)+'°'):'';
   const fr=flightVerifyUrl(f);
   const linkLab=flightLinkLabel(f);
-  const srcTag=isLive?('Live ADS-B'+(f._faOk?' + FlightAware':'')):(isBoard?'FlightAware board':'');
+  const srcTag=isLive?'Live ADS-B (airplanes.live)':(isBoard?'airplanes.live':'');
   const fltNo=cs.main&&cs.main!=='—'?cs.main:'';
+  const routeIcon=flightRouteIcon(f,phase);
   return '<div class="fhead"><div class="fcs">'+(fltNo||'—')+(cs.iata?'<small>'+cs.iata+'</small>':'')+'</div>'
     +'<div class="fbadge '+badgeCls+'">'+badge+'</div></div>'
     +'<div class="froutebox">'
       +'<div class="fapt from"><div class="code">'+depShow+'</div><div class="city">'+(d0.c||(depShow!=='…'?'Origin':''))+'</div><div class="aname">'+d0.n+'</div></div>'
-      +'<div class="farrow">→</div>'
+      +'<div class="frouteflight '+routeIcon.cls+'" role="img" aria-label="'+routeIcon.label+'" title="'+routeIcon.label+'"><i class="bx '+routeIcon.icon+'" aria-hidden="true"></i></div>'
       +'<div class="fapt to"><div class="code">'+arrShow+'</div><div class="city">'+(d1.c||(arrShow!=='…'?'Destination':''))+'</div><div class="aname">'+d1.n+'</div></div>'
     +'</div>'
     +'<div class="fphase '+phase.cls+'"><span class="dot"></span>'+phase.label+(type?' · '+type:'')+(srcTag?' · '+srcTag:'')+'</div>'
@@ -1410,6 +1436,74 @@ const LEGACY_ROAD_DEFS=[
   }
   console.log('%cReal Houston OSM corridors applied: '+n,'color:#7fd6a0');
 })();
+function highwayDefs(){
+  return LEGACY_ROAD_DEFS.filter(def=>!def.arterial&&def.pts&&def.pts.length>1).sort((a,b)=>(b.prio||0)-(a.prio||0));
+}
+function highwayLabel(def){
+  const id=String(def.id||'').toLowerCase();
+  if(id==='bw8')return 'BW-8';
+  if(id==='tx99')return 'TX-99';
+  const match=String(def.short||def.name||def.id).match(/(?:I|US|SH|TX|FM)[- ]?\s*(\d+[A-Z]?)/i);
+  if(match)return String(def.short||def.name).match(/^(?:I|US|SH|TX|FM)[- ]?\s*\d+[A-Z]?/i)?.[0].replace(/\s+/g,' ')||match[1];
+  return String(def.short||def.name||def.id).replace(/\s+—.*$/,'').slice(0,6);
+}
+function routeMidpoint(points){
+  let total=0;
+  for(let index=1;index<points.length;index++)total+=Math.hypot(points[index][0]-points[index-1][0],points[index][1]-points[index-1][1]);
+  let traveled=0;
+  for(let index=1;index<points.length;index++){
+    const a=points[index-1],b=points[index],segment=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    if(traveled+segment>=total/2){const ratio=(total/2-traveled)/Math.max(segment,1);return [a[0]+(b[0]-a[0])*ratio,a[1]+(b[1]-a[1])*ratio];}
+    traveled+=segment;
+  }
+  return points[Math.floor(points.length/2)];
+}
+function focusHighway(def){
+  const points=def&&def.pts;
+  if(!Array.isArray(points)||points.length<2)return;
+  const mid=routeMidpoint(points);
+  if(!mid)return;
+  window.HTS_HIGHWAY_FOCUS={id:def.id,x:mid[0],z:mid[1]};
+  camGoal.target.set(mid[0],0,mid[1]);
+  camGoal.radius=650;
+  camGoal.phi=1.02;
+  camGoal.theta=-0.72;
+}
+function closeRoadModal(){
+  $('roadModal').classList.remove('on');
+  $('roadModalScrim').classList.remove('on');
+}
+function openRoadModal(def){
+  const all=highwayDefs();
+  const body=$('roadModalBody');
+  if(!body)return;
+  if(def){
+    body.innerHTML='<div class="roadModalHead"><div><div class="roadModalKicker">Metro highway</div><div class="roadModalTitle" id="roadModalTitle">'+escHtml(def.name)+'</div></div><button type="button" class="roadModalClose" data-road-close aria-label="Close">×</button></div>'
+      +'<p class="roadModalDesc">'+escHtml((def.short||def.name)+' is modeled as a '+(def.lanes||2)+'-lane '+(def.closed?'loop or belt route':'corridor')+' in the '+CITY_NAME+' traffic network.')+'</p>'
+      +'<div class="roadModalStats"><div><b>'+(def.lanes||2)+'</b><span>Lanes</span></div><div><b>'+(def.ff||'—')+'</b><span>Free-flow mph</span></div><div><b>'+((def.pts&&def.pts.length)||0)+'</b><span>Map points</span></div></div>'
+      +'<button type="button" class="roadModalMap" data-road-focus="'+escHtml(def.id)+'">Show on map</button>';
+  }else{
+    body.innerHTML='<div class="roadModalHead"><div><div class="roadModalKicker">'+escHtml(CITY_NAME)+' network</div><div class="roadModalTitle" id="roadModalTitle">Metro highways</div></div><button type="button" class="roadModalClose" data-road-close aria-label="Close">×</button></div>'
+      +'<div class="roadList">'+all.map(item=>'<button type="button" data-road-open="'+escHtml(item.id)+'"><b>'+escHtml(item.name)+'</b><span>'+(item.ff||'—')+' mph</span></button>').join('')+'</div>';
+  }
+  $('roadModal').classList.add('on');
+  $('roadModalScrim').classList.add('on');
+  body.querySelectorAll('[data-road-open]').forEach(button=>button.addEventListener('click',()=>openRoadModal(all.find(item=>item.id===button.dataset.roadOpen))));
+  body.querySelector('[data-road-close]')?.addEventListener('click',closeRoadModal);
+  body.querySelector('[data-road-focus]')?.addEventListener('click',()=>{focusHighway(def);closeRoadModal();});
+}
+function renderHighwayShields(){
+  const row=document.querySelector('.shields');
+  const all=highwayDefs();
+  if(!row||!all.length)return;
+  row.innerHTML=all.slice(0,5).map(def=>'<button type="button" class="shield" data-highway="'+escHtml(def.id)+'" title="'+escHtml(def.name)+'"><span>'+escHtml(highwayLabel(def))+'</span></button>').join('')
+    +'<button type="button" class="highwayMore" data-highway-list>All '+all.length+'</button>';
+  row.querySelectorAll('[data-highway]').forEach(button=>button.addEventListener('click',()=>openRoadModal(all.find(def=>def.id===button.dataset.highway))));
+  row.querySelector('[data-highway-list]').addEventListener('click',()=>openRoadModal(null));
+}
+renderHighwayShields();
+$('roadModalScrim')?.addEventListener('click',closeRoadModal);
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeRoadModal();});
 function normalizeOsmRoadDef(r){
   if(!r||!Array.isArray(r.pts)||r.pts.length<2)return null;
   return {
@@ -1429,10 +1523,9 @@ function normalizeOsmRoadDef(r){
     pts:r.pts
   };
 }
-/* OSM boot merge currently produces self-reversing spaghetti (black screen / invisible close-up roads).
-   Keep legacy freeways for the traffic sim; stream arterials/locals via OSM LOD instead.
-   Re-enable after `roads:merge` is fixed (set USE_OSM_BOOT=true). */
-const USE_OSM_BOOT=false;
+/* The boot set is sourced from OSM. Each corridor still passes the local geometry
+  quality gate below before it can enter the traffic simulation. */
+const USE_OSM_BOOT=true;
 function osmPathQuality(pts){
   if(!pts||pts.length<3)return 0;
   let rev=0,dup=0,L=0;
@@ -3830,7 +3923,7 @@ window.FLIGHTS=[];
   const FA_CS_NEG_TTL_MS=3*60*1000;
   let faCsCooldownUntil=0;
   async function fetchAeroAPI(callsign){
-    /* Paid FlightAware AeroAPI off — free ADS-B / OpenSky / route DBs only */
+    /* Using airplanes.live free ADS-B / OpenSky / route DBs */
     return null;
   }
   async function fetchAdsbLol(callsign,icao24){
@@ -3959,7 +4052,7 @@ window.FLIGHTS=[];
       lon:Number.isFinite(f._lon)?f._lon:f._tLon,
       vsFpm:f.vsFpm,reg:f.reg
     };
-    /* Free route DBs first (adsbdb/hexdb) — works without FlightAware key on Netlify */
+    /* Free route DBs first (adsbdb/hexdb) — airplanes.live on Netlify */
     if(f.cs&&!f._routeVerified){
       const rr=await fetchRouteByCallsign(f.cs);
       if(rr&&(isHoustonApt(rr.dep)||isHoustonApt(rr.arr))){
@@ -3971,7 +4064,7 @@ window.FLIGHTS=[];
         }
       }
     }
-    /* FlightAware AeroAPI disabled — skip paid route enrichment */
+    /* airplanes.live free ADS-B data — no enrichment needed */
     let gotFa=false;
     let faFlights=null;
     if(false&&f.cs&&!f._routeVerified){
@@ -4043,7 +4136,7 @@ window.FLIGHTS=[];
         }
       }
     }
-    /* Match FlightAware airport board by callsign when ADS-B route DBs miss a leg */
+    /* Match airplanes.live callsign by ADS-B when route DBs miss a leg */
     {
       const br=findBoardRouteForCallsign(f);
       if(br){
@@ -4368,23 +4461,80 @@ window.FLIGHTS=[];
   })();
 })();
 
-/* ---- Airport departure / arrival boards (FlightAware AeroAPI DISABLED) ---- */
+/* ---- Airport departure / arrival boards (reconstructed from live ADS-B flights) ---- */
 (function(){
-  window.HOUSTON_BOARD_STATUS={ok:false,err:'FlightAware disabled — free ADS-B sky only',at:Date.now()};
+  window.HOUSTON_BOARD_STATUS={ok:true,err:'',at:Date.now()};
   window.HOUSTON_BOARD=[];
   window.HOUSTON_BOARDS={}; /* apt -> {departures:[], arrivals:[]} */
   const BOARD_APTS=(HTS_PACK&&HTS_PACK.boardApts&&HTS_PACK.boardApts.length)
     ?HTS_PACK.boardApts.slice()
     :['IAH','HOU','EFD','SGR','DWH','IWS','CXO'];
-  window.BOARD_UI={apt:BOARD_APTS[0]||'IAH',kind:'departures'};
-  /* Paid FlightAware boards off — no polling, no AeroAPI calls */
+  const defaultApt=primaryBoardApt();
+  window.BOARD_UI={apt:(BOARD_APTS.includes(defaultApt)?defaultApt:BOARD_APTS[0]||defaultApt),kind:'departures'};
+  
+  /* Build airport boards from live ADS-B flights — update every 10s */
   window.refreshAirportBoard=function(){
-    window.HOUSTON_BOARD_STATUS={ok:false,err:'flightaware_disabled',at:Date.now()};
-    if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+    try {
+      /* Reset all boards */
+      const boards={};
+      for(const apt of BOARD_APTS){
+        boards[apt]={departures:[],arrivals:[],at:Date.now()};
+      }
+
+      /* Populate from live flights, even before every free route lookup is verified. */
+      const liveFlights=window.LIVE_FLIGHTS||new Map();
+      for(const f of liveFlights.values()){
+        if(!f||f.kind!=='live')continue;
+
+        const route=resolveFlightAirports(f);
+        const depCode=(route.dep&&route.dep!=='…'&&route.dep!=='—'&&isHoustonApt(route.dep))?route.dep:(f.dep&&isHoustonApt(f.dep)?f.dep:null);
+        const arrCode=(route.arr&&route.arr!=='…'&&route.arr!=='—'&&isHoustonApt(route.arr))?route.arr:(f.arr&&isHoustonApt(f.arr)?f.arr:null);
+
+        if(depCode && !f.onGround){
+          const apt=depCode;
+          if(boards[apt]){
+            boards[apt].departures.push({...f, dep:depCode, arr: arrCode || f.arr || null, _boardType:'departure'});
+          }
+        }
+
+        if(arrCode && !f.onGround){
+          const apt=arrCode;
+          if(boards[apt]){
+            boards[apt].arrivals.push({...f, dep:depCode || f.dep || null, arr:arrCode, _boardType:'arrival'});
+          }
+        }
+      }
+
+      /* Sort by ETA/ETD, with sensible fallbacks for live flight data */
+      for(const apt in boards){
+        for(const kind of ['departures','arrivals']){
+          boards[apt][kind].sort((a,b)=>{
+            const aTime=kind==='departures'
+              ?(parseMaybeTime(a.etd||a.atd)||parseMaybeTime(a.eta||a.ata)||Date.now()+60*60*1000)
+              :(parseMaybeTime(a.eta||a.ata)||parseMaybeTime(a.etd||a.atd)||Date.now()+60*60*1000);
+            const bTime=kind==='departures'
+              ?(parseMaybeTime(b.etd||b.atd)||parseMaybeTime(b.eta||b.ata)||Date.now()+60*60*1000)
+              :(parseMaybeTime(b.eta||b.ata)||parseMaybeTime(b.etd||b.atd)||Date.now()+60*60*1000);
+            return (aTime||Infinity)-(bTime||Infinity);
+          });
+        }
+      }
+
+      window.HOUSTON_BOARDS=boards;
+      window.HOUSTON_BOARD_STATUS={ok:true,err:'',at:Date.now()};
+      if(typeof window.renderAirportBoard==='function')window.renderAirportBoard(true);
+    }catch(e){
+      window.HOUSTON_BOARD_STATUS={ok:false,err:String(e),at:Date.now()};
+    }
     return Promise.resolve();
   };
-  /* Clear any cached FA board rows so UI does not look "live" from old paid data */
-  try{localStorage.removeItem('houstonSim.boardCache.v1');}catch(e){}
+  
+  /* Refresh boards every 10 seconds from live data */
+  setInterval(()=>window.refreshAirportBoard(),10000);
+  
+  /* Initial refresh */
+  setTimeout(()=>window.refreshAirportBoard(),500);
+  
   if(typeof window.renderAirportBoard==='function')setTimeout(()=>window.renderAirportBoard(true),0);
 })();
 /* Simulated airport-cycle / cruise planes removed — sky is live ADS-B only.
@@ -6764,6 +6914,41 @@ function windArrow(deg){ /* direction wind blows FROM */
 function escHtml(s){
   return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function newsTimeLabel(value){
+  const time=Date.parse(value||'');
+  if(!Number.isFinite(time))return 'Local reporting';
+  const minutes=Math.max(0,Math.round((Date.now()-time)/60000));
+  if(minutes<60)return minutes<2?'Just now':minutes+'m ago';
+  if(minutes<1440)return Math.round(minutes/60)+'h ago';
+  return Math.round(minutes/1440)+'d ago';
+}
+function renderLocalNews(items,status){
+  const list=$('newsList'),tag=$('newsTag');
+  if(!list||!tag)return;
+  if(!items||!items.length){
+    tag.textContent=status||'Unavailable';
+    list.innerHTML='<div class="newsEmpty">Local headlines are unavailable right now. Live traffic and weather alerts continue above.</div>';
+    return;
+  }
+  tag.textContent='Free feed';
+  list.innerHTML=items.slice(0,3).map(item=>'<a class="newsItem" href="'+escHtml(item.url)+'" target="_blank" rel="noopener">'
+    +'<span class="newsHeadline">'+escHtml(item.title)+'</span><span class="newsMeta">'+escHtml(item.domain||'Local reporting')+' · '+newsTimeLabel(item.published)+'</span></a>').join('');
+}
+async function fetchLocalNews(){
+  const url='/api/news?city='+encodeURIComponent(CITY_NAME);
+  try{
+    const response=await fetchWithTimeout(url,{headers:{Accept:'application/json'}},7000);
+    if(!response.ok)throw new Error('news '+response.status);
+    const payload=await response.json();
+    const articles=Array.isArray(payload.articles)?payload.articles.filter(item=>item&&item.title&&item.url):[];
+    renderLocalNews(articles,'Free feed');
+  }catch(error){
+    console.warn('[HTS] local news unavailable',error&&error.message?error.message:error);
+    renderLocalNews([], 'Offline');
+  }
+}
+fetchLocalNews();
+setInterval(fetchLocalNews,15*60*1000);
 function classifyNwsEvent(ev){
   const e=String(ev||'').toLowerCase();
   if(/tornado/.test(e))return {key:'tornado',label:'Tornado'};
@@ -11420,8 +11605,20 @@ const fmt=n=>n.toLocaleString('en-US');
 /* build drive-time chips */
 const dtWrap=$('drivetimes');
 for(const c of CORRIDORS){
-  const el=document.createElement('div');el.className='dtchip';
+  const el=document.createElement('button');el.type='button';el.className='dtchip';
+  el.title='Open driving directions in Google Maps';
+  el.setAttribute('aria-label','Open driving directions in Google Maps');
   el.innerHTML='<div class="r"><span class="dot2"></span><span class="nm"></span></div><div class="tm"></div>';
+  el.addEventListener('click',()=>{
+    const outbound=keyNum(DIRB_KEYS,simH)<-0.25;
+    const destinationName=(c.label.split(' · ')[1]||c.label).trim();
+    const downtown='Downtown '+CITY_NAME;
+    const origin=outbound?downtown:destinationName;
+    const destination=outbound?destinationName:downtown;
+    const url='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(origin)
+      +'&destination='+encodeURIComponent(destination)+'&travelmode=driving';
+    window.open(url,'_blank','noopener');
+  });
   if(!c.toDt)el.style.display='none';
   dtWrap.appendChild(el);c.el=el;
 }
@@ -11750,11 +11947,11 @@ function updateHUD(nightF,skyH){
     const flSrc=$('flSrc');
     if(flSrc){
       if(list.length){
-        const fa=list.some(x=>x._faOk);
+        const adsb=list.some(x=>x.icao24);
         const src=(window.LIVE_FLIGHT_STATUS&&LIVE_FLIGHT_STATUS.src)?LIVE_FLIGHT_STATUS.src:'ADS-B';
         if(usingBoard){
           flSrc.style.color='#ffb400';
-          flSrc.textContent='· '+list.length+' '+CITY_NAME+' board · Track on FlightAware';
+          flSrc.textContent='· '+list.length+' '+CITY_NAME+' board · Track on airplanes.live';
         }else{
           const houN=list.filter(x=>x._houston===true).length;
           flSrc.style.color='#7fd6a0';
@@ -11902,26 +12099,20 @@ window.renderAirportBoard=function(force){
     const age=pack&&pack.at?Math.max(0,Math.round((Date.now()-pack.at)/60000)):null;
     const ageTxt=age==null?'':(age===0?' · just now':(' · '+age+'m ago'));
     if(rows.length){
-      src.style.color=(pack&&pack.cached)||st.cached?'#ffe08a':'#7fd6a0';
-      src.textContent='· '+(st.cached||(pack&&pack.cached)?'cached':'live')+' · '+ui.apt+' '+ui.kind+' · '+rows.length+ageTxt;
+      src.style.color='#7fd6a0';
+      src.textContent='· live ADS-B · '+ui.apt+' '+ui.kind+' · '+rows.length+ageTxt;
     }
-    else if(st.ok){src.style.color='#ffb400';src.textContent='· '+ui.apt+' '+ui.kind+' empty';}
+    else if(st.ok){src.style.color='#ffb400';src.textContent='· '+ui.apt+' '+ui.kind+' · no flights';}
     else{src.style.color='#ffb400';src.textContent='· '+(st.err||'loading…');}
   }
   if(empty){
     empty.style.display=rows.length?'none':'block';
     if(!rows.length){
       const err=(pack&&pack.err)||(window.HOUSTON_BOARD_STATUS&&HOUSTON_BOARD_STATUS.err)||'';
-      if(/flightaware_disabled|FlightAware disabled/i.test(err)){
-        empty.textContent='Airport boards are off (FlightAware disabled). Live planes still use free OpenSky / ADS-B.';
-      }else if(/FLIGHTAWARE_API_KEY_missing|missing/i.test(err)){
-        empty.textContent='Airport boards are off — FlightAware AeroAPI is disabled to avoid billing.';
-      }else if(/429|Rate limited|Too many/i.test(err)){
-        empty.textContent='Airport boards are off (FlightAware disabled).';
-      }else if(/404/.test(err)){
-        empty.textContent='Airport boards are off (FlightAware disabled).';
+      if(err){
+        empty.textContent=err;
       }else{
-        empty.textContent=err||('Airport boards paused — free ADS-B sky only.');
+        empty.textContent='No '+ui.kind+' flights at '+ui.apt+' right now. Live flight data from airplanes.live ADS-B.';
       }
     }
   }
@@ -12591,7 +12782,7 @@ setTimeout(()=>{
 })();
 /* ==================== First-visit guided tour ==================== */
 (function setupTour(){
-  const KEY='houstonSim.tour.v3.'+(HTS_CITY_ID||'houston');
+  const KEY='liveTrafficSim.tour.v4.'+(HTS_CITY_ID||'houston');
   const root=$('tourRoot');
   const spot=$('tourSpot');
   const card=$('tourCard');
@@ -12613,7 +12804,7 @@ setTimeout(()=>{
     {
       sel:'#sign',mobileSel:'#mHud',fallback:'#scene',rail:'left',
       title:'Welcome to '+city,
-      body:'A live 3D map of freeways, weather, and flights. Drag to look around, scroll to zoom, right-drag to pan. Phone: one finger rotates, pinch zooms, two fingers pan.',
+      body:'Live Traffic Simulator is a 3D map of roads, weather, local news, and flights. Drag to look around, scroll to zoom, right-drag to pan. Phone: one finger rotates, pinch zooms, two fingers pan.',
     },
     {
       sel:'#wxCard',mobileSel:'#mHudChip',fallback:'#sign',rail:'left',
@@ -12624,6 +12815,16 @@ setTimeout(()=>{
       sel:'#legend',mobileSel:'#mHud',fallback:'#sign',rail:'left',
       title:'Read the freeways',
       body:'Green is free-flowing. Orange and red mean heavy traffic. Rings mark the worst hotspots right now.',
+    },
+    {
+      sel:'.shields',fallback:'#legend',rail:'left',
+      title:'Explore metro highways',
+      body:'The route chips open each highway’s details. Select All to browse the full local network, then use Show on map to center the road in the 3D view.',
+    },
+    {
+      sel:'#localNews',fallback:'#legend',rail:'left',
+      title:'Follow local headlines',
+      body:'This city-specific briefing uses a free public news feed. Open a headline to read the original reporting in a new tab.',
     },
     {
       sel:'#tourLocGrp',mobileOpen:'go',mobileSel:'#mGoFab',rail:'right',
@@ -12648,7 +12849,7 @@ setTimeout(()=>{
     {
       sel:'#tourCityGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',fallback:'#tourTimeGrp',
       title:'Sixteen metros',
-      body:'Use Metro under More to jump to another city — Phoenix, Philly, New Orleans, and more. Each pack reloads with its own freeways and weather.',
+      body:'Use Metro under More to jump to another city — Phoenix, Philly, New Orleans, and more. Each pack reloads with its own roads, weather, local news, and airports.',
     },
     {
       sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',

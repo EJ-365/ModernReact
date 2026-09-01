@@ -88,7 +88,7 @@ export async function proxyRequest(req, {
       headers: headersOut,
       body: JSON.stringify({
         error: 'missing_upstream_path',
-        hint: 'Use /api/tomtom/traffic/... or /api/flightaware/aeroapi/...',
+        hint: 'Use /api/tomtom/traffic/... or /api/airplanes/... (airplanes.live)',
       }),
     };
   }

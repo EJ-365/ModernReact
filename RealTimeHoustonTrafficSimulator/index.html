@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Houston Traffic Simulator · 16 metros live · by Ejay Gabriel</title>
-<meta name="description" content="Live 3D metro simulator across 16 U.S. cities — Houston, Austin, DFW, LA, NYC, Boston, Chicago, Miami, Seattle, Denver, Atlanta, Phoenix, Philly, Twin Cities, New Orleans, and more — freeways, suburb weather, ADS-B flights. By Ejay Gabriel.">
+<title>Live Traffic Simulator · 16 metros live · by Ejay Gabriel</title>
+<meta name="description" content="Live Traffic Simulator is a 3D metro atlas across 16 U.S. cities — freeways, suburb weather, local news, ADS-B flights, and live traffic context. By Ejay Gabriel.">
 <meta name="author" content="Ejay Gabriel">
 <meta name="theme-color" content="#0a0e14">
-<meta property="og:title" content="Houston Traffic Simulator · 16 metros live">
+<meta property="og:title" content="Live Traffic Simulator · 16 metros live">
 <meta property="og:description" content="Sixteen U.S. metros live with researched freeways, per-suburb weather, and real aircraft. By Ejay Gabriel.">
 <meta property="og:type" content="website">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -24,7 +24,7 @@
 <header class="nav" data-nav>
   <a class="brand" href="/">
     <span class="brand-mark" aria-hidden="true"></span>
-    <span class="brand-text">Houston Traffic Simulator</span>
+    <span class="brand-text">Live Traffic Simulator</span>
   </a>
   <nav class="nav-links" aria-label="Primary">
     <a href="#features">Features</a>
@@ -58,7 +58,7 @@
 </div>
 
 <main id="main">
-  <section class="hero-bleed" aria-label="Houston Traffic Simulator">
+  <section class="hero-bleed" aria-label="Live Traffic Simulator">
     <div class="cityscape" aria-hidden="true" data-parallax>
       <div class="cs-sky">
         <div class="cs-haze"></div>
@@ -101,17 +101,17 @@
     <div class="hero-content">
       <p class="hero-kicker reveal" data-reveal>
         <span class="pulse-dot" aria-hidden="true"></span>
-        16 metros live · Space City born · by Ejay Gabriel
+        16 metros live · real roads · by Ejay Gabriel
       </p>
       <h1 class="hero-brand reveal" data-reveal>
-        Houston<br>Traffic Simulator
+        Live Traffic<br>Simulator
       </h1>
       <p class="hero-lede reveal" data-reveal>
-        A living 3D metro — freeways, flights, and weather that stays local to every suburb. Open Houston, or jump to Austin, DFW, LA, NYC, and more.
+        A living 3D metro atlas with real road geometry, local weather, current headlines, and aircraft in motion. Start anywhere, then move through sixteen cities in real time.
       </p>
       <div class="hero-actions reveal" data-reveal>
         <a class="btn primary lg glow-btn" href="/app.html">
-          <span>Open Houston</span>
+          <span>Launch simulator</span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
         <a class="btn soft lg" href="#cities">All 16 cities</a>
@@ -154,7 +154,7 @@
     <div class="section-head reveal" data-reveal>
       <p class="eyebrow">Craft</p>
       <h2>One platform. Sixteen metros.</h2>
-      <p>Started as Space City — now a shared 3D engine with researched freeways, skylines, and feeds for each place.</p>
+      <p>Built for exploring how cities move: researched freeways, local conditions, and a shared 3D engine tuned to each place.</p>
     </div>
     <div class="feature-rail">
       <article class="feat reveal" data-reveal>
@@ -332,25 +332,25 @@
 
   <section class="section alt" id="updates">
     <div class="section-head reveal" data-reveal>
-      <p class="eyebrow">What’s new · v10.16</p>
-      <h2>Multi-city packs. Weather that stays put.</h2>
-      <p>Same engine across sixteen metros — with suburb weather mosaics, local rain, and airfield cleanup that matches how the sim actually works.</p>
+      <p class="eyebrow">What’s new · v10.17</p>
+      <h2>More context. Better routes. Live skies.</h2>
+      <p>This release brings city-specific headlines, real OSM road geometry in Houston, metro airport boards, and direct airplane tracking across the full 16-city atlas.</p>
     </div>
     <div class="update-rail">
       <article class="update-card reveal" data-reveal>
         <span class="update-num">01</span>
-        <h3>Sixteen city packs</h3>
-        <p>Houston through New Orleans — freeways, districts, airports, skylines, and attractions from one runtime builder, including Phoenix, Philly, and the Twin Cities.</p>
+        <h3>Local news, free</h3>
+        <p>Each metro now gets a compact local briefing from Google News RSS through a free server-side feed. Open any headline to read the original source.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">02</span>
-        <h3>Weather mosaic</h3>
-        <p>Open-Meteo samples every suburb. Rain intensity follows the nearest district’s feed only — a dry suburb stays dry even if downtown is wet.</p>
+        <h3>airplanes.live tracking</h3>
+        <p>Live cards and airport boards now link directly to globe.airplanes.live, with departing, arriving, climbing, and airborne status shown in the flight card.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">03</span>
-        <h3>Sky &amp; tour polish</h3>
-        <p>Slow ground tracks (parked ADS-B) drop out so fields like AUS don’t freeze in place. First-visit tour waits until the sim is actually ready.</p>
+        <h3>Roads you can explore</h3>
+        <p>Houston now boots from quality-checked OSM freeway and ramp geometry. Highway chips open details and focus the selected corridor on the map.</p>
       </article>
     </div>
     <div class="hero-actions reveal" data-reveal style="margin-top:28px">
@@ -369,9 +369,40 @@
       <div class="live-row reveal" data-reveal><span>Traffic · Houston</span><b>TranStar</b></div>
       <div class="live-row reveal" data-reveal><span>Traffic · other metros</span><b>Modeled (free)</b></div>
       <div class="live-row reveal" data-reveal><span>Weather · every suburb</span><b>Open-Meteo</b></div>
-      <div class="live-row reveal" data-reveal><span>Aircraft positions</span><b>ADS-B / OpenSky</b></div>
-      <div class="live-row reveal" data-reveal><span>Airport boards</span><b>Paused · free ADS-B sky</b></div>
+      <div class="live-row reveal" data-reveal><span>Local headlines · every metro</span><b>Google News RSS</b></div>
+      <div class="live-row reveal" data-reveal><span>Aircraft positions &amp; tracking</span><b>airplanes.live / ADS-B</b></div>
+      <div class="live-row reveal" data-reveal><span>Airport boards</span><b>Free live ADS-B reconstruction</b></div>
       <div class="live-row reveal" data-reveal><span>Alerts</span><b>NWS (per metro)</b></div>
+    </div>
+  </section>
+
+  <section class="section faq-section" id="faq">
+    <div class="section-head reveal" data-reveal>
+      <p class="eyebrow">FAQ</p>
+      <h2>Built to stay useful.</h2>
+      <p>What is live, what is modeled, and where the information comes from.</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item reveal" data-reveal>
+        <summary>Is Live Traffic Simulator free?</summary>
+        <p>Yes. The simulator uses public and free-to-access sources, with no paid traffic, weather, airport, or news service required to use the experience.</p>
+      </details>
+      <details class="faq-item reveal" data-reveal>
+        <summary>Where do the local headlines come from?</summary>
+        <p>Headlines are retrieved from Google News RSS with a query for the active metro. Selecting a headline opens the original publisher’s reporting.</p>
+      </details>
+      <details class="faq-item reveal" data-reveal>
+        <summary>How are flights and airport boards powered?</summary>
+        <p>Aircraft positions come from free ADS-B sources. Flight cards and airport board rows can open the matching aircraft or callsign on airplanes.live for further tracking.</p>
+      </details>
+      <details class="faq-item reveal" data-reveal>
+        <summary>Are all traffic speeds live?</summary>
+        <p>Houston uses live TranStar data where it is available. Other metros and uncovered corridors use clearly labeled modeled traffic, which keeps the map active without presenting estimates as measured conditions.</p>
+      </details>
+      <details class="faq-item reveal" data-reveal>
+        <summary>What is modeled on the map?</summary>
+        <p>Road geometry, districts, airports, and landmarks are researched per city. Weather, alerts, local news, and flight positions update from their respective live or public feeds.</p>
+      </details>
     </div>
   </section>
 
@@ -379,9 +410,9 @@
     <div class="cta-orbit" aria-hidden="true"></div>
     <div class="cta-inner reveal" data-reveal>
       <h2>Open a metro.<br>Watch it breathe.</h2>
-      <p>Start in Houston or jump to any of sixteen skies — Austin, NYC, LA, Miami, New Orleans, and more.</p>
+      <p>Choose a city and watch its roads, weather, local headlines, and airspace come to life.</p>
       <div class="hero-actions">
-        <a class="btn primary lg glow-btn" href="/app.html">Open Houston</a>
+        <a class="btn primary lg glow-btn" href="/app.html">Launch Houston</a>
         <a class="btn soft lg" href="/app.html?city=newyork">Open New York</a>
         <a class="btn ghost lg" href="/download.html">Download</a>
       </div>
@@ -393,7 +424,7 @@
   <div class="footer-brand">
     <span class="brand-mark sm"></span>
     <div>
-      <strong>Houston Traffic Simulator</strong>
+      <strong>Live Traffic Simulator</strong>
       <p>Created by <a href="/about.html">Ejay Gabriel</a></p>
     </div>
   </div>

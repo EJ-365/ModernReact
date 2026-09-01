@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { houstonManifest } from '../src/cities/houston/manifest.js';
 import { isCityManifest, CITY_IDS } from '../src/cities/types.js';
 import { transtarAdapter } from '../src/feeds/transtar.js';
+import { preferredBoardAirport, resolveBoardAirportCodes } from '../src/cities/airport-set.js';
 
 test('houston manifest', async (t) => {
   await t.test('passes shape check', () => {
@@ -37,4 +38,12 @@ test('transtar adapter', async (t) => {
     assert.ok(snap.flows instanceof Map);
     assert.ok(Array.isArray(snap.incidents));
   });
+});
+
+test('metro airport selection prefers the active city airport list', () => {
+  const dallasCity = { id: 'dallas', airportCodes: ['DFW', 'DAL', 'ADS'] };
+  const dallasPack = { boardApts: ['DFW', 'DAL', 'ADS'] };
+  assert.deepEqual(resolveBoardAirportCodes(dallasCity, dallasPack, ['IAH', 'HOU']), ['DFW', 'DAL', 'ADS']);
+  assert.equal(preferredBoardAirport(dallasCity, dallasPack, ['IAH', 'HOU']), 'DFW');
+  assert.equal(preferredBoardAirport({ id: 'austin', airportCodes: ['AUS', 'EDC'] }, { boardApts: ['AUS', 'EDC'] }, ['IAH']), 'AUS');
 });

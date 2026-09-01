@@ -4,6 +4,7 @@
  */
 import { activeCity, activeCityId, CITY_IDS, CITY_PACKS } from './cities/registry.js';
 import { isCityManifest } from './cities/types.js';
+import { preferredBoardAirport } from './cities/airport-set.js';
 import { buildAustinRuntimePack } from './cities/austin/runtime.js';
 import { buildSanAntonioRuntimePack } from './cities/sanantonio/runtime.js';
 import { buildDallasRuntimePack } from './cities/dallas/runtime.js';
@@ -203,7 +204,14 @@ function applyJumpSelect(pack) {
 function applyBoardChrome(pack) {
   const row = document.getElementById('boardAptBtns');
   if (!row || !pack.boardApts || !pack.boardApts.length) return;
-  row.innerHTML = pack.boardApts
+  const preferred = Array.isArray(window.HTS_CITY && window.HTS_CITY.airportCodes)
+    ? window.HTS_CITY.airportCodes
+    : [];
+  const order = [...new Set([...preferred, ...pack.boardApts.filter((code) => !preferred.includes(code))])];
+  const first = preferredBoardAirport(window.HTS_CITY, pack, order);
+  const selectedIndex = order.indexOf(first);
+  const ordered = selectedIndex > 0 ? [order[selectedIndex], ...order.slice(0, selectedIndex), ...order.slice(selectedIndex + 1)] : order;
+  row.innerHTML = ordered
     .map((code, i) => {
       const on = i === 0 ? ' on' : '';
       return (

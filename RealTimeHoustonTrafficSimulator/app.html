@@ -48,10 +48,11 @@
   #leftCol::-webkit-scrollbar-thumb{background:#2e353d;border-radius:3px}
   #leftCol>*{pointer-events:auto}
   #sign{position:static;flex:0 0 auto;max-width:100%;
-    background:linear-gradient(178deg,#02744a 0%,var(--sign-green) 30%,var(--sign-green-dark) 100%);
-    border:3px solid var(--sign-border);border-radius:14px;
-    box-shadow:0 10px 34px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.22);
+    background:linear-gradient(155deg,#123f32 0%,#0d2f27 46%,#0b201c 100%);
+    border:1px solid #3f7f69;border-radius:14px;
+    box-shadow:0 10px 34px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1);
     padding:16px 18px 14px}
+  #sign::before{content:'';display:block;width:42px;height:3px;border-radius:2px;background:#7fd6a0;margin-bottom:12px}
   #sign h1{font-size:20px;font-weight:900;letter-spacing:.04em;line-height:1.1;text-transform:uppercase;
     text-shadow:0 1px 2px rgba(0,0,0,.35)}
   /* Austin chrome: slightly tighter display type so long metro names fit the guide-sign */
@@ -66,12 +67,35 @@
   #dateLine{font-size:11.5px;color:#cfe0d4;margin-top:3px}
   .shields{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;padding-top:12px;
     border-top:1px solid rgba(255,255,255,.12)}
-  .shield{width:34px;height:30px;position:relative;flex:0 0 auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.4))}
-  .shield svg{width:100%;height:100%;display:block}
-  .shield span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-    font-weight:900;font-size:11px;color:#fff;padding-top:5px}
-  .shield.small span{font-size:9px}
-  .shield.us span{color:#111;padding-top:2px}
+  .shield{width:46px;height:46px;position:relative;flex:0 0 auto;border:1px solid #78b69c;border-radius:50%;background:rgba(5,20,17,.5);padding:0;cursor:pointer;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 3px 8px rgba(0,0,0,.3);transition:transform .15s ease,border-color .15s ease,background .15s ease}
+  .shield:hover{transform:translateY(-2px);border-color:#d2f5df;background:#174838}
+  .shield:focus-visible{outline:2px solid #ffe08a;outline-offset:3px}
+  .shield span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
+    font-weight:900;font-size:8px;color:#e9f5ed;padding:3px;white-space:normal;line-height:1.05}
+  .highwayMore{height:30px;padding:0 9px;border-radius:8px;border:1px solid rgba(255,255,255,.24);background:rgba(0,0,0,.2);color:#d9eee0;
+    font-family:inherit;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+  .highwayMore:hover{background:rgba(255,255,255,.1);color:#fff}
+  #roadModalScrim{display:none;position:fixed;inset:0;z-index:40;background:rgba(3,7,12,.68);border:0;padding:0}
+  #roadModalScrim.on{display:block}
+  #roadModal{display:none;position:fixed;z-index:41;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 28px));
+    max-height:min(78vh,680px);overflow:auto;background:#10161d;border:1px solid #2e4655;border-radius:14px;padding:16px;box-shadow:0 22px 56px rgba(0,0,0,.58)}
+  #roadModal.on{display:block}
+  .roadModalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .roadModalKicker{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7fd6a0}
+  .roadModalTitle{font-size:17px;font-weight:800;line-height:1.2;margin-top:3px}
+  .roadModalClose{width:32px;height:32px;border-radius:8px;border:1px solid #2d3945;background:#18212a;color:#d7e0e6;font-size:18px;cursor:pointer}
+  .roadModalDesc{font-size:11.5px;line-height:1.5;color:#aebac4;margin:0 0 12px}
+  .roadModalStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+  .roadModalStats div{background:#0c1218;border:1px solid #25313d;border-radius:8px;padding:8px}
+  .roadModalStats b{display:block;font-family:'Overpass Mono',monospace;font-size:13px;color:#f0f4f6}
+  .roadModalStats span{display:block;margin-top:3px;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7c8994}
+  .roadModalMap{width:100%;padding:10px;border-radius:9px;border:1px solid #2c5c70;background:#143044;color:#a8dcff;font-family:inherit;font-size:11px;font-weight:800;cursor:pointer}
+  .roadModalMap:hover{background:#1a405a}
+  .roadList{display:flex;flex-direction:column;gap:5px}
+  .roadList button{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;border:1px solid #25313d;background:#121a22;color:#dce4e9;font-family:inherit;cursor:pointer}
+  .roadList button:hover{border-color:#426780;background:#172632}
+  .roadList b{font-size:11px}.roadList span{font-size:9px;color:#82909c;font-weight:700;white-space:nowrap}
 
   /* ---------- Weather card ---------- */
   #wxCard{margin-top:12px;padding:12px 13px;border-radius:12px;background:rgba(0,0,0,.28);
@@ -258,14 +282,19 @@
   .fcard .fbadge.arr{color:#7db7ff;background:#132433;border-color:#2a4d6e}
   .fcard .fbadge.dep{color:#ffd27a;background:#2a2214;border-color:#5c4a22}
   .fcard .fbadge.unk{color:#aeb7c0;background:#1a2028;border-color:#2c333c}
-  .fcard .froutebox{display:grid;grid-template-columns:1fr 28px 1fr;gap:6px;align-items:center;margin-bottom:10px}
+  .fcard .froutebox{display:grid;grid-template-columns:1fr 48px 1fr;gap:6px;align-items:center;margin-bottom:11px}
   .fcard .fapt{min-width:0}
   .fcard .fapt .code{font-family:'Overpass Mono',monospace;font-size:20px;font-weight:800;letter-spacing:.04em;line-height:1}
   .fcard .fapt .city{font-size:10px;color:#8a939c;font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fcard .fapt .aname{font-size:9.5px;color:#6d7883;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fcard .fapt.to .code{text-align:right}
   .fcard .fapt.to .city,.fcard .fapt.to .aname{text-align:right}
-  .fcard .farrow{text-align:center;color:#4a5560;font-size:14px;font-weight:800}
+  .fcard .frouteflight{--flight-accent:#7fd6a0;display:grid;place-items:center;width:44px;height:42px;margin:auto;border:1px solid #294438;border-radius:10px;
+    background:#111a21;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+  .fcard .frouteflight i{font-size:29px;line-height:1;color:var(--flight-accent);transition:transform .35s ease,color .25s ease}
+  .fcard .frouteflight.departure{--flight-accent:#ffd27a;border-color:#5c4a22;background:linear-gradient(145deg,#392b15,#17150f 74%)}
+  .fcard .frouteflight.arrival{--flight-accent:#7db7ff;border-color:#2a4d6e;background:linear-gradient(145deg,#17344a,#101820 74%)}
+  .fcard .frouteflight.climb{--flight-accent:#6cb8ff;border-color:#2b5274;background:linear-gradient(145deg,#173c55,#101820 74%)}
   .fcard .fmeta{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px}
   .fcard .fchip{background:#0d1218;border:1px solid #232b35;border-radius:10px;padding:7px 8px}
   .fcard .fchip .k{font-size:8.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6d7883}
@@ -346,6 +375,18 @@
   #stCong.busy{color:var(--heavy)} #stCong.jam{color:var(--jam)} #stCong.ok{color:var(--free)}
   #trafficSrcLine{margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.04em;color:#6d7883;
     text-transform:uppercase;line-height:1.35}
+  #localNews{position:static;flex:0 0 auto;background:linear-gradient(160deg,#151d25,#10161d);border:1px solid var(--panel-line);
+    border-radius:12px;padding:12px 13px;box-shadow:0 8px 22px rgba(0,0,0,.3)}
+  #localNews .newsHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  #localNews .newsTitle{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#cfd6dd}
+  #localNews .newsTag{font-size:8px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#7fd6a0;background:#133326;border:1px solid #285a42;border-radius:99px;padding:3px 6px}
+  #localNews .newsList{display:flex;flex-direction:column;gap:2px}
+  #localNews .newsItem{display:block;padding:8px 0;border-top:1px solid #222c36;color:#dce3e8;text-decoration:none}
+  #localNews .newsItem:first-child{border-top:0;padding-top:2px}
+  #localNews .newsItem:hover .newsHeadline{color:#9ecbff}
+  #localNews .newsHeadline{display:block;font-size:11px;font-weight:700;line-height:1.35;transition:color .15s ease}
+  #localNews .newsMeta{display:block;margin-top:3px;font-size:9px;font-weight:700;color:#7d8994;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #localNews .newsEmpty{font-size:10px;font-weight:600;color:#87939d;line-height:1.45;padding:4px 0}
   #findPlaneBtn{margin-top:10px;width:100%;margin-bottom:10px}
 
   /* ---------- incident alerts ---------- */
@@ -417,8 +458,19 @@
   #bottomDock{position:fixed;bottom:var(--ui-pad);left:50%;transform:translateX(-50%);z-index:9;
     display:flex;flex-direction:column;align-items:center;gap:10px;
     width:min(1040px,calc(100vw - var(--rail-w) * 2 - var(--ui-pad) * 2 - 28px));
-    pointer-events:none}
+    pointer-events:none;transition:width .28s cubic-bezier(.22,1,.36,1)}
   #bottomDock>*{pointer-events:auto}
+  #driveDockContent{width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;max-height:180px;overflow:hidden;
+    opacity:1;transform:translateY(0);transition:max-height .28s cubic-bezier(.22,1,.36,1),opacity .18s ease,transform .28s cubic-bezier(.22,1,.36,1)}
+  .dockToggle{position:absolute;z-index:1;top:-14px;right:12px;width:30px;height:30px;padding:0;border-radius:50%;border:1px solid #3a4653;
+    background:#141c25;color:#c9d3dc;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 5px 15px rgba(0,0,0,.42);transition:background .15s,border-color .15s,transform .28s ease}
+  .dockToggle:hover{background:#202c38;border-color:#5a6d80;color:#fff}
+  .dockToggle svg{width:15px;height:15px;transition:transform .28s ease}
+  body.dock-collapsed #bottomDock{width:30px}
+  body.dock-collapsed #driveDockContent{max-height:0;opacity:0;transform:translateY(10px);pointer-events:none}
+  body.dock-collapsed .dockToggle{position:static;transform:none}
+  body.dock-collapsed .dockToggle svg{transform:rotate(180deg)}
   #camhint{position:static;width:100%;font-size:10px;color:#8a939c;line-height:1.55;
     text-align:center;padding:0 16px 2px;background:transparent;border:none}
   #camhint a,#camhint button{color:#7fd6a0;font-weight:700;background:none;border:none;
@@ -585,19 +637,20 @@
   /* ---------- Live drive-times bar ---------- */
   #drivetimes{position:static;width:100%;display:flex;justify-content:stretch;align-items:stretch;
     flex-wrap:nowrap;gap:8px;padding:8px;
-    background:var(--panel);backdrop-filter:blur(12px);border:1px solid var(--panel-line);
+    background:linear-gradient(180deg,rgba(19,26,35,.96),rgba(12,18,25,.96));backdrop-filter:blur(12px);border:1px solid var(--panel-line);
     border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.45);
     overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
   #drivetimes::-webkit-scrollbar{display:none}
-  .dtchip{flex:1 1 0;min-width:0;max-width:none;background:#121820;
-    border:1px solid #2a3340;border-radius:11px;padding:8px 9px 7px;
-    transition:transform .18s ease,border-color .18s ease}
-  .dtchip:hover{transform:translateY(-2px);border-color:#3a4450}
+  .dtchip{flex:1 1 0;min-width:0;max-width:none;background:linear-gradient(145deg,#151d27,#10161e);
+    border:1px solid #2a3643;border-radius:10px;padding:9px 10px 8px;color:inherit;font-family:inherit;cursor:pointer;
+    transition:transform .18s ease,border-color .18s ease,background .18s ease}
+  .dtchip:hover{transform:translateY(-2px);border-color:#6c9cc2;background:#172534}
+  .dtchip:focus-visible{outline:2px solid #7db7ff;outline-offset:2px}
   .dtchip .r{display:flex;align-items:center;justify-content:center;gap:6px}
   .dtchip .dot2{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
   .dtchip{text-align:center}
   .dtchip .nm{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#cfd6dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .dtchip .tm{font-family:'Overpass Mono',monospace;font-size:17px;font-weight:700;margin-top:4px}
+  .dtchip .tm{font-family:'Overpass Mono',monospace;font-size:18px;font-weight:700;margin-top:4px;color:#f1f5f7}
   .dtchip .tm small{display:block;font-size:8.5px;color:var(--dim);font-weight:700;margin-top:2px;margin-left:0;line-height:1.35;white-space:normal}
   #flash{position:fixed;inset:0;background:#dfe9ff;opacity:0;pointer-events:none;z-index:20;transition:opacity .08s}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
@@ -835,7 +888,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.16.62</span></div>
+  <div class="sub">Space City · Texas · Live conditions <span id="vtag">v10.17.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -905,6 +958,11 @@
   </div>
   <div id="trafficSrcLine">Feed · waiting…</div>
 </div>
+
+<section id="localNews" aria-labelledby="localNewsTitle">
+  <div class="newsHead"><span class="newsTitle" id="localNewsTitle">Local news</span><span class="newsTag" id="newsTag">Loading</span></div>
+  <div class="newsList" id="newsList"><div class="newsEmpty">Checking free local headlines…</div></div>
+</section>
 
 <div id="incidentPanel">
   <div id="incidentHead">
@@ -1158,7 +1216,7 @@
   </div>
   <div class="grp" id="tourBoardGrp">
     <label>Airport boards <span id="boardSrc" style="font-weight:400;color:var(--dim);font-size:9px"></span></label>
-    <div class="sublabel">Airport boards paused · live sky uses free OpenSky / ADS-B only</div>
+    <div class="sublabel">Live departures & arrivals from airplanes.live ADS-B</div>
     <div class="btnrow" id="boardAptBtns" style="margin-bottom:8px">
       <button class="btn on" data-apt="IAH">IAH</button>
       <button class="btn" data-apt="HOU">HOU</button>
@@ -1182,8 +1240,13 @@
 <div class="pcRow"><button id="pcFly">Fly there</button><button id="pcDir">Directions ↗</button><button id="pcWiki" style="display:none">Wikipedia ↗</button><button id="pcX">×</button></div></div>
 <div id="followChip"><span class="fdot"></span><span id="fTxt">Following</span><button id="fX" title="Stop following">×</button></div>
 <div id="bottomDock">
-  <div id="drivetimes"></div>
-  <div id="camhint">drag&nbsp;·&nbsp;rotate&nbsp;&nbsp;|&nbsp;&nbsp;scroll&nbsp;·&nbsp;zoom&nbsp;&nbsp;|&nbsp;&nbsp;right-drag&nbsp;·&nbsp;pan<br>touch: 1&nbsp;finger rotate · pinch zoom · 2&nbsp;fingers pan<br><a href="/">← Website home</a> · <button type="button" id="tourReplay">Replay tour</button> · Created by Ejay Gabriel</div>
+  <button type="button" class="dockToggle" id="dockToggle" aria-label="Hide drive times" title="Hide drive times" aria-expanded="true" aria-controls="driveDockContent">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  <div id="driveDockContent">
+    <div id="drivetimes"></div>
+    <div id="camhint">drag&nbsp;·&nbsp;rotate&nbsp;&nbsp;|&nbsp;&nbsp;scroll&nbsp;·&nbsp;zoom&nbsp;&nbsp;|&nbsp;&nbsp;right-drag&nbsp;·&nbsp;pan<br>touch: 1&nbsp;finger rotate · pinch zoom · 2&nbsp;fingers pan<br><a href="/">← Website home</a> · <button type="button" id="tourReplay">Replay tour</button> · Created by Ejay Gabriel</div>
+  </div>
 </div>
 
 <button id="locBtn" title="Go to my location"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12z" fill="#cfd8e0"/></svg></button>
@@ -1230,6 +1293,10 @@
 <button id="gtYes">Enable</button><button id="gtNo">Not now</button></div>
 
 <button type="button" id="wxReportScrim" aria-label="Close weather alerts"></button>
+<button type="button" id="roadModalScrim" aria-label="Close highway information"></button>
+<section id="roadModal" role="dialog" aria-modal="true" aria-labelledby="roadModalTitle">
+  <div id="roadModalBody"></div>
+</section>
 <div id="wxReport" role="dialog" aria-modal="true" aria-labelledby="wrTitle" hidden>
   <div class="wrHead">
     <div>
@@ -1369,6 +1436,23 @@
     if(isDesktop()&&document.body.classList.contains('right-collapsed'))syncPanelRail(true);
   });
   restore();
+})();
+
+(function setupDriveDock(){
+  const dock=document.getElementById('bottomDock');
+  const toggle=document.getElementById('dockToggle');
+  const key='hts-drive-dock-collapsed';
+  if(!dock||!toggle)return;
+  function apply(collapsed){
+    document.body.classList.toggle('dock-collapsed',collapsed);
+    toggle.setAttribute('aria-expanded',collapsed?'false':'true');
+    const label=collapsed?'Show drive times':'Hide drive times';
+    toggle.setAttribute('aria-label',label);
+    toggle.title=label;
+    try{localStorage.setItem(key,collapsed?'1':'0');}catch(e){}
+  }
+  try{apply(localStorage.getItem(key)==='1');}catch(e){apply(false);}
+  toggle.addEventListener('click',()=>apply(!document.body.classList.contains('dock-collapsed')));
 })();
 </script>
 </body>

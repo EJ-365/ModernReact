@@ -1,22 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
 
-test('FlightAware proxies stay hard-disabled', () => {
-  const netlify = read('netlify/functions/flightaware.mjs');
-  const vercel = read('api/flightaware/[...path].mjs');
+test('FlightAware proxies have been removed', () => {
+  const netlifyPath = join(root, 'netlify/functions/flightaware.mjs');
+  const vercelPath = join(root, 'api/flightaware/[...path].mjs');
+  // Files should no longer exist since we switched to airplanes.live
+  assert.equal(existsSync(netlifyPath), false, 'FlightAware Netlify function should be removed');
+  assert.equal(existsSync(vercelPath), false, 'FlightAware Vercel proxy should be removed');
+  // But vite.config should not have FlightAware middleware anymore
   const vite = read('vite.config.js');
-  assert.match(netlify, /flightaware_disabled/);
-  assert.match(vercel, /flightaware_disabled/);
-  assert.match(vite, /flightaware_disabled/);
-  assert.equal(/aeroapi\.flightaware\.com/.test(netlify), false);
-  assert.equal(/aeroapi\.flightaware\.com/.test(vercel), false);
-  assert.equal(/aeroapi\.flightaware\.com/.test(vite), false);
+  assert.equal(/\/api\/flightaware/.test(vite), false, 'FlightAware API path should be removed from vite config');
 });
 
 test('TomTom proxies stay hard-disabled', () => {
@@ -33,12 +32,14 @@ test('TomTom proxies stay hard-disabled', () => {
   assert.equal(/api\.tomtom\.com/.test(vercelJson), false);
 });
 
-test('app-main never enables paid FA/TomTom calls', () => {
+test('app-main uses free feeds only', () => {
   const main = read('src/app-main.js');
-  assert.match(main, /HTS_PAID_APIS_DISABLED\s*=\s*true/);
-  assert.match(main, /HTS_FLIGHTAWARE_ENABLED\s*=\s*false/);
+  // Should use airplanes.live for tracking
+  assert.match(main, /airplanes\.live/);
+  // Should not have FlightAware AeroAPI enabled
+  assert.equal(/HTS_FLIGHTAWARE_ENABLED\s*=\s*true/.test(main), false);
+  // TomTom should remain disabled
   assert.match(main, /throw new Error\('tomtom_disabled'\)/);
-  assert.match(main, /async function fetchAeroAPI[\s\S]*?return null;/);
   assert.equal(/https:\/\/api\.tomtom\.com/.test(main), false);
   assert.equal(/aeroapi\.flightaware\.com/.test(main), false);
 });
@@ -46,6 +47,5 @@ test('app-main never enables paid FA/TomTom calls', () => {
 test('env example does not instruct setting paid keys', () => {
   const ex = read('.env.example');
   assert.match(ex, /PAID APIs|DISABLED|billing/i);
-  assert.match(ex, /# FLIGHTAWARE_API_KEY=/);
   assert.match(ex, /# TOMTOM_API_KEY=/);
 });

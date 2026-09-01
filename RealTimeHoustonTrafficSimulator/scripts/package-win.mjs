@@ -51,7 +51,7 @@ WEB APP INSTALL
   In Chrome/Edge on the running site, use Install app / Install Houston Traffic Simulator.
 
 LIVE DATA NOTE
-  Static "serve" does not include Vite API proxies. For TranStar / FlightAware / TomTom
+  Static "serve" does not include Vite API proxies. For TranStar / airplanes.live / TomTom
   while developing, run the project with: npm run dev  (from the full repo).
 
 SUPPORT

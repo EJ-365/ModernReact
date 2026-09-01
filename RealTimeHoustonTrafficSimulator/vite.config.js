@@ -57,15 +57,25 @@ export default defineConfig(({ mode }) => {
             }
           });
 
-          /* FlightAware AeroAPI — hard-disabled (billing). Free ADS-B/OpenSky only. */
-          server.middlewares.use("/api/flightaware", async (_req, res) => {
-            res.statusCode = 503;
-            res.setHeader("content-type", "application/json");
-            res.setHeader("cache-control", "no-store");
-            res.end(JSON.stringify({
-              error: "flightaware_disabled",
-              hint: "FlightAware AeroAPI is turned off. Sky uses free OpenSky / ADS-B only.",
-            }));
+          server.middlewares.use("/api/news", async (req, res) => {
+            try {
+              const city = String(new URL(req.url || "/", "http://local").searchParams.get("city") || "Houston").slice(0, 80);
+              const target = new URL("https://news.google.com/rss/search");
+              target.searchParams.set("q", `${city} local news when:1d`);
+              target.searchParams.set("hl", "en-US"); target.searchParams.set("gl", "US"); target.searchParams.set("ceid", "US:en");
+              const upstream = await fetch(target, { headers: { accept: "application/rss+xml", "user-agent": "TrafficSimulator/1.0" } });
+              const xml = await upstream.text();
+              const decode = (value = "") => String(value).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">" ).replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+              const tag = (item, name) => decode(item.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i"))?.[1] || "").trim();
+              const articles = upstream.ok ? [...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0, 6).map((match) => ({ title: tag(match[1], "title"), url: tag(match[1], "link"), domain: tag(match[1], "source"), published: tag(match[1], "pubDate") })).filter((item) => item.title && item.url) : [];
+              res.statusCode = upstream.ok ? 200 : 502;
+              res.setHeader("content-type", "application/json");
+              res.end(JSON.stringify(upstream.ok ? { articles } : { error: "news_unavailable" }));
+            } catch {
+              res.statusCode = 502;
+              res.setHeader("content-type", "application/json");
+              res.end(JSON.stringify({ error: "news_unavailable" }));
+            }
           });
         },
       },

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Desktop packaging — Houston Traffic Simulator</title>
+<title>Desktop packaging — Live Traffic Simulator</title>
 <meta name="author" content="Ejay Gabriel">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body class="page-docs">
 <div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
 <header class="nav">
-  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Live Traffic Simulator</span></a>
   <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/desktop.html" aria-current="page">Desktop</a></nav>
   <div class="nav-cta"><a class="btn primary" href="/download.html">Download</a></div>
   <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
@@ -60,7 +60,7 @@ npm run package:win</code></pre>
 # add main process that loads http://localhost:5176/app.html in dev
 # or loads file:// dist/app.html / custom static server in prod
 npm run dist:win   # after you wire electron-builder</code></pre>
-    <p>For classroom kiosks, prefer Electron + a local proxy so TranStar/FlightAware keep working offline-from-browser but online-to-APIs.</p>
+    <p>For classroom kiosks, prefer Electron + a local proxy so TranStar/airplanes.live keep working offline-from-browser but online-to-APIs.</p>
 
     <h2>Web install (no download)</h2>
     <p>Most users should use <a href="/download.html">Install web app</a> — zero packaging, always current.</p>

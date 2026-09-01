@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CI &amp; continuous updates — Houston Traffic Simulator</title>
+<title>CI &amp; continuous updates — Live Traffic Simulator</title>
 <meta name="author" content="Ejay Gabriel">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body class="page-docs">
 <div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
 <header class="nav">
-  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulator</span></a>
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Live Traffic Simulator</span></a>
   <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/ci.html" aria-current="page">CI</a></nav>
   <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
   <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
@@ -69,7 +69,7 @@ npm run package:win   # optional desktop zip</code></pre>
     </ul>
 
     <h2>Secrets in CI</h2>
-    <p>Production builds do not need live API keys. If you add deploy steps later, store <code>FLIGHTAWARE_API_KEY</code> / <code>TOMTOM_API_KEY</code> only in GitHub Actions secrets — never in the client bundle.</p>
+    <p>Production builds do not need live API keys. If you add deploy steps later, store <code>TOMTOM_API_KEY</code> only in GitHub Actions secrets — never in the client bundle.</p>
   </article>
 </main>
 <script src="/site/site.js" type="module"></script>

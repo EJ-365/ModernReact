@@ -1,10 +1,10 @@
-# Progress log — Houston Traffic Simulator
+# Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.16.9** (2026-07-12) — Austin researched content pack  
-**SW cache:** `hts-shell-v68`
+**Current build:** **v10.17.0** (2026-08-31) — multi-city live-data and road-fidelity release
+**SW cache:** `hts-shell-v147`
 
-This note captures the work from the late **v10.8.x / v10.9** baseline through **v10.16.6**, ahead of the multi-city migration.
+This log captures the work from the late **v10.8.x / v10.9** baseline through the current **v10.17.0** multi-city release.
 
 ---
 
@@ -33,6 +33,7 @@ This note captures the work from the late **v10.8.x / v10.9** baseline through *
 | **v10.16.7** | Phase 2: Vite Three 0.185 + TranStar adapter (map/RSS/apply/index) |
 | **v10.16.8** | Phase 3: Austin manifest + city registry (`?city=austin`); Houston still default |
 | **v10.16.9** | Austin researched pack: roads, jumps, airports, weather, TomTom-only traffic |
+| **v10.17.0** | Live Traffic Simulator rebrand; free local Google News RSS; airplanes.live tracking; reconstructed metro airport boards; OSM freeway/ramp boot for Houston; interactive highway and refreshed onboarding UI |
 
 ---
 
@@ -44,11 +45,19 @@ This note captures the work from the late **v10.8.x / v10.9** baseline through *
 - Removed off-screen teleport respawns that caused one-frame glitches.
 - **Suburb cul-de-sac cars disabled** — OSM still draws real local streets; cars stay on freeways/arterials.
 
-### Roads (v10.16.0)
+### Roads (v10.16.0–v10.17.0)
 
 - Stitched OSM freeway fragments → `public/data/roads-corridors.json` / `.js`.
 - Applied to I-10, I-45, I-610, US-59, US-290, Beltway 8, TX-99, SH-288, and related corridors.
 - Script: `npm run roads:stitch` (also part of `roads:build`).
+- v10.17 enables the quality-checked OSM freeway/ramp boot set; individual paths with excessive reversals or duplicate points are rejected before Three.js mesh generation.
+
+### Multi-city live data (v10.17.0)
+
+- Airport boards reconstruct arrivals and departures from active free ADS-B flights for each city pack's airport set.
+- Flight cards and board rows link to `globe.airplanes.live` for direct aircraft/callsign tracking.
+- Local-news panels use free Google News RSS through same-origin `/api/news` proxies on Vite, Netlify, and Vercel; unavailable upstreams show an offline state without blocking the app.
+- The v4 onboarding tour introduces local news, interactive highways, traffic context, flights, and multi-city switching.
 
 ### Time sync & live freshness (v10.16.2)
 
@@ -76,12 +85,12 @@ This note captures the work from the late **v10.8.x / v10.9** baseline through *
 | Feed | Role |
 |------|------|
 | Houston TranStar RSS | Freeway travel times, incidents, closures |
-| TomTom (optional) | Flow / incidents / routing ETAs |
+| Google News RSS | Metro-specific local headlines (free) |
 | Open-Meteo | Weather + forecast for time-lapse |
 | NWS | Regional alerts |
-| OpenSky / FlightAware | Aircraft + airport boards |
+| airplanes.live / OpenSky | Aircraft tracking (free ADS-B)
 
-Configure keys via `.env.local` (see `.env.example`). TranStar authenticated JSON remains optional for true segment speeds.
+No commercial API keys are required. TomTom is intentionally disabled; TranStar agency JSON URLs remain optional for Houston segment-speed experiments.
 
 ---
 
@@ -97,7 +106,7 @@ npm run dev
 
 Open `http://localhost:5176/app.html`, hard-refresh, confirm console:
 
-`build v10.16.6`
+`build v10.17.0`
 
 Checks:
 
@@ -131,8 +140,8 @@ Keep Houston’s TranStar-specific mapping behind a city adapter so other metros
 | `public/data/roads-corridors.*` | Stitched Houston freeways |
 | `scripts/stitch-houston-corridors.mjs` | Corridor stitcher |
 | `public/sw.js` | PWA shell cache version |
-| `api/` | Vercel/Netlify-style proxies (FlightAware, TomTom) |
+| `api/` | Vercel/Netlify-style proxies (TomTom) |
 
 ---
 
-*Updated 2026-07-12 for the v10.16.6 NWS alerts popup.*
+*Updated 2026-08-31 for the v10.17.0 Live Traffic Simulator release.*
