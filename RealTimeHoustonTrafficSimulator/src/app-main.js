@@ -6827,8 +6827,20 @@ async function fetchLocalWeather(lat,lng,force){
         place:place||'Near you',lat:latR,lng:lngR,acc,gpsLat:lat,gpsLng:lng,src:'nws',
       };
     }else{
-      throw new Error(wxRes?('open-meteo '+wxRes.status):'no weather');
+      localWx = {
+        temp: null, feels: null,
+        hum: null, wind: null,
+        windDir: 0, precip: 0,
+        cloud: 0,
+        dew: null,
+        press: '—',
+        uv: null, vis: null,
+        preset: 'partly', label: 'Offline', rainAmt: 0,
+        at: Date.now(), hourly: null, daily: null,
+        place: place || 'Near you', lat: latR, lng: lngR, acc, gpsLat: lat, gpsLng: lng, src: 'error',
+      };
     }
+
     /* Prefer official NWS thermometer at nearest METAR when available */
     if(nwsObs&&nwsObs.temp!=null){
       localWx.temp=nwsObs.temp;
@@ -6931,7 +6943,7 @@ function renderLocalNews(items,status){
     return;
   }
   tag.textContent='Free feed';
-  list.innerHTML=items.slice(0,3).map(item=>'<a class="newsItem" href="'+escHtml(item.url)+'" target="_blank" rel="noopener">'
+  list.innerHTML=items.slice(0,8).map(item=>'<a class="newsItem" href="'+escHtml(item.url)+'" target="_blank" rel="noopener">'
     +'<span class="newsHeadline">'+escHtml(item.title)+'</span><span class="newsMeta">'+escHtml(item.domain||'Local reporting')+' · '+newsTimeLabel(item.published)+'</span></a>').join('');
 }
 async function fetchLocalNews(){
@@ -11844,10 +11856,10 @@ function updateHUD(nightF,skyH){
         +' · '+(lage===0?'just now':lage+' min ago');
     }else if(userGeo){
       locBox.style.display='block';
-      const nm=$('wxLocalName');if(nm)nm.textContent='Locating…';
-      const lt=$('wxLocalTemp');if(lt)lt.textContent='--°';
-      const ld=$('wxLocalDesc');if(ld)ld.textContent='Loading…';
-      const lm=$('wxLocalMeta');if(lm)lm.textContent='NWS station + Open-Meteo · your GPS · fetching…';
+      const nm=$('wxLocalName');if(nm)nm.textContent=localWx ? localWx.place : 'Locating…';
+      const lt=$('wxLocalTemp');if(lt)lt.textContent=localWx ? (localWx.temp + '°') : '--°';
+      const ld=$('wxLocalDesc');if(ld)ld.textContent=localWx ? localWx.label : 'Loading…';
+      const lm=$('wxLocalMeta');if(lm)lm.textContent=localWx ? 'Connection failed · retry soon' : 'NWS station + Open-Meteo · your GPS · fetching…';
     }else{
       locBox.style.display='none';
     }
