@@ -6,5 +6,6 @@ cart.addItem({ name: "apple", price: 3 });
 cart.addItem({ name: "orange", price: 5 });
 
 checkoutButton.addEventListener("click", () => {
+  return totalDisplay.textContent = cart.getTotal();
   // your code here
 });
