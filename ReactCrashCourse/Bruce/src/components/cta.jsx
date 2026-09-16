@@ -5,7 +5,7 @@ function Calltoaction() {
       {/* content to the left */}
       <div className="md:mx-24 ml-0">
         <div className="flex items-center justify-start ">
-          <div className="w-10 h-px bg-[#ae7338] font-light" />
+          <div className="w-10 h-[2px] bg-[#ae7338] font-light" />
           <p className="text-[#ae7338] ml-2 md:font-semibold font-light uppercase font-plex text-[14px] leading-0.5">
             Fox plush · portrait no. 01
           </p>
