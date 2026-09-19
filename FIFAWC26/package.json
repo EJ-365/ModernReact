@@ -7,6 +7,7 @@
     "dev": "vite",
     "prebuild": "node scripts/fetch-api.mjs",
     "build": "vite build",
+    "test": "node tests/fetch-api.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
