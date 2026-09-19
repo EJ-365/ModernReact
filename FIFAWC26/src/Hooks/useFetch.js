@@ -6,14 +6,49 @@ function useFetch(url) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!url) return;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        setData(data);
+    const controller = new AbortController();
+    let ignore = false;
+
+    async function loadData() {
+      if (!url) {
+        setData(null);
+        setError(null);
         setLoading(false);
-      })
-      .catch((err) => setError(err));
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
+
+        const json = await res.json();
+        if (!ignore) {
+          setData(json);
+        }
+      } catch (err) {
+        if (ignore || (err instanceof Error && err.name === "AbortError")) {
+          return;
+        }
+        setData(null);
+        setError(err);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      ignore = true;
+      controller.abort();
+    };
   }, [url]);
 
   return { data, loading, error };
