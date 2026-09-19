@@ -2,6 +2,7 @@ import useFetch from "../Hooks/useFetch";
 import { BarLoader } from "react-spinners";
 
 import { countryCodes } from "../data/countryCodes";
+import { getPayloadArray } from "../data/apiPayload";
 function Matches() {
   const { data, loading, error } = useFetch("/api/matches.json");
   if (loading) {
@@ -18,8 +19,8 @@ function Matches() {
     );
   }
 
-  if (error) return <p>Error: {error}</p>;
-  const matches = data.data ?? error;
+  if (error) return <p>Error: {String(error)}</p>;
+  const matches = getPayloadArray(data);
   return (
     <main className="mx-auto w-full max-w-full overflow-x-hidden px-4 text-white md:px-20">
       <div className="flex flex-col items-left justify-start my-10 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
