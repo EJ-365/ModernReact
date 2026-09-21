@@ -1,37 +1,36 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 export default function Body({ toggle }) {
-
   const [advice, setAdvice] = useState({
     id: 9,
     text: "Do what makes you happy.",
   });
-
-  const [allAdvice, setAllAdvice] = useState({});
-
-  const handleAdvice = useCallback(() => {
-    setAdvice(prevAdvice => ({
-      ...prevAdvice, id: allAdvice.id, text: allAdvice.advice
-    }))
-  }, [allAdvice]);
-
+  const [loading, setLoading] = useState(false);
 
   async function fetchAdvice() {
+    setLoading(true);
     try {
       const response = await fetch("https://api.adviceslip.com/advice");
+      if (!response.ok) {
+        throw new Error(`Advice request failed (${response.status})`);
+      }
       const data = await response.json();
-      setAllAdvice(data.slip);
+      const slip = data?.slip;
+      if (slip && Number.isFinite(slip.id) && typeof slip.advice === "string") {
+        setAdvice({ id: slip.id, text: slip.advice });
+      }
     } catch (error) {
       console.log("Error fetching data:", error);
+    } finally {
+      setLoading(false);
     }
   }
 
+  // Fetch once on mount. Do not depend on advice setters or derived callbacks —
+  // that previously retriggered this effect after every successful fetch.
   useEffect(() => {
-    // Fetch advice on component mount
-    (async () => {
-      await fetchAdvice();
-    })();
-  }, [handleAdvice]); // Runs once on mount
+    fetchAdvice();
+  }, []);
 
   return (
     <main className={` ${toggle ? "bg-slate-950 text-white" : "bg-linear-to-b from-purple-100 to-purple-100 text-black"}`}>
@@ -55,12 +54,13 @@ export default function Body({ toggle }) {
           {/* button div's */}
           <div className="flex items-center justify-center">
             <button
-              className="bg-purple-700 text-white px-3 py-2 rounded-full text-center mr-4 w-1/2 text-md font-semibold align-middle cursor-pointer hover:bg-purple-800 shadow-xl shadow-purple-200 capitalize"
-              onClick={handleAdvice}
+              className="bg-purple-700 text-white px-3 py-2 rounded-full text-center mr-4 w-1/2 text-md font-semibold align-middle cursor-pointer hover:bg-purple-800 shadow-xl shadow-purple-200 capitalize disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={fetchAdvice}
+              disabled={loading}
             >
               {" "}
               <i className="bx bx-shuffle text-md mx-2 align-middle"></i>
-              Get advice
+              {loading ? "Loading..." : "Get advice"}
             </button>
           </div>
         </div>
