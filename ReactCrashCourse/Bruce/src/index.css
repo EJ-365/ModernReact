@@ -3,3 +3,7 @@
     --font-plex:"IBM Plex Sans", sans-serif;
      --font-bricolage: "Bricolage Grotesque", sans-serif;
 }
+
+html{
+    scroll-behavior: smooth;
+}

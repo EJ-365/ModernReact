@@ -1,7 +1,7 @@
 function Profile() {
   return (
     <>
-      <section className="flex md:flex-row flex-col items-center md:justify-evenly justify-center w-full  my-10 bg-[#8b5e2b] text-white p-18">
+      <section id="profile-section" className="flex md:flex-row flex-col items-center md:justify-evenly justify-center w-full  my-10 bg-[#8b5e2b] text-white p-18">
         {/* text content  A */}
         <div className="md:mr-0">
           <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[15px] text-xs capitalize font-semibold my-4 ">

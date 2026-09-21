@@ -24,9 +24,9 @@ function Calltoaction() {
 
         {/* button div */}
         <div className="inline-block  bg-[#d8a15a] rounded-sm">
-          <button className="bg-[#1a1a1a] text-white md:px-6 md:py-3 px-4 py-2 rounded-sm font-bold font-plex flex items-center gap-2 md:shadow-[5px_5px_0px_#d8a15a] shadow-[3px_3px_0px_#d8a15a] hover:-translate-x-1 hover:-translate-y-1 transition-all  md:hover:shadow-[8px_6px_0px_#d8a15a] hover:[5px_4px_0px_#d8a15a] cursor-pointer">
+          <a href="#profile-section" className="bg-[#1a1a1a] text-white md:px-6 md:py-3 px-4 py-2 rounded-sm font-bold font-plex flex items-center gap-2 md:shadow-[5px_5px_0px_#d8a15a] shadow-[3px_3px_0px_#d8a15a] hover:-translate-x-1 hover:-translate-y-1 transition-all  md:hover:shadow-[8px_6px_0px_#d8a15a] hover:[5px_4px_0px_#d8a15a] cursor-pointer">
             Meet the details <i className="bxf bx-arrow-down-stroke bx-remove-padding" />
-          </button>
+          </a>
 
         </div>
       </div>

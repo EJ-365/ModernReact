@@ -40,6 +40,7 @@ export default function Images() {
               <img
                 onClick={() => setSelectedImg(image.image)}
                 src={image.image}
+                alt="bruce-images"
                 className=" md:my-0  my-14 w-full  object-cover cursor-pointer hover:scale-104 hover:transition-transform hover:duration-200 duration-300 rounded-sm hover:border-2 hover:border-[black]"
               />
               <button className="uppercase font-semibold text-sm  px-4 py-2 shadow-sm absolute bottom-3 left-3 bg-slate-50  border border-gray-100">
@@ -57,7 +58,7 @@ export default function Images() {
           >
             <img
               src={selectedImg}
-              className="max-w-[90%] max-h-[90%] shadow-2xl rounded-3xl border-4 border-[#d8a15a]"
+              className="max-w-[90%] max-h-[90%] shadow-2xl rounded-3xl border-4 border-[#d8a15a] inset-0"
             />
           </div>
         )}
