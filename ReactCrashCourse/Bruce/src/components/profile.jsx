@@ -7,7 +7,7 @@ function Profile() {
           <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[15px] text-xs capitalize font-semibold my-4 ">
             01/profile
           </p>
-          <h2 className="text-gray-100/95 text-center md:text-left md:text-7xl text-3xl font-bricolage font-black md:w-100 w-full">
+          <h2 className="text-gray-100/95 text-center md:text-left md:text-7xl text-2xl font-bricolage font-black md:w-100 w-full">
             Small paws. Big character.
           </h2>
           <p className="md:text-[17px] text-sm md:w-100 text-gray-100/80 mt-8 md:text-left  text-center mb-20">
@@ -19,7 +19,7 @@ function Profile() {
 
 
         {/* text content B */}
-        <div className="flex flex-col md:max-w-full w-auto text-left md:ml-0 ml-12">
+        <div className="md:mx-0 ml-10">
           <div className="md:w-160 w-100 h-px bg-gray-100/30" /> {/* decor */}
           <div className=" inline-flex items-center text-left my-5">
             <span className="text-gray-100/80  mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left">
