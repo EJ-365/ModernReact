@@ -9,7 +9,7 @@ export default function Images() {
   const [selectedImg, setSelectedImg] = useState(null);
 
   return (
-    <main className="md:my-30">
+    <main className="md:my-30 overflow-x-hidden max-w-full">
       <div className="flex md:flex-row flex-col items-center md:justify-evenly justify-center my-8 md:px-100">
         <div>
           <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[15px] text-xs capitalize font-semibold my-4 ">
@@ -30,12 +30,12 @@ export default function Images() {
 
       {/* 6 images section  */}
 
-      <div className="md:grid md:grid-cols-3 grid-cols-1 md:gap-5 gap-10 w-full mx-auto container md:px-75">
+      <div className="md:grid md:grid-cols-3 grid-cols-1 md:gap-5 gap-10 w-full mx-auto container px-6 pb-4 md:px-75">
         {images.map((image) => {
           return (
             <div
               key={image.id}
-              className="w-auto border-4 border-[#d8a15a] relative shadow-[14px_14px_0_black] md:p-0 md:mx-3 md:my-3  p-3"
+              className="w-full max-w-full md:w-auto border-4 border-[#d8a15a] relative shadow-[14px_14px_0_black] md:p-0 md:mx-3 md:my-3 p-3 mb-4"
             >
               <img
                 onClick={() => setSelectedImg(image.image)}
@@ -65,9 +65,9 @@ export default function Images() {
       </div>
 
       {/*featured content */}
-      <div className=" flex md:flex-row flex-col items-center justify-center md:mx-auto mx-auto md:px-60 container my-16">
+      <div className="flex md:flex-row flex-col items-center justify-center md:mx-auto mx-auto px-6 md:px-60 container my-16 gap-4 md:gap-0">
         {features.map((feature) => (
-          <div key={feature.id} className="border border-gray-200 w-full p-4 ml-4">
+          <div key={feature.id} className="border border-gray-200 w-full p-4 ml-0 md:ml-4">
             <h4 className="font-bold md:text-[1.54rem] text-[1.2rem] font-bricolage text-black/80 mb-2">
               {feature.title}
             </h4>

@@ -1,7 +1,7 @@
 function Profile() {
   return (
     <>
-      <section id="profile-section" className="flex md:flex-row flex-col items-center md:justify-evenly justify-center w-full  my-10 bg-[#8b5e2b] text-white p-18">
+      <section id="profile-section" className="flex md:flex-row flex-col items-center md:justify-evenly justify-center w-full max-w-full my-10 bg-[#8b5e2b] text-white px-6 py-16 md:p-18 overflow-x-hidden">
         {/* text content  A */}
         <div className="md:mr-0">
           <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[15px] text-xs capitalize font-semibold my-4 ">
@@ -19,44 +19,44 @@ function Profile() {
 
 
         {/* text content B */}
-        <div className="md:mx-0 ml-10">
-          <div className="md:w-160 w-100 h-px bg-gray-100/30" /> {/* decor */}
-          <div className=" inline-flex items-center text-left my-5">
-            <span className="text-gray-100/80  mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left">
+        <div className="md:mx-0 mx-0 w-full max-w-full md:w-auto min-w-0">
+          <div className="md:w-160 w-full h-px bg-gray-100/30" /> {/* decor */}
+          <div className="flex items-center text-left my-5 min-w-0">
+            <span className="text-gray-100/80 mr-6 md:mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left shrink-0">
               Species
             </span>
             <h3 className="text-gray-100/95  font-bricolage font-black md:text-[2rem] text-[0.99rem] text-left">
               Fox, plush variety
             </h3>
           </div>
-          <div className="md:w-160 w-100 h-px bg-gray-100/30" /> {/* decor */}
-          <div className=" inline-flex items-center text-left my-5">
-            <span className="text-gray-100/80  mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left">
+          <div className="md:w-160 w-full h-px bg-gray-100/30" /> {/* decor */}
+          <div className="flex items-center text-left my-5 min-w-0">
+            <span className="text-gray-100/80 mr-6 md:mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left shrink-0">
               Palette
             </span>
             <h3 className="text-gray-100/95  font-bricolage font-black md:text-[2rem] text-[0.99rem] text-left">
               Russet, white & midnight
             </h3>
           </div>
-          <div className="md:w-160 w-100 h-px bg-gray-100/30" /> {/* decor */}
-          <div className=" inline-flex items-center text-left my-5">
-            <span className="text-gray-100/80 mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left">
+          <div className="md:w-160 w-full h-px bg-gray-100/30" /> {/* decor */}
+          <div className="flex items-center text-left my-5 min-w-0">
+            <span className="text-gray-100/80 mr-6 md:mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left shrink-0">
               Signature
             </span>
             <h3 className="text-gray-100/95  font-bricolage font-black md:text-[2rem] text-[0.99rem] text-left">
               Bright blue eyes
             </h3>
           </div>
-          <div className="md:md:w-160 w-100 h-px bg-gray-100/30" /> {/* decor */}
-          <div className=" inline-flex items-center text-left my-5">
-            <span className="text-gray-100/80  mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left">
+          <div className="md:w-160 w-full h-px bg-gray-100/30" /> {/* decor */}
+          <div className="flex items-center text-left my-5 min-w-0">
+            <span className="text-gray-100/80 mr-6 md:mr-18 font-light uppercase font-plex tracking-wide md:text-[14px] text-[12px] align-middle text-left shrink-0">
               Energy
             </span>
             <h3 className="text-gray-100/95  font-bricolage font-black md:text-[2rem] text-[0.99rem] text-left">
               Calm, curious, loyal
             </h3>
           </div>
-          <div className="md:md:w-160 w-100 w-100 h-px bg-gray-100/30" /> {/* decor */}
+          <div className="md:w-160 w-full h-px bg-gray-100/30" /> {/* decor */}
         </div>
       </section>
     </>

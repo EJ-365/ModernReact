@@ -1,8 +1,8 @@
 function Creator() {
   return (
-    <section className=" bg-[#1A1A1A] my-50 p-4 md:w-full max-w-full ">
+    <section className="bg-[#1A1A1A] my-50 p-4 md:w-full max-w-full overflow-x-hidden">
       {/* first section */}
-      <div className="flex items-center md:justify-between md:mx-auto md:container justify-evenly">
+      <div className="flex flex-col md:flex-row items-center md:justify-between md:mx-auto md:container justify-center text-center md:text-left">
         <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[15px] text-xs capitalize font-semibold my-8 ">
           03 / My human
         </p>

@@ -1,7 +1,7 @@
 import brucePortrait from "../assets/bruce-portrait.jpg";
 function Calltoaction() {
   return (
-    <div className="md:my-auto my-20 max-w-full flex md:flex-row flex-col items-center justify-center md:mx-0 mx-5">
+    <div className="md:my-auto my-20 max-w-full overflow-x-hidden flex md:flex-row flex-col items-center justify-center md:mx-0 mx-5">
       {/* content to the left */}
       <div className="md:mx-24 ml-0">
         <div className="flex items-center justify-start ">
@@ -32,9 +32,9 @@ function Calltoaction() {
       </div>
 
       {/*image div */}
-      <div className="inline-block md:mt-28 my-18 relative md:inset-0 ">
-        <div className="shadow-[27px_24px_#1a1a1a] border border-zinc-400 md:w-120 w-80">
-          <img src={brucePortrait} className="md:object-cover object-center w-auto  translate-y-0 translate-x-0.5 drop-shadow-sm " />
+      <div className="inline-block md:mt-28 my-18 relative md:inset-0 w-full max-w-[min(20rem,calc(100vw-5rem))] md:max-w-none pb-6 pr-7">
+        <div className="shadow-[27px_24px_#1a1a1a] border border-zinc-400 md:w-120 w-full">
+          <img src={brucePortrait} className="md:object-cover object-center w-full translate-y-0 translate-x-0.5 drop-shadow-sm " />
         </div>
 
         {/*floating tag */}

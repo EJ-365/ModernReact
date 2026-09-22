@@ -6,7 +6,7 @@ import Creator from "./components/creator";
 
 function App() {
   return (
-    <div>
+    <div className="overflow-x-hidden max-w-full">
       <Calltoaction />
       <Profile />
       <Images />
