@@ -1,12 +1,12 @@
 import brucePortrait from "../assets/bruce-portrait.jpg";
 function Calltoaction() {
   return (
-    <div className="md:my-auto my-20 max-w-full overflow-x-hidden flex md:flex-row flex-col items-center justify-center md:mx-0 mx-5">
+    <div className="md:my-auto my-20 max-w-full overflow-x-hidden xl:flex xl:flex-row  xl:items-center xl:justify-between xl:mx-60 mx-5  grid-cols-1">
       {/* content to the left */}
       <div className="md:mx-24 ml-0">
         <div className="flex items-center justify-start ">
           <div className="w-10 h-[2px] bg-[#ae7338] font-light" />
-          <p className="text-[#ae7338] ml-2 md:font-semibold font-light uppercase font-plex text-[14px] leading-0.5">
+          <p className="text-[#ae7338] ml-2 md:font-semibold font-light uppercase font-plex text-[14px] leading-normal">
             Fox plush · portrait no. 01
           </p>
         </div>

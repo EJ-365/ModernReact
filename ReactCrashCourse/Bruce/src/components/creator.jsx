@@ -1,12 +1,12 @@
 function Creator() {
   return (
-    <section className="bg-[#1A1A1A] my-50 p-4 md:w-full max-w-full overflow-x-hidden">
+    <section className="bg-[#1A1A1A] xl:my-30 md:my-10 p-4 md:w-full max-w-full overflow-x-hidden">
       {/* first section */}
       <div className="flex flex-col md:flex-row items-center md:justify-between md:mx-auto md:container justify-center text-center md:text-left">
         <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[15px] text-xs capitalize font-semibold my-8 ">
           03 / My human
         </p>
-        <div className="md:text-sm md:font-medium font-plex text-white/65 text-xs">
+        <div className="md:text-sm md:font-medium font-plex text-white/65 text-xs md:my-0 mb-12">
           <p>Bruce stays center stage. Here’s the human </p>
           <p>behind his self-coded fan site.</p>
         </div>
@@ -19,7 +19,7 @@ function Creator() {
         {/*left side */}
         <div className="text-white w-full  md:w-auto">
           <div className="mx-8 md:mx-auto">
-            <h2 className="font-bricolage md:text-[3.5rem] text-[1.4rem] font-black">
+            <h2 className="font-bricolage md:text-[3.5rem] text-[1.4rem] font-black xl:mt-0 mt-8">
               Meet Ejay.
             </h2>
             <p className="text-white/70 md:text-[1.15rem] text-[0.9rem] mb-7 mt-4 font-plex  md:font-medium md:w-100 w-full">
@@ -107,7 +107,7 @@ function Creator() {
             </div>
           </div>
           {/* last section */}
-          <div className="py-0 md:mx-20 mx-8 md:mb-20 mb-10">
+          <div className="py-0 md:mx-20 mx-8 md:mb-15 mb-8">
             <p className="text-[#d8a15a] font-plex md:text-left text-center md:text-[13px] text-[11px] md:font-medium my-3 uppercase">
               Find Ejay
             </p>
@@ -137,7 +137,7 @@ function Creator() {
                 Github
               </a>
               , or find{" "}
-              <span className="md:text-xl t text-white md:font-bold font-medium">@ejayy_365</span>{" "}
+              <span className="md:text-xl  text-white md:font-bold font-medium">@ejayy_365</span>{" "}
               on Instagram
             </p>
           </div>
