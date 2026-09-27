@@ -12,7 +12,7 @@ export default function Region() {
 
         <small className="text-gray-400 text-sm">
           U.S. sample:{" "}
-          <span className="font-semibold text-gray-200"> $3.43</span>
+          <span className="font-semibold text-gray-200 mx-1"> $3.43</span>
         </small>
       </div>
 
