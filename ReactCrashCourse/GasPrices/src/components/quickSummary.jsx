@@ -33,7 +33,10 @@ function QuickSummary({ usHigh, currentWeekPrice, lastWeek, lowRegion }) {
         <div className="border border-gray-900/40 p-4 rounded-lg xl:ml-2 w-full ">
           <small className="text-gray-400 font-bold">Lowest region</small>
           <p className=" xl:text-3xl font-mono my-2">
-            ${`${lowRegion ? Number(lowRegion.price).toFixed(2) : "-.--"}`}
+            $
+            {lowRegion?.price == null || !Number.isFinite(Number(lowRegion.price))
+              ? "-.--"
+              : Number(lowRegion.price).toFixed(2)}
           </p>
           <p className="text-gray-400 text-sm">
             {lowRegion ? lowRegion.coast : "-.--"}
