@@ -1,11 +1,11 @@
-export default function Region({ lowRegion, usPrice }) {
+export default function Region({ fuelType = "regular", lowRegion, usPrice }) {
   return (
     <div className="border py-6 mt-20 border-gray-900 px-10">
       {/* heading */}
       <div className="flex xl:flex-row flex-col xl:items-center xl:justify-evenly justify-start xl:mb-15 mb-8">
         <div>
           <h3 className="xl:text-xl text-lg font-semibold capitalize">
-            Regular by region
+            {fuelType} by region
           </h3>
           <small className="text-gray-400">
             Simple cards instead of a chart

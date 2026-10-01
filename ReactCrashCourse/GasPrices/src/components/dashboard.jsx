@@ -1,8 +1,9 @@
 import { useContext, useEffect, useState } from "react";
-import QuickSummary from "./QuickSummary";
-import Region from "./Region";
-import SinglePriceCardDisplay from "./SinglePriceCardDisplay";
+import QuickSummary from "./quickSummary";
+import Region from "./region";
+import SinglePriceCardDisplay from "./singlePriceCardDisplay";
 import StatePrice from "./StatePrice";
+import { regionLabel } from "../api/fuelSeries.js";
 import { getNationalPrices, getRegional } from "../api/gasService";
 import { FuelContext } from "../context/FuelContext.jsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,16 +18,20 @@ function Dashboard() {
   const [currentWeekPrice, setCurrentWeekPrice] = useState(null);
   const [lastWeek, setLastWeek] = useState(null);
   const [lowRegion, setLowRegion] = useState({
-    price: "0.00",
+    price: null,
     coast: "---",
     regions: [],
   });
 
   useEffect(() => {
+    let cancelled = false;
+    const emptyRegion = { price: null, coast: "---", regions: [] };
+
     const loadDashboardData = async () => {
       setLoading(true);
       const usData = await getNationalPrices(fuelType);
       const regionalData = await getRegional(fuelType);
+      if (cancelled) return;
 
       if (usData?.response?.data?.length > 0) {
         const pricesArray = usData.response.data.map((item) =>
@@ -43,6 +48,9 @@ function Dashboard() {
           const previousPrice = pricesArray[1];
           setUsTrend(currentPrice - previousPrice);
           setLastWeek(previousPrice);
+        } else {
+          setUsTrend(null);
+          setLastWeek(null);
         }
 
         if (regionalData?.response?.data?.length > 0) {
@@ -55,25 +63,35 @@ function Dashboard() {
           const regions = regionalData.response.data
             .slice(0, 5)
             .map((item) => ({
-              name: item[`series-description`].split(" ").slice(0, 2).join(" "),
+              name: regionLabel(item?.["series-description"]),
               price: Number(item.value),
               currentPrice: currentPrice,
             }));
 
           setLowRegion({
             price: Number(lowestRegion.value),
-            coast: lowestRegion[`series-description`]
-              .split(" ")
-              .slice(0, 2)
-              .join(" "),
+            coast: regionLabel(lowestRegion?.["series-description"]),
             regions,
           });
+        } else {
+          setLowRegion(emptyRegion);
         }
+      } else {
+        setUsPrice(null);
+        setUsTrend(null);
+        setUsLow(null);
+        setUsHigh(null);
+        setCurrentWeekPrice(null);
+        setLastWeek(null);
+        setLowRegion(emptyRegion);
       }
       setLoading(false);
     };
 
     loadDashboardData();
+    return () => {
+      cancelled = true;
+    };
   }, [fuelType]);
 
   return (
@@ -99,6 +117,7 @@ function Dashboard() {
           >
             <div className="my-4 flex xl:flex-row flex-col items-center container mx-auto ">
               <SinglePriceCardDisplay
+                fuelType={fuelType}
                 usPrice={usPrice}
                 usTrend={usTrend}
                 usLow={usLow}
@@ -110,7 +129,11 @@ function Dashboard() {
                 lowRegion={lowRegion}
               />
             </div>
-            <Region lowRegion={lowRegion} usPrice={usPrice} />
+            <Region
+              fuelType={fuelType}
+              lowRegion={lowRegion}
+              usPrice={usPrice}
+            />
             <StatePrice />
           </motion.div>
         )}

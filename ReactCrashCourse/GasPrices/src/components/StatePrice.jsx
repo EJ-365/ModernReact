@@ -81,9 +81,10 @@ function StatePrice() {
               </small>
             </div>
             <p className="xl:text-[20px] text-lg font-medium tracking-widest">
-              {prices[state.code]
-                ? ` $${prices[state.code].toFixed(2)}`
-                : "$ 0.00"}
+              {prices[state.code] == null ||
+              !Number.isFinite(Number(prices[state.code]))
+                ? "--"
+                : ` $${Number(prices[state.code]).toFixed(2)}`}
             </p>
           </div>
         ))}
