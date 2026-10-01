@@ -6,7 +6,7 @@ import StatePrice from "./StatePrice";
 import { getNationalPrices, getRegional } from "../api/gasService";
 import { FuelContext } from "../context/FuelContext.jsx";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { Spiral } from "@/components/spiral";
 function Dashboard() {
   const { fuelType } = useContext(FuelContext);
   const [usPrice, setUsPrice] = useState(null);
@@ -29,7 +29,9 @@ function Dashboard() {
       const regionalData = await getRegional(fuelType);
 
       if (usData?.response?.data?.length > 0) {
-        const pricesArray = usData.response.data.map((item) => Number(item.value));
+        const pricesArray = usData.response.data.map((item) =>
+          Number(item.value),
+        );
         setUsLow(Math.min(...pricesArray));
         setUsHigh(Math.max(...pricesArray));
 
@@ -44,19 +46,26 @@ function Dashboard() {
         }
 
         if (regionalData?.response?.data?.length > 0) {
-          const lowestRegion = regionalData.response.data.reduce((prev, curr) => {
-            return Number(prev.value) < Number(curr.value) ? prev : curr;
-          });
+          const lowestRegion = regionalData.response.data.reduce(
+            (prev, curr) => {
+              return Number(prev.value) < Number(curr.value) ? prev : curr;
+            },
+          );
 
-          const regions = regionalData.response.data.slice(0, 5).map((item) => ({
-            name: item[`series-description`].split(" ").slice(0, 2).join(" "),
-            price: Number(item.value),
-            currentPrice: currentPrice,
-          }));
+          const regions = regionalData.response.data
+            .slice(0, 5)
+            .map((item) => ({
+              name: item[`series-description`].split(" ").slice(0, 2).join(" "),
+              price: Number(item.value),
+              currentPrice: currentPrice,
+            }));
 
           setLowRegion({
             price: Number(lowestRegion.value),
-            coast: lowestRegion[`series-description`].split(" ").slice(0, 2).join(" "),
+            coast: lowestRegion[`series-description`]
+              .split(" ")
+              .slice(0, 2)
+              .join(" "),
             regions,
           });
         }
@@ -68,7 +77,7 @@ function Dashboard() {
   }, [fuelType]);
 
   return (
-    <main className="my-8">
+    <main className="my-8 font-mono">
       <AnimatePresence mode="wait">
         {loading ? (
           <motion.div
@@ -76,9 +85,10 @@ function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="inset-0 text-orange-600 text-center my-80 font-medium italic text-xs"
+            className="inset-0 text-[#f5d34f] text-center xl:my-80 my-30 font-medium italic text-xs"
           >
-            Loading...
+            <Spiral className="size-10 text-[#f5d34f]" />
+            <p className="mt-10">Loading...</p>
           </motion.div>
         ) : (
           <motion.div

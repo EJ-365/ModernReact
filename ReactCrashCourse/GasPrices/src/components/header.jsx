@@ -5,10 +5,10 @@ function Header() {
   const { fuelType, setFuelType } = useContext(FuelContext);
   return (
     <header className="xl:container xl:mx-auto xl:p-2  p-2.5 overflow-x-hidden">
-      <div className="flex xl:flex-row flex-col xl:justify-evenly justify-start items-left mt-4">
+      <div className="flex xl:flex-row flex-col xl:justify-evenly justify-start items-center text-center mt-4">
         <div>
-          <h1 className="xl:text-6xl font-extrabold text-3xl xl:m-0 mx-7 text-wrap">
-            Fuel prices at a glance.
+          <h1 className="xl:text-6xl font-extrabold text-2xl xl:m-0 mx-7 xl:text-wrap text-nowrap">
+            Track fuel prices nationwide.
           </h1>
         </div>
 
@@ -24,6 +24,18 @@ function Header() {
         </div>
       </div>
 
+     <div className="my-10 text-left flex justify-start bg-[#0a0e1f] items-center ">
+      <div className="xl:w-1.5 w-4  xl:h-20 h-24 bg-[#f5d34f] rounded"/>
+       <div className="xl:px-3 px-3 py-1 rounded-2xl">
+        <p className="text-gray-300/80 text-wrap xl:text-base text-sm">
+          Get the latest weekly retail averages for regular, midgrade, and
+          diesel fuel. See whether prices are rising or falling, then compare
+          today’s average with recent highs and lows to understand the trend.
+        </p>
+      </div>
+
+
+     </div>
       {/* Country name: and nav links */}
 
       <div className="flex items-center xl:justify-between justify-evenly  border  xl:mt-14 mt-8 p-2 rounded-2xl border-gray-900 bg-[#2c343a]/10  ">

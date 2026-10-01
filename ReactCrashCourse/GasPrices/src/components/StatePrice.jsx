@@ -46,7 +46,7 @@ function StatePrice() {
       <div className="flex xl:flex-row flex-col justify-evenly items-center">
         <div>
           <h1 className="xl:text-[32px] text-lg font-medium">
-            Browse sample state prices
+            Explore fuel prices by state.
           </h1>
           <small className="block text-gray-400 text-sm font-medium">
             Search by state or region
@@ -89,7 +89,7 @@ function StatePrice() {
         ))}
       </div>
 
-     
+
     </main>
   );
 }
