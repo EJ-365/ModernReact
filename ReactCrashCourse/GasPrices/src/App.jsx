@@ -1,12 +1,16 @@
-import Dashboard from "./components/dashboard";
-import Header from "./components/header";
-
-function App(){
+import Dashboard from "./components/Dashboard";
+import Footer from "./components/Footer";
+import Header from "./components/Header";
+import { FuelProvider } from "./context/FuelProvider";
+function App() {
   return (
-   <div className="bg-black text-white mx-auto">
-     <Header/>
-     <Dashboard/>
-   </div>
-  )
+    <FuelProvider>
+      <div className="bg-slate-950 text-white mx-auto ">
+        <Header />
+        <Dashboard />
+        <Footer />
+      </div>
+    </FuelProvider>
+  );
 }
 export default App;

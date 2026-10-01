@@ -1,16 +1,11 @@
-# React + Vite
+# Fuel Price Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+I created this dashboard to help people track gas and diesel prices across the country. As a computer science major and frontend developer, I wanted to build something that handles real data while looking clean and modern. I went with a dark theme and used purple accents because that is my favorite color.
 
-Currently, two official plugins are available:
+I built the app using React and used Tailwind CSS for all the styling. I implemented the Context API to manage the global state so you can switch between regular, midgrade, and diesel prices and see the whole app update instantly. I also added Framer Motion to make the transitions feel smooth when the data loads.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The information comes from two different places. I used the official EIA Open Data API to get the national averages and the regional comparisons. For the specific state prices, I connected to the US Fuel & Energy Prices API through RapidAPI. The app automatically calculates the difference between this week and last week so you can see the trend.
 
-## React Compiler
+To get this running locally, you just need to clone the project and run npm install. You will also need a .env.local file to store your API keys. Make sure to add VITE_EIA_API_KEY and VITE_RAPIDAPI_KEY to that file. After that, run npm run dev and you are good to go.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+I really enjoyed working on this because it allowed me to practice handling multiple API calls and managing state in a real project. It is a simple but useful tool for anyone who wants to keep an eye on fuel costs.

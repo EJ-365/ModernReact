@@ -1,103 +1,56 @@
-export default function Region() {
+export default function Region({ lowRegion, usPrice }) {
   return (
-    <div className="border py-6 mt-20 border-gray-900">
+    <div className="border py-6 mt-20 border-gray-900 px-10">
       {/* heading */}
-      <div className="flex items-center justify-evenly">
+      <div className="flex xl:flex-row flex-col xl:items-center xl:justify-evenly justify-start xl:mb-15 mb-8">
         <div>
-          <h3 className="text-xl font-semibold">Regular by region</h3>
+          <h3 className="xl:text-xl text-lg font-semibold capitalize">
+            Regular by region
+          </h3>
           <small className="text-gray-400">
             Simple cards instead of a chart
           </small>
         </div>
 
         <small className="text-gray-400 text-sm">
-          U.S. sample:{" "}
-          <span className="font-semibold text-gray-200 mx-1"> $3.43</span>
+          National Weekly Average.:{" "}
+          <span className="font-semibold text-gray-200 mx-1">
+            {" "}
+            ${`${usPrice ? usPrice.toFixed(2) : ".--"}`}
+          </span>
         </small>
       </div>
 
       {/*individual cards */}
 
-      <div className="base mt-6 grid grid-cols-5 items-center">
-        <div className="border-r p-4 w-64 border-gray-900">
-          <small className="text-gray-400 font-medium block mb-3">East Coast</small>
-          <p className="text-2xl font-medium">$3.34</p>
-          <input
-            type="range"
-            className="w-30 h-1.5 bg-orange-400 rounded-lg appearance-none cursor-default
-    [&::-webkit-slider-thumb]:appearance-none
-    [&::-webkit-slider-thumb]:w-0
-    [&::-webkit-slider-thumb]:h-0
-    [&::-moz-range-thumb]:w-0
-    [&::-moz-range-thumb]:h-0"
-          />
-          <small className="block text-gray-300">-$0.08 vs U.S</small>
-        </div>
+      <div className="base mt-6 grid xl:grid-cols-5 grid-cols-1 items-center">
+        {lowRegion.regions.map((item, index) => (
+          <div
+            key={index}
+            className="border-r p-4  xl:w-64 w-full border-gray-900"
+          >
+            <small className="text-gray-400 font-medium block mb-3">
+              {item.name}
+            </small>
+            <p className="text-2xl font-medium">
+              ${`${item.price.toFixed(2)}`}
+            </p>
+            <div className="h-1.5 w-full bg-gray-800 rounded-lg">
+              <div
+                className="h-1.5 bg-orange-400 rounded-lg my-2"
+                style={{
+                  width: `${Math.min(Math.abs(item.currentPrice - item.price) * 100, 100)}%`,
+                }}
+              />
+            </div>
 
-
-
-         <div className="border-r p-4 w-64 border-gray-900">
-          <small className="text-gray-400 font-medium block mb-3">East Coast</small>
-          <p className="text-2xl font-medium">$3.34</p>
-          <input
-            type="range"
-            className="w-30 h-1.5 bg-orange-400 rounded-lg appearance-none cursor-default
-    [&::-webkit-slider-thumb]:appearance-none
-    [&::-webkit-slider-thumb]:w-0
-    [&::-webkit-slider-thumb]:h-0
-    [&::-moz-range-thumb]:w-0
-    [&::-moz-range-thumb]:h-0"
-          />
-          <small className="block text-gray-300">-$0.08 vs U.S</small>
-        </div>
-
-
-         <div className="border-r p-4 w-64 border-gray-900">
-          <small className="text-gray-400 font-medium block mb-3">East Coast</small>
-          <p className="text-2xl font-medium">$3.34</p>
-          <input
-            type="range"
-            className="w-30 h-1.5 bg-orange-400 rounded-lg appearance-none cursor-default
-    [&::-webkit-slider-thumb]:appearance-none
-    [&::-webkit-slider-thumb]:w-0
-    [&::-webkit-slider-thumb]:h-0
-    [&::-moz-range-thumb]:w-0
-    [&::-moz-range-thumb]:h-0"
-          />
-          <small className="block text-gray-300">-$0.08 vs U.S</small>
-        </div>
-
-
-         <div className="border-r p-4 w-64 border-gray-900">
-          <small className="text-gray-400 font-medium block mb-3">East Coast</small>
-          <p className="text-2xl font-medium">$3.34</p>
-          <input
-            type="range"
-            className="w-30 h-1.5 bg-orange-400 rounded-lg appearance-none cursor-default
-    [&::-webkit-slider-thumb]:appearance-none
-    [&::-webkit-slider-thumb]:w-0
-    [&::-webkit-slider-thumb]:h-0
-    [&::-moz-range-thumb]:w-0
-    [&::-moz-range-thumb]:h-0"
-          />
-          <small className="block text-gray-300">-$0.08 vs U.S</small>
-        </div>
-
-
-         <div className="border-r p-4 w-64 border-gray-900">
-          <small className="text-gray-400 font-medium block mb-3">East Coast</small>
-          <p className="text-2xl font-medium">$3.34</p>
-          <input
-            type="range"
-            className="w-30 h-1.5 bg-orange-400 rounded-lg appearance-none cursor-default
-    [&::-webkit-slider-thumb]:appearance-none
-    [&::-webkit-slider-thumb]:w-0
-    [&::-webkit-slider-thumb]:h-0
-    [&::-moz-range-thumb]:w-0
-    [&::-moz-range-thumb]:h-0"
-          />
-          <small className="block text-gray-300">-$0.08 vs U.S</small>
-        </div>
+            <small className="block text-gray-300">
+              $
+              {`${item ? (item?.currentPrice - item.price).toFixed(2) : "-.--"}`}{" "}
+              vs U.S
+            </small>
+          </div>
+        ))}
       </div>
     </div>
   );
