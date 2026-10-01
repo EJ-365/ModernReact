@@ -3,7 +3,7 @@ function QuickSummary({ usHigh, currentWeekPrice, lastWeek, lowRegion }) {
     <div className="border border-gray-900/60 rounded-xl xl:ml-10 xl:py-6 px-6 w-full">
       <h3 className="text-xl text-gray-200 font-semibold">Quick summary</h3>
       <small className="text-gray-400 text-[14px]  ">
-        Key price details at a glance{" "}
+        Key fuel price details for this week{" "}
       </small>
       <div className="xl:grid xl:grid-cols-2 flex flex-col xl:gap-0  xl:mt-6 mt-4  max-w-full w-full ">
         <div className="border border-gray-900/40 p-4 rounded-lg  w-full">

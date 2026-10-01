@@ -8,7 +8,7 @@ export default function Region({ lowRegion, usPrice }) {
             Regular by region
           </h3>
           <small className="text-gray-400">
-            Simple cards instead of a chart
+           Compare regional prices
           </small>
         </div>
 
