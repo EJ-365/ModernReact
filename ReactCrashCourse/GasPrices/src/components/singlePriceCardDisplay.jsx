@@ -1,11 +1,23 @@
-function SinglePriceCardDisplay({ usPrice, usTrend, usLow }) {
+const fuelLabels = {
+  regular: "regular gasoline",
+  midgrade: "midgrade gasoline",
+  premium: "premium gasoline",
+  diesel: "diesel",
+};
+
+function SinglePriceCardDisplay({
+  fuelType = "regular",
+  usPrice,
+  usTrend,
+  usLow,
+}) {
   const isDown = usTrend < 0;
   const trendColor = isDown ? "text-green-200" : "text-red-400";
   return (
     <div className="border max-w-180 xl:w-140 w-full py-8 px-8 rounded-xl border-gray-900/70  ">
       <div className="mx-4">
         <p className="uppercase text-gray-300 text-sm xl:text-base">
-          regular gasoline
+          {fuelLabels[fuelType] ?? fuelType}
         </p>
         <h2 className="xl:text-xl font-semibold text-lg">
           U.S. retail average
