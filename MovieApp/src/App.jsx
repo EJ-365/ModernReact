@@ -17,6 +17,10 @@ import ErrorPage from "./Pages/ErrorPage";
 import CardDetails from "./Pages/CardDetails";
 import MoviesDetail from "./Components/MoviesDetail";
 import ShowDetail from "./Components/ShowDetail";
+import {
+  loadDarkModePreference,
+  saveDarkModePreference,
+} from "./utils/themeStorage.js";
 
 function App() {
   const [genres, setGenres] = useState([]); // for movies page
@@ -33,18 +37,11 @@ function App() {
     showsTotalPages: 0,
   });
   const [page, setPage] = useState(1);
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("theme");
-    if (saved === "dark") return true;
-    if (saved === "light") return false;
-    return (
-      window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false
-    );
-  });
+  const [darkMode, setDarkMode] = useState(loadDarkModePreference);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
+    saveDarkModePreference(darkMode);
   }, [darkMode]);
 
   // trending movies api calls and endpoints
