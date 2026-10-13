@@ -11959,7 +11959,6 @@ function updateHUD(nightF,skyH){
     const flSrc=$('flSrc');
     if(flSrc){
       if(list.length){
-        const adsb=list.some(x=>x.icao24);
         const src=(window.LIVE_FLIGHT_STATUS&&LIVE_FLIGHT_STATUS.src)?LIVE_FLIGHT_STATUS.src:'ADS-B';
         if(usingBoard){
           flSrc.style.color='#ffb400';
@@ -11967,7 +11966,7 @@ function updateHUD(nightF,skyH){
         }else{
           const houN=list.filter(x=>x._houston===true).length;
           flSrc.style.color='#7fd6a0';
-          flSrc.textContent='· '+list.length+' in sky + panel'+(houN?' · '+houN+' '+CITY_NAME+'-verified':'')+' · '+src+(fa?' + FA':'');
+          flSrc.textContent='· '+list.length+' in sky + panel'+(houN?' · '+houN+' '+CITY_NAME+'-verified':'')+' · '+src;
         }
       }else{
         flSrc.style.color='#8a939c';

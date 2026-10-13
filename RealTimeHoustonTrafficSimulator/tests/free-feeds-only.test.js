@@ -49,3 +49,18 @@ test('env example does not instruct setting paid keys', () => {
   assert.match(ex, /PAID APIs|DISABLED|billing/i);
   assert.match(ex, /# TOMTOM_API_KEY=/);
 });
+
+test('live-flight HUD source line does not throw leftover FlightAware fa flag', () => {
+  const main = read('src/app-main.js');
+  const marker = 'in sky + panel';
+  const idx = main.indexOf(marker);
+  assert.ok(idx > 0, 'expected live-flight HUD source label');
+  const assign = main.lastIndexOf('flSrc.textContent=', idx);
+  const end = main.indexOf(';', idx);
+  assert.ok(assign >= 0 && end > assign, 'expected flSrc.textContent assignment');
+  const expr = main.slice(assign + 'flSrc.textContent='.length, end);
+  assert.equal(/\bfa\b/.test(expr), false, 'undefined fa would ReferenceError in updateHUD once live aircraft appear');
+  const fn = new Function('list', 'CITY_NAME', 'src', 'houN', `'use strict'; return (${expr});`);
+  const text = fn([{ _houston: true }], 'Houston', 'ADS-B', 1);
+  assert.equal(text, '· 1 in sky + panel · 1 Houston-verified · ADS-B');
+});
