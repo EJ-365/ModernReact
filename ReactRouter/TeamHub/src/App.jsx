@@ -7,23 +7,22 @@ import Players from "./pages/Players";
 import ErrorCode from "./pages/ErrorCode";
 import Footer from "./components/Footer";
 import Profile from "./pages/PlayerProfile";
+import {
+  loadDarkModePreference,
+  saveDarkModePreference,
+} from "./themeStorage.js";
 function App() {
   const location = useLocation();
   const isProfilePage = location.pathname.startsWith("/profile");
 
-  const [darkMode, setDarkMode] = useState(() => {
-    const storedTheme = localStorage.getItem("theme");
-    if (storedTheme === "dark") return true;
-    if (storedTheme === "light") return false;
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-  });
+  const [darkMode, setDarkMode] = useState(loadDarkModePreference);
 
   useEffect(() => {
     const root = document.documentElement;
     if (darkMode) root.classList.add("dark");
     else root.classList.remove("dark");
 
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
+    saveDarkModePreference(darkMode);
   }, [darkMode]);
 
   return (
