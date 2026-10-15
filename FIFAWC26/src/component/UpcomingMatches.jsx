@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import useFetch from "../Hooks/useFetch";
 import { countryCodes } from "../data/countryCodes";
+import { getMatchesFromResponse, hasInvalidMatchData } from "../utils/matches";
 function UpcomingMatches() {
   const { data, loading, error } = useFetch("/api/matches.json");
   const navigate = useNavigate();
@@ -13,8 +14,12 @@ function UpcomingMatches() {
 
   if (error) return <p>Error: {error}</p>;
 
-  const matches = data?.data?.slice(0, 4) ?? [];
+  const matches = getMatchesFromResponse(data).slice(0, 4);
   // 2026 World Cup teams → ISO codes for flagcdn (keys match API: match.home / match.away)
+
+  if (hasInvalidMatchData(data)) {
+    return <p>Match schedule is unavailable.</p>;
+  }
 
   return (
     <section>
