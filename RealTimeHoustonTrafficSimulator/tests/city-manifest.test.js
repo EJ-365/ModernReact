@@ -12,7 +12,7 @@ test('houston manifest', async (t) => {
   await t.test('has Houston origin downtown', () => {
     assert.equal(houstonManifest.id, 'houston');
     assert.ok(Math.abs(houstonManifest.origin.lat - 29.7604) < 0.001);
-    assert.equal(houstonManifest.origin.unitsPerMile, 210);
+    assert.equal(houstonManifest.origin.unitsPerMile, 1609.344);
   });
   await t.test('lists in CITY_IDS', () => {
     assert.ok(CITY_IDS.includes('houston'));

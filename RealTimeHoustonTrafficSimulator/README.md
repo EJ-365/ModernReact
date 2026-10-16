@@ -25,7 +25,7 @@ npm run dev
 | [http://localhost:5176/download.html](http://localhost:5176/download.html) | Web install + Windows download |
 | [http://localhost:5176/docs/](http://localhost:5176/docs/) | Developer handbook |
 
-**Latest progress:** [docs/PROGRESS.md](docs/PROGRESS.md) — v10.17.0  
+**Latest progress:** [docs/PROGRESS.md](docs/PROGRESS.md) — v10.18.0  
 **Platform transition:** [docs/TECH_TRANSITION.md](docs/TECH_TRANSITION.md) — Vite + city packs + feed adapters (cities after platform).
 
 ---

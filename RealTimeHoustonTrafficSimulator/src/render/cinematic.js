@@ -33,7 +33,7 @@ export function createCinematic(opts) {
   }
 
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.shadowMap.autoUpdate = true;
   /* Tone mapping moves to OutputPass when composer is active */
   const hadTone = renderer.toneMapping;
@@ -114,6 +114,7 @@ export function createCinematic(opts) {
 
   let shadowsOn = false;
   let ssaoOn = false;
+  let ssaoBudget = false;
 
   function markShadowCasters(root) {
     if (!root) return;
@@ -137,9 +138,12 @@ export function createCinematic(opts) {
     const tx = (camState && camState.target && camState.target.x) || 0;
     const tz = (camState && camState.target && camState.target.z) || 0;
     const perfOk = fpsAvg == null || fpsAvg > 38;
+    /* SSAO re-draws the whole scene for its normal pass (2× draw calls): only on a proven-fast GPU,
+       with hysteresis so it never flickers on/off */
+    if (fpsAvg != null) ssaoBudget = ssaoOn ? fpsAvg > 46 : fpsAvg > 55;
     /* Austin metro view is more oblique — keep soft shadows farther out */
     const wantShadow = radius < (isAus ? 4200 : 2400) && nightF < 0.85 && perfOk;
-    const wantSsao = useComposer && radius < (isAus ? 1800 : 1600) && perfOk && nightF < 0.9;
+    const wantSsao = useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
 
     if (wantShadow !== shadowsOn) {
       shadowsOn = wantShadow;
@@ -187,11 +191,14 @@ export function createCinematic(opts) {
   }
 
   function render() {
-    if (useComposer && composer && (ssaoOn || true)) {
-      /* Always use composer when available so OutputPass matches ACES path */
-      if (ssaoPass) ssaoPass.enabled = ssaoOn;
+    if (useComposer && composer && ssaoOn) {
+      if (ssaoPass) ssaoPass.enabled = true;
+      renderer.toneMapping = THREE.NoToneMapping; /* OutputPass applies ACES */
       composer.render();
     } else {
+      /* No SSAO → draw straight to the canvas with the same ACES tone map (skips 2 full-screen passes) */
+      renderer.toneMapping = hadTone;
+      renderer.toneMappingExposure = hadExposure;
       renderer.render(scene, camera);
     }
   }
@@ -209,8 +216,8 @@ export function createCinematic(opts) {
 }
 
 /**
- * F4 Map–style clay materials (legacy). Austin OSM now uses windowed façades
- * in osm-buildings.js — kept so old imports don’t break.
+ * F4 Map–style clay materials (legacy). OSM buildings now use windowed façades
+ * in osm-city.js — kept so old imports don’t break.
  */
 export function createOsmClayMaterials() {
   const wall = new THREE.MeshLambertMaterial({ color: 0xf4f1ea });

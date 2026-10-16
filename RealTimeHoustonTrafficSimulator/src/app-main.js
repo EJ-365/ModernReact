@@ -1,5 +1,18 @@
 /* Extracted from app.html — loaded via src/boot.js after Three Vite bridge */
-import { loadOsmCbdBuildings } from './render/osm-buildings.js';
+import { loadOsmCity } from './render/osm-city.js';
+import { createHoustonRoads } from './render/houston-roads.js';
+import { createHoustonLand } from './render/houston-land.js';
+import { createHoustonSigns } from './render/houston-signs.js';
+import { createHoustonTolls } from './render/houston-tolls.js';
+import { createTour } from './tour.js';
+import { createHoustonTraffic } from './render/houston-traffic.js';
+import { createHoustonAirports } from './render/houston-airports.js';
+import { createHoustonStreetlights } from './render/houston-streetlights.js';
+import { createHoustonTanks } from './render/houston-tanks.js';
+import { createHoustonSignals } from './render/houston-signals.js';
+import { createHoustonPlaces } from './render/houston-places.js';
+import { batchStaticChildren } from './render/static-batch.js';
+import { OSM_BUILDING_COVERAGE } from './cities/osm-coverage.js';
 import { createCinematic } from './render/cinematic.js';
 import {
   buildWeatherZones,
@@ -86,10 +99,38 @@ setTimeout(()=>{
   else fireHtsReady();
 },4500);
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+/* Cross-origin hosts that fail at the CORS/network layer are skipped for the rest of the session
+   so callers fall straight through to their same-origin /api proxy (no console spam every poll). */
+const CORS_DEAD_HOSTS=new Set();
+/* Free feeds that answered 403/429 are rested (per host + route) instead of hammered every poll */
+const FEED_COOLDOWN=new Map();
+function feedKey(url){
+  const m=/^(?:https?:\/\/([^/]+))?(\/[^/?]*(?:\/[^/?]*)?)/.exec(url);
+  return m?(m[1]||location.host)+m[2]:url;
+}
 function fetchWithTimeout(url,opts,ms){
+  const host=typeof url==='string'&&/^https?:\/\//.test(url)
+    ?url.split('/')[2]
+    :'';
+  if(host&&host!==location.host&&CORS_DEAD_HOSTS.has(host))
+    return Promise.reject(
+      new TypeError('skipped (CORS-blocked host) '+host)
+    );
+  const fk=typeof url==='string'?feedKey(url):'';
+  const cool=fk&&FEED_COOLDOWN.get(fk);
+  if(cool&&cool>Date.now())return Promise.reject(new Error('feed resting '+fk));
   const ctl=new AbortController();
   const t=setTimeout(()=>ctl.abort(),ms||10000);
-  return fetch(url,{...opts,signal:ctl.signal}).finally(()=>clearTimeout(t));
+  return fetch(url,{...opts,signal:ctl.signal})
+    .then((r)=>{
+      if(fk&&(r.status===403||r.status===429))FEED_COOLDOWN.set(fk,Date.now()+(r.status===403?15:5)*60000);
+      return r;
+    },(e)=>{
+      if(host&&host!==location.host&&e&&e.name==='TypeError')
+        CORS_DEAD_HOSTS.add(host);
+      throw e;
+    })
+    .finally(()=>clearTimeout(t));
 }
 const lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2;
@@ -98,6 +139,11 @@ function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return
 /* Use a time-based seed so each load reflects "right now" (not the same spawn each time). */
 const rand=rng(((Date.now()/1000)|0) ^ ((Math.random()*0x7fffffff)|0));
 const UNITS_PER_MILE=(window.HTS_CORE&&window.HTS_CORE.unitsPerMile)||210;
+/* Legacy layout literals were authored at 210 units/mile around the (60,60) downtown origin.
+   W() maps them to the active scale (Houston runs in true metres: 1609.344 units/mile). */
+const WS=UNITS_PER_MILE/210;
+function W(v){return (v-60)*WS+60;}
+function WSP(a){return WS===1?a:a.map((p)=>[W(p[0]),W(p[1])]);}
 /* world<->geo — prefers HTS_CORE (city origin) when platform-bridge has loaded */
 function geoToWorld(lat,lng){
   if(window.HTS_CORE&&window.HTS_CORE.geoToWorld)return window.HTS_CORE.geoToWorld(lat,lng);
@@ -114,7 +160,7 @@ function packDowntown(){
   if(HTS_PACK&&Number.isFinite(HTS_PACK.originLat)&&Number.isFinite(HTS_PACK.originLng))
     return geoToWorld(HTS_PACK.originLat,HTS_PACK.originLng);
   if(HTS_IS_AUS)return geoToWorld(30.2672,-97.7431);
-  return {x:60,z:60};
+  return {x:W(60),z:W(60)};
 }
 function fmtFlightTime(t){
   return t?new Date(t).toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'}):'—';
@@ -329,7 +375,7 @@ function isLiveFlightActive(f){
   return true;
 }
 /* Sky ↔ panel: show live ADS-B tracks inside the rendered metro sky. */
-const SKY_PLANE_BOUND=7200; /* keep aircraft inside sky dome / city view */
+const SKY_PLANE_BOUND=7200*WS; /* keep aircraft inside sky dome / city view */
 function flightWorldXZ(f){
   const lat=Number.isFinite(f._lat)?f._lat:f._tLat;
   const lon=Number.isFinite(f._lon)?f._lon:f._tLon;
@@ -457,8 +503,12 @@ function flightTiming(f){
   }else{
     arrTxt='ETA computing…';
   }
-  if(dep&&arr&&arr>dep)pct=clamp((now-dep)/(arr-dep),0,1);
-  else if((f.kind==='live'||f.kind==='sim')&&(f.altFt||f._tAltM))pct=clamp(((f.altFt!=null?f.altFt:f._tAltM*3.28084)||0)/38000,0.08,0.92);
+  /* progress = share of the great-circle trip already flown (live position); else real departure/arrival times; else unknown */
+  pct=null;
+  const lat=Number.isFinite(f._lat)?f._lat:f._tLat,lon=Number.isFinite(f._lon)?f._lon:f._tLon;
+  const dD=aptDistMi(f.dep,lat,lon),dA=aptDistMi(f.arr,lat,lon);
+  if(dD!=null&&dA!=null&&dD+dA>1)pct=clamp(dD/(dD+dA),0,1);
+  else if(dep&&parseMaybeTime(f.atd)&&arr&&arr>dep)pct=clamp((now-dep)/(arr-dep),0,1);
   return {depTxt,arrTxt,pct};
 }
 function aptDistMi(code,lat,lon){
@@ -850,7 +900,7 @@ function patchFlightCardStats(el,f){
     chips[3].innerHTML=etaTxt+(etaRel?' <span style="color:#8a939c;font-weight:600">· '+etaRel+'</span>':'');
   }
   const bar=el.querySelector('.fbar i');
-  if(bar)bar.style.width=Math.round(tim.pct*100)+'%';
+  if(bar){const pc=tim.pct==null?0:Math.round(tim.pct*100);bar.style.width=pc+'%';const pl=el.querySelector('.fbarplane');if(pl){pl.style.left=pc+'%';pl.style.display=tim.pct==null?'none':'';}}
   const meta=el.querySelector('.fverify span');
   if(meta){
     const lat=Number.isFinite(f._lat)?f._lat:(Number.isFinite(f._tLat)?f._tLat:null);
@@ -904,7 +954,7 @@ function renderFlightCard(f){
       +'<div class="fchip"><div class="k">Barometric</div><div class="v">'+(baro!=='—'?(baro+' inHg'):'—')+'</div></div>'
       +'<div class="fchip"><div class="k">'+(landedAgo?'ATA':'ETA')+'</div><div class="v">'+etaTxt+(etaRel?' <span style="color:#8a939c;font-weight:600">· '+etaRel+'</span>':'')+'</div></div>'
     +'</div>'
-    +'<div class="fbar"><i style="width:'+Math.round(tim.pct*100)+'%"></i></div>'
+    +'<div class="fbar" title="'+(tim.pct==null?'Route unknown — progress not available':Math.round(tim.pct*100)+'% of the trip flown')+'"><i style="width:'+(tim.pct==null?0:Math.round(tim.pct*100))+'%"></i><span class="fbarplane" style="left:'+(tim.pct==null?0:Math.round(tim.pct*100))+'%;'+(tim.pct==null?'display:none':'')+'">✈</span></div>'
     +'<div class="fstats"><span><b>'+(f.reg||f.icao24||'—')+'</b> '+(f.reg?'reg':'hex')+'</span><span><b>'+acFullName(f.actype)+'</b></span>'
     +'<span>'+tim.depTxt+'</span><span>'+tim.arrTxt+'</span></div>'
     +'<div class="fverify"><a href="'+fr+'" target="_blank" rel="noopener">'+linkLab+'</a>'
@@ -936,8 +986,9 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.08; /* weather-scaled each frame — clear days brighter, overcast softer */
 const MAXAN=renderer.capabilities.getMaxAnisotropy();
 const scene=new THREE.Scene();
-scene.fog=new THREE.Fog(0xc5d8ea,1400,18000);
-const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,2,42000);
+scene.fog=new THREE.Fog(0xc5d8ea,1400*WS,18000*WS);
+const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,WS===1?2:1.5,42000*WS);
+if(/[?&]debug\b/.test(location.search))window.HTS_DEBUG={renderer,scene,camera};
 
 const hemi=new THREE.HemisphereLight(HTS_IS_AUS?0xe8f0ff:0xd0e4ff,HTS_IS_AUS?0x6a7a50:0x4a5a3a,HTS_IS_AUS?0.95:0.88);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff5e6,HTS_IS_AUS?1.15:1.05);scene.add(sun);
@@ -955,7 +1006,7 @@ const skyUni={
   sunDir:{value:new THREE.Vector3(0,1,0)},
   glowCol:{value:new THREE.Color(0xffe8b8)}, glowI:{value:0.85},
 };
-const sky=new THREE.Mesh(new THREE.SphereGeometry(16000,32,20),
+const sky=new THREE.Mesh(new THREE.SphereGeometry(WS!==1?240000:16000,32,20),
   new THREE.ShaderMaterial({side:THREE.BackSide,fog:false,depthWrite:false,uniforms:skyUni,
     vertexShader:`varying vec3 vD;void main(){vec4 w=modelMatrix*vec4(position,1.0);
       vD=normalize(w.xyz-cameraPosition);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
@@ -1041,12 +1092,14 @@ function cloudTexture(){
 const clouds=new THREE.Group();skyRoot.add(clouds);
 (function(){
   const texes=[cloudTexture(),cloudTexture(),cloudTexture(),cloudTexture()];
-  for(let i=0;i<32;i++){
+  /* metre mode: a real cumulus deck over the metro (1.3–2.9 km) — dense enough to read from altitude */
+  const NCLOUD=WS!==1?150:32,SPREAD=WS!==1?90000:22000*WS;
+  for(let i=0;i<NCLOUD;i++){
     const mat=new THREE.SpriteMaterial({map:texes[i%4],transparent:true,opacity:0.85,depthWrite:false,fog:false});
     const sp=new THREE.Sprite(mat);
     const w=1100+rand()*2200;
     sp.scale.set(w,w*0.5,1);
-    sp.position.set((rand()-.5)*22000,920+rand()*640,(rand()-.5)*22000);
+    sp.position.set((rand()-.5)*SPREAD,WS===1?920+rand()*640:1300+rand()*1600,(rand()-.5)*SPREAD);
     sp.userData.vx=5+rand()*9;
     sp.userData.baseOp=0.85;
     clouds.add(sp);
@@ -1072,8 +1125,8 @@ const groundTex=(function(){const c=document.createElement('canvas');c.width=c.h
     x.beginPath();x.ellipse(rand()*512,rand()*512,12+rand()*28,8+rand()*20,rand()*TAU,0,TAU);x.fill();
   }
   x.globalAlpha=1;
-  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(14,14);t.anisotropy=MAXAN;return t;})();
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(24000,24000),
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(14*WS*1.4,14*WS*1.4);t.anisotropy=MAXAN;return t;})();
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(WS!==1?480000:24000,WS!==1?480000:24000),
   new THREE.MeshLambertMaterial({map:groundTex,color:HTS_IS_AUS?0xb8d090:0xb4c890,
     polygonOffset:true,polygonOffsetFactor:2,polygonOffsetUnits:4}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-1.6;scene.add(ground);
@@ -1363,15 +1416,15 @@ function superellipse(cx,cz,a,b,e,n){const pts=[];
 /* Legacy hand-drawn corridors — used only if OSM boot data is missing */
 const LEGACY_ROAD_DEFS=[
  {id:'westheimer',name:'Westheimer Rd',short:'Westheimer',closed:false,width:20,lanes:2,ff:38,share:0.45,baseY:0.65,prio:0,arterial:true,
-  pts:[[-3400,470],[-2600,440],[-1900,430],[-1250,420],[-700,405],[-250,395],[128,335]]},
+  pts:WSP([[-3400,470],[-2600,440],[-1900,430],[-1250,420],[-700,405],[-250,395],[128,335]])},
  {id:'memorial',name:'Memorial Dr',short:'Memorial',closed:false,width:18,lanes:2,ff:36,share:0.35,baseY:0.6,prio:0,arterial:true,
-  pts:[[-1895,-60],[-1200,-105],[-650,-95],[-200,-70],[60,-55]]},
+  pts:WSP([[-1895,-60],[-1200,-105],[-650,-95],[-200,-70],[60,-55]])},
  {id:'sh6',name:'State Hwy 6',short:'SH-6',closed:false,width:22,lanes:2,ff:46,share:0.5,baseY:0.92,prio:0.5,surface:true,
-  pts:[[-3350,-2660],[-3540,-1500],[-3470,-560],[-3410,340],[-3330,1250],[-3240,2150],[-3300,2300],[-4848,2674]]},
+  pts:WSP([[-3350,-2660],[-3540,-1500],[-3470,-560],[-3410,340],[-3330,1250],[-3240,2150],[-3300,2300],[-4848,2674]])},
  {id:'sh6s',name:'State Hwy 6 — Missouri City · Sugar Land',short:'SH-6 S',closed:false,width:22,lanes:2,ff:46,share:0.42,baseY:0.9,prio:0.55,surface:true,
-  pts:[[-4848,2674],[-3276,2167],[-2018,2891],[-2647,3150]]},
+  pts:WSP([[-4848,2674],[-3276,2167],[-2018,2891],[-2647,3150]])},
  {id:'fm1960',name:'FM 1960',short:'FM 1960',closed:false,width:20,lanes:2,ff:45,share:0.45,baseY:0.9,prio:0.6,surface:true,
-  pts:[[-3842,-2253],[-3120,-2560],[-2200,-2500],[-1400,-2520],[-600,-2560],[200,-2620],[700,-2680],[1230,-2740]]},
+  pts:WSP([[-3842,-2253],[-3120,-2560],[-2200,-2500],[-1400,-2520],[-600,-2560],[200,-2620],[700,-2680],[1230,-2740]])},
  {id:'bw8',name:'Beltway 8 — Sam Houston Tollway',short:'Beltway 8',closed:true,width:36,lanes:3,ff:65,share:1.2,baseY:0.82,prio:1,
   pts:superellipse(-80,-40,1820,1720,0.62,44)},
  {id:'tx99',name:'TX-99 — Grand Parkway',short:'TX-99',closed:true,width:32,lanes:3,ff:70,share:0.9,baseY:0.82,prio:1.5,
@@ -1380,33 +1433,33 @@ const LEGACY_ROAD_DEFS=[
    [5026,-152],[4397,2602],[3517,4051],[-1012,4775],[-3276,2167],[-5100,1225]
   ]},
  {id:'sh146',name:'SH-146 — Baytown · La Porte',short:'SH-146',closed:false,width:26,lanes:3,ff:58,share:0.45,baseY:0.82,prio:1.2,
-  pts:[[3760,-900],[3720,-300],[3560,400],[3380,900],[3200,1500],[3050,2200],[2950,3000],[2900,3320],[4523,1442],[5152,428]]},
+  pts:WSP([[3760,-900],[3720,-300],[3560,400],[3380,900],[3200,1500],[3050,2200],[2950,3000],[2900,3320],[4523,1442],[5152,428]])},
  {id:'sh225',name:'SH-225 — La Porte Fwy',short:'SH-225',closed:false,width:28,lanes:3,ff:60,share:0.4,baseY:0.82,prio:2.2,
-  pts:[[600,320],[1200,420],[1900,520],[2500,640],[3100,820],[3420,920]]},
+  pts:WSP([[600,320],[1200,420],[1900,520],[2500,640],[3100,820],[3420,920]])},
  {id:'sh288',name:'State Hwy 288 — South Fwy',short:'SH-288',closed:false,width:32,lanes:3,ff:63,share:0.8,baseY:0.82,prio:2,
-  pts:[[45,48],[150,420],[210,900],[260,1500],[330,2200],[380,3000],[1127,3036],[430,3900],[246,4340],[-634,5500]]},
+  pts:WSP([[45,48],[150,420],[210,900],[260,1500],[330,2200],[380,3000],[1127,3036],[430,3900],[246,4340],[-634,5500]])},
  {id:'sh35',name:'SH-35 — Pearland · Alvin',short:'SH-35',closed:false,width:20,lanes:2,ff:50,share:0.35,baseY:0.85,prio:0.8,surface:true,
-  pts:[[1127,2891],[1300,3600],[1630,4920]]},
+  pts:WSP([[1127,2891],[1300,3600],[1630,4920]])},
  {id:'fbpkwy',name:'Fort Bend Tollway',short:'FB Toll',closed:false,width:26,lanes:2,ff:62,share:0.45,baseY:0.82,prio:2.4,
-  pts:[[150,190],[-1200,1200],[-2647,2602],[-3276,2167]]},
+  pts:WSP([[150,190],[-1200,1200],[-2647,2602],[-3276,2167]])},
  {id:'fm1093',name:'FM 1093 — Katy · Richmond · Sugar Land',short:'FM 1093',closed:false,width:22,lanes:2,ff:48,share:0.5,baseY:0.88,prio:0.7,surface:true,
-  pts:[[-5666,-296],[-5414,428],[-4785,1442],[-3276,2457]]},
+  pts:WSP([[-5666,-296],[-5414,428],[-4785,1442],[-3276,2457]])},
  {id:'i610',name:'Interstate 610 — The Loop',short:'I-610',closed:true,width:42,lanes:4,ff:62,share:1.5,baseY:0.82,prio:3,
   pts:superellipse(-60,-30,980,930,0.6,40)},
  {id:'westpark',name:'Westpark Tollway',short:'Westpark Toll',closed:false,width:26,lanes:2,ff:65,share:0.5,baseY:0.82,prio:3.2,
-  pts:[[-5414,428],[-4800,520],[-4250,760],[-3500,700],[-2700,650],[-1900,610],[-1250,575],[-1045,555]]},
+  pts:WSP([[-5414,428],[-4800,520],[-4250,760],[-3500,700],[-2700,650],[-1900,610],[-1250,575],[-1045,555]])},
  {id:'sh249',name:'SH-249 — Tomball Pkwy',short:'SH-249',closed:false,width:30,lanes:3,ff:65,share:0.58,baseY:0.82,prio:3.5,
-  pts:[[-950,-935],[-1150,-1400],[-1650,-2050],[-2150,-2700],[-2600,-3300],[-3050,-4000],[-3400,-4800],[-3024,-4788]]},
+  pts:WSP([[-950,-935],[-1150,-1400],[-1650,-2050],[-2150,-2700],[-2600,-3300],[-3050,-4000],[-3400,-4800],[-3024,-4788]])},
  {id:'hardy',name:'Hardy Toll Road',short:'Hardy Toll',closed:false,width:28,lanes:3,ff:70,share:0.55,baseY:0.82,prio:4.5,
-  pts:[[100,-420],[190,-1050],[300,-1700],[430,-2350],[620,-2920],[760,-3600],[880,-4400],[120,-4788]]},
+  pts:WSP([[100,-420],[190,-1050],[300,-1700],[430,-2350],[620,-2920],[760,-3600],[880,-4400],[120,-4788]])},
  {id:'us290',name:'US-290 — Northwest Fwy',short:'US-290',closed:false,width:36,lanes:3,ff:64,share:0.9,baseY:0.82,prio:4,
-  pts:[[40,-210],[-700,-720],[-1450,-1240],[-2200,-1800],[-2950,-2380],[-3700,-2920],[-4500,-3480],[-5400,-4050],[-6861,-4281]]},
+  pts:WSP([[40,-210],[-700,-720],[-1450,-1240],[-2200,-1800],[-2950,-2380],[-3700,-2920],[-4500,-3480],[-5400,-4050],[-6861,-4281]])},
  {id:'us59',name:'US-59 / I-69 — Southwest Fwy · Eastex',short:'US-59',closed:false,width:42,lanes:4,ff:64,share:1.35,baseY:0.82,prio:5,
-  pts:[[-7679,4920],[-5414,3181],[-5400,3750],[-4600,3400],[-3900,2900],[-3300,2420],[-2700,1900],[-2100,1460],[-1500,1080],[-900,720],[-380,380],[-60,180],[260,60],[520,-260],[760,-780],[1000,-1500],[1180,-2600],[1320,-3500],[1450,-4400],[1520,-5400]]},
+  pts:WSP([[-7679,4920],[-5414,3181],[-5400,3750],[-4600,3400],[-3900,2900],[-3300,2420],[-2700,1900],[-2100,1460],[-1500,1080],[-900,720],[-380,380],[-60,180],[260,60],[520,-260],[760,-780],[1000,-1500],[1180,-2600],[1320,-3500],[1450,-4400],[1520,-5400]])},
  {id:'i10',name:'Interstate 10 — Katy Fwy · East Fwy',short:'I-10',closed:false,width:44,lanes:4,ff:68,share:1.5,baseY:0.82,prio:6,
-  pts:[[-9754,-224],[-7238,-296],[-5400,-390],[-4300,-360],[-3400,-330],[-2600,-300],[-1750,-265],[-980,-250],[-380,-230],[60,-200],[600,-235],[1200,-260],[2000,-235],[2800,-270],[3600,-250],[4400,-285],[5400,-310]]},
+  pts:WSP([[-9754,-224],[-7238,-296],[-5400,-390],[-4300,-360],[-3400,-330],[-2600,-300],[-1750,-265],[-980,-250],[-380,-230],[60,-200],[600,-235],[1200,-260],[2000,-235],[2800,-270],[3600,-250],[4400,-285],[5400,-310]])},
  {id:'i45',name:'Interstate 45 — North Fwy · Gulf Fwy',short:'I-45',closed:false,width:42,lanes:4,ff:65,share:1.4,baseY:0.82,prio:7,
-  pts:[[-1850,-5400],[-1550,-4550],[-1260,-3800],[-1090,-3300],[-830,-2600],[-660,-1750],[-420,-1000],[-160,-380],[40,60],[330,560],[640,1150],[880,1850],[1120,2600],[1500,3400],[1950,4400],[2300,5400],[4200,6200],[5800,6600],[7290,6804]]},
+  pts:WSP([[-1850,-5400],[-1550,-4550],[-1260,-3800],[-1090,-3300],[-830,-2600],[-660,-1750],[-420,-1000],[-160,-380],[40,60],[330,560],[640,1150],[880,1850],[1120,2600],[1500,3400],[1950,4400],[2300,5400],[4200,6200],[5800,6600],[7290,6804]])},
 ];
 /* City pack roads (Austin) replace Houston legacy before OSM snap. */
 (function applyCityPackRoads(){
@@ -1504,8 +1557,11 @@ function renderHighwayShields(){
 renderHighwayShields();
 $('roadModalScrim')?.addEventListener('click',closeRoadModal);
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeRoadModal();});
+const OSM_CLASS_LABEL={motorway_link:'Ramp',trunk_link:'Ramp',primary_link:'Connector',secondary_link:'Connector',tertiary_link:'Connector'};
+function friendlyRoadName(v){return v&&OSM_CLASS_LABEL[v]||v;}
 function normalizeOsmRoadDef(r){
   if(!r||!Array.isArray(r.pts)||r.pts.length<2)return null;
+  for(const k of ['name','short','ref'])if(r[k])r[k]=friendlyRoadName(r[k]);
   return {
     id:String(r.id||('osm-'+Math.random().toString(36).slice(2,8))),
     name:r.name||r.short||r.ref||'Road',
@@ -1520,7 +1576,7 @@ function normalizeOsmRoadDef(r){
     arterial:!!r.arterial,
     surface:!!r.surface,
     ramp:!!r.ramp,
-    pts:r.pts
+    pts:WS===1?r.pts:r.pts.map((p)=>[W(p[0]),W(p[1])])
   };
 }
 /* The boot set is sourced from OSM. Each corridor still passes the local geometry
@@ -1565,7 +1621,9 @@ const ROAD_DEFS=(function(){
 /* sample all roads, then compute overpass profiles */
 const roadSamples=[];
 for(const def of ROAD_DEFS){
-  const s=sampleCurve(def.pts,def.closed,14);
+  /* metre scale: real carriageway widths (lanes are per direction) */
+  if(WS!==1)def.width=def.lanes*2*3.66+(def.arterial||def.surface?1.5:6);
+  const s=sampleCurve(def.pts,def.closed,14*Math.min(WS,4));
   for(let i=0;i<=s.n;i++)s.py[i]=def.baseY;
   roadSamples.push({def,s});
 }
@@ -1587,7 +1645,7 @@ for(let ri=0;ri<byPrio.length;ri++){
         if(dx*dx+dz*dz<t2){
           const arc=R.s.cum[i];
           const need=O.s.py[j]+CLEAR-R.def.baseY;
-          if(arc-lastArc>170){
+          if(arc-lastArc>170*WS){
             bumps.push({c:arc,H:need});
             if(O.s.py[j]<2.4)UNDERPASSES.push({x:O.s.px[j],z:O.s.pz[j],roadId:O.def.id,arc:O.s.cum[j],over:R.def.short});
           }
@@ -1602,7 +1660,7 @@ for(let ri=0;ri<byPrio.length;ri++){
     }
   }
   for(const b of bumps){
-    const HL=130+b.H*14;
+    const HL=WS===1?130+b.H*14:60+b.H/0.045;
     for(let i=0;i<=R.s.n;i++){
       let d=Math.abs(R.s.cum[i]-b.c);
       if(R.s.closed)d=Math.min(d,R.s.total-d);
@@ -1639,30 +1697,30 @@ if(HTS_IS_AUS&&LADYBIRD&&LADYBIRD.length>=2)(function(){
 /* congestion hotspots — choke points; rings driven by live/modeled congestion nearby */
 const HOTSPOTS=[
  {x:0,z:0,r:560,k:0.55,name:'Downtown'},
- {x:-980,z:180,r:430,k:0.6,name:'I-10 W / 610'},
- {x:-980,z:-255,r:340,k:0.5,name:'I-10 E / 610'},
- {x:-420,z:-1000,r:360,k:0.35,name:'US-290'},
- {x:-900,z:720,r:340,k:0.4,name:'US-59 S'},
- {x:-290,z:800,r:320,k:0.35,name:'SH-288'},
- {x:-1820,z:-270,r:340,k:0.32,name:'I-10 W'},
- {x:-3400,z:-330,r:400,k:0.38,name:'I-10 Katy'},
- {x:-2900,z:2000,r:380,k:0.36,name:'US-59 SW'},
- {x:-1090,z:-3400,r:380,k:0.3,name:'IAH / Hardy'},
- {x:-1450,z:-1240,r:340,k:0.3,name:'N Loop 610'},
- {x:380,z:2600,r:330,k:0.26,name:'Hardy Toll'},
- {x:2800,z:-270,r:340,k:0.22,name:'I-10 E'},
- {x:1900,z:3400,r:330,k:0.24,name:'I-45 S'},
- {x:-4550,z:3320,r:340,k:0.24,name:'US-59 Sugar Land'},
- {x:-5653,z:-181,r:380,k:0.32,name:'Grand Pkwy Katy'},
- {x:-4031,z:-2905,r:360,k:0.28,name:'Grand Pkwy Cypress'},
- {x:1881,z:-3774,r:340,k:0.26,name:'Grand Pkwy Kingwood'},
- {x:5026,z:-152,r:360,k:0.28,name:'Grand Pkwy Baytown'},
- {x:-5414,z:428,r:340,k:0.3,name:'Westpark Katy'},
- {x:1127,z:3036,r:330,k:0.28,name:'SH-288 Pearland'},
- {x:-6861,z:-4281,r:360,k:0.26,name:'US-290 Waller'},
- {x:-7238,z:-296,r:340,k:0.24,name:'I-10 Brookshire'},
- {x:7290,z:6804,r:380,k:0.22,name:'I-45 Galveston'},
- {x:-3842,z:-2253,r:320,k:0.24,name:'FM 1960 Cypress'},
+ {x:W(-980),z:W(180),r:430*WS,k:0.6,name:'I-10 W / 610'},
+ {x:W(-980),z:W(-255),r:340*WS,k:0.5,name:'I-10 E / 610'},
+ {x:W(-420),z:W(-1000),r:360*WS,k:0.35,name:'US-290'},
+ {x:W(-900),z:W(720),r:340*WS,k:0.4,name:'US-59 S'},
+ {x:W(-290),z:W(800),r:320*WS,k:0.35,name:'SH-288'},
+ {x:W(-1820),z:W(-270),r:340*WS,k:0.32,name:'I-10 W'},
+ {x:W(-3400),z:W(-330),r:400*WS,k:0.38,name:'I-10 Katy'},
+ {x:W(-2900),z:W(2000),r:380*WS,k:0.36,name:'US-59 SW'},
+ {x:W(-1090),z:W(-3400),r:380*WS,k:0.3,name:'IAH / Hardy'},
+ {x:W(-1450),z:W(-1240),r:340*WS,k:0.3,name:'N Loop 610'},
+ {x:W(380),z:W(2600),r:330*WS,k:0.26,name:'Hardy Toll'},
+ {x:W(2800),z:W(-270),r:340*WS,k:0.22,name:'I-10 E'},
+ {x:W(1900),z:W(3400),r:330*WS,k:0.24,name:'I-45 S'},
+ {x:W(-4550),z:W(3320),r:340*WS,k:0.24,name:'US-59 Sugar Land'},
+ {x:W(-5653),z:W(-181),r:380*WS,k:0.32,name:'Grand Pkwy Katy'},
+ {x:W(-4031),z:W(-2905),r:360*WS,k:0.28,name:'Grand Pkwy Cypress'},
+ {x:W(1881),z:W(-3774),r:340*WS,k:0.26,name:'Grand Pkwy Kingwood'},
+ {x:W(5026),z:W(-152),r:360*WS,k:0.28,name:'Grand Pkwy Baytown'},
+ {x:W(-5414),z:W(428),r:340*WS,k:0.3,name:'Westpark Katy'},
+ {x:W(1127),z:W(3036),r:330*WS,k:0.28,name:'SH-288 Pearland'},
+ {x:W(-6861),z:W(-4281),r:360*WS,k:0.26,name:'US-290 Waller'},
+ {x:W(-7238),z:W(-296),r:340*WS,k:0.24,name:'I-10 Brookshire'},
+ {x:W(7290),z:W(6804),r:380*WS,k:0.22,name:'I-45 Galveston'},
+ {x:W(-3842),z:W(-2253),r:320*WS,k:0.24,name:'FM 1960 Cypress'},
 ];
 if(HTS_PACK&&HTS_PACK.hotspots&&HTS_PACK.hotspots.length){
   HOTSPOTS.length=0;
@@ -1726,6 +1784,12 @@ function hotspotLiveCong(hs){
     cong=Math.max(avg,peak*0.85);
     if(rush>0.75)cong=Math.max(cong,rush*hs.k*0.35);
     else if(overnight)cong*=0.45;
+  }
+  /* Houston v2: the ring reflects what the simulated cars inside it are actually doing — lit only
+     when they are crawling bumper-to-bumper, gone the moment the jam clears */
+  if(window.HTS_TRAFFIC2&&window.HTS_TRAFFIC2.speedNear){
+    const ob=window.HTS_TRAFFIC2.speedNear(hs.x,hs.z,hs.r);
+    if(ob.n>=8)cong=congFromLiveMph(ob.ratio*100,100);
   }
   const out={cong:clamp(cong,0,1),liveShare:n?liveSeg/n:0,samples:n,live:!!(liveAvg!=null&&liveSeg>0),
     avgMph:liveMphN?Math.round(liveMphSum/liveMphN):null};
@@ -2034,78 +2098,66 @@ function osmCellsAround(x,z,cell,ring){
   for(let dx=-ring;dx<=ring;dx++)for(let dz=-ring;dz<=ring;dz++)out.push((cx+dx)+':'+(cz+dz));
   return out;
 }
-function ensureOsmMesh(def,mat){
-  if(OSM_LOD.meshes.has(def.id))return OSM_LOD.meshes.get(def.id);
-  if(OSM_LOD.meshes.size>=OSM_LOD.maxMeshes)return null;
-  try{
-    const s=sampleCurve(def.pts,!!def.closed,def.layer==='local'?28:18);
-    for(let i=0;i<=s.n;i++)s.py[i]=def.baseY||0.55;
-    const w=Math.max(def.width||(def.layer==='local'?11:15),def.layer==='local'?11:15);
-    const grp=new THREE.Group();
-    const mesh=new THREE.Mesh(ribbonGeom(s,w,0,0,false,0),mat);
-    grp.add(mesh);
-    /* Centerline so suburb streets read as roads, not gray ribbons */
-    if(def.layer!=='local'&&OSM_LOD.matYellow){
-      grp.add(new THREE.Mesh(ribbonGeom(s,0.55,0.04,0,false,0),OSM_LOD.matYellow));
-    }else if(OSM_LOD.matLine){
-      grp.add(new THREE.Mesh(ribbonGeom(s,0.35,0.04,0,false,0),OSM_LOD.matLine));
-    }
-    grp.userData.osmId=def.id;
-    gOsmLod.add(grp);
-    OSM_LOD.meshes.set(def.id,grp);
-    return grp;
-  }catch(e){return null;}
+/* Streamed OSM streets are merged per index cell (1 ribbon + 1 paint draw call per cell instead of
+   2 per street). Each street is owned by the first cell that builds it, so nothing is drawn twice. */
+OSM_LOD.cells=new Map();   /* layer:cell -> Group */
+OSM_LOD.owner=new Set();   /* street ids already baked into some cell */
+function buildOsmCell(layer,cellKey,list,defs,mat){
+  const key=layer+':'+cellKey;
+  let grp=OSM_LOD.cells.get(key);
+  if(grp)return grp;
+  const ribs=[],paint=[];
+  for(const i of list){
+    const def=defs[i];
+    if(!def||OSM_LOD.owner.has(def.id))continue;
+    try{
+      const s=sampleCurve(def.pts,!!def.closed,layer==='local'?28:18);
+      for(let k=0;k<=s.n;k++)s.py[k]=def.baseY||0.55;
+      const w=Math.max(def.width||(layer==='local'?11:15),layer==='local'?11:15);
+      ribs.push(ribbonGeom(s,w,0,0,false,0));
+      paint.push(ribbonGeom(s,layer==='local'?0.35:0.55,0.04,0,false,0));
+      OSM_LOD.owner.add(def.id);
+    }catch(e){}
+  }
+  grp=new THREE.Group();
+  grp.userData.osmCell=key;
+  if(ribs.length){
+    const rg=mergeGeoms(ribs);rg.computeVertexNormals();rg.computeBoundingSphere();
+    grp.add(new THREE.Mesh(rg,mat));
+    const pg=mergeGeoms(paint);pg.computeVertexNormals();pg.computeBoundingSphere();
+    grp.add(new THREE.Mesh(pg,layer==='local'?OSM_LOD.matLine:OSM_LOD.matYellow));
+    for(const m of grp.children){m.matrixAutoUpdate=false;m.updateMatrix();}
+  }
+  gOsmLod.add(grp);
+  OSM_LOD.cells.set(key,grp);
+  return grp;
 }
 function updateOsmLod(camX,camZ,radius){
   if(!OSM_LOD.ready)return;
   /* Far out: hide suburb mesh to keep FPS. Keep arterials visible when zoomed in. */
-  const showArt=radius<7200;
-  const showLoc=radius<3200;
+  const showArt=radius<7200*WS;
+  const showLoc=radius<3200*WS;
   gOsmLod.visible=showArt;
   if(!showArt){syncSuburbTraffic(camX,camZ,radius,new Set());return;}
   const cell=showLoc?400:500;
   const ring=showLoc?3:4;
   const key=Math.floor(camX/cell)+':'+Math.floor(camZ/cell)+':'+(showLoc?1:0);
-  if(key===OSM_LOD.lastCell)return; /* suburb cars disabled — no per-frame sync needed */
+  if(key===OSM_LOD.lastCell)return;
   OSM_LOD.lastCell=key;
-
-  const want=new Set();
-  if(showArt&&OSM_LOD.artIdx){
-    for(const c of osmCellsAround(camX,camZ,OSM_LOD.artIdx.cell||500,ring)){
-      const list=OSM_LOD.artIdx.index[c];
+  const want=new Set(),wantCells=new Set();
+  const visit=(layer,idx,defs,mat,rg)=>{
+    if(!idx)return;
+    for(const c of osmCellsAround(camX,camZ,idx.cell||500,rg)){
+      const list=idx.index[c];
       if(!list)continue;
-      for(const i of list){
-        const def=OSM_LOD.arterial[i];
-        if(!def)continue;
-        want.add(def.id);
-        ensureOsmMesh(def,OSM_LOD.matArt);
-      }
+      for(const i of list){const d=defs[i];if(d)want.add(d.id);}
+      buildOsmCell(layer,c,list,defs,mat);
+      wantCells.add(layer+':'+c);
     }
-  }
-  if(showLoc&&OSM_LOD.locIdx){
-    for(const c of osmCellsAround(camX,camZ,OSM_LOD.locIdx.cell||400,2)){
-      const list=OSM_LOD.locIdx.index[c];
-      if(!list)continue;
-      for(const i of list){
-        const def=OSM_LOD.local[i];
-        if(!def)continue;
-        want.add(def.id);
-        ensureOsmMesh(def,OSM_LOD.matLoc);
-      }
-    }
-  }
-  /* Cull meshes far from camera */
-  for(const [id,mesh] of OSM_LOD.meshes){
-    if(want.has(id)){mesh.visible=true;continue;}
-    mesh.visible=false;
-    if(OSM_LOD.meshes.size>OSM_LOD.maxMeshes*0.9&&!want.has(id)){
-      gOsmLod.remove(mesh);
-      try{
-        mesh.traverse(ch=>{if(ch.geometry)ch.geometry.dispose();});
-      }catch(e){}
-      OSM_LOD.meshes.delete(id);
-    }
-  }
+  };
+  visit('art',OSM_LOD.artIdx,OSM_LOD.arterial,OSM_LOD.matArt,ring);
+  if(showLoc)visit('local',OSM_LOD.locIdx,OSM_LOD.local,OSM_LOD.matLoc,2);
+  for(const [k,g] of OSM_LOD.cells)g.visible=wantCells.has(k);
   OSM_LOD.lastWant=want;
   syncSuburbTraffic(camX,camZ,radius,want);
 }
@@ -2229,7 +2281,8 @@ function refreshIncidentCount(){
 /* streetlights — arterials, surface roads, AND freeways (night glow) */
 const lampHeads=(function(){
   const positions=[];
-  for(const road of roads){
+  /* metre-scale Houston: real OSM street lights (houston-streetlights.js) replace these corridor lamps */
+  for(const road of (WS===1?[]:roads)){
     const isFwy=!road.def.arterial&&!road.def.surface;
     const step=isFwy?5:7; /* denser on freeways */
     const s=road.s;
@@ -2272,7 +2325,7 @@ const lampHeads=(function(){
 function districtRFromSqMi(sqMi,kind){
   const k=kind==='major'?1.12:kind==='hood'?0.72:kind==='cdp'?1.02:0.94;
   const mi=Math.sqrt(Math.max(sqMi,5)/Math.PI);
-  return Math.round(clamp(mi*UNITS_PER_MILE*0.88*k,200,680));
+  return Math.round(clamp(mi*UNITS_PER_MILE*0.88*k,200*WS,680*WS));
 }
 function districtAt(id,n,lat,lng,sqMi,kind){
   const w=geoToWorld(lat,lng);
@@ -2280,61 +2333,61 @@ function districtAt(id,n,lat,lng,sqMi,kind){
 }
 /* ---------------- districts (10-county Houston MSA) ---------------- */
 const DISTRICTS_CORE=[
- {id:'downtown',n:'Downtown',x:60,z:60,r:520},
- {id:'galleria',n:'Galleria · Uptown',x:-980,z:180,r:420},
- {id:'medcenter',n:'Texas Medical Center',x:-290,z:800,r:380},
- {id:'greenway',n:'Greenway Plaza',x:-680,z:470,r:280},
- {id:'montrose',n:'Montrose',x:-360,z:260,r:260},
- {id:'heights',n:'The Heights',x:-360,z:-420,r:300},
- {id:'riveroaks',n:'River Oaks',x:-620,z:180,r:240},
- {id:'bellaire',n:'Bellaire',x:-820,z:760,r:260},
- {id:'energycorridor',n:'Energy Corridor',x:-1860,z:-300,r:420},
- {id:'springbranch',n:'Spring Branch',x:-1450,z:-330,r:300},
- {id:'alief',n:'Alief',x:-2050,z:950,r:340},
- {id:'katy',n:'Katy',x:-3520,z:-180,r:560},
- {id:'sugarland',n:'Sugar Land',x:-3050,z:2260,r:560},
- {id:'missouricity',n:'Missouri City',x:-2280,z:2520,r:460},
- {id:'stafford',n:'Stafford',x:-2520,z:1780,r:300},
- {id:'richmond',n:'Richmond · Rosenberg',x:-4550,z:3300,r:520},
- {id:'cypress',n:'Cypress',x:-3020,z:-2420,r:520},
- {id:'tomball',n:'Tomball',x:-2650,z:-3250,r:460},
- {id:'jerseyvillage',n:'Jersey Village',x:-1650,z:-1520,r:300},
- {id:'greenspoint',n:'Greenspoint',x:-420,z:-1180,r:340},
- {id:'spring',n:'Spring',x:-950,z:-2950,r:420},
- {id:'woodlands',n:'The Woodlands',x:-1140,z:-3620,r:600},
- {id:'conroe',n:'Conroe',x:-1600,z:-4950,r:540},
- {id:'kingwood',n:'Humble · Kingwood',x:1340,z:-3620,r:520},
- {id:'atascocita',n:'Atascocita',x:1950,z:-3350,r:460},
- {id:'channelview',n:'Channelview',x:2600,z:-300,r:380},
- {id:'baytown',n:'Baytown',x:3800,z:-360,r:480},
- {id:'pasadena',n:'Pasadena',x:2450,z:420,r:520},
- {id:'deerpark',n:'Deer Park',x:2850,z:700,r:340},
- {id:'laporte',n:'La Porte',x:3250,z:950,r:340},
- {id:'clearlake',n:'Clear Lake · Webster',x:1750,z:2820,r:420},
- {id:'friendswood',n:'Friendswood',x:1250,z:3150,r:380},
- {id:'leaguecity',n:'League City',x:1950,z:3900,r:460},
- {id:'pearland',n:'Pearland',x:430,z:3420,r:520},
- {id:'midtown',n:'Midtown',x:-120,z:320,r:240},
- {id:'eastend',n:'East End · EaDo',x:380,z:120,r:280},
- {id:'fifthward',n:'Fifth Ward',x:280,z:-180,r:260},
- {id:'memorial',n:'Memorial',x:-1280,z:-80,r:380},
- {id:'westu',n:'West University',x:-720,z:520,r:220},
- {id:'meyerland',n:'Meyerland',x:-920,z:680,r:260},
- {id:'westchase',n:'Westchase',x:-1680,z:380,r:320},
- {id:'sharpstown',n:'Sharpstown',x:-1780,z:620,r:340},
- {id:'gulfton',n:'Gulfton',x:-1480,z:520,r:280},
- {id:'magnolia',n:'Magnolia',x:-2100,z:-3950,r:480},
- {id:'montgomery',n:'Montgomery',x:-1850,z:-4300,r:420},
- {id:'porter',n:'Porter · New Caney',x:850,z:-3200,r:460},
- {id:'hockley',n:'Hockley',x:-2350,z:-2850,r:400},
- {id:'crosby',n:'Crosby',x:2100,z:-2100,r:420},
- {id:'texascity',n:'Texas City',x:4200,z:3100,r:480},
- {id:'galveston',n:'Galveston',x:5100,z:3600,r:520},
- {id:'manvel',n:'Manvel',x:180,z:3780,r:380},
- {id:'alvin',n:'Alvin',x:680,z:4020,r:400},
- {id:'dickinson',n:'Dickinson',x:1450,z:3520,r:380},
- {id:'lakejackson',n:'Lake Jackson',x:3200,z:4200,r:460},
- {id:'seabrook',n:'Seabrook · Kemah',x:2750,z:3280,r:380},
+ {id:'downtown',n:'Downtown',x:W(60),z:W(60),r:520*WS},
+ {id:'galleria',n:'Galleria · Uptown',x:W(-980),z:W(180),r:420*WS},
+ {id:'medcenter',n:'Texas Medical Center',x:W(-290),z:W(800),r:380*WS},
+ {id:'greenway',n:'Greenway Plaza',x:W(-680),z:W(470),r:280*WS},
+ {id:'montrose',n:'Montrose',x:W(-360),z:W(260),r:260*WS},
+ {id:'heights',n:'The Heights',x:W(-360),z:W(-420),r:300*WS},
+ {id:'riveroaks',n:'River Oaks',x:W(-620),z:W(180),r:240*WS},
+ {id:'bellaire',n:'Bellaire',x:W(-820),z:W(760),r:260*WS},
+ {id:'energycorridor',n:'Energy Corridor',x:W(-1860),z:W(-300),r:420*WS},
+ {id:'springbranch',n:'Spring Branch',x:W(-1450),z:W(-330),r:300*WS},
+ {id:'alief',n:'Alief',x:W(-2050),z:W(950),r:340*WS},
+ {id:'katy',n:'Katy',x:W(-3520),z:W(-180),r:560*WS},
+ {id:'sugarland',n:'Sugar Land',x:W(-3050),z:W(2260),r:560*WS},
+ {id:'missouricity',n:'Missouri City',x:W(-2280),z:W(2520),r:460*WS},
+ {id:'stafford',n:'Stafford',x:W(-2520),z:W(1780),r:300*WS},
+ {id:'richmond',n:'Richmond · Rosenberg',x:W(-4550),z:W(3300),r:520*WS},
+ {id:'cypress',n:'Cypress',x:W(-3020),z:W(-2420),r:520*WS},
+ {id:'tomball',n:'Tomball',x:W(-2650),z:W(-3250),r:460*WS},
+ {id:'jerseyvillage',n:'Jersey Village',x:W(-1650),z:W(-1520),r:300*WS},
+ {id:'greenspoint',n:'Greenspoint',x:W(-420),z:W(-1180),r:340*WS},
+ {id:'spring',n:'Spring',x:W(-950),z:W(-2950),r:420*WS},
+ {id:'woodlands',n:'The Woodlands',x:W(-1140),z:W(-3620),r:600*WS},
+ {id:'conroe',n:'Conroe',x:W(-1600),z:W(-4950),r:540*WS},
+ {id:'kingwood',n:'Humble · Kingwood',x:W(1340),z:W(-3620),r:520*WS},
+ {id:'atascocita',n:'Atascocita',x:W(1950),z:W(-3350),r:460*WS},
+ {id:'channelview',n:'Channelview',x:W(2600),z:W(-300),r:380*WS},
+ {id:'baytown',n:'Baytown',x:W(3800),z:W(-360),r:480*WS},
+ {id:'pasadena',n:'Pasadena',x:W(2450),z:W(420),r:520*WS},
+ {id:'deerpark',n:'Deer Park',x:W(2850),z:W(700),r:340*WS},
+ {id:'laporte',n:'La Porte',x:W(3250),z:W(950),r:340*WS},
+ {id:'clearlake',n:'Clear Lake · Webster',x:W(1750),z:W(2820),r:420*WS},
+ {id:'friendswood',n:'Friendswood',x:W(1250),z:W(3150),r:380*WS},
+ {id:'leaguecity',n:'League City',x:W(1950),z:W(3900),r:460*WS},
+ {id:'pearland',n:'Pearland',x:W(430),z:W(3420),r:520*WS},
+ {id:'midtown',n:'Midtown',x:W(-120),z:W(320),r:240*WS},
+ {id:'eastend',n:'East End · EaDo',x:W(380),z:W(120),r:280*WS},
+ {id:'fifthward',n:'Fifth Ward',x:W(280),z:W(-180),r:260*WS},
+ {id:'memorial',n:'Memorial',x:W(-1280),z:W(-80),r:380*WS},
+ {id:'westu',n:'West University',x:W(-720),z:W(520),r:220*WS},
+ {id:'meyerland',n:'Meyerland',x:W(-920),z:W(680),r:260*WS},
+ {id:'westchase',n:'Westchase',x:W(-1680),z:W(380),r:320*WS},
+ {id:'sharpstown',n:'Sharpstown',x:W(-1780),z:W(620),r:340*WS},
+ {id:'gulfton',n:'Gulfton',x:W(-1480),z:W(520),r:280*WS},
+ {id:'magnolia',n:'Magnolia',x:W(-2100),z:W(-3950),r:480*WS},
+ {id:'montgomery',n:'Montgomery',x:W(-1850),z:W(-4300),r:420*WS},
+ {id:'porter',n:'Porter · New Caney',x:W(850),z:W(-3200),r:460*WS},
+ {id:'hockley',n:'Hockley',x:W(-2350),z:W(-2850),r:400*WS},
+ {id:'crosby',n:'Crosby',x:W(2100),z:W(-2100),r:420*WS},
+ {id:'texascity',n:'Texas City',x:W(4200),z:W(3100),r:480*WS},
+ {id:'galveston',n:'Galveston',x:W(5100),z:W(3600),r:520*WS},
+ {id:'manvel',n:'Manvel',x:W(180),z:W(3780),r:380*WS},
+ {id:'alvin',n:'Alvin',x:W(680),z:W(4020),r:400*WS},
+ {id:'dickinson',n:'Dickinson',x:W(1450),z:W(3520),r:380*WS},
+ {id:'lakejackson',n:'Lake Jackson',x:W(3200),z:W(4200),r:460*WS},
+ {id:'seabrook',n:'Seabrook · Kemah',x:W(2750),z:W(3280),r:380*WS},
 ];
 /* Geo-placed additions — 10-county MSA gaps (lat/lng from USGS/Census; r from land area) */
 const DISTRICTS_MORE=[
@@ -2478,18 +2531,18 @@ function warnSprite(kind,title,sub,scaleK){
 /* Lakes / reservoirs / bay — labels + later hover hit volumes */
 const waterSprites=[];
 const WATERS=[
- {n:'Lake Houston',x:2150,z:-3850,r:520,tag:'lake'},
- {n:'Clear Lake',x:2050,z:3020,r:280,tag:'lake'},
- {n:'Sheldon Lake',x:2699,z:-1383,r:200,tag:'lake'},
- {n:'Galveston Bay',x:4650,z:2350,r:900,tag:'bay'},
- {n:'Addicks Reservoir',x:-2650,z:-780,r:320,tag:'reservoir'},
- {n:'Barker Reservoir',x:-2850,z:300,r:340,tag:'reservoir'},
- {n:'Buffalo Bayou',x:900,z:40,r:180,tag:'bayou'},
- {n:'Brays Bayou',x:-800,z:900,r:160,tag:'bayou'},
- {n:'White Oak Bayou',x:-400,z:-350,r:140,tag:'bayou'},
- {n:'San Jacinto River',x:4200,z:-800,r:220,tag:'river'},
- {n:'Lake Conroe',x:-1680,z:-5200,r:480,tag:'lake'},
- {n:'Trinity Bay',x:5200,z:-1200,r:420,tag:'bay'},
+ {n:'Lake Houston',x:W(2150),z:W(-3850),r:520*WS,tag:'lake'},
+ {n:'Clear Lake',x:W(2050),z:W(3020),r:280*WS,tag:'lake'},
+ {n:'Sheldon Lake',x:W(2699),z:W(-1383),r:200*WS,tag:'lake'},
+ {n:'Galveston Bay',x:W(4650),z:W(2350),r:900*WS,tag:'bay'},
+ {n:'Addicks Reservoir',x:W(-2650),z:W(-780),r:320*WS,tag:'reservoir'},
+ {n:'Barker Reservoir',x:W(-2850),z:W(300),r:340*WS,tag:'reservoir'},
+ {n:'Buffalo Bayou',x:W(900),z:W(40),r:180*WS,tag:'bayou'},
+ {n:'Brays Bayou',x:W(-800),z:W(900),r:160*WS,tag:'bayou'},
+ {n:'White Oak Bayou',x:W(-400),z:W(-350),r:140*WS,tag:'bayou'},
+ {n:'San Jacinto River',x:W(4200),z:W(-800),r:220*WS,tag:'river'},
+ {n:'Lake Conroe',x:W(-1680),z:W(-5200),r:480*WS,tag:'lake'},
+ {n:'Trinity Bay',x:W(5200),z:W(-1200),r:420*WS,tag:'bay'},
 ];
 if(HTS_PACK&&HTS_PACK.waters&&HTS_PACK.waters.length){
   WATERS.length=0;
@@ -2588,6 +2641,25 @@ function nearRoad(x,z,extra){
   for(let i=0;i<roadSamplePts.length;i++){const p=roadSamplePts[i];
     const lim=p[3]+extra;
     const dx=x-p[0],dz=z-p[1];if(dx*dx+dz*dz<lim*lim)return true;}return false;}
+/* Grid-indexed nearRoad for bulk queries (OSM buildings): O(1) per lookup instead of a full scan */
+let _roadGrid=null;
+function nearRoadFast(x,z,extra){
+  const C=120;
+  if(!_roadGrid||_roadGrid.n!==roadSamplePts.length){
+    const m=new Map();let maxR=0;
+    for(const p of roadSamplePts){const k=Math.floor(p[0]/C)+':'+Math.floor(p[1]/C);
+      (m.get(k)||m.set(k,[]).get(k)).push(p);if(p[3]>maxR)maxR=p[3];}
+    _roadGrid={m,n:roadSamplePts.length,maxR};
+  }
+  const reach=Math.max(0,_roadGrid.maxR+extra),rg=Math.ceil(reach/C);
+  const cx=Math.floor(x/C),cz=Math.floor(z/C);
+  for(let i=-rg;i<=rg;i++)for(let j=-rg;j<=rg;j++){
+    const l=_roadGrid.m.get((cx+i)+':'+(cz+j));if(!l)continue;
+    for(const p of l){const lim=p[3]+extra;if(lim<=0)continue;
+      const dx=x-p[0],dz=z-p[1];if(dx*dx+dz*dz<lim*lim)return true;}
+  }
+  return false;
+}
 /* Freeways only — arterials must not wipe CBD tower footprints */
 function nearFreeway(x,z,extra){
   for(let i=0;i<roadSamplePts.length;i++){const p=roadSamplePts[i];
@@ -2597,31 +2669,31 @@ function nearFreeway(x,z,extra){
 /* ---- airports registry (hoisted so placement can avoid them); repositioned clear of roads ---- */
 const AIRPORTS=[
  /* NOTE: airport pads are decorative; keep them clear of freeway ribbons */
- {id:'iah',code:'IAH',name:'George Bush Intercontinental',x:760,z:-3100,rot:0.25,intl:true,runLen:660,
+ {id:'iah',code:'IAH',name:'George Bush Intercontinental',x:W(760),z:W(-3100),rot:0.25,intl:true,runLen:660,
   city:'Houston',lat:29.9902,lng:-95.3368,elev:'97 ft',
   note:'Houston’s primary international hub · United Airlines fortress · 5 terminals (A–E) · ~46M passengers/yr',
   addr:'2800 N Terminal Rd, Houston, TX 77032'},
- {id:'hou',code:'HOU',name:'William P. Hobby',x:1420,z:1680,rot:-0.35,intl:true,runLen:560,
+ {id:'hou',code:'HOU',name:'William P. Hobby',x:W(1420),z:W(1680),rot:-0.35,intl:true,runLen:560,
   city:'Houston',lat:29.6454,lng:-95.2789,elev:'46 ft',
   note:'Southwest Airlines focus city · closer to downtown than IAH · international + domestic',
   addr:'7800 Airport Blvd, Houston, TX 77061'},
- {id:'efd',code:'EFD',name:'Ellington Airport',x:2550,z:2400,rot:0.5,intl:false,runLen:520,
+ {id:'efd',code:'EFD',name:'Ellington Airport',x:W(2550),z:W(2400),rot:0.5,intl:false,runLen:520,
   city:'Houston',lat:29.6073,lng:-95.1588,elev:'32 ft',
   note:'Joint civil-military · NASA aircraft · Lone Star Flight Museum · Texas Air National Guard',
   addr:'11602 Aerospace Ave, Houston, TX 77034'},
- {id:'sgr',code:'SGR',name:'Sugar Land Regional',x:-3620,z:3130,rot:-0.2,intl:false,runLen:420,
+ {id:'sgr',code:'SGR',name:'Sugar Land Regional',x:W(-3620),z:W(3130),rot:-0.2,intl:false,runLen:420,
   city:'Sugar Land',lat:29.6223,lng:-95.6565,elev:'82 ft',
   note:'General aviation · Fort Bend County · corporate & private jets',
   addr:'12888 Hwy 6, Sugar Land, TX 77498'},
- {id:'dwh',code:'DWH',name:'David Wayne Hooks Memorial',x:-1980,z:-2880,rot:0.15,intl:false,runLen:400,
+ {id:'dwh',code:'DWH',name:'David Wayne Hooks Memorial',x:W(-1980),z:W(-2880),rot:0.15,intl:false,runLen:400,
   city:'Spring / Tomball',lat:30.0619,lng:-95.5528,elev:'152 ft',
   note:'Busy GA field northwest of Houston · flight training & private aviation',
   addr:'20803 Stuebner Airline Rd, Spring, TX 77379'},
- {id:'iws',code:'IWS',name:'West Houston Airport',x:-2680,z:-90,rot:0.05,intl:false,runLen:360,
+ {id:'iws',code:'IWS',name:'West Houston Airport',x:W(-2680),z:W(-90),rot:0.05,intl:false,runLen:360,
   city:'Houston',lat:29.8182,lng:-95.6726,elev:'111 ft',
   note:'GA airport near Energy Corridor / Katy Freeway · corporate traffic',
   addr:'18000 Groschke Rd, Houston, TX 77084'},
- {id:'cxo',code:'CXO',name:'Conroe-North Houston Regional',x:-1230,z:-4720,rot:0.3,intl:false,runLen:420,
+ {id:'cxo',code:'CXO',name:'Conroe-North Houston Regional',x:W(-1230),z:W(-4720),rot:0.3,intl:false,runLen:420,
   city:'Conroe',lat:30.3518,lng:-95.4145,elev:'245 ft',
   note:'Montgomery County · GA & regional · gateway to The Woodlands / Conroe',
   addr:'1 Airport Rd, Conroe, TX 77303'},
@@ -2630,6 +2702,8 @@ if(HTS_PACK&&HTS_PACK.airports&&HTS_PACK.airports.length){
   AIRPORTS.length=0;
   for(const a of HTS_PACK.airports)AIRPORTS.push(a);
 }
+/* metre-scale Houston: put every airport (labels, approach paths, landings) on its real airfield */
+if(WS!==1)for(const a of AIRPORTS)if(Number.isFinite(a.lat)&&Number.isFinite(a.lng)){const p=geoToWorld(a.lat,a.lng);a.x=p.x;a.z=p.z;}
 for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?540:320,airfield:true});
 /* Keep cars off runway/apron pads even if a road polyline clips the field */
 window.AIRFIELDS=AIRPORTS.map(a=>({x:a.x,z:a.z,r:a.intl?420:260}));
@@ -2641,13 +2715,27 @@ function inAirfield(x,z){
   return null;
 }
 if(!HTS_HAS_PACK){
-EXCLUDES.push({x:-455,z:1157,r:140});  /* NRG Stadium */
-EXCLUDES.push({x:-245,z:1140,r:110});  /* Astrodome (east of NRG, clear gap) */
-EXCLUDES.push({x:240,z:105,r:130});   /* Daikin Park (EaDo) */
-EXCLUDES.push({x:157,z:199,r:120});   /* Toyota Center (EaDo / Polk) */
-EXCLUDES.push({x:2900,z:3320,r:170}); /* Kemah */
-EXCLUDES.push({x:89,z:8,r:90});      /* Downtown Aquarium */
+EXCLUDES.push({x:W(-455),z:W(1157),r:140*WS});  /* NRG Stadium */
+EXCLUDES.push({x:W(-245),z:W(1140),r:110*WS});  /* Astrodome (east of NRG, clear gap) */
+EXCLUDES.push({x:W(240),z:W(105),r:130*WS});   /* Daikin Park (EaDo) */
+EXCLUDES.push({x:W(157),z:W(199),r:120*WS});   /* Toyota Center (EaDo / Polk) */
+EXCLUDES.push({x:W(2900),z:W(3320),r:170*WS}); /* Kemah */
+EXCLUDES.push({x:W(89),z:W(8),r:90*WS});      /* Downtown Aquarium */
 }
+/* Real OSM 3D buildings own these tiles — no procedural towers / houses inside them */
+const OSM_COVER=(function(){
+  const t=(OSM_BUILDING_COVERAGE&&OSM_BUILDING_COVERAGE[HTS_CITY_ID||'houston'])||[];
+  return t.map(([s,w,n,e])=>{const a=geoToWorld(s,w),b=geoToWorld(n,e);
+    return {x0:Math.min(a.x,b.x),x1:Math.max(a.x,b.x),z0:Math.min(a.z,b.z),z1:Math.max(a.z,b.z)};});
+})();
+/* Next to real OSM skylines, keep procedural fill towers near real-world proportions */
+const POCKET_K=OSM_COVER.length?0.55:1;
+function inOsmCover(x,z){
+  for(let i=0;i<OSM_COVER.length;i++){const r=OSM_COVER[i];if(x>r.x0&&x<r.x1&&z>r.z0&&z<r.z1)return true;}
+  return false;
+}
+const OSM_H_SCALE=WS===1?UNITS_PER_MILE/1609.34*3.2:1; /* true footprints, 3.2× vertical (matches exaggerated road widths) */
+const OSM_LANDMARKS=[]; /* researched tower cards matched onto real OSM buildings */
 /* keep suburban houses out of the dense downtown core */
 (function(){
   const dt=packDowntown();
@@ -2669,6 +2757,7 @@ EXCLUDES.push({x:89,z:8,r:90});      /* Downtown Aquarium */
   }
 })();
 function blocked(x,z,extra){
+  if(OSM_COVER.length&&inOsmCover(x,z))return true;
   for(const e of EXCLUDES){const dx=x-e.x,dz=z-e.z;
     if(dx*dx+dz*dz<e.r*e.r)return true;}
   return nearRoad(x,z,extra);
@@ -2773,6 +2862,11 @@ function footHitsBldg(px,pz){
   return null;
 }
 function tower(x,z,w,dep,h,skin,rotY,cyl,opts){
+  const n0=gDetail.children.length;
+  try{return towerImpl(x,z,w,dep,h,skin,rotY,cyl,opts);}
+  finally{for(let i=n0;i<gDetail.children.length;i++)gDetail.children[i].userData.batch=true;}
+}
+function towerImpl(x,z,w,dep,h,skin,rotY,cyl,opts){
   const faithful=!!(opts&&opts.faithful); /* researched landmarks: keep real proportions */
   const mat=towerMats[skin%towerMats.length];
   const m=new THREE.Mesh(cyl?cylGeo:towerGeo,cyl?mat:[mat,mat,towerRoof,towerRoof,mat,mat]);
@@ -2810,7 +2904,7 @@ function addTowers(cx,cz,count,rad,hmin,hmax,cylP){
     const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
     /* Houston: restore pre-Austin placement (blocked + downtown EXCLUDE = landmark CBD).
        Austin: nearRoad only so geo-pinned towers can sit in the core. */
-    if(HTS_HAS_PACK){if(nearRoad(x,z,28))continue;}
+    if(HTS_HAS_PACK){if(inOsmCover(x,z)||nearRoad(x,z,28))continue;}
     else{if(blocked(x,z,28))continue;}
     const w=26+rand()*34,dep=26+rand()*34,h=hmin+Math.pow(rand(),1.6)*(hmax-hmin);
     tower(x,z,w,dep,h,Math.floor(rand()*4),rand()<0.7?0:rand()*0.5,rand()<(cylP||0));
@@ -2818,6 +2912,8 @@ function addTowers(cx,cz,count,rad,hmin,hmax,cylP){
 }
 window.PICK_TOWERS=[];
 window.HTS_AUS_LANDMARK_SKIP=[];
+/* Hand-modelled icons that real OSM footprints must not double-stack with */
+window.HTS_OSM_SKIP=[];
 if(HTS_IS_AUS){
   /*
    * Proven approach (before spacing experiments): Houston-style landmark towers at
@@ -2829,6 +2925,7 @@ if(HTS_IS_AUS){
     const ut0=geoToWorld(30.28565,-97.73921);
     const br0=geoToWorld(30.2614,-97.7450);
     HTS_AUS_LANDMARK_SKIP.push({x:cap0.x,z:cap0.z,r:170}); /* full Capitol grounds */
+    HTS_OSM_SKIP.push({x:cap0.x,z:cap0.z,r:60},{x:ut0.x,z:ut0.z,r:40},{x:br0.x,z:br0.z,r:30});
     HTS_AUS_LANDMARK_SKIP.push({x:ut0.x,z:ut0.z,r:55});
     HTS_AUS_LANDMARK_SKIP.push({x:br0.x,z:br0.z,r:60});
     EXCLUDES.push({x:cap0.x,z:cap0.z,r:160});
@@ -2857,6 +2954,7 @@ if(HTS_IS_AUS){
     ];
     for(const L of AUS_LANDMARKS){
       const p=geoToWorld(L.lat,L.lng);
+      if(inOsmCover(p.x,p.z)){OSM_LANDMARKS.push({n:L.n,d:L.info,x:p.x,z:p.z});continue;}
       /* Never plant a skyscraper on Capitol grounds */
       if(Math.hypot(p.x-cap0.x,p.z-cap0.z)<160)continue;
       const m=tower(p.x,p.z,L.w,L.d,L.h,L.s,0,false,{faithful:true});
@@ -2871,13 +2969,14 @@ if(HTS_IS_AUS){
     const east=geoToWorld(30.262,-97.72);
     const domain=geoToWorld(30.402,-97.725);
     function pocket(cx,cz,n,rad,hmin,hmax){
+    if(inOsmCover(cx,cz))return 0; /* real OSM skyline owns this district */
       let got=0;
       EXCLUDES.push({x:cx,z:cz,r:Math.min(rad*1.1,400)});
       for(let t=0;t<n*8&&got<n;t++){
         const a=rand()*TAU,r=Math.sqrt(rand())*rad;
         const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
         if(nearFreeway(x,z,16))continue;
-        if(typeof inWater==='function'&&inWater(x,z))continue;
+        if(inOsmCover(x,z))continue;if(typeof inWater==='function'&&inWater(x,z))continue;
         if(Math.hypot(x-cap0.x,z-cap0.z)<170)continue;
         let near=false;
         for(const s of HTS_AUS_LANDMARK_SKIP){if(Math.hypot(x-s.x,z-s.z)<(s.r||40)){near=true;break;}}
@@ -2910,6 +3009,7 @@ if(HTS_IS_AUS){
     }
     for(const L of list){
       const x=L.x,z=L.z;
+      if(inOsmCover(x,z)){OSM_LANDMARKS.push({n:L.n,d:L.info||L.n,x,z});continue;}
       const m=tower(x,z,L.w||28,L.d||28,L.h||120,L.s||0,L.rot||0,!!L.cyl,{faithful:true,spire:L.spire||0});
       m.userData.info={n:L.n,d:L.info||L.n};
       PICK_TOWERS.push(m);
@@ -2917,18 +3017,19 @@ if(HTS_IS_AUS){
       EXCLUDES.push({x,z,r:Math.max(L.w||28,L.d||28)*0.6+16});
     }
     function pocketAt(cx,cz,n,rad,hmin,hmax){
+    if(inOsmCover(cx,cz))return 0; /* real OSM skyline owns this district */
       let got=0;
       EXCLUDES.push({x:cx,z:cz,r:Math.min(rad*1.05,460)}); /* keep house sprawl out of CBD fabric */
       for(let t=0;t<n*10&&got<n;t++){
         const a=rand()*TAU,r=Math.sqrt(rand())*rad;
         const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
         if(nearFreeway(x,z,16))continue;
-        if(typeof inWater==='function'&&inWater(x,z))continue;
+        if(inOsmCover(x,z))continue;if(typeof inWater==='function'&&inWater(x,z))continue;
         let near=false;
         for(const s of HTS_AUS_LANDMARK_SKIP){if(Math.hypot(x-s.x,z-s.z)<(s.r||40)){near=true;break;}}
         if(near)continue;
-        const w=20+rand()*22,dep=20+rand()*22;
-        const h=hmin+Math.pow(rand(),1.45)*(hmax-hmin);
+        const w=(20+rand()*22)*POCKET_K,dep=(20+rand()*22)*POCKET_K;
+        const h=(hmin+Math.pow(rand(),1.45)*(hmax-hmin))*POCKET_K;
         tower(x,z,w,dep,h,Math.floor(rand()*4),rand()*0.35,false);
         HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(w,dep)*0.55+12});
         got++;
@@ -2955,7 +3056,7 @@ if(HTS_IS_AUS){
   addTowers(70,40,18,140,90,220,0.10);   /* mid-rise ring */
   addTowers(120,-60,14,150,60,150,0);    /* east-side mid-rises */
   addTowers(-980,180,13,220,55,200,0.1); /* Galleria */
-  (function(){const wt=tower(-1010,150,34,34,285,1,0,false);
+  (function(){if(inOsmCover(-1010,150)){OSM_LANDMARKS.push({n:'Williams Tower',d:'901 ft · 64 floors · 1983 · tallest US tower outside a downtown'});return;}const wt=tower(-1010,150,34,34,285,1,0,false);
     wt.userData.info={n:'Williams Tower',d:'901 ft · 64 floors · 1983 · tallest US skyscraper outside a downtown'};
     PICK_TOWERS.push(wt);})();
   addTowers(-290,800,17,230,50,180,0.08); /* Med Center */
@@ -2971,17 +3072,18 @@ if(window.HTS_CINEMATIC&&HTS_CINEMATIC.markShadowCasters){
 }
 const LANDMARK_TOWERS=HTS_HAS_PACK?[]:[
  /* Offsets keep towers beside freeways, not sitting in the travel lanes */
- {n:'JPMorgan Chase Tower',x:105,z:25,w:40,d:40,h:335,s:0,info:'1,002 ft · 75 floors · 1982 · tallest in Texas until 2019'},
- {n:'Wells Fargo Plaza',x:-55,z:155,w:38,d:30,h:330,s:0,info:'992 ft · 71 floors · 1983 · all-glass twin quarter-cylinders'},
- {n:'Heritage Plaza',x:-110,z:-55,w:34,d:34,h:255,s:2,info:'762 ft · 53 floors · 1987 · Mayan-inspired granite crown'},
- {n:'TC Energy Center',x:155,z:-45,w:32,d:32,h:262,s:2,info:'780 ft · 56 floors · 1983 · Philip Johnson\'s Dutch-gabled icon'},
- {n:'609 Main at Texas',x:175,z:95,w:34,d:34,h:252,s:1,info:'757 ft · 48 floors · 2017 · diagonal-crown glass tower'},
- {n:'Texas Tower',x:-35,z:-105,w:32,d:36,h:230,s:3,info:'47 floors · 2021 · Hines HQ on the old Chronicle site'},
- {n:'One Shell Plaza',x:45,z:175,w:30,d:44,h:238,s:3,info:'715 ft · 50 floors · 1971 · once world\'s tallest concrete building'},
- {n:'Bank of America Center',x:-75,z:115,w:36,d:36,h:285,s:1,info:'780 ft · 56 floors · 1983 · stepped Art Deco crown'},
+ {n:'JPMorgan Chase Tower',x:W(105),z:W(25),w:40,d:40,h:335,s:0,info:'1,002 ft · 75 floors · 1982 · tallest in Texas until 2019'},
+ {n:'Wells Fargo Plaza',x:W(-55),z:W(155),w:38,d:30,h:330,s:0,info:'992 ft · 71 floors · 1983 · all-glass twin quarter-cylinders'},
+ {n:'Heritage Plaza',x:W(-110),z:W(-55),w:34,d:34,h:255,s:2,info:'762 ft · 53 floors · 1987 · Mayan-inspired granite crown'},
+ {n:'TC Energy Center',x:W(155),z:W(-45),w:32,d:32,h:262,s:2,info:'780 ft · 56 floors · 1983 · Philip Johnson\'s Dutch-gabled icon'},
+ {n:'609 Main at Texas',x:W(175),z:W(95),w:34,d:34,h:252,s:1,info:'757 ft · 48 floors · 2017 · diagonal-crown glass tower'},
+ {n:'Texas Tower',x:W(-35),z:W(-105),w:32,d:36,h:230,s:3,info:'47 floors · 2021 · Hines HQ on the old Chronicle site'},
+ {n:'One Shell Plaza',x:W(45),z:W(175),w:30,d:44,h:238,s:3,info:'715 ft · 50 floors · 1971 · once world\'s tallest concrete building'},
+ {n:'Bank of America Center',x:W(-75),z:W(115),w:36,d:36,h:285,s:1,info:'780 ft · 56 floors · 1983 · stepped Art Deco crown'},
 ];
 for(const L of LANDMARK_TOWERS){
   let x=L.x,z=L.z;
+  if(inOsmCover(x,z)){OSM_LANDMARKS.push({n:L.n,d:L.info});continue;}
   /* Nudge off any remaining road corridor so traffic never drives through the lobby */
   if(nearRoad(x,z,L.w*0.55+18)){
     let best=null,bestD=1e9;
@@ -3000,7 +3102,7 @@ for(const L of LANDMARK_TOWERS){
 }
 if(!HTS_HAS_PACK)(function(){const g=new THREE.CylinderGeometry(0.7,1.1,70,5);g.translate(0,35,0);
   const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0x8a9098}));
-  m.position.set(60,330,60);gDetail.add(m);})();
+  m.position.set(60,330,60);if(!inOsmCover(60,60))gDetail.add(m);})();
 /* Invisible pick volume helper for landmark hover / Wikipedia cards */
 function registerLandmarkHit(x,y,z,sx,sy,sz,info,poi){
   const hit=new THREE.Mesh(
@@ -3127,11 +3229,15 @@ window.crownMats=[];
     m.position.set(x,0,z);m.rotation.y=rot;gDetail.add(m);
     return m;
   }
+  if(inOsmCover(-37,-62))OSM_LANDMARKS.push({n:'Pennzoil Place',d:'1975 · Philip Johnson · twin trapezoid towers · downtown icon'});
+  else{
   trapezoid(-60,-40,0.35);trapezoid(-14,-84,0.35+Math.PI);
   registerLandmarkHit(-37,90,-62,70,180,90,
     {n:'Pennzoil Place',d:'1975 · Philip Johnson · twin trapezoid towers · downtown icon'},
-    {n:'Pennzoil Place',x:-37,z:-62,addr:'700 Milam St — twin trapezoid skyscrapers by Philip Johnson (1975)'});
+    {n:'Pennzoil Place',x:W(-37),z:W(-62),addr:'700 Milam St — twin trapezoid skyscrapers by Philip Johnson (1975)'});
   registerBldgFoot(-37,-62,55,70);
+  }
+  if(!inOsmCover(158,-30)){
   /* stepped-crown tower with lit crown */
   const base=new THREE.Mesh(towerGeo,[towerMats[3],towerMats[3],towerRoof,towerRoof,towerMats[3],towerMats[3]]);
   base.scale.set(46,235,46);base.position.set(158,0,-30);gDetail.add(base);
@@ -3144,10 +3250,13 @@ window.crownMats=[];
   const crown=new THREE.Mesh(towerGeo,new THREE.MeshBasicMaterial({color:0xffd9a8,transparent:true,opacity:0}));
   crown.scale.set(30,4,30);crown.position.set(158,301,-30);gDetail.add(crown);
   crownMats.push(crown.material);
+  }
   /* Williams Tower crown light */
+  if(!inOsmCover(-1010,150)){
   const wc=new THREE.Mesh(towerGeo,new THREE.MeshBasicMaterial({color:0xfff2cf,transparent:true,opacity:0}));
   wc.scale.set(36,3,36);wc.position.set(-1010,285,150);gDetail.add(wc);
   crownMats.push(wc.material);
+  }
   /* street-level podiums around the core */
   for(let i=0;i<20;i++){
     const a=rand()*TAU,r=140+rand()*260;
@@ -3237,6 +3346,7 @@ const houseClusters=HTS_IS_AUS?[
  [-1600,1800,540,160],[900,-2200,540,160],
 ]);
 (function(){
+  if(WS!==1)return; /* metre mode: houses line real streets (houston-land.js) */
   let N=0;for(const c of houseClusters)N+=c[3];
   if(HTS_HAS_PACK)N=Math.max(N,3200);
   const bodyG=new THREE.BoxGeometry(1,1,1);bodyG.translate(0,0.5,0);
@@ -3309,6 +3419,7 @@ const houseClusters=HTS_IS_AUS?[
 
 /* mid/low-rise sprawl */
 (function(){
+  if(WS!==1)return;
   const g=new THREE.BoxGeometry(1,1,1);g.translate(0,0.5,0);
   /* storefront facade: window band + parapet, multiplied by instance color */
   const sTex=(function(){const c=document.createElement('canvas');c.width=64;c.height=64;const x=c.getContext('2d');
@@ -3337,7 +3448,7 @@ const houseClusters=HTS_IS_AUS?[
   const dtSprawl=packDowntown();
   const dtClear=HTS_HAS_PACK?480:380;
   while(placed<N&&tries<7000){tries++;
-    const x=(rand()-.5)*9000,z=(rand()-.5)*9000;
+    const x=(rand()-.5)*9000*WS,z=(rand()-.5)*9000*WS;
     if(Math.hypot(x-dtSprawl.x,z-dtSprawl.z)<dtClear)continue;
     if(blocked(x,z,22))continue;
     d.position.set(x,0,z);d.rotation.y=rand()*Math.PI;
@@ -3354,7 +3465,7 @@ function canopyGeom(){
   const parts=[];
   const blobs=[[0,0.9,0,1],[0.55,0.62,0.2,0.7],[-0.5,0.66,-0.15,0.72],[0.1,0.6,0.55,0.66],[-0.15,0.58,-0.5,0.6]];
   for(const [bx,by,bz,bs] of blobs){
-    const g=new THREE.IcosahedronGeometry(0.62*bs,1);
+    const g=new THREE.IcosahedronGeometry(0.62*bs,0);
     g.translate(bx*0.5,by,bz*0.5);
     parts.push(g);
   }
@@ -3434,8 +3545,8 @@ function canopyGeom(){
       put(-230+Math.cos(a)*r,805+Math.sin(a)*r,false);} /* Hermann */
     for(let k=0;k<140;k++){const a=rand()*TAU,r=Math.sqrt(rand())*360;
       put(-880+Math.cos(a)*r,-130+Math.sin(a)*r,false);} /* Memorial */
-    for(let k=0;k<80;k++){put(165+(rand()-.5)*200,28+(rand()-.5)*180,false);}
-    for(let k=0;k<120;k++){put(-350+(rand()-.5)*220,-72+(rand()-.5)*180,false);}
+    for(let k=0;k<80;k++){put(W(165)+(rand()-.5)*200*WS,W(28)+(rand()-.5)*180*WS,false);}
+    for(let k=0;k<120;k++){put(W(-350)+(rand()-.5)*220*WS,W(-72)+(rand()-.5)*180*WS,false);}
     for(let k=0;k<70;k++){const a=rand()*TAU,r=Math.sqrt(rand())*180;
       put(2699+Math.cos(a)*r,-1383+Math.sin(a)*r,false);}
   }else{
@@ -3474,7 +3585,7 @@ function canopyGeom(){
     put(cx+Math.cos(a)*r,cz+Math.sin(a)*r,false);}
   let tries=0;
   const fillMax=HTS_IS_AUS?14000:9000;
-  while(idx<N-1&&tries++<fillMax)put((rand()-.5)*10000,(rand()-.5)*10000,false);
+  while(idx<N-1&&tries++<fillMax)put((rand()-.5)*10000*WS,(rand()-.5)*10000*WS,false);
   trunks.count=idx;cans.count=idx;pines.count=pidx;
   gDetail.add(trunks);gDetail.add(cans);gDetail.add(pines);
 })();
@@ -3501,13 +3612,14 @@ function canopyGeom(){
     const a=rand()*TAU,r=Math.sqrt(rand())*rad;
     shrub(cx+Math.cos(a)*r,cz+Math.sin(a)*r);
   }
-  while(idx<N&&tries++<4000)shrub((rand()-.5)*7000,(rand()-.5)*7000);
+  while(idx<N&&tries++<4000)shrub((rand()-.5)*7000*WS,(rand()-.5)*7000*WS);
   m.count=idx;gDetail.add(m);
 })();
 
 /* ---------------- ship-channel industry ---------------- */
 (function(){
-  if(HTS_HAS_PACK)return;
+  /* metre-scale Houston uses real OSM tank farms (houston-tanks.js); these random tanks landed on East End roads */
+  if(HTS_HAS_PACK||WS!==1)return;
   const spots=[];
   for(let i=0;i<28;i++)spots.push([2050+rand()*1300,140+rand()*600]);
   for(let i=0;i<18;i++)spots.push([3550+rand()*680,-580+rand()*440]);
@@ -3582,14 +3694,55 @@ const rwTex=runwayTexture();
 window.APPLIGHTS=[];
 const glassMat=new THREE.MeshPhongMaterial({color:0x3d4c5c,shininess:90,specular:0x99aabb});
 /* ---- aircraft builders ---- */
-function makeAirliner(finCol){
+/* Real airline paint by ICAO callsign prefix: body, belly, tail, engines */
+const AIRLINE_LIVERY={
+  UAL:[0xf4f5f7,0x1c3f94,0x0b2a6f,0x1d4fa0],SWA:[0x2a4fb5,0x2a4fb5,0x2a4fb5,0x2a4fb5,0xd52b1e],AAL:[0xd2d6db,0xbfc4c9,0x36495a,0xc8ccd1],
+  DAL:[0xf4f5f7,0x0b2a5c,0xc01933,0x0b2a5c],FDX:[0xf4f5f7,0x9fa4ab,0x4d148c,0xff6600],UPS:[0x4a2c19,0x4a2c19,0x4a2c19,0x4a2c19,0xffb500],
+  NKS:[0xffd200,0xffd200,0x1a1a1a,0x1a1a1a],FFT:[0xf4f5f7,0xd7dadd,0x1f7a3a,0x1f7a3a],JBU:[0xf4f5f7,0x1a2b5f,0x1a2b5f,0x1a2b5f],
+  ASA:[0xf4f5f7,0xd7dadd,0x01426a,0x01426a],AMX:[0xf4f5f7,0x0b1f3a,0x0b1f3a,0x9aa2ab],VIV:[0x00a650,0xf4f5f7,0x00a650,0x00a650],
+  VOI:[0xf4f5f7,0xd7dadd,0x9b1c8a,0x9b1c8a],BAW:[0xf4f5f7,0x1a2e5a,0x1a2e5a,0x9aa2ab],DLH:[0xf4f5f7,0xd7dadd,0x05164d,0x05164d],
+  KLM:[0x00a1de,0xf4f5f7,0x00a1de,0x9aa2ab],AFR:[0xf4f5f7,0xd7dadd,0x0c2c84,0x9aa2ab],UAE:[0xf4f5f7,0xd7dadd,0xd71a21,0x9aa2ab],
+  QTR:[0xf4f5f7,0xd7dadd,0x5c0632,0x5c0632],AVA:[0xda291c,0xf4f5f7,0xda291c,0x9aa2ab],CMP:[0xf4f5f7,0xd7dadd,0x0a2c6b,0x0a2c6b],
+  ACA:[0xf4f5f7,0x1a1a1a,0x1a1a1a,0x1a1a1a],WJA:[0xf4f5f7,0xd7dadd,0x00a0b0,0x00a0b0],SCX:[0xf4f5f7,0xd7dadd,0xf79e1b,0x1a2b5f],
+  AAY:[0xf4f5f7,0xd7dadd,0xf58220,0x1a2b5f],MXY:[0xf4f5f7,0xd7dadd,0x1e3e8a,0x1e3e8a],SKW:[0xf4f5f7,0xc8ccd1,0x0b2a6f,0x9aa2ab],
+  ENY:[0xd2d6db,0xbfc4c9,0x36495a,0xc8ccd1],RPA:[0xf4f5f7,0x1c3f94,0x0b2a6f,0x1d4fa0],GTI:[0xf4f5f7,0xd7dadd,0x1d3f7a,0x9aa2ab],
+};
+function liveryFor(cs,seed){
+  const l=AIRLINE_LIVERY[String(cs||'').slice(0,3).toUpperCase()];
+  if(l)return l;
+  const tails=[0x2b5ea8,0xc23a2c,0x1d7a4f,0xd9861f,0x5a3d8f,0x27737e,0x1a2b5f,0x6a1b2a];
+  const bodies=[0xf4f5f7,0xeceef0,0xdfe2e6,0xf4f5f7,0xc9cdd2];
+  return [bodies[seed%bodies.length],0xb9bec4,tails[(seed>>2)%tails.length],0x9aa2ab];
+}
+/* nav lights: red left tip, green right tip, white tail + wingtip strobes; screen-sized so they read from far away */
+/* soft round glow for aircraft lights — a bare Sprite renders as a hard square */
+const NAV_GLOW_TEX=(function(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.18,'rgba(255,255,255,0.85)');
+  g.addColorStop(0.45,'rgba(255,255,255,0.18)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
+function navGlowMat(col){return new THREE.SpriteMaterial({map:NAV_GLOW_TEX,color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});}
+function addNavLights(g,span,tailZ){
+  const out=[];
+  /* metre-sized glows on the airframe; they grow with the plane's distance scale, so stay small on screen */
+  const mk=(col,x,y,z,kind,sz)=>{const m=navGlowMat(col);
+    const sp=new THREE.Sprite(m);sp.scale.set(sz,sz,1);sp.position.set(x,y,z);g.add(sp);out.push([m,kind]);};
+  mk(0xff2a20,span,0,0,'nav',3.2);mk(0x30ff60,-span,0,0,'nav',3.2);mk(0xffffff,0,1,tailZ,'nav',2.4);
+  mk(0xffffff,span,0,-0.5,'st',5.5);mk(0xffffff,-span,0,-0.5,'st',5.5);
+  mk(0xfff4dc,0,-1.5,span*0.8,'land',7);
+  return out;
+}
+function makeAirliner(finCol,liv){
   const g=new THREE.Group();
-  const white=new THREE.MeshLambertMaterial({color:0xeef0f3});
-  const grayB=new THREE.MeshLambertMaterial({color:0x9aa2ab});
-  const fus=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,32,12),white);
+  const LV=liv||[0xeef0f3,0x9aa2ab,finCol,0x9aa2ab];
+  if(!liv)LV[2]=finCol;
+  const white=new THREE.MeshStandardMaterial({color:LV[0],metalness:0.3,roughness:0.42});
+  const grayB=new THREE.MeshStandardMaterial({color:LV[1],metalness:0.35,roughness:0.45});
+  const engM=new THREE.MeshStandardMaterial({color:LV[3],metalness:0.5,roughness:0.35});
+  finCol=LV[2];
+  const fus=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,32,20),white);
   fus.rotation.x=Math.PI/2;g.add(fus);
-  const nose=new THREE.Mesh(new THREE.SphereGeometry(2.35,10,8),white);nose.position.z=16;g.add(nose);
-  const tail=new THREE.Mesh(new THREE.CylinderGeometry(2.35,0.7,9,10),white);
+  const nose=new THREE.Mesh(new THREE.SphereGeometry(2.35,18,12),white);nose.position.z=16;nose.scale.z=1.7;g.add(nose);
+  const tail=new THREE.Mesh(new THREE.CylinderGeometry(2.35,0.7,9,18),white);
   tail.rotation.x=Math.PI/2;tail.position.z=-20.4;g.add(tail);
   const belly=new THREE.Mesh(new THREE.CylinderGeometry(2.36,2.36,30,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB);
   belly.rotation.x=Math.PI/2;g.add(belly);
@@ -3599,8 +3752,9 @@ function makeAirliner(finCol){
     w.position.set(sd*10.5,-1,0.2);w.rotation.y=sd*0.42;w.rotation.z=sd*0.06;g.add(w);
     const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,3.2,2.6),new THREE.MeshLambertMaterial({color:finCol}));
     wl.position.set(sd*19.6,0.7,-3.4);g.add(wl);
-    const eng=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.35,4.6,10),grayB);
+    const eng=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.35,4.6,10),engM);
     eng.rotation.x=Math.PI/2;eng.position.set(sd*7.2,-2.5,3.2);g.add(eng);
+    const intake=new THREE.Mesh(new THREE.CircleGeometry(1.3,16),new THREE.MeshBasicMaterial({color:0x15181c}));intake.position.set(sd*7.2,-2.5,5.52);g.add(intake);
     const st=new THREE.Mesh(new THREE.BoxGeometry(8.6,0.45,3.6),white);
     st.position.set(sd*4.6,1.6,-21);st.rotation.y=sd*0.5;g.add(st);
   }
@@ -3613,7 +3767,7 @@ function makeAirliner(finCol){
   }
   /* cockpit windshield */
   const cp=new THREE.Mesh(new THREE.BoxGeometry(3.4,1.1,2.4),new THREE.MeshLambertMaterial({color:0x0e141c}));
-  cp.position.set(0,1.05,13.6);g.add(cp);
+  cp.position.set(0,1.05,15.2);g.add(cp);
   /* landing gear (toggled by flight phase) */
   const gear=new THREE.Group();
   const strutM=new THREE.MeshLambertMaterial({color:0x8a9098});
@@ -3626,25 +3780,39 @@ function makeAirliner(finCol){
   }
   leg(0,11);leg(-2.6,-1.5);leg(2.6,-1.5);
   g.add(gear);g.userData.gear=gear;
-  const strobe=new THREE.Sprite(new THREE.SpriteMaterial({color:0xffffff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
-  strobe.scale.set(8,8,1);strobe.position.set(0,-2.4,0);g.add(strobe);
-  const beacon=new THREE.Sprite(new THREE.SpriteMaterial({color:0xff3626,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
-  beacon.scale.set(6,6,1);beacon.position.set(0,3.4,-2);g.add(beacon);
-  g.userData={strobe:strobe.material,beacon:beacon.material};
+  const strobe=new THREE.Sprite(navGlowMat(0xffffff));
+  strobe.scale.set(4,4,1);strobe.position.set(0,-2.4,0);g.add(strobe);
+  const beacon=new THREE.Sprite(navGlowMat(0xff3626));
+  beacon.scale.set(4,4,1);beacon.position.set(0,3.4,-2);g.add(beacon);
+  g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,19.8,-25)};
   return g;
 }
 function makeProp(col){
+  /* Cessna 172-class: 8.3 m tapered fuselage, high strut-braced wing (11 m), cabin glass, two-tone livery, fixed gear */
   const g=new THREE.Group();
-  const body=new THREE.MeshLambertMaterial({color:col});
-  const fus=new THREE.Mesh(new THREE.CylinderGeometry(1,0.7,8.5,8),body);
-  fus.rotation.x=Math.PI/2;g.add(fus);
-  const wing=new THREE.Mesh(new THREE.BoxGeometry(12,0.4,2.3),body);wing.position.set(0,1.1,0.6);g.add(wing);
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.4,2.6,2),body);fin.position.set(0,1.4,-4.2);g.add(fin);
-  const st2=new THREE.Mesh(new THREE.BoxGeometry(4.6,0.3,1.4),body);st2.position.set(0,0.4,-4.2);g.add(st2);
-  const prop=new THREE.Mesh(new THREE.CircleGeometry(1.7,12),
-    new THREE.MeshBasicMaterial({color:0x888c92,transparent:true,opacity:0.3,side:THREE.DoubleSide}));
-  prop.position.z=4.6;g.add(prop);
-  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'prop'};
+  const body=new THREE.MeshStandardMaterial({color:0xf4f5f7,metalness:0.25,roughness:0.45});
+  const trim=new THREE.MeshStandardMaterial({color:col,metalness:0.3,roughness:0.45});
+  const glass=new THREE.MeshStandardMaterial({color:0x1d2732,metalness:0.4,roughness:0.12});
+  const dark=new THREE.MeshLambertMaterial({color:0x1a1c20});
+  const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);me.castShadow=true;g.add(me);return me;};
+  add(new THREE.CylinderGeometry(0.62,0.85,3.4,12),body,0,0,1.7,Math.PI/2);          /* cabin */
+  add(new THREE.CylinderGeometry(0.85,0.18,4.6,12),body,0,0.12,-2.3,Math.PI/2);      /* tail cone */
+  add(new THREE.CylinderGeometry(0.42,0.62,1.1,12),body,0,-0.05,3.95,Math.PI/2);     /* cowling */
+  add(new THREE.ConeGeometry(0.2,0.45,10),dark,0,-0.05,4.7,Math.PI/2);               /* spinner */
+  add(new THREE.BoxGeometry(1.32,0.62,1.9),glass,0,0.5,1.75);                        /* cabin windows */
+  add(new THREE.BoxGeometry(1.75,0.08,3.6),trim,0,-0.32,0.6);                        /* livery stripe */
+  add(new THREE.BoxGeometry(11,0.16,1.5),body,0,1.0,1.3);                            /* high wing */
+  for(const sd of [1,-1]){
+    add(new THREE.BoxGeometry(0.08,1.7,0.12),body,sd*1.9,0.1,1.4,0,0,sd*0.85);       /* wing strut */
+    add(new THREE.BoxGeometry(1.2,0.17,1.52),trim,sd*5.0,1.0,1.3);                   /* wingtip colour */
+    add(new THREE.CylinderGeometry(0.06,0.06,1.0,6),body,sd*1.0,-0.95,1.0,0,0,sd*0.5);/* main gear leg */
+    add(new THREE.CylinderGeometry(0.28,0.28,0.18,12),dark,sd*1.35,-1.25,1.0,0,0,Math.PI/2);
+  }
+  add(new THREE.CylinderGeometry(0.22,0.22,0.15,12),dark,0,-1.15,3.6,0,0,Math.PI/2); /* nose wheel */
+  add(new THREE.BoxGeometry(3.4,0.1,1.0),body,0,0.25,-4.3);                          /* stabiliser */
+  add(new THREE.BoxGeometry(0.1,1.5,1.1),trim,0,0.95,-4.35,-0.25);                   /* fin */
+  const prop=add(new THREE.CircleGeometry(0.95,16),new THREE.MeshBasicMaterial({color:0x8a8e94,transparent:true,opacity:0.25,side:THREE.DoubleSide}),0,-0.05,4.75);
+  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'prop',nav:addNavLights(g,5.5,-4.6),prop};
   return g;
 }
 function makeHeli(col){
@@ -3673,7 +3841,7 @@ function makeHeli(col){
   const tRotor=new THREE.Mesh(new THREE.CircleGeometry(1.4,12),
     new THREE.MeshBasicMaterial({color:0x9aa3ad,transparent:true,opacity:0.35,side:THREE.DoubleSide,depthWrite:false}));
   tRotor.position.set(0.7,1.5,-11);g.add(tRotor);
-  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'heli',rotor,tRotor};
+  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'heli',rotor,tRotor,nav:addNavLights(g,2,-6)};
   return g;
 }
 /* Classify ADS-B type → airliner | prop | heli */
@@ -3704,6 +3872,8 @@ for(const a of AIRPORTS){
     m.rotation.x=-Math.PI/2;m.rotation.z=hd+(extraRot||0);
     m.position.set(a.x+ox,y,a.z+oz);grp.add(m);return m;
   }
+  /* metre-scale Houston draws real OSM runways/taxiways/aprons (houston-airports.js) */
+  if(WS===1){
   /* apron */
   pad(a.intl?680:360,a.intl?470:220,0x53575c,0.09,0,0);
   /* runway (textured) + parallel taxiway */
@@ -3718,7 +3888,10 @@ for(const a of AIRPORTS){
   for(const f of [-0.32,0,0.32]){
     const cn=pad(13,42,0x3c4046,0.12,a.dx*a.runLen*f+(-a.dz)*(-75),a.dz*a.runLen*f+(a.dx)*(-75),Math.PI/2);
   }
-  if(a.intl){
+  }
+  /* metre-scale Houston: terminals, jet bridges, parked jets, towers and runway lights come from OSM (houston-airports.js) */
+  if(WS!==1){}
+  else if(a.intl){
     /* terminal + jet bridges + tower */
     const term=new THREE.Mesh(towerGeo,towerMats[3]);
     term.scale.set(300,16,44);term.rotation.y=hd;
@@ -3771,6 +3944,7 @@ for(const a of AIRPORTS){
     twr.position.set(a.x+(-a.dz)*46+a.dx*a.runLen*0.42,10,a.z+(a.dx)*46+a.dz*a.runLen*0.42);grp.add(twr);
   }
   /* night operations lighting */
+  if(WS===1){
   const edgeMats=[];
   const eg=new THREE.SphereGeometry(0.9,5,4);
   const nEdge=Math.floor(a.runLen/44);
@@ -3800,6 +3974,7 @@ for(const a of AIRPORTS){
   grp.add(bcn);
   if(!window.BEACONS)window.BEACONS=[];
   BEACONS.push(bcn.material);
+  }
   const sp=textSprite(a.code,0.46);
   sp.position.set(a.x,58,a.z);gDetail.add(sp);
   /* invisible hover hit volume so users can inspect airport info */
@@ -3878,14 +4053,20 @@ window.FLIGHTS=[];
   async function tryJson(urls){
     let lastErr='';
     for(const url of urls){
+      if(corsBlocked(url))continue;
       try{
         const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
         if(!r.ok){lastErr=url+' → '+r.status;continue;}
         return await r.json();
-      }catch(e){lastErr=String(e&&e.message?e.message:e);}
+      }catch(e){noteCorsFail(url,e);lastErr=String(e&&e.message?e.message:e);}
     }
     throw new Error(lastErr||'feed unreachable');
   }
+  /* Direct cross-origin hosts that fail at the network/CORS layer are skipped for the session
+     (the same-origin /api proxy is tried instead) — avoids a console error on every poll. */
+  function corsHost(url){return /^https?:\/\//.test(url)?url.split('/')[2]:'';}
+  function corsBlocked(url){const h=corsHost(url);return !!h&&CORS_DEAD_HOSTS.has(h);}
+  function noteCorsFail(){/* recorded centrally in fetchWithTimeout */}
   async function fetchLiveAir(){
     /* Production: call public ADS-B hosts directly (CORS). Prefer airplanes.live —
        adsb.lol / OpenSky often 429 from shared Netlify egress IPs. */
@@ -3944,14 +4125,17 @@ window.FLIGHTS=[];
       add('https://api.airplanes.live',p);
       add('https://api.adsb.lol',p);
     }
+    const local=typeof isLocalDevHost==='function'?isLocalDevHost():/localhost|127\.0\.0\.1/.test(location.hostname);
+    if(local)urls.sort((a,b)=>(a[0]==='/'?0:1)-(b[0]==='/'?0:1));
     for(const url of urls){
+      if(corsBlocked(url))continue;
       try{
         const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
         if(!r.ok)continue;
         const j=await r.json();
         const ac=(j&&j.ac&&j.ac[0])||null;
         if(ac)return ac;
-      }catch(e){}
+      }catch(e){noteCorsFail(url,e);}
     }
     return null;
   }
@@ -4208,8 +4392,10 @@ window.FLIGHTS=[];
     let m;
     if(cls==='heli')m=makeHeli(HELI_COLS[seed%HELI_COLS.length]);
     else if(cls==='prop')m=makeProp(PROP_COLS[seed%PROP_COLS.length]);
-    else m=makeAirliner(FIN_COLS[seed%FIN_COLS.length]);
+    else m=makeAirliner(FIN_COLS[seed%FIN_COLS.length],liveryFor(cs,seed));
     scene.add(m);
+    /* keep real livery colours at range instead of washing out to haze blue */
+    m.traverse((o)=>{if(o.isMesh&&o.material&&!o.material.transparent)o.material.fog=false;});
     const sc=cls==='heli'?1.9:(cls==='prop'?1.7:1.5);
     m.scale.setScalar(sc);
     m.userData.acClass=cls;
@@ -4550,7 +4736,7 @@ if(!HTS_HAS_PACK){
 /* Real NRG Stadium @ 1 NRG Pkwy — rectangular glass bowl, translucent PTFE roof,
    twin burgundy-red longitudinal supertrusses (signature silhouette from I-610). */
 (function(){
-  const cx=NRG.x,cz=NRG.z;
+  const cx=0,cz=0; /* built at the origin, then placed/scaled as one group */
   const glass=new THREE.MeshLambertMaterial({color:0xa8c4d8,transparent:true,opacity:0.72});
   const glassDark=new THREE.MeshLambertMaterial({color:0x6a8498,transparent:true,opacity:0.8});
   const steel=new THREE.MeshLambertMaterial({color:0x8a929a});
@@ -4558,7 +4744,7 @@ if(!HTS_HAS_PACK){
   const roofFab=new THREE.MeshLambertMaterial({color:0xe8eef4,transparent:true,opacity:0.86});
   const conc=new THREE.MeshLambertMaterial({color:0xb8b4ac});
   const turf=new THREE.MeshLambertMaterial({color:0x2f6b38});
-  const g=gDetail;
+  const g=new THREE.Group();g.name='nrg-stadium';
   const W=96,D=76; /* sized so Astrodome to the east keeps a clear plaza gap */
   /* Concrete podium */
   const base=new THREE.Mesh(towerGeo,conc);
@@ -4649,6 +4835,10 @@ if(!HTS_HAS_PACK){
   g.add(hit);
   if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
   PICK_TOWERS.push(hit);
+  /* real NRG: ~290 m long (N–S, field runs north–south) × ~235 m wide, roof ~70 m */
+  g.position.set(NRG.x,0,NRG.z);
+  if(WS!==1){g.rotation.y=Math.PI/2;g.scale.set(3.05,1.75,3.05);}
+  gDetail.add(g);
 })();
 (function(){
   /* Daikin Park @ real EaDo coords — east of downtown, not under towers */
@@ -4684,7 +4874,7 @@ if(!HTS_HAS_PACK){
     {n:'Toyota Center',x:cx,z:cz,addr:'1510 Polk St — Houston Rockets · concerts'});
 })();
 /* Astrodome — east of NRG with a clear plaza gap (real sites are neighbors; sim scale needs space) */
-ASTRO={x:NRG.x+210,z:NRG.z-18};
+ASTRO={x:NRG.x+210*WS,z:NRG.z-18*WS};
 (function(){
   const cx=ASTRO.x,cz=ASTRO.z;
   const domeMat=new THREE.MeshLambertMaterial({color:0xc9c4b8});
@@ -4766,7 +4956,7 @@ if(HTS_IS_AUS)(function placeAusAttractions(){
     m.scale.set(w,h,d);m.position.set(x,y0||0,z);gDetail.add(m);return m;
   }
   function label(){ /* no floating name tags — hover cards + Where am I cover places */ }
-  function clear(x,z,r){EXCLUDES.push({x,z,r});HTS_AUS_LANDMARK_SKIP.push({x,z,r});}
+  function clear(x,z,r){EXCLUDES.push({x,z,r});HTS_AUS_LANDMARK_SKIP.push({x,z,r});HTS_OSM_SKIP.push({x,z,r:r*0.5});}
 
   /* ---- Stadium: Q2 (Austin FC) — North Burnet, far from UT ---- */
   (function(){
@@ -5018,7 +5208,7 @@ if(HTS_HAS_PACK&&!HTS_IS_AUS)(function placePackAttractions(){
     const m=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBot,h,seg||10),mat);
     m.position.set(x,y,z);m.frustumCulled=false;gDetail.add(m);return m;
   }
-  function clear(x,z,r){EXCLUDES.push({x,z,r});HTS_AUS_LANDMARK_SKIP.push({x,z,r});}
+  function clear(x,z,r){EXCLUDES.push({x,z,r});HTS_AUS_LANDMARK_SKIP.push({x,z,r});HTS_OSM_SKIP.push({x,z,r:r*0.5});}
   function mark(A,cx,cy,cz,sx,sy,sz,d){
     registerLandmarkHit(cx,cy,cz,sx,sy,sz,{n:A.n,d:d||A.n},{n:A.n,x:cx,z:cz,addr:A.n});
     const sp=textSprite(A.n.length>18?A.n.slice(0,16)+'…':A.n,0.38);
@@ -5388,8 +5578,26 @@ function placeHistoryFor(name){
   }
   return null;
 }
-function historyTipHtml(name){
-  const h=placeHistoryFor(name);
+/* Named buildings without a curated blurb: Wikipedia REST summary, kept only when the article's
+   coordinates sit within ~1.5 km of the building (so "Chase Tower" never pulls Chicago's) */
+const WIKI_SUMMARY=new Map();
+function wikiSummaryFor(name,x,z){
+  if(!name||x==null||/^building$/i.test(name))return null;
+  const key=String(name).trim();
+  if(WIKI_SUMMARY.has(key))return WIKI_SUMMARY.get(key);
+  WIKI_SUMMARY.set(key,null);
+  fetch('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(key.replace(/ /g,'_')),{headers:{accept:'application/json'}})
+    .then((r)=>r.ok?r.json():null).then((d)=>{
+      if(!d||d.type!=='standard'||!d.coordinates||!d.extract)return;
+      const w=geoToWorld(d.coordinates.lat,d.coordinates.lon);
+      if(Math.hypot(w.x-x,w.z-z)>UNITS_PER_MILE*0.95)return;
+      const ex=d.extract.length>260?d.extract.slice(0,257).replace(/\s+\S*$/,'')+'…':d.extract;
+      WIKI_SUMMARY.set(key,{wiki:d.titles&&d.titles.canonical||d.title,blurb:escHtml(ex)});
+    }).catch(()=>{});
+  return null;
+}
+function historyTipHtml(name,x,z){
+  const h=placeHistoryFor(name)||wikiSummaryFor(name,x,z);
   if(!h)return '';
   const url=h.wiki?wikiUrl(h.wiki):null;
   return '<div class="th">'+h.blurb+'</div>'
@@ -5416,46 +5624,46 @@ function applyPlaceHistoryToCard(name){
 }
 const POIS=[
  /* worship / schools / transit (kept + expanded) */
- {n:'Lakewood Church',k:'worship',x:-545,z:455,addr:'3700 Southwest Fwy — 16,000-seat megachurch'},
- {n:'Co-Cathedral of the Sacred Heart',k:'worship',x:55,z:240,addr:'1111 St Joseph Pkwy'},
- {n:'Islamic Society of Greater Houston',k:'worship',x:-682,z:401,addr:'3110 Eastside St — ISGH main center'},
- {n:'Congregation Beth Israel',k:'worship',x:-914,z:1129,addr:'5600 N Braeswood Blvd'},
- {n:'Lamar High School',k:'school',x:-842,z:327,addr:'3325 Westheimer Rd · est. 1936'},
- {n:'Bellaire High School',k:'school',x:-1102,z:892,addr:'5100 Maple St — magnet languages'},
- {n:'The Galleria',k:'shop',x:-980,z:205,addr:'5085 Westheimer Rd — 400 stores, ice rink'},
- {n:'Memorial City Mall',k:'shop',x:-1560,z:-260,addr:'303 Memorial City Way'},
- {n:'Katy Mills',k:'shop',x:-3870,z:-260,addr:'5000 Katy Mills Cir'},
- {n:'METRO Central Station',k:'transit',x:95,z:75,addr:'Main St @ Capitol — Red Line light rail'},
- {n:'METRORail Main Street Square',k:'transit',x:126.2,z:103.5,addr:'Main St · Downtown — Red Line platforms'},
- {n:'METRORail Theater District',k:'transit',x:96.6,z:52.5,addr:'Capitol & Rusk near Smith — Green/Purple lines'},
- {n:'Downtown Transit Center',k:'transit',x:58.5,z:202.2,addr:'1900 Main St — bus bays + METRORail Red Line'},
- {n:'Amtrak Houston Station (HOS)',k:'transit',x:88.4,z:-39.5,addr:'902 Washington Ave — Sunset Limited'},
- {n:'Rice University',k:'school',x:-342,z:683,addr:'6100 Main St · est. 1912'},
- {n:'University of Houston',k:'school',x:405,z:645,addr:'4800 Calhoun Rd · 46,000 students'},
- {n:'Texas Southern University',k:'school',x:145,z:597,addr:'3100 Cleburne St'},
- {n:'MD Anderson Cancer Center',k:'health',x:-282,z:830,addr:'1515 Holcombe Blvd — #1 cancer hospital'},
- {n:'Houston Methodist Hospital',k:'health',x:-305,z:790,addr:'6565 Fannin St'},
- {n:'Downtown Aquarium',k:'fun',x:89,z:8,addr:'410 Bagby St — ferris wheel & shark tunnel'},
- {n:'George R. Brown Convention Ctr',k:'sight',x:215,z:45,addr:'1001 Avenida de las Americas'},
- {n:'The Breakfast Klub',k:'food',x:40,z:290,addr:'3711 Travis St, Midtown'},
- {n:"The Original Ninfa's",k:'food',x:430,z:75,addr:'2704 Navigation Blvd'},
- {n:"Pappadeaux Seafood",k:'food',x:-1160,z:415,addr:'6015 Westheimer Rd'},
- {n:"Killen's Barbecue",k:'food',x:520,z:3340,addr:'3613 E Broadway St, Pearland'},
- {n:"Buc-ee's Baytown",k:'fuel',x:3430,z:-240,addr:'4080 East Fwy, Baytown'},
- {n:'Shell — Energy Corridor',k:'fuel',x:-1830,z:-230,addr:'14555 Katy Fwy'},
- {n:'Tesla Supercharger — Katy Mills',k:'ev',x:-3860,z:-300,addr:'5000 Katy Mills Cir'},
- {n:'Tesla Supercharger — Galleria',k:'ev',x:-1005,z:245,addr:'5085 Westheimer Rd'},
- {n:'EVgo — Downtown',k:'ev',x:105,z:115,addr:'1200 McKinney St garage'},
- {n:'Houston Zoo',k:'fun',x:-200,z:828,addr:'6200 Hermann Park Dr'},
- {n:'Museum of Fine Arts',k:'sight',x:-200,z:565,addr:'1001 Bissonnet St'},
- {n:'Waterwall Park',k:'sight',x:-1000,z:262,addr:'2800 Post Oak Blvd · Gerald D. Hines Waterwall'},
- {n:'Market Square Park',k:'park',x:80,z:40,addr:'301 Milam St · historic downtown square'},
- {n:'POST Houston',k:'sight',x:-30,z:-20,addr:'401 Franklin St · food hall + rooftop park'},
- {n:'San Jacinto Monument',k:'sight',x:3180,z:1180,addr:'1 Monument Cir, La Porte · 567 ft obelisk'},
- {n:'Discovery Green',k:'park',x:165,z:28,addr:'1500 McKinney St'},
- {n:'Hermann Park',k:'park',x:-230,z:805,addr:'6001 Fannin St · 445 acres'},
- {n:'Buffalo Bayou Park',k:'park',x:-350,z:-72,addr:'1800 Allen Pkwy'},
- {n:'Kemah Boardwalk',k:'fun',x:2900,z:3320,addr:'215 Kipp Ave, Kemah — rides, boardwalk, Gulf views'},
+ {n:'Lakewood Church',k:'worship',x:W(-545),z:W(455),addr:'3700 Southwest Fwy — 16,000-seat megachurch'},
+ {n:'Co-Cathedral of the Sacred Heart',k:'worship',x:W(55),z:W(240),addr:'1111 St Joseph Pkwy'},
+ {n:'Islamic Society of Greater Houston',k:'worship',x:W(-682),z:W(401),addr:'3110 Eastside St — ISGH main center'},
+ {n:'Congregation Beth Israel',k:'worship',x:W(-914),z:W(1129),addr:'5600 N Braeswood Blvd'},
+ {n:'Lamar High School',k:'school',x:W(-842),z:W(327),addr:'3325 Westheimer Rd · est. 1936'},
+ {n:'Bellaire High School',k:'school',x:W(-1102),z:W(892),addr:'5100 Maple St — magnet languages'},
+ {n:'The Galleria',k:'shop',x:W(-980),z:W(205),addr:'5085 Westheimer Rd — 400 stores, ice rink'},
+ {n:'Memorial City Mall',k:'shop',x:W(-1560),z:W(-260),addr:'303 Memorial City Way'},
+ {n:'Katy Mills',k:'shop',x:W(-3870),z:W(-260),addr:'5000 Katy Mills Cir'},
+ {n:'METRO Central Station',k:'transit',x:W(95),z:W(75),addr:'Main St @ Capitol — Red Line light rail'},
+ {n:'METRORail Main Street Square',k:'transit',x:W(126.2),z:W(103.5),addr:'Main St · Downtown — Red Line platforms'},
+ {n:'METRORail Theater District',k:'transit',x:W(96.6),z:W(52.5),addr:'Capitol & Rusk near Smith — Green/Purple lines'},
+ {n:'Downtown Transit Center',k:'transit',x:W(58.5),z:W(202.2),addr:'1900 Main St — bus bays + METRORail Red Line'},
+ {n:'Amtrak Houston Station (HOS)',k:'transit',x:W(88.4),z:W(-39.5),addr:'902 Washington Ave — Sunset Limited'},
+ {n:'Rice University',k:'school',x:W(-342),z:W(683),addr:'6100 Main St · est. 1912'},
+ {n:'University of Houston',k:'school',x:W(405),z:W(645),addr:'4800 Calhoun Rd · 46,000 students'},
+ {n:'Texas Southern University',k:'school',x:W(145),z:W(597),addr:'3100 Cleburne St'},
+ {n:'MD Anderson Cancer Center',k:'health',x:W(-282),z:W(830),addr:'1515 Holcombe Blvd — #1 cancer hospital'},
+ {n:'Houston Methodist Hospital',k:'health',x:W(-305),z:W(790),addr:'6565 Fannin St'},
+ {n:'Downtown Aquarium',k:'fun',x:W(89),z:W(8),addr:'410 Bagby St — ferris wheel & shark tunnel'},
+ {n:'George R. Brown Convention Ctr',k:'sight',x:W(215),z:W(45),addr:'1001 Avenida de las Americas'},
+ {n:'The Breakfast Klub',k:'food',x:W(40),z:W(290),addr:'3711 Travis St, Midtown'},
+ {n:"The Original Ninfa's",k:'food',x:W(430),z:W(75),addr:'2704 Navigation Blvd'},
+ {n:"Pappadeaux Seafood",k:'food',x:W(-1160),z:W(415),addr:'6015 Westheimer Rd'},
+ {n:"Killen's Barbecue",k:'food',x:W(520),z:W(3340),addr:'3613 E Broadway St, Pearland'},
+ {n:"Buc-ee's Baytown",k:'fuel',x:W(3430),z:W(-240),addr:'4080 East Fwy, Baytown'},
+ {n:'Shell — Energy Corridor',k:'fuel',x:W(-1830),z:W(-230),addr:'14555 Katy Fwy'},
+ {n:'Tesla Supercharger — Katy Mills',k:'ev',x:W(-3860),z:W(-300),addr:'5000 Katy Mills Cir'},
+ {n:'Tesla Supercharger — Galleria',k:'ev',x:W(-1005),z:W(245),addr:'5085 Westheimer Rd'},
+ {n:'EVgo — Downtown',k:'ev',x:W(105),z:W(115),addr:'1200 McKinney St garage'},
+ {n:'Houston Zoo',k:'fun',x:W(-200),z:W(828),addr:'6200 Hermann Park Dr'},
+ {n:'Museum of Fine Arts',k:'sight',x:W(-200),z:W(565),addr:'1001 Bissonnet St'},
+ {n:'Waterwall Park',k:'sight',x:W(-1000),z:W(262),addr:'2800 Post Oak Blvd · Gerald D. Hines Waterwall'},
+ {n:'Market Square Park',k:'park',x:W(80),z:W(40),addr:'301 Milam St · historic downtown square'},
+ {n:'POST Houston',k:'sight',x:W(-30),z:W(-20),addr:'401 Franklin St · food hall + rooftop park'},
+ {n:'San Jacinto Monument',k:'sight',x:W(3180),z:W(1180),addr:'1 Monument Cir, La Porte · 567 ft obelisk'},
+ {n:'Discovery Green',k:'park',x:W(165),z:W(28),addr:'1500 McKinney St'},
+ {n:'Hermann Park',k:'park',x:W(-230),z:W(805),addr:'6001 Fannin St · 445 acres'},
+ {n:'Buffalo Bayou Park',k:'park',x:W(-350),z:W(-72),addr:'1800 Allen Pkwy'},
+ {n:'Kemah Boardwalk',k:'fun',x:W(2900),z:W(3320),addr:'215 Kipp Ave, Kemah — rides, boardwalk, Gulf views'},
  /* NASA / Space City */
  poiAt('Space Center Houston','sight',29.5518,-95.0981,'1601 E NASA Pkwy','Official NASA Johnson Space Center visitor center · tram tours · Mission Control'),
  poiAt('NASA Johnson Space Center','sight',29.5593,-95.0899,'2101 NASA Pkwy','Home of human spaceflight · Mission Control · astronaut training'),
@@ -5586,13 +5794,14 @@ window.FERRIS=(function(){
   gDetail.add(g);
   registerLandmarkHit(2900,40,3315,200,90,160,
     {n:'Kemah Boardwalk',d:'Landry’s waterfront · rides, restaurants & Gulf views · Galveston Bay'},
-    {n:'Kemah Boardwalk',x:2900,z:3320,addr:'215 Kipp Ave, Kemah — rides, boardwalk, Gulf views'});
+    {n:'Kemah Boardwalk',x:W(2900),z:W(3320),addr:'215 Kipp Ave, Kemah — rides, boardwalk, Gulf views'});
   return g;
 })();
 
 /* Downtown Aquarium — Landry’s complex on Buffalo Bayou (410 Bagby) */
 (function buildDowntownAquarium(){
-  if(HTS_HAS_PACK)return;
+  /* metre-scale Houston draws the real OSM aquarium; this legacy box sat on Bagby St at the old scale */
+  if(HTS_HAS_PACK||WS!==1)return;
   const ax=89, az=8;
   const pad=new THREE.Mesh(new THREE.PlaneGeometry(95,70),new THREE.MeshLambertMaterial({color:0x6a7068}));
   pad.rotation.x=-Math.PI/2;pad.position.set(ax,0.08,az);gDetail.add(pad);
@@ -5654,32 +5863,32 @@ window.updateCrowds=(function(){
     }).slice(0,8).map(p=>({x:p.x,z:p.z,r:Math.min(p.r||120,140),dens:3.5,kind:'venue'})):[])
   ]:[
     /* Downtown core — densest outdoor streets (Main / tunnels steal some) */
-    {x:60,z:60,r:200,dens:9.5,kind:'core'},
-    {x:95,z:75,r:140,dens:8.5,kind:'core'},   /* Main St / transit */
-    {x:126,z:104,r:110,dens:7.5,kind:'core'},  /* Main Street Square */
-    {x:40,z:40,r:120,dens:6.5,kind:'core'},    /* Theater District */
-    {x:180,z:50,r:130,dens:6.0,kind:'venue'},  /* Discovery Green / GRB */
-    {x:89,z:8,r:90,dens:5.5,kind:'venue'},     /* Downtown Aquarium */
-    {x:240,z:105,r:100,dens:4.5,kind:'venue'}, /* Daikin Park plaza */
-    {x:157,z:199,r:95,dens:4.5,kind:'venue'},  /* Toyota Center plaza */
+    {x:W(60),z:W(60),r:200*WS,dens:9.5,kind:'core'},
+    {x:W(95),z:W(75),r:140*WS,dens:8.5,kind:'core'},   /* Main St / transit */
+    {x:W(126),z:W(104),r:110*WS,dens:7.5,kind:'core'},  /* Main Street Square */
+    {x:W(40),z:W(40),r:120*WS,dens:6.5,kind:'core'},    /* Theater District */
+    {x:W(180),z:W(50),r:130*WS,dens:6.0,kind:'venue'},  /* Discovery Green / GRB */
+    {x:W(89),z:W(8),r:90*WS,dens:5.5,kind:'venue'},     /* Downtown Aquarium */
+    {x:W(240),z:W(105),r:100*WS,dens:4.5,kind:'venue'}, /* Daikin Park plaza */
+    {x:W(157),z:W(199),r:95*WS,dens:4.5,kind:'venue'},  /* Toyota Center plaza */
     /* Midtown / Museum / Med Center — walkable nodes */
-    {x:40,z:290,r:130,dens:4.0,kind:'core'},
-    {x:-200,z:565,r:110,dens:3.5,kind:'park'}, /* MFAH */
-    {x:-230,z:805,r:160,dens:5.0,kind:'park'}, /* Hermann Park */
-    {x:-200,z:828,r:100,dens:4.5,kind:'venue'},/* Zoo */
-    {x:-282,z:830,r:140,dens:5.5,kind:'med'},  /* Med Center */
-    {x:-342,z:683,r:120,dens:3.5,kind:'school'},/* Rice */
-    {x:405,z:645,r:130,dens:3.0,kind:'school'}, /* UH */
+    {x:W(40),z:W(290),r:130*WS,dens:4.0,kind:'core'},
+    {x:W(-200),z:W(565),r:110*WS,dens:3.5,kind:'park'}, /* MFAH */
+    {x:W(-230),z:W(805),r:160*WS,dens:5.0,kind:'park'}, /* Hermann Park */
+    {x:W(-200),z:W(828),r:100*WS,dens:4.5,kind:'venue'},/* Zoo */
+    {x:W(-282),z:W(830),r:140*WS,dens:5.5,kind:'med'},  /* Med Center */
+    {x:W(-342),z:W(683),r:120*WS,dens:3.5,kind:'school'},/* Rice */
+    {x:W(405),z:W(645),r:130*WS,dens:3.0,kind:'school'}, /* UH */
     /* Parks & bayou trails */
-    {x:-350,z:-72,r:150,dens:3.5,kind:'park'}, /* Buffalo Bayou Park */
-    {x:-880,z:-130,r:180,dens:2.5,kind:'park'},/* Memorial Park */
+    {x:W(-350),z:W(-72),r:150*WS,dens:3.5,kind:'park'}, /* Buffalo Bayou Park */
+    {x:W(-880),z:W(-130),r:180*WS,dens:2.5,kind:'park'},/* Memorial Park */
     /* Retail / suburban activity — lower outdoor density */
-    {x:-980,z:205,r:160,dens:4.0,kind:'mall'}, /* Galleria */
-    {x:-1560,z:-260,r:120,dens:2.5,kind:'mall'},
-    {x:-455,z:1157,r:140,dens:3.5,kind:'venue'},/* NRG */
-    {x:2900,z:3320,r:120,dens:4.0,kind:'venue'},/* Kemah */
-    {x:165,z:28,r:100,dens:2.0,kind:'core'},
-    {x:-1000,z:262,r:80,dens:2.0,kind:'park'}  /* Waterwall */
+    {x:W(-980),z:W(205),r:160*WS,dens:4.0,kind:'mall'}, /* Galleria */
+    {x:W(-1560),z:W(-260),r:120*WS,dens:2.5,kind:'mall'},
+    {x:W(-455),z:W(1157),r:140*WS,dens:3.5,kind:'venue'},/* NRG */
+    {x:W(2900),z:W(3320),r:120*WS,dens:4.0,kind:'venue'},/* Kemah */
+    {x:W(165),z:W(28),r:100*WS,dens:2.0,kind:'core'},
+    {x:W(-1000),z:W(262),r:80*WS,dens:2.0,kind:'park'}  /* Waterwall */
   ];
   const densSum=PED_HUBS.reduce((s,h)=>s+h.dens,0);
   /* Pool sized for peak lunch outdoor life across hubs (~0.02–0.08 peds
@@ -5900,7 +6109,8 @@ window.updateRail=function(dt){
 };
 /* ---------------- Port of Houston container cranes ---------------- */
 (function(){
-  if(HTS_HAS_PACK)return;
+  /* metre-scale Houston: these sat on East End streets at the old scale; real port/tank data comes from OSM */
+  if(HTS_HAS_PACK||WS!==1)return;
   const craneMat=new THREE.MeshLambertMaterial({color:0xc94b3a});
   for(let k=0;k<4;k++){
     const x=3050+k*130,z=520;
@@ -5946,12 +6156,16 @@ const VEH_TYPES=[
  {id:'scooter',w:0.85,h:1.35,len:1.9,wr:0.32, ffk:0.95, p:0.035},
  {id:'bike',  w:0.55,h:1.55,len:1.7, wr:0.28, ffk:0.55, p:0.02}, /* road cyclists in traffic */
 ];
-const VEH_COLORS=[0xe8e8ea,0xf2f3f5,0x17181c,0x9ba1a8,0x6e747c,0xc7cbd1,0x8c1d1d,0x1d3f7a,0x2f5c33,0x7a4a1d,0xd9d9d9,0x3c3f45,0x8a2f22,0x2b2f38,0x4a6b8a,0xb8b2a4,0x5c2a5e,0x1f6b6b,0xcfa22e,0x22252b,0xf5c542,0xffffff];
+/* real-world paint mix: ~25% white, 22% black, 18% grey, 14% silver, 9% blue, 8% red, rest earth tones */
+const VEH_COLORS=(function(){const mix=[[25,[0xf2f3f5,0xe8e8ea,0xfafafa,0xdedfe0]],[22,[0x111215,0x17181c,0x1c1e22,0x22252b]],
+  [18,[0x5c6168,0x6e747c,0x4a4e55,0x3c3f45,0x7d838a]],[14,[0xb9bec4,0xc7cbd1,0xa9aeb5,0xd2d5d8]],[9,[0x1d3f7a,0x2b4c8c,0x22324f,0x4a6b8a]],
+  [8,[0x8c1d1d,0xa32020,0x7a1616]],[2,[0x6b5240,0xb8b2a4,0x8a7a62]],[1,[0x2f4c33,0x1f6b6b]],[1,[0xcfa22e,0xd9861f]]];
+  const out=[];for(const [w,cs] of mix)for(let i=0;i<w*2;i++)out.push(cs[i%cs.length]);return out;})();
 const TRAILER_COLS=[0xe9eaec,0xdadde0,0xc4c8cc,0xd8d2c4];
 const TAXI_YELLOW=0xf5c542;
 function pickType(){let r=rand();for(const t of VEH_TYPES){if(r<t.p)return t;r-=t.p;}return VEH_TYPES[0];}
 
-const MPH=0.338;      /* world u/s per mph */
+const MPH=WS!==1?0.44704:0.338; /* world u/s per mph — WS!==1 is the metre-scale world, which runs real time (1 mph = 0.447 m/s) */
 const VS=1.28;        /* vehicle visual scale */
 const MAX_INST=4000;
 
@@ -6022,6 +6236,7 @@ const poolMat=new THREE.MeshBasicMaterial({map:poolTex,transparent:true,opacity:
 const pools=new THREE.InstancedMesh(poolGeo,poolMat,MAX_INST);
 pools.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(pools);
 let totalVeh=0,speedSum=0;
+if(window.HTS_DEBUG)Object.defineProperties(window.HTS_DEBUG,{veh:{get:()=>totalVeh},flights:{get:()=>window.LIVE_FLIGHTS?window.LIVE_FLIGHTS.size:-1}});
 const shareSum=ROAD_DEFS.reduce((a,d)=>a+d.share,0);
 const TOTAL_TARGET=2800;
 
@@ -6043,6 +6258,43 @@ function makeVehicle(road,s,speedMph){
   return v;
 }
 function vehBumpLen(v){return v.type.len*VS;}
+/* Houston v2 traffic car: same look as makeVehicle, no bikes in freeway/arterial lanes */
+function mkCar2(h){
+  let t=pickType();
+  const fw=/^(motorway|trunk)/.test(h);
+  if(t.id==='bike'||t.id==='scooter')t=VEH_TYPES[0];
+  if(!fw&&t.len>9&&rand()<0.75)t=VEH_TYPES[1];
+  const v={type:t,len:t.len*VS,aggr:0.88+rand()*0.24,brake:false,v:0,
+    col:t.id==='taxi'?TAXI_YELLOW:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
+  if(t.id==='semi')v.tcol=TRAILER_COLS[Math.floor(rand()*TRAILER_COLS.length)];
+  return v;
+}
+/* congestion + live speed for a v2 carriageway from the nearest aligned legacy corridor segment */
+const _legGrid=new Map();let _legBuilt=false;const _lrp={px:0,pz:0,tx:0,tz:0,py:0};
+function legacyCongAt(x,z,tx,tz){
+  if(!_legBuilt){
+    _legBuilt=true;
+    for(const road of roads){const L=road.s.total;
+      for(let k=0;k<road.segCount;k++){
+        roadPos(road,(k+0.5)/road.segCount*L,_lrp);
+        const key=Math.floor(road.segX[k]/500)+','+Math.floor(road.segZ[k]/500);
+        let a=_legGrid.get(key);if(!a)_legGrid.set(key,a=[]);
+        a.push([road,k,road.segX[k],road.segZ[k],_lrp.tx,_lrp.tz]);
+      }}
+  }
+  const gx=Math.floor(x/500),gz=Math.floor(z/500);let best=null,bd=320*320,bdot=0;
+  for(let dx=-1;dx<=1;dx++)for(let dz=-1;dz<=1;dz++){
+    const a=_legGrid.get((gx+dx)+','+(gz+dz));if(!a)continue;
+    for(const e of a){const dot=e[4]*tx+e[5]*tz;if(Math.abs(dot)<0.75)continue;
+      const d2=(e[2]-x)**2+(e[3]-z)**2;if(d2<bd){bd=d2;best=e;bdot=dot;}}
+  }
+  if(!best)return {cong:clamp(overallCong*0.7,0,0.8),mph:null};
+  const road=best[0],sgn=bdot>0?1:-1,dir=road.dirs.find((d)=>d.sign===sgn)||road.dirs[0];
+  const segN=dir.segCong.length,ci=clamp(Math.floor((best[1]+0.5)/road.segCount*segN),0,segN-1);
+  const live=window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(road.def.id+'_'+dir.sign);
+  const ok=liveMode&&liveFlowFresh(live);
+  return {cong:dir.segCong[ci]||0,mph:ok?sanitizeLiveMph(live.cur,live.ff,road):null};
+}
 function minBumpGap(v,ahead){
   return vehBumpLen(v)+(ahead?vehBumpLen(ahead):vehBumpLen(v))*0.5+4.2;
 }
@@ -7732,8 +7984,9 @@ function forecastAt(offsetSec){
   };
 }
 /* ---------------- camera (custom orbit) ---------------- */
-const cam={theta:-0.62,phi:0.86,radius:2300,target:new THREE.Vector3(-120,0,60)};
+const cam={theta:-0.62,phi:0.86,radius:2300*WS,target:new THREE.Vector3(W(-120),0,60)};
 const camGoal={theta:cam.theta,phi:cam.phi,radius:cam.radius,target:cam.target.clone()};
+if(window.HTS_DEBUG){window.HTS_DEBUG.cam=cam;window.HTS_DEBUG.camGoal=camGoal;}
 function applyCam(){
   cam.theta+=(camGoal.theta-cam.theta)*0.12;
   cam.phi  +=(camGoal.phi-cam.phi)*0.12;
@@ -7745,13 +7998,18 @@ function applyCam(){
     cam.target.y+cam.radius*y,
     cam.target.z+cam.radius*sp*Math.cos(cam.theta));
   camera.lookAt(cam.target);
+  /* metre scale: near plane follows zoom so lane paint / land layers keep depth precision (no shimmer) */
+  if(WS!==1){
+    const nn=clamp(cam.radius*0.02,1.2,120);
+    if(Math.abs(nn-camera.near)>camera.near*0.15){camera.near=nn;camera.updateProjectionMatrix();}
+  }
   document.getElementById('rose').style.transform='rotate('+(-cam.theta*180/Math.PI)+'deg)';
 }
-const PHI_MIN=0.06,PHI_MAX=1.5,R_MIN=55,R_MAX=9200;
+const PHI_MIN=0.06,PHI_MAX=1.5,R_MIN=WS===1?55:22,R_MAX=9200*WS;
 let drag=null,ptStart=null,follow=null,followPlane=null;
 let hoverPlace=null; /* {n, road?} from pointer hover — drives whereami pill */
 function camRadiusLimits(){
-  if(followPlane)return {rmin:70,rmax:5200,phiMin:0.12,phiMax:1.48};
+  if(followPlane)return {rmin:40,rmax:LIMITS.rmax,phiMin:0.08,phiMax:1.5};
   if(follow)return {rmin:28,rmax:900,phiMin:0.55,phiMax:1.42};
   return {rmin:LIMITS.rmin,rmax:LIMITS.rmax,phiMin:PHI_MIN,phiMax:PHI_MAX};
 }
@@ -7852,6 +8110,14 @@ function tryPickVehicle(e){
         x:tw.position.x,z:tw.position.z,
         addr:inf.d||''
       },e.clientX,e.clientY);
+      return;
+    }
+  }
+  if(window.HTS_OSM_CITY&&gDetail.visible){
+    const ph=HTS_OSM_CITY.pick(_ray.ray);
+    if(ph&&(ph.b.info||ph.b.name)){
+      const b=ph.b;
+      openPoiCard({n:b.info?b.info.n:b.name,x:b.cx,z:b.cz,addr:(b.info&&b.info.d?b.info.d+' · ':'')+Math.round(b.hM)+' m tall'},e.clientX,e.clientY);
       return;
     }
   }
@@ -8148,30 +8414,36 @@ const TRANSTAR_ROAD_MAP=(window.HTS_FEEDS&&window.HTS_FEEDS.transtar&&window.HTS
   {re:/fort bend.*toll|fb toll/i,id:'fbpkwy'},
 ];
 const TRANSTAR_CORRIDOR_HINTS=(window.HTS_FEEDS&&window.HTS_FEEDS.transtar&&window.HTS_FEEDS.transtar.CORRIDOR_HINTS)||{
-  i10:[{re:/katy|barker|sh-?99|beltway 8-?west|610 west|downtown/i,ax:-3450,az:-330,bx:60,bz:-200},
-       {re:/east|spur-?330|baytown|610 east/i,ax:60,az:-200,bx:3600,bz:-250}],
-  us59:[{re:/richmond|rosenberg|fort\s*bend/i,ax:-4600,az:3400,bx:260,bz:60},
-        {re:/southwest|sugar|missouri|stafford/i,ax:-2900,az:2000,bx:260,bz:60},
-        {re:/eastex|kingwood|humble|airport/i,ax:1320,az:-3500,bx:260,bz:60}],
-  i45:[{re:/north|woodlands|conroe|tomball|hardy/i,ax:-1090,az:-3400,bx:40,bz:60},
-       {re:/gulf|galveston|clear creek|nasa|webster|league/i,ax:40,az:60,bx:7290,bz:6804}],
-  us290:[{re:/.*/,ax:-6861,az:-4281,bx:40,bz:-210}],
-  sh288:[{re:/.*/,ax:380,az:2600,bx:-634,bz:5500}],
-  bw8:[{re:/.*/,ax:-1820,az:-40,bx:1820,bz:-40}],
-  i610:[{re:/.*/,ax:-980,az:-30,bx:980,bz:-30}],
-  hardy:[{re:/.*/,ax:100,az:-420,bx:760,bz:-3600}],
-  westpark:[{re:/.*/,ax:-5414,az:428,bx:-1045,bz:555}],
-  sh249:[{re:/.*/,ax:-950,az:-935,bx:-3050,bz:-4000}],
-  sh225:[{re:/.*/,ax:600,az:320,bx:3420,bz:920}],
-  tx99:[{re:/katy|cypress|290/i,ax:-5653,az:-181,bx:-3276,bz:-3484},
-        {re:/tomball|249|spring/i,ax:-3276,az:-3484,bx:-760,bz:-5078},
-        {re:/kingwood|humble|59/i,ax:-760,az:-5078,bx:2636,bz:-3194},
-        {re:/baytown|146|east/i,ax:2636,az:-3194,bx:5026,bz:-152},
-        {re:/league|rosharon|sugar/i,ax:5026,az:-152,bx:-3276,bz:2167}],
-  fm1093:[{re:/.*/,ax:-5666,az:-296,bx:-3276,bz:2457}],
-  sh35:[{re:/.*/,ax:1127,az:2891,bx:1630,bz:4920}],
-  fbpkwy:[{re:/.*/,ax:150,az:190,bx:-3276,bz:2167}],
+  i10:[{re:/katy|barker|sh-?99|beltway 8-?west|610 west|downtown/i,ax:W(-3450),az:W(-330),bx:W(60),bz:W(-200)},
+       {re:/east|spur-?330|baytown|610 east/i,ax:W(60),az:W(-200),bx:W(3600),bz:W(-250)}],
+  us59:[{re:/richmond|rosenberg|fort\s*bend/i,ax:W(-4600),az:W(3400),bx:W(260),bz:W(60)},
+        {re:/southwest|sugar|missouri|stafford/i,ax:W(-2900),az:W(2000),bx:W(260),bz:W(60)},
+        {re:/eastex|kingwood|humble|airport/i,ax:W(1320),az:W(-3500),bx:W(260),bz:W(60)}],
+  i45:[{re:/north|woodlands|conroe|tomball|hardy/i,ax:W(-1090),az:W(-3400),bx:W(40),bz:W(60)},
+       {re:/gulf|galveston|clear creek|nasa|webster|league/i,ax:W(40),az:W(60),bx:W(7290),bz:W(6804)}],
+  us290:[{re:/.*/,ax:W(-6861),az:W(-4281),bx:W(40),bz:W(-210)}],
+  sh288:[{re:/.*/,ax:W(380),az:W(2600),bx:W(-634),bz:W(5500)}],
+  bw8:[{re:/.*/,ax:W(-1820),az:W(-40),bx:W(1820),bz:W(-40)}],
+  i610:[{re:/.*/,ax:W(-980),az:W(-30),bx:W(980),bz:W(-30)}],
+  hardy:[{re:/.*/,ax:W(100),az:W(-420),bx:W(760),bz:W(-3600)}],
+  westpark:[{re:/.*/,ax:W(-5414),az:W(428),bx:W(-1045),bz:W(555)}],
+  sh249:[{re:/.*/,ax:W(-950),az:W(-935),bx:W(-3050),bz:W(-4000)}],
+  sh225:[{re:/.*/,ax:W(600),az:W(320),bx:W(3420),bz:W(920)}],
+  tx99:[{re:/katy|cypress|290/i,ax:W(-5653),az:W(-181),bx:W(-3276),bz:W(-3484)},
+        {re:/tomball|249|spring/i,ax:W(-3276),az:W(-3484),bx:W(-760),bz:W(-5078)},
+        {re:/kingwood|humble|59/i,ax:W(-760),az:W(-5078),bx:W(2636),bz:W(-3194)},
+        {re:/baytown|146|east/i,ax:W(2636),az:W(-3194),bx:W(5026),bz:W(-152)},
+        {re:/league|rosharon|sugar/i,ax:W(5026),az:W(-152),bx:W(-3276),bz:W(2167)}],
+  fm1093:[{re:/.*/,ax:W(-5666),az:W(-296),bx:W(-3276),bz:W(2457)}],
+  sh35:[{re:/.*/,ax:W(1127),az:W(2891),bx:W(1630),bz:W(4920)}],
+  fbpkwy:[{re:/.*/,ax:W(150),az:W(190),bx:W(-3276),bz:W(2167)}],
 };
+/* feed-module hints are legacy 210-u/mi literals: map them into the metre world once */
+if(WS!==1&&TRANSTAR_CORRIDOR_HINTS&&!TRANSTAR_CORRIDOR_HINTS.__world&&window.HTS_FEEDS&&window.HTS_FEEDS.transtar
+   &&window.HTS_FEEDS.transtar.CORRIDOR_HINTS===TRANSTAR_CORRIDOR_HINTS){
+  for(const k of Object.keys(TRANSTAR_CORRIDOR_HINTS))for(const h of TRANSTAR_CORRIDOR_HINTS[k]||[]){h.ax=W(h.ax);h.az=W(h.az);h.bx=W(h.bx);h.bz=W(h.bz);}
+  Object.defineProperty(TRANSTAR_CORRIDOR_HINTS,'__world',{value:true});
+}
 function findRoadByKey(key){
   if(!key||!roads||!roads.length)return null;
   const k=String(key).toLowerCase();
@@ -8290,7 +8562,7 @@ function corridorDriveMiles(c){
 function estimateCorridorMiles(road,ax,az,bx,bz){
   if(!road)return null;
   const a=nearestArc(road,ax,az),b=nearestArc(road,bx,bz);
-  return Math.max(0.5,Math.abs(b-a)/UNITS_PER_MILE);
+  return Math.max(0.5,Math.max(Math.abs(b-a),Math.hypot(bx-ax,bz-az)*1.1)/UNITS_PER_MILE);
 }
 function sanitizeLiveMph(cur,ff,road){
   const ts=window.HTS_FEEDS&&window.HTS_FEEDS.transtar;
@@ -8330,7 +8602,7 @@ function applyTranStarTravelTimes(items){
       }
       if(miles==null)miles=estimateCorridorMiles(road,hints[0].ax,hints[0].az,hints[0].bx,hints[0].bz);
     }
-    if(!(miles>0))miles=Math.max(4,road.s.total/UNITS_PER_MILE*0.35);
+    if(!(miles>0))continue; /* unknown segment length: skip rather than guess a speed */
     if(!buckets.has(key))buckets.set(key,{mins:[],miles:[],road,sign});
     const b=buckets.get(key);
     b.mins.push(mins);b.miles.push(miles);
@@ -8833,6 +9105,7 @@ function updateLiveFlights(dt){
       if(Number.isFinite(f._tAltM))f._altM=lerp(f._altM,f._tAltM,0.55);
       if(Number.isFinite(f._tTrk))f._trk=f._tTrk;
       f._newFix=false;
+      if(Number.isFinite(f._tLat)&&Number.isFinite(f._tLon)){const T=f._track||(f._track=[]);const l=T[T.length-1];if(!l||Math.abs(l[0]-f._tLat)+Math.abs(l[1]-f._tLon)>0.002){T.push([f._tLat,f._tLon,Number.isFinite(f._tAltM)?f._tAltM:f._altM]);if(T.length>400)T.shift();}}
     }
 
     const gsKnown=flightGsKts(f);
@@ -8903,6 +9176,13 @@ function updateLiveFlights(dt){
 
     f.m.position.set(w.x,f._y,w.z);
     f.m.rotation.set(-(f._pitch||0),yaw,f._bank||0);
+    /* metre scale: true-size jets vanish past a few km — grow with distance so they read like real
+       planes spotted in the sky (never smaller than ~3 px), true size up close */
+    if(WS!==1){
+      const ud=f.m.userData;if(ud.baseSc==null)ud.baseSc=f.m.scale.x;
+      const dCam=camera.position.distanceTo(f.m.position);
+      f.m.scale.setScalar(ud.baseSc*Math.max(1,dCam/1800));
+    }
     /* Spin helicopter rotors */
     if(cls==='heli'&&f.m.userData){
       if(f.m.userData.rotor)f.m.userData.rotor.rotation.z+=dt*18;
@@ -9041,6 +9321,19 @@ canvas.addEventListener('pointermove',e=>{
       placeHint={n:inf.n,road:road?('near '+road):null,kind:'landmark',at:now};
     }
   }
+  if(!html&&window.HTS_OSM_CITY&&gDetail.visible){
+    const ph=HTS_OSM_CITY.pick(_ray.ray);
+    if(ph){
+      const b=ph.b,inf=b.info,nm=inf?inf.n:(b.name||'Building');
+      const fl=Math.max(1,Math.round(b.hM/3.5));
+      html='<div class="tn">'+escHtml(nm)+'</div><div class="ts">'+(inf&&inf.d?escHtml(inf.d)+'<br>':'')
+        +Math.round(b.hM)+' m ('+Math.round(b.hM*3.28)+' ft) · ~'+fl+' floors</div>'
+        +(inf||b.name?historyTipHtml(nm,b.cx,b.cz):'')
+        +'<div class="te">Real footprint · © OpenStreetMap contributors</div>';
+      const road=nearestRoadLabel(b.cx,b.cz);
+      placeHint={n:nm,road:road?('near '+road):null,kind:'landmark',at:now};
+    }
+  }
   if(!html){
     const hits=_ray.intersectObjects(poiSprites,false);
     if(hits.length&&hits[0].object.material.opacity>0.05){
@@ -9069,11 +9362,12 @@ canvas.addEventListener('pointermove',e=>{
   else tipEl.style.display='none';
 });
 function stopFollow(){
+  clearRouteLine();
   if(followPlane&&followPlane.m&&followPlane.m.userData&&followPlane.m.userData.halo){
     followPlane.m.userData.halo.visible=false;
     followPlane.m.userData.halo.material.opacity=0;
   }
-  follow=null;followPlane=null;document.getElementById('followChip').style.display='none';
+  clearRouteLine();follow=null;followPlane=null;document.getElementById('followChip').style.display='none';
   clearFlightCardHighlight();
 }
 function flightIdKey(f){
@@ -9112,6 +9406,53 @@ function highlightFlightCard(f){
   applyFlightCardSelection();
   requestAnimationFrame(()=>applyFlightCardSelection());
 }
+/* origin -> aircraft -> destination path for the selected flight */
+function clearRouteLine(){const l=window._routeLine;if(l){scene.remove(l);l.traverse((o)=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose();}});window._routeLine=null;}}
+/* no filed route in the feed: pick the airport the aircraft is pointed at (arr) or flying away from (dep) */
+function likelyAirportFor(f,mode){
+  const lat=f._lat,lon=f._lon,trk=Number.isFinite(f._trk)?f._trk:Number(f.track);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||!Number.isFinite(trk))return null;
+  const cosL=Math.cos(lat*Math.PI/180);let best=null,bs=Infinity;
+  for(const [code,a] of Object.entries(APT_COORDS)){
+    if(!a||!Number.isFinite(a.lat))continue;
+    const dN=(a.lat-lat)*111.2,dE=(a.lng-lon)*111.2*cosL,km=Math.hypot(dN,dE);
+    if(km>180)continue;
+    let brg=Math.atan2(dE,dN)*180/Math.PI;if(mode==='dep')brg+=180;
+    const off=Math.abs(((brg-trk)%360+540)%360-180);
+    if(off>35&&km>5)continue;
+    const sc=km*(1+off/15);if(sc<bs){bs=sc;best={code,lat:a.lat,lng:a.lng};}
+  }
+  return best;
+}
+function drawRouteLine(f,wx,wy,wz){
+  clearRouteLine();
+  const here=[wx,wy,wz];
+  const rr=clamp(camera.position.distanceTo(new THREE.Vector3(wx,wy,wz))/320,1.5,90);
+  const g=new THREE.Group();
+  const tube=(pts,col,op)=>{
+    if(pts.length<2)return;
+    const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
+    const m=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(400,Math.max(8,pts.length*2)),rr,6,false),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false,fog:false}));
+    m.renderOrder=6;g.add(m);
+  };
+  /* where it has been: the positions this aircraft was actually drawn at (sampled every 1.5 s) */
+  const tr=(f._wtrack||[]).slice();
+  if(tr.length)tr.push(here);
+  if(tr.length>=3)tube(tr,0xfbbf24,0.9);
+  /* where it is going: only for a verified Houston arrival, as a descent to that airport */
+  const arr=f._routeVerified&&isHoustonApt(f.arr)?APT_COORDS[icaoToDisp(f.arr)]:null;
+  if(arr){
+    const p=geoToWorld(arr.lat,arr.lng),pts=[];
+    for(let i=0;i<=32;i++){const t=i/32;pts.push([wx+(p.x-wx)*t,wy+(4-wy)*t,wz+(p.z-wz)*t]);}
+    tube(pts,0x38bdf8,0.85);
+    const sp=textSprite('Landing '+icaoToDisp(f.arr),0.4);sp.position.set(p.x,Math.max(60,rr*30),p.z);g.add(sp);
+  }
+  scene.add(g);window._routeLine=g;
+}
+setInterval(()=>{let f=null;try{f=followPlane;}catch(e){return;}
+  for(const q of window.LIVE_FLIGHT_LIST||[]){if(!q||!q.m||!q.m.visible)continue;const T=q._wtrack||(q._wtrack=[]);const P=q.m.position,l=T[T.length-1];if(!l||Math.hypot(l[0]-P.x,l[2]-P.z)>25){T.push([P.x,P.y,P.z]);if(T.length>500)T.shift();}}
+  if(f&&f.m&&window._routeLine)drawRouteLine(f,f.m.position.x,f.m.position.y,f.m.position.z);},1500);
 function focusAircraftInSky(f){
   if(!f||f.kind==='board')return false;
   const lat=Number.isFinite(f._lat)?f._lat:(Number.isFinite(f._tLat)?f._tLat:null);
@@ -9141,7 +9482,8 @@ function focusAircraftInSky(f){
     followPlane.m.userData.halo.visible=false;
     followPlane.m.userData.halo.material.opacity=0;
   }
-  followPlane=f;follow=null;
+  followPlane=f;follow=null;window._followOff={x:0,z:0};
+  drawRouteLine(f,wx,wy,wz);
   if(f.m){
     f.m.visible=true;
     if(f.m.userData&&f.m.userData.halo){f.m.userData.halo.visible=true;f.m.userData.halo.material.opacity=0.4;}
@@ -9149,7 +9491,7 @@ function focusAircraftInSky(f){
   /* Start beside/below the plane — user can scroll freely above or pull back */
   camGoal.target.set(wx,clamp(wy*0.35,20,900),wz);
   camGoal.radius=clamp(camGoal.radius||380,180,900);
-  if(camGoal.radius<200||camGoal.radius>1100)camGoal.radius=380;
+  if(camGoal.radius<200*WS||camGoal.radius>1100*WS)camGoal.radius=380*WS;
   camGoal.phi=clamp(0.95,0.2,1.4);
   document.getElementById('followChip').style.display='flex';
   const cs=callsignPair(f.cs,f.csIata).main||f.cs||'aircraft';
@@ -9197,12 +9539,10 @@ addEventListener('keydown',e=>{if(e.key==='Escape')stopFollow();});
     if(e.target&&e.target.closest&&e.target.closest('a'))return; /* keep Track links working */
     const card=e.target&&e.target.closest&&e.target.closest('.fcard');
     if(!card)return;
-    const kids=[...fl.children];
-    const i=kids.indexOf(card);
-    if(i<0)return;
-    const list=(window._syncedLiveFlights&&window._syncedLiveFlights.length)?window._syncedLiveFlights:[];
-    const f=list[i];
-    if(f&&f.kind==='live')focusAircraftInSky(f);
+    const key=card.dataset.fkey;
+    const f=(window.LIVE_FLIGHT_LIST||[]).find(x=>flightIdKey(x)===key)||(window._syncedLiveFlights||[])[[...fl.children].indexOf(card)];
+    if(!f||f.kind==='board')return;
+    if(!focusAircraftInSky(f))highlightFlightCard(f);
   });
 })();
 function angleLerp(a,b,t){let d=(b-a)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=TAU;return a+d*t;}
@@ -9212,6 +9552,12 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();
   camGoal.radius=clamp(camGoal.radius*Math.pow(1.0016,e.deltaY),lim.rmin,lim.rmax);},{passive:false});
 function pan(dx,dy){
   const k=cam.radius*0.0013;
+  if(followPlane||(window.HTS_TOUR&&HTS_TOUR.active)){
+    const o=window._followOff||(window._followOff={x:0,z:0});
+    o.x-=(Math.cos(cam.theta)*dx + Math.sin(cam.theta)*dy)*k;
+    o.z-=(-Math.sin(cam.theta)*dx + Math.cos(cam.theta)*dy)*k;
+    return;
+  }
   camGoal.target.x-=(Math.cos(cam.theta)*dx + Math.sin(cam.theta)*dy)*k;
   camGoal.target.z-=(-Math.sin(cam.theta)*dx + Math.cos(cam.theta)*dy)*k;
   camGoal.target.x=clamp(camGoal.target.x,-LIMITS.pan,LIMITS.pan);
@@ -9354,15 +9700,15 @@ const FACILITY_POIS=HTS_IS_AUS?(function(){
     return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr};
   });
 })():(HTS_HAS_PACK?[]:[
-  {n:'Rice University',k:'school',x:-342,z:683,addr:'6100 Main St · est. 1912'},
-  {n:'University of Houston',k:'school',x:390.9,z:635.2,addr:'4800 Calhoun Rd'},
-  {n:'Texas Southern University',k:'school',x:183.1,z:630.5,addr:'3100 Cleburne St'},
-  {n:'Lamar High School',k:'school',x:-842,z:327,addr:'3325 Westheimer Rd'},
-  {n:'Bellaire High School',k:'school',x:-1102,z:892,addr:'5100 Maple St'},
-  {n:'Lakewood Church',k:'worship',x:-545,z:455,addr:'3700 Southwest Fwy'},
-  {n:'Co-Cathedral of the Sacred Heart',k:'worship',x:55,z:240,addr:'1111 St Joseph Pkwy'},
-  {n:'Islamic Society of Greater Houston',k:'worship',x:-682,z:401,addr:'3110 Eastside St'},
-  {n:'Congregation Beth Israel',k:'worship',x:-914,z:1129,addr:'5600 N Braeswood Blvd'},
+  {n:'Rice University',k:'school',x:W(-342),z:W(683),addr:'6100 Main St · est. 1912'},
+  {n:'University of Houston',k:'school',x:W(390.9),z:W(635.2),addr:'4800 Calhoun Rd'},
+  {n:'Texas Southern University',k:'school',x:W(183.1),z:W(630.5),addr:'3100 Cleburne St'},
+  {n:'Lamar High School',k:'school',x:W(-842),z:W(327),addr:'3325 Westheimer Rd'},
+  {n:'Bellaire High School',k:'school',x:W(-1102),z:W(892),addr:'5100 Maple St'},
+  {n:'Lakewood Church',k:'worship',x:W(-545),z:W(455),addr:'3700 Southwest Fwy'},
+  {n:'Co-Cathedral of the Sacred Heart',k:'worship',x:W(55),z:W(240),addr:'1111 St Joseph Pkwy'},
+  {n:'Islamic Society of Greater Houston',k:'worship',x:W(-682),z:W(401),addr:'3110 Eastside St'},
+  {n:'Congregation Beth Israel',k:'worship',x:W(-914),z:W(1129),addr:'5600 N Braeswood Blvd'},
 ]);
 for(const p of FACILITY_POIS){
   /* UT Tower already placed — skip duplicate massing under the lantern */
@@ -9488,39 +9834,39 @@ syncSimCalendar();
 /* Downtown dock: TranStar "… to Downtown" titles + researched miles.
    minMin must respect physics (mi ÷ ~62 mph avg) — never claim 13 min for Sugar Land. */
 const CORRIDORS=[
- {road:'i10',  label:'I-10 · Katy',       ax:-3450,az:-330, bx:60,  bz:-200, realMi:26, typMin:32, minMin:24, maxMin:85, toDt:true,
+ {road:'i10',  label:'I-10 · Katy',       ax:W(-3450),az:W(-330), bx:W(60),  bz:W(-200), realMi:26, typMin:32, minMin:24, maxMin:85, toDt:true,
   tsIn:/IH-10\s+Katy\s+Eastbound\s+from\s+SH-99\s+Grand Parkway\s+to\s+Downtown/i,
   tsOut:/IH-10\s+Katy\s+Westbound\s+from\s+Downtown\s+to\s+SH-99\s+Grand Parkway/i},
- {road:'us290',label:'US-290 · Cypress',  ax:-2950,az:-2380,bx:40,  bz:-210, realMi:28, typMin:36, minMin:26, maxMin:90, toDt:true,
+ {road:'us290',label:'US-290 · Cypress',  ax:W(-2950),az:W(-2380),bx:W(40),  bz:W(-210), realMi:28, typMin:36, minMin:26, maxMin:90, toDt:true,
   tsIn:/US-290\s+Northwest\s+Eastbound\s+from\s+Barker-Cypress\s+to\s+Downtown/i,
   tsOut:/US-290\s+Northwest\s+Westbound\s+from\s+Downtown\s+to\s+Barker-Cypress/i},
- {road:'i45',  label:'I-45 · Woodlands',  ax:-1090,az:-3400,bx:40,  bz:60,   realMi:30, typMin:38, minMin:28, maxMin:90, toDt:true,
+ {road:'i45',  label:'I-45 · Woodlands',  ax:W(-1090),az:W(-3400),bx:W(40),  bz:W(60),   realMi:30, typMin:38, minMin:28, maxMin:90, toDt:true,
   tsIn:/IH-45\s+North\s+Southbound\s+from\s+SH-242\s+to\s+Downtown/i,
   tsOut:/IH-45\s+North\s+Northbound\s+from\s+Downtown\s+to\s+SH-242/i},
  /* TranStar only publishes BW8-West→Downtown for this corridor; pad ~8 min for Sugar Land proper. */
- {road:'us59', label:'US-59 · Sugar Land',ax:-2900,az:2000, bx:260, bz:60,   realMi:22, typMin:30, minMin:22, maxMin:80, toDt:true, tsPadMin:8,
+ {road:'us59', label:'US-59 · Sugar Land',ax:W(-2900),az:W(2000), bx:W(260), bz:W(60),   realMi:22, typMin:30, minMin:22, maxMin:80, toDt:true, tsPadMin:10,
   tsIn:/IH-69\s+Southwest\s+Northbound\s+from\s+Beltway\s+8-West\s+to\s+Downtown/i,
   tsOut:/IH-69\s+Southwest\s+Southbound\s+from\s+Downtown\s+to\s+Beltway\s+8-West/i},
- {road:'sh288',label:'SH-288 · Pearland', ax:380,  az:2600, bx:40,  bz:60,   realMi:18, typMin:24, minMin:17, maxMin:65, toDt:true,
+ {road:'sh288',label:'SH-288 · Pearland', ax:W(380),  az:W(2600), bx:W(40),  bz:W(60),   realMi:18, typMin:24, minMin:17, maxMin:65, toDt:true,
   tsIn:/SH-288\s+Northbound\s+from\s+FM-518\s+to\s+Downtown/i,
   tsOut:/SH-288\s+Southbound\s+from\s+Downtown\s+to\s+FM-518/i},
- {road:'i10',  label:'I-10 · Baytown',    ax:3600, az:-250, bx:60,  bz:-200, realMi:27, typMin:34, minMin:24, maxMin:85, toDt:true,
+ {road:'i10',  label:'I-10 · Baytown',    ax:W(3600), az:W(-250), bx:W(60),  bz:W(-200), realMi:27, typMin:34, minMin:24, maxMin:85, toDt:true,
   tsIn:/IH-10\s+East\s+Westbound\s+from\s+Spur-330\s+to\s+Downtown/i,
   tsOut:/IH-10\s+East\s+Eastbound\s+from\s+Downtown\s+to\s+Spur-330/i},
  /* Richmond→Downtown = IH-69 SW from SH-99 GP (not FM 1093). */
- {road:'us59', label:'US-59 · Richmond',  ax:-4600,az:3400, bx:260, bz:60,   realMi:29, typMin:40, minMin:28, maxMin:95, toDt:true,
+ {road:'us59', label:'US-59 · Richmond',  ax:W(-4600),az:W(3400), bx:W(260), bz:W(60),   realMi:29, typMin:40, minMin:28, maxMin:95, toDt:true,
   tsIn:/IH-69\s+Southwest\s+Northbound\s+from\s+SH-99\s+Grand Parkway\s+to\s+Downtown/i,
   tsOut:/IH-69\s+Southwest\s+Southbound\s+from\s+Downtown\s+to\s+SH-99\s+Grand Parkway/i},
- {road:'us59', label:'US-59 · Kingwood',  ax:1320, az:-3500,bx:260, bz:60,   realMi:26, typMin:34, minMin:24, maxMin:85, toDt:true,
+ {road:'us59', label:'US-59 · Kingwood',  ax:W(1320), az:W(-3500),bx:W(260), bz:W(60),   realMi:26, typMin:34, minMin:24, maxMin:85, toDt:true,
   tsIn:/IH-69\s+Eastex\s+Southbound\s+from\s+Loop-494\s+to\s+Downtown/i,
   tsOut:/IH-69\s+Eastex\s+Northbound\s+from\s+Downtown\s+to\s+(?:FM-1960|Loop-494|Beltway\s+8-North)/i},
- {road:'tx99', label:'TX-99 · Cypress',   ax:-5653,az:-181, bx:-4031,bz:-2905,realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
- {road:'tx99', label:'TX-99 · Kingwood',  ax:-760, az:-5078,bx:1881, bz:-3774,realMi:22, typMin:26, minMin:18, maxMin:55, toDt:false},
- {road:'westpark',label:'Westpark · Katy', ax:-5414,az:428,  bx:-1045,bz:555,  realMi:24, typMin:28, minMin:20, maxMin:60, toDt:false},
- {road:'fm1093',label:'FM 1093 · Katy',  ax:-5666,az:-296, bx:-1045,bz:555,  realMi:22, typMin:28, minMin:22, maxMin:65, toDt:false},
- {road:'i45',  label:'I-45 · Galveston',  ax:2300, az:5400, bx:7290, bz:6804, realMi:42, typMin:48, minMin:38, maxMin:90, toDt:false},
- {road:'us290',label:'US-290 · Waller',   ax:-5400,az:-4050,bx:-6861,bz:-4281,realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
- {road:'sh146',label:'SH-146 · Baytown',  ax:2900, az:3320, bx:5152, bz:428,  realMi:16, typMin:20, minMin:14, maxMin:45, toDt:false},
+ {road:'tx99', label:'TX-99 · Cypress',   ax:W(-5653),az:W(-181), bx:W(-4031),bz:W(-2905),realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
+ {road:'tx99', label:'TX-99 · Kingwood',  ax:W(-760), az:W(-5078),bx:W(1881), bz:W(-3774),realMi:22, typMin:26, minMin:18, maxMin:55, toDt:false},
+ {road:'westpark',label:'Westpark · Katy', ax:W(-5414),az:W(428),  bx:W(-1045),bz:W(555),  realMi:24, typMin:28, minMin:20, maxMin:60, toDt:false},
+ {road:'fm1093',label:'FM 1093 · Katy',  ax:W(-5666),az:W(-296), bx:W(-1045),bz:W(555),  realMi:22, typMin:28, minMin:22, maxMin:65, toDt:false},
+ {road:'i45',  label:'I-45 · Galveston',  ax:W(2300), az:W(5400), bx:W(7290), bz:W(6804), realMi:42, typMin:48, minMin:38, maxMin:90, toDt:false},
+ {road:'us290',label:'US-290 · Waller',   ax:W(-5400),az:W(-4050),bx:W(-6861),bz:W(-4281),realMi:18, typMin:22, minMin:16, maxMin:50, toDt:false},
+ {road:'sh146',label:'SH-146 · Baytown',  ax:W(2900), az:W(3320), bx:W(5152), bz:W(428),  realMi:16, typMin:20, minMin:14, maxMin:45, toDt:false},
 ];
 if(HTS_PACK&&HTS_PACK.corridors&&HTS_PACK.corridors.length){
   CORRIDORS.length=0;
@@ -9822,7 +10168,7 @@ function mapMat(color){
 }
 (function buildMapLayer(){
   /* land — warm gray-green, not blown-out beige */
-  const land=new THREE.Mesh(new THREE.PlaneGeometry(24000,24000),mapMat(0xc2c0b6));
+  const land=new THREE.Mesh(new THREE.PlaneGeometry(WS!==1?480000:24000,WS!==1?480000:24000),mapMat(0xc2c0b6));
   land.rotation.x=-Math.PI/2;land.position.y=0.4;land.renderOrder=10;gMap.add(land);
   /* parks — small muted pockets (match 3D; city stays asphalt-first) */
   const parks=[
@@ -10283,16 +10629,19 @@ const CITY_HAZ=buildCityHazards({
 const HAZ_SCENARIOS=CITY_HAZ.scenarios;
 /* Approximate airburst radii (miles) — Glasstone-style W^(1/3) scaling (educational, not weapons design) */
 function nukeRadiiMi(kt){
-  const W=Math.max(0.001,Number(kt)||10);
-  const c=Math.pow(W,1/3);
+  /* airburst at optimum height — Glasstone & Dolan (1977) / NUKEMAP scaling, km → mi */
+  const W=Math.max(0.001,Number(kt)||10),c=Math.cbrt(W),MI=0.621371;
   return {
+    kt:W,
     label:W>=1000?((W/1000)|0)+' Mt':(W|0)+' kt',
-    fireball:0.28*Math.pow(W,0.4),
-    severe:0.92*c,       /* ~5 psi — heavy building collapse */
-    moderate:1.18*c,     /* ~3 psi — major structural damage */
-    thermal:1.45*c,      /* 3rd-degree burns */
-    light:2.72*c,        /* ~1 psi — window breakage / light damage */
-    fallout:10.5*c       /* downwind deposition guide (varies with wind) */
+    fireball:0.068*Math.pow(W,0.4)*MI,
+    severe:0.49*c*MI,                 /* 5 psi — most buildings collapse */
+    moderate:0.66*c*MI,               /* 3 psi — major structural damage */
+    thermal:0.62*Math.pow(W,0.41)*MI, /* 3rd-degree burns, clear day */
+    light:1.34*c*MI,                  /* 1 psi — windows break */
+    fallout:10.5*c,                   /* only for a ground burst */
+    hobKm:0.24*c,                     /* optimum burst height for 5 psi */
+    cloudKm:5.76*Math.pow(W,0.194)    /* stabilised mushroom-cloud top */
   };
 }
 const NUK_YIELDS={};
@@ -10352,32 +10701,32 @@ function hazWindRad(){
 function miToUnits(mi){return mi*UNITS_PER_MILE;}
 /* Metro corridors that historically flood in major storms */
 const HOUSTON_FLOOD_XZ=[
-  {x:-2650,z:-780,r:520,name:'Addicks pool'},
-  {x:-2850,z:300,r:540,name:'Barker pool'},
-  {x:-2200,z:-200,r:380,name:'Addicks release'},
-  {x:-2400,z:180,r:360,name:'Barker release'},
-  {x:-1600,z:-100,r:220,name:'Buffalo W'},
-  {x:-880,z:-130,r:260,name:'Memorial / Bayou'},
-  {x:-350,z:-70,r:240,name:'Buffalo Bayou Park'},
-  {x:60,z:40,r:200,name:'Downtown bayou'},
-  {x:500,z:20,r:210,name:'EaDo / channel head'},
-  {x:1200,z:80,r:240,name:'Ship Channel W'},
-  {x:-1480,z:520,r:280,name:'Gulfton / Brays'},
-  {x:-920,z:680,r:300,name:'Meyerland'},
-  {x:-600,z:750,r:240,name:'Brays mid'},
-  {x:-290,z:800,r:220,name:'Med Center low'},
-  {x:200,z:900,r:200,name:'Brays E'},
-  {x:-400,z:-350,r:220,name:'White Oak'},
-  {x:0,z:-120,r:180,name:'White Oak join'},
-  {x:280,z:-180,r:200,name:'Fifth Ward low'},
-  {x:200,z:2400,r:220,name:'Sims Bayou'},
-  {x:800,z:2000,r:200,name:'Sims mid'},
-  {x:-420,z:-1180,r:320,name:'Greenspoint'},
-  {x:200,z:-1400,r:240,name:'Greens Bayou'},
-  {x:2050,z:3020,r:380,name:'Clear Lake'},
-  {x:2750,z:3280,r:300,name:'Kemah / Seabrook'},
-  {x:2450,z:420,r:340,name:'Pasadena channel'},
-  {x:3800,z:-200,r:360,name:'Baytown channel'}
+  {x:W(-2650),z:W(-780),r:520*WS,name:'Addicks pool'},
+  {x:W(-2850),z:W(300),r:540*WS,name:'Barker pool'},
+  {x:W(-2200),z:W(-200),r:380*WS,name:'Addicks release'},
+  {x:W(-2400),z:W(180),r:360*WS,name:'Barker release'},
+  {x:W(-1600),z:W(-100),r:220*WS,name:'Buffalo W'},
+  {x:W(-880),z:W(-130),r:260*WS,name:'Memorial / Bayou'},
+  {x:W(-350),z:W(-70),r:240*WS,name:'Buffalo Bayou Park'},
+  {x:W(60),z:W(40),r:200*WS,name:'Downtown bayou'},
+  {x:W(500),z:W(20),r:210*WS,name:'EaDo / channel head'},
+  {x:W(1200),z:W(80),r:240*WS,name:'Ship Channel W'},
+  {x:W(-1480),z:W(520),r:280*WS,name:'Gulfton / Brays'},
+  {x:W(-920),z:W(680),r:300*WS,name:'Meyerland'},
+  {x:W(-600),z:W(750),r:240*WS,name:'Brays mid'},
+  {x:W(-290),z:W(800),r:220*WS,name:'Med Center low'},
+  {x:W(200),z:W(900),r:200*WS,name:'Brays E'},
+  {x:W(-400),z:W(-350),r:220*WS,name:'White Oak'},
+  {x:W(0),z:W(-120),r:180*WS,name:'White Oak join'},
+  {x:W(280),z:W(-180),r:200*WS,name:'Fifth Ward low'},
+  {x:W(200),z:W(2400),r:220*WS,name:'Sims Bayou'},
+  {x:W(800),z:W(2000),r:200*WS,name:'Sims mid'},
+  {x:W(-420),z:W(-1180),r:320*WS,name:'Greenspoint'},
+  {x:W(200),z:W(-1400),r:240*WS,name:'Greens Bayou'},
+  {x:W(2050),z:W(3020),r:380*WS,name:'Clear Lake'},
+  {x:W(2750),z:W(3280),r:300*WS,name:'Kemah / Seabrook'},
+  {x:W(2450),z:W(420),r:340*WS,name:'Pasadena channel'},
+  {x:W(3800),z:W(-200),r:360*WS,name:'Baytown channel'}
 ];
 const FLOOD_CERTAIN=CITY_HAZ.floodZones||(CITY_HAZ.floodRibbonMode==='houston'?HOUSTON_FLOOD_XZ:[]);
 function hazClearVisuals(){
@@ -10427,13 +10776,16 @@ function hazNukeRanges(kt){
 function hazBuildNuclear(origin,kt){
   const H=window.HAZARD;
   const R=hazNukeRanges(kt);
+  /* rings appear as the shock front reaches them (thermal travels at light speed) */
+  const T=(m,r)=>{m.userData.rv=r;return m;};
+  const RV=(k)=>(k==='thermal'||k==='fireball')?0:R[k];
   const lik=hazNukeLikelihoodAt(origin.x,origin.z);
   H.nukeOrigin={x:origin.x,z:origin.z,lik};
-  H.group.add(hazMakeDisk(origin.x,origin.z,R.fireball,0xfef08a,0.78,4.8));
-  H.group.add(hazMakeDisk(origin.x,origin.z,R.severe,0xf97316,0.42,3.8));
-  H.group.add(hazMakeDisk(origin.x,origin.z,R.moderate,0xfb7185,0.28,3.2));
-  H.group.add(hazMakeDisk(origin.x,origin.z,R.thermal,0xef4444,0.2,2.8));
-  H.group.add(hazMakeDisk(origin.x,origin.z,R.light,0xa3e635,0.13,2.2));
+  H.group.add(T(hazMakeDisk(origin.x,origin.z,R.fireball,0xfef08a,0.78,4.8),RV('fireball')));
+  H.group.add(T(hazMakeDisk(origin.x,origin.z,R.severe,0xf97316,0.42,3.8),RV('severe')));
+  H.group.add(T(hazMakeDisk(origin.x,origin.z,R.moderate,0xfb7185,0.28,3.2),RV('moderate')));
+  H.group.add(T(hazMakeDisk(origin.x,origin.z,R.thermal,0xef4444,0.2,2.8),RV('thermal')));
+  H.group.add(T(hazMakeDisk(origin.x,origin.z,R.light,0xa3e635,0.13,2.2),RV('light')));
   const bands=[
     [R.fireball*0.82,R.fireball,0xfde047,0.72,'Fireball'],
     [R.severe*0.9,R.severe,0xfb923c,0.58,'5 psi · severe blast'],
@@ -10443,10 +10795,10 @@ function hazBuildNuclear(origin,kt){
   ];
   for(const [ri,ro,hex,op,name] of bands){
     const ring=hazMakeRing(origin.x,origin.z,ri,ro,hex,5.2,op);
-    H.group.add(ring.mesh);H.rings.push(ring);
+    H.rings.push(ring);
     const miKey=name.includes('5 psi')?'severe':name.includes('3 psi')?'moderate':name.includes('thermal')?'thermal':name.includes('1 psi')?'light':'fireball';
     const sp=textSprite(name+' · '+R.mi[miKey].toFixed(2)+' mi',0.34);
-    sp.position.set(origin.x+ro*0.65,30,origin.z);H.group.add(sp);H.labels.push(sp);
+    sp.position.set(origin.x+ro*0.65,30,origin.z);H.group.add(T(ring.mesh,RV(miKey)));H.group.add(T(sp,RV(miKey)));H.labels.push(sp);
   }
   /* wind-aligned fallout deposition guide */
   const wr=R.windRad;
@@ -10456,11 +10808,11 @@ function hazBuildNuclear(origin,kt){
     const px=origin.x+Math.cos(wr)*fallR*t;
     const pz=origin.z+Math.sin(wr)*fallR*t;
     const rr=R.light*(0.28+0.52*t);
-    H.group.add(hazMakeDisk(px,pz,rr,0x84cc16,0.11*(1-t*0.45),2.2+i*0.25));
+    H.group.add(T(hazMakeDisk(px,pz,rr,0x84cc16,0.11*(1-t*0.45),2.2+i*0.25),R.light*1.02));
   }
-  const fallSp=textSprite('Fallout guide · '+R.mi.fallout.toFixed(1)+' mi · wind '+Math.round(R.windMph)+' mph',0.4);
+  const fallSp=textSprite('Fallout if ground burst · '+R.mi.fallout.toFixed(1)+' mi · wind '+Math.round(R.windMph)+' mph',0.4);
   fallSp.position.set(origin.x+Math.cos(wr)*fallR*0.5,42,origin.z+Math.sin(wr)*fallR*0.5);
-  H.group.add(fallSp);H.labels.push(fallSp);
+  H.group.add(T(fallSp,R.light*1.02));H.labels.push(fallSp);
   const gz=textSprite('GROUND ZERO · '+R.label+' · '+lik.pct+'% likely target',0.52);
   gz.position.set(origin.x,72,origin.z);H.group.add(gz);H.labels.push(gz);
   if(lik.reasons.length){
@@ -10490,6 +10842,7 @@ function hazNuclearAt(x,z,kt){
   const R=hazBuildNuclear(origin,kt||H.yieldKt||10);
   hazBuildNukeTargetMarkers(kt||H.yieldKt||10);
   H.congBoost=clamp(0.42+Math.log10((H.yieldKt||10)+1)*0.2,0.5,0.96);
+  hazNukeDrop(x,z,R);
   const lik=H.nukeOrigin.lik;
   const g=worldToGeo(x,z);
   const st=$('hazStatus');
@@ -10508,9 +10861,126 @@ function hazNuclearAt(x,z,kt){
   H.alertEl=el;
   stopFollow();
   camGoal.target.set(x,0,z);
-  camGoal.radius=clamp(R.light*2.2,1400,7200);
+  camGoal.radius=clamp(R.light*2.4,1800,26000);
   camGoal.phi=1.05;
   hazPopulateNukeUI();
+}
+/* Real airburst physics: RV terminal dive, thermal flash, Sedov–Taylor shock decaying to a sound-speed front,
+   fireball cooling + buoyant rise into a mushroom cloud that climbs to its stabilised height (Glasstone & Dolan). */
+const NUKE_PSI_Z=[[0.138,20],[0.49,5],[0.66,3],[1.34,1],[3.2,0.3]]; /* ground range km per kt^1/3 → psi */
+function nukePsiAt(rKm,kt){
+  const z=rKm/Math.cbrt(kt),P=NUKE_PSI_Z;
+  if(z<=P[0][0])return P[0][1]*Math.pow(P[0][0]/Math.max(z,0.01),2);
+  for(let i=1;i<P.length;i++)if(z<=P[i][0]){const [z0,p0]=P[i-1],[z1,p1]=P[i];const f=Math.log(z/z0)/Math.log(z1/z0);return Math.exp(Math.log(p0)+f*Math.log(p1/p0));}
+  return P[P.length-1][1]*P[P.length-1][0]/z;
+}
+function nukeShockM(t,kt){
+  const k=1.033*Math.pow(0.5*4.184e12*kt/1.225,0.2); /* ~50% of yield goes into blast */
+  const ts=Math.pow(0.4*k/345,1/0.6);                  /* front has slowed to ~sound speed */
+  return t<=ts?k*Math.pow(Math.max(t,1e-4),0.4):k*Math.pow(ts,0.4)+345*(t-ts);
+}
+function hazNukeDrop(x,z,R){
+  const H=window.HAZARD,grp=H.group;if(!grp)return;
+  const kt=(R.mi&&R.mi.kt)||H.yieldKt||10,M=UNITS_PER_MILE/1609.344;
+  const hob=R.mi.hobKm*1000*M,fbR=R.fireball,cloudTop=R.mi.cloudKm*1000*M,lightR=R.light;
+  const tMax=0.0417*Math.pow(kt,0.44);            /* time of 2nd thermal maximum, s */
+  const tau=150*Math.pow(kt/1000,0.1);            /* cloud-rise time constant, s (1 Mt: 7 km @1 min, 20 km @4 min) */
+  const V=2900;                                    /* RV terminal speed, m/s */
+  H._dropHide=true;grp.visible=false;
+  const fx=[];const add=(o)=>{scene.add(o);fx.push(o);return o;};
+  let flashEl=null;
+  const done=()=>{for(const o of fx){scene.remove(o);o.traverse(q=>{if(q.geometry)q.geometry.dispose();if(q.material)q.material.dispose();});}fx.length=0;if(flashEl){flashEl.remove();flashEl=null;}};
+  /* Mk-21-class RV: 1.75 m cone, drawn enlarged with view distance so it reads on screen */
+  const rv=add(new THREE.Group());
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(0.28,1.75,14),new THREE.MeshBasicMaterial({color:0x2b2d31,fog:false}));
+  cone.rotation.x=Math.PI;rv.add(cone);
+  const sheath=new THREE.Mesh(new THREE.SphereGeometry(0.34,12,8),new THREE.MeshBasicMaterial({color:0xffb24a,transparent:true,opacity:0.9,depthWrite:false,fog:false}));
+  sheath.position.y=-0.85;rv.add(sheath);
+  const wake=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.32,14,10,1,true),new THREE.MeshBasicMaterial({color:0xfff0c8,transparent:true,opacity:0.5,depthWrite:false,fog:false}));
+  wake.position.y=7.6;rv.add(wake);
+  /* steep terminal dive (~65° below horizontal) from the north-west */
+  const el=65*Math.PI/180,az=-2.2;
+  const dir=new THREE.Vector3(Math.cos(el)*Math.cos(az),-Math.sin(el),Math.cos(el)*Math.sin(az)).normalize();
+  const burst=new THREE.Vector3(x,hob,z);
+  const top=Math.max(hob+2500*M,Math.min(12000*M,camera.position.y*1.3));
+  const fallLen=(top-hob)/Math.sin(el),tFall=fallLen/(V*M);
+  rv.quaternion.setFromUnitVectors(new THREE.Vector3(0,-1,0),dir);
+  H._rv=rv;
+  /* detonation visuals */
+  const fireMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,depthWrite:false,fog:false});
+  const fire=new THREE.Mesh(new THREE.SphereGeometry(1,32,20),fireMat);
+  const cloudMat=new THREE.MeshLambertMaterial({color:0x8d7b6a,emissive:0xff6a1a,transparent:true,opacity:0.92});
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(1,28,16),cloudMat);
+  const torus=new THREE.Mesh(new THREE.TorusGeometry(1,0.42,12,32),cloudMat);torus.rotation.x=Math.PI/2;
+  const stemMat=new THREE.MeshLambertMaterial({color:0x9a8a78,transparent:true,opacity:0,depthWrite:false});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.75,1,1,20,1,true),stemMat);
+  const shockMat=new THREE.MeshBasicMaterial({color:0xdfe8f0,transparent:true,opacity:0.3,side:THREE.DoubleSide,depthWrite:false});
+  const shock=new THREE.Mesh(new THREE.SphereGeometry(1,40,20),shockMat);
+  const dustMat=new THREE.MeshBasicMaterial({color:0xc9b08a,transparent:true,opacity:0.55,side:THREE.DoubleSide,depthWrite:false});
+  const dust=new THREE.Mesh(new THREE.RingGeometry(0.93,1,96),dustMat);dust.rotation.x=-Math.PI/2;
+  const cWhite=new THREE.Color(0xffffff),cYel=new THREE.Color(0xfff0a0),cOr=new THREE.Color(0xff7a1a),cRed=new THREE.Color(0x6e2412);
+  let tt=0,last=performance.now(),det=false,stTxt=null,lastSt=0;
+  const token=(H._dropTok=(H._dropTok||0)+1);
+  (function step(){
+    if(H.group!==grp||H._dropTok!==token){done();if(H.group===grp)H._dropHide=false;return;}
+    const now=performance.now();tt+=Math.min(0.1,(now-last)/1000)*(H.timeScale||1);last=now;
+    if(tt<tFall){
+      rv.position.copy(burst).addScaledVector(dir,-(tFall-tt)*V*M);
+      rv.scale.setScalar(Math.max(1,camera.position.distanceTo(rv.position)/60));
+      requestAnimationFrame(step);return;
+    }
+    const e=tt-tFall;
+    if(!det){
+      det=true;scene.remove(rv);
+      fire.position.copy(burst);add(fire);shock.position.copy(burst);add(shock);dust.position.set(x,4,z);add(dust);
+      add(cap);add(torus);add(stem);cap.visible=torus.visible=false;
+      grp.visible=!window.osmMode;H._dropHide=false;
+      flashEl=document.createElement('div');
+      flashEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:60;background:radial-gradient(circle,#fffbe8 0%,#fff4d0 45%,rgba(255,236,200,.85) 100%)';
+      document.body.appendChild(flashEl);
+      const st=$('hazStatus');stTxt=st?st.textContent:null;
+    }
+    /* thermal flash: peaks at tMax, most energy out by ~10 tMax */
+    if(flashEl){const o=e<tMax?1:Math.max(0,1-(e-tMax)/(9*tMax));flashEl.style.opacity=String(o*0.95);if(o<=0){flashEl.remove();flashEl=null;}}
+    /* fireball: grows to max radius, cools white → yellow → orange → dull red, rises buoyantly */
+    const rise=(cloudTop*0.86-hob)*(1-Math.exp(-e/tau));
+    const yc=hob+rise;
+    const fr=fbR*Math.min(1.25,Math.pow(Math.min(1,e/(tMax*2)),0.4)*(1+0.25*Math.min(1,e/(tMax*40))));
+    fire.scale.setScalar(Math.max(1,fr));fire.position.y=yc;
+    const u=e/(tMax*30);
+    fireMat.color.copy(u<0.05?cWhite:u<0.3?cWhite.clone().lerp(cYel,(u-0.05)/0.25):u<1?cYel.clone().lerp(cOr,(u-0.3)/0.7):cOr.clone().lerp(cRed,Math.min(1,u-1)));
+    fireMat.opacity=u<2?1:Math.max(0,1-(u-2)/2);
+    /* mushroom: toroidal cap spreading to ~0.45× its height, stem of dust drawn up by afterwinds */
+    if(e>tMax*15){
+      const k=Math.min(1,(e-tMax*15)/(tMax*30));
+      const capR=Math.max(fbR*1.15,0.42*(yc-hob)+fbR*0.6);
+      cap.visible=torus.visible=true;
+      cap.position.set(x,yc+capR*0.1,z);cap.scale.set(capR,capR*0.5,capR);
+      torus.position.set(x,yc-capR*0.05,z);torus.scale.set(capR*0.82,capR*0.82,capR*0.82);
+      cloudMat.opacity=0.92*k;cloudMat.emissiveIntensity=Math.exp(-e/(tMax*60));
+      const sb=yc-capR*0.35,sr=Math.max(fbR*0.25,capR*0.17);
+      stem.position.set(x,sb/2,z);stem.scale.set(sr,Math.max(1,sb),sr);stemMat.opacity=0.75*k;
+    }
+    /* shock: Sedov–Taylor blast wave → ~345 m/s; reveals damage rings as the front reaches them */
+    const rs=nukeShockM(e,kt)*M,gr=Math.sqrt(Math.max(0,rs*rs-hob*hob));
+    if(shock.parent){
+      shock.scale.setScalar(Math.max(1,rs));shockMat.opacity=0.3*Math.max(0,1-gr/(lightR*1.15));
+      dust.scale.setScalar(Math.max(1,gr));dustMat.opacity=0.55*Math.max(0,1-gr/(lightR*0.9));
+      if(gr>lightR*1.15){scene.remove(shock,dust);}
+    }
+    for(const o of grp.children){const r=o.userData&&o.userData.rv;if(r!=null)o.visible=gr>=r;}
+    const st=$('hazStatus');
+    if(st&&now-lastSt>200&&e<tau*6){
+      lastSt=now;
+      const ts=H.timeScale||1;
+      st.textContent='T+'+e.toFixed(1)+' s'+(ts!==1?(ts<1?' (¼ speed)':' (×'+ts+' time-lapse)'):'')
+        +(gr<=0?' · shock '+(rs/M/1000).toFixed(2)+' km from burst, descending to the ground'
+          :' · shock front '+(gr/M/1000).toFixed(2)+' km from ground zero')
+        +(gr<lightR*1.15?(()=>{const ps=nukePsiAt(Math.max(0.01,rs/M/1000),kt);return ' · '+(ps>200?'>200':ps.toFixed(ps<3?2:1))+' psi';})():' · passed')
+        +' · cloud top '+((yc+fbR)/M/1000).toFixed(1)+' km'+(e>tau*4?' (stabilised)':' rising');
+    }else if(st&&stTxt&&e>=tau*6){st.textContent=stTxt;stTxt=null;}
+    requestAnimationFrame(step);
+  })();
 }
 function hazPopulateNukeUI(){
   const sel=$('hazNukeTarget'),list=$('hazTargetList');
@@ -10780,6 +11250,7 @@ function hazActivate(mode){
     hazBuildNuclear(origin,H.yieldKt||10);
     hazBuildNukeTargetMarkers(H.yieldKt||10);
     const R=hazNukeRanges(H.yieldKt||10);
+    hazNukeDrop(origin.x,origin.z,R);
     const lik=hazNukeLikelihoodAt(origin.x,origin.z);
     H.nukeOrigin={x:origin.x,z:origin.z,lik};
     H.congBoost=clamp(0.42+Math.log10((H.yieldKt||10)+1)*0.2,0.5,0.96);
@@ -10845,7 +11316,7 @@ function updateHazard(dt){
     sm.material.opacity=clamp((sm.material.opacity||0.12)*0.99+0.002*Math.sin(H.t+sm.position.x),0.04,0.22);
     sm.position.x+=dt*12;sm.position.z-=dt*6;
   }
-  if(H.group)H.group.visible=!window.osmMode;
+  if(H.group)H.group.visible=!window.osmMode&&!H._dropHide;
 }
 function hazardCongBoost(){
   const H=window.HAZARD;
@@ -10944,11 +11415,20 @@ function trafficTick(dt){
   for(const road of roads){
     const mid=road.segCount>>1;
     const d2=(road.segX[mid]-cx)**2+(road.segZ[mid]-cz)**2;
-    const nearR=road.suburbTraffic?2400:3400;
+    const nearR=(road.suburbTraffic?2400:3400)*WS;
     /* Hysteresis — stop pop-in/out when mid-road sits on the cull edge */
     const farR=nearR*1.22;
     if(road._near)road._near=d2<farR*farR;
     else road._near=d2<nearR*nearR;
+    /* metre mode: traffic lives in a ~5 km window around the camera (corridors are 50-100 km long) */
+    if(WS!==1){
+      /* any stretch near the camera counts — long corridors/loops have far-away midpoints */
+      road._win=null;
+      const R2=6500*6500;let a=-1,b=-1;
+      for(let k=0;k<road.segCount;k++){const dx=road.segX[k]-cx,dz=road.segZ[k]-cz;if(dx*dx+dz*dz<R2){if(a<0)a=k;b=k;}}
+      if(a>=0)road._win=[Math.max(0,a-1)/road.segCount*road.s.total,Math.min(road.segCount,b+2)/road.segCount*road.s.total];
+      road._near=!!road._win;
+    }
     const isArt=road.def.arterial||road.def.surface;
     for(const dir of road.dirs){
       if(!road._near){dir.target=0;continue;}
@@ -11034,6 +11514,21 @@ function trafficTick(dt){
       const densityCap=Math.round((road.s.total/headway)*dir.lanes.length*clamp(vol,0.2,1));
       const modelTarget=Math.round(TOTAL_TARGET*share*0.5*clamp(vol*1.35,0.06,1.15)*clamp(dBias,0.6,1.4)*artScale*suburbMul);
       dir.target=clamp(Math.min(densityCap,modelTarget),road.suburbTraffic?2:3,road.suburbTraffic?(road.def.highway==='residential'?10:18):95);
+      if(WS!==1&&window.HTS_TRAFFIC2){dir.target=0;for(const lane of dir.lanes)lane.length=0;}
+      else if(WS!==1){
+        const w=road._win;
+        if(!w)dir.target=0;
+        else{
+          /* real spacing from live/predicted speed: jams pack tight, free flow spreads out */
+          const wl=w[1]-w[0];
+          dir.target=clamp(Math.round(wl/headway*dir.lanes.length*clamp(vol,0.25,1)*0.6),2,road.def.highway==='residential'?14:260);
+          const L=road.s.total;
+          for(const lane of dir.lanes)for(let i=lane.length-1;i>=0;i--){
+            const arc=dir.sign>0?lane[i].s:L-lane[i].s;
+            if(arc<w[0]-1500||arc>w[1]+1500)lane.splice(i,1);
+          }
+        }
+      }
     }
   }
   overallCong=congN?congSum/congN:0;
@@ -11047,12 +11542,13 @@ function trafficTick(dt){
     }
     let cur=0;for(const l of dir.lanes)cur+=l.length;
     if(cur<dir.target){
-      const add=Math.min(3,dir.target-cur);
+      const add=Math.min(WS!==1?120:3,dir.target-cur); /* metre mode fills the camera window in one or two ticks */
       for(let i=0;i<add;i++){
         const li=Math.floor(rand()*dir.lanes.length);
         const lane=dir.lanes[li];
         const L=road.s.total;
         let s0=road.s.closed?rand()*L:0;
+        if(WS!==1&&road._win){const w=road._win,arc=w[0]+rand()*(w[1]-w[0]);s0=dir.sign>0?arc:L-arc;}
         /* Don't spawn cars on runway / apron */
         if(typeof inAirfield==='function'){
           for(let t=0;t<8;t++){
@@ -11158,6 +11654,130 @@ function tryMerge(dir,li,lane,i,v){
   return false;
 }
 const _col=new THREE.Color();
+function drawVeh(idx,v,px,pz,deckY,fx,fz,heading,sc){
+  const t=v.type;
+  const isSemi=t.id==='semi',isTall=isSemi||t.id==='box'||t.id==='bus'||t.id==='van';
+  const isTwoWheel=t.id==='moto'||t.id==='scooter'||t.id==='bike';
+  if(isSemi){
+    dummy.position.set(px-fx*t.len*VS*0.08,deckY+0.72,pz-fz*t.len*VS*0.08);
+    dummy.rotation.set(0,heading,0);
+    dummy.scale.set(t.w*VS,t.h*VS*0.82,t.len*VS*0.74);
+    _col.setHex(v.tcol);
+  }else if(isTwoWheel){
+    dummy.position.set(px,deckY,pz);
+    dummy.rotation.set(0,heading,0);
+    dummy.scale.set(t.w*VS*0.7,t.h*VS*(t.id==='bike'?0.35:0.45),t.len*VS);
+    _col.setHex(t.id==='bike'?0x22262c:v.col);
+  }else{
+    dummy.position.set(px,deckY,pz);
+    dummy.rotation.set(0,heading,0);
+    dummy.scale.set(t.w*VS,t.h*VS*(isTall?0.98:0.6),t.len*VS);
+    _col.setHex(v.col);
+  }
+  if(sc!==1)dummy.scale.multiplyScalar(sc);dummy.updateMatrix();
+  bodies.setMatrixAt(idx,dummy.matrix);
+  bodies.setColorAt(idx,_col);
+  if(isSemi){
+    dummy.position.set(px+fx*t.len*VS*0.32,deckY,pz+fz*t.len*VS*0.32);
+    dummy.scale.set(t.w*VS,3.15*VS,t.len*VS*0.15);
+    _col.setHex(v.col);
+  }else if(t.id==='moto'||t.id==='scooter'){
+    dummy.position.set(px,deckY+t.h*VS*0.45,pz);
+    dummy.scale.set(t.w*VS*0.9,t.h*VS*0.55,t.len*VS*0.4);
+    _col.setHex(0x1a1d22);
+  }else if(t.id==='bike'){
+    dummy.position.set(px,deckY+t.h*VS*0.55,pz);
+    dummy.scale.set(0.45,t.h*VS*0.5,0.35);
+    _col.setHex(0x1a1d22);
+  }else if(isTall){
+    dummy.position.set(px+fx*t.len*VS*0.34,deckY+0.4,pz+fz*t.len*VS*0.34);
+    dummy.scale.set(t.w*VS*0.94,t.h*VS*0.8,t.len*VS*0.2);
+    _col.set(0x151b24);
+  }else{
+    const front=t.id==='pickup'?0.1:0;
+    dummy.position.set(px+fx*t.len*VS*front,deckY+t.h*VS*0.56,pz+fz*t.len*VS*front);
+    dummy.scale.set(t.w*VS*0.84,t.h*VS*0.5,t.len*VS*(t.id==='pickup'?0.34:0.52));
+    _col.setHex(v.police?0xf2f4f6:v.col);
+  }
+  dummy.rotation.set(0,heading,0);if(sc!==1)dummy.scale.multiplyScalar(sc);dummy.updateMatrix();
+  cabs.setMatrixAt(idx,dummy.matrix);
+  cabs.setColorAt(idx,_col);
+  {
+    let ex=0,ey=0,ez=0,sx2=0,sy2=0,sz2=0;
+    if(v.police){
+      const on=Math.floor(simClock*0.014)%2;
+      ex=0;ey=t.h*VS*0.62+0.42;sx2=t.w*VS*0.66;sy2=0.34;sz2=1.1;
+      _col.setHex(on?0xff2a1e:0x2a6bff);
+    }else if(isSemi){
+      ex=t.len*VS*0.435;ey=0;sx2=t.w*VS*0.9;sy2=1.85*VS;sz2=t.len*VS*0.13;
+      _col.setHex(v.col);
+    }else if(t.id==='pickup'){
+      ex=-t.len*VS*0.26;ey=t.h*VS*0.34;sx2=t.w*VS*0.78;sy2=0.5;sz2=t.len*VS*0.36;
+      _col.set(0x191c21);
+    }else if(t.id==='bus'){
+      ex=0;ey=t.h*VS*0.55;sx2=t.w*VS*1.02;sy2=t.h*VS*0.26;sz2=t.len*VS*0.8;
+      _col.set(0x121820);
+    }else if(t.id==='van'){
+      ex=0;ey=t.h*VS*0.72;sx2=t.w*VS*0.92;sy2=0.55;sz2=t.len*VS*0.7;
+      _col.setHex(v.col);
+    }else if(t.id==='taxi'){
+      ex=0;ey=t.h*VS*0.72+0.35;sx2=0.7;sy2=0.35;sz2=0.55;
+      _col.setHex(0xf5c542);
+    }else if(t.id==='moto'||t.id==='scooter'){
+      ex=-t.len*VS*0.08;ey=t.h*VS*0.5;sx2=0.62;sy2=1.05;sz2=0.55;
+      _col.setHex([0xc23a2c,0x2b5ea8,0xd9a91f,0xe8e8ea,0x1d7a4f][((v.col>>>4)%5+5)%5]);
+    }else if(t.id==='bike'){
+      ex=-t.len*VS*0.05;ey=t.h*VS*0.55;sx2=0.5;sy2=0.95;sz2=0.4;
+      _col.setHex([0x2b5ea8,0xc23a2c,0x1d7a4f,0xe8e8ea][((v.col>>>8)%4+4)%4]);
+    }else if(t.id==='box'){
+      ex=t.len*VS*0.43;ey=0;sx2=t.w*VS*0.96;sy2=1.7*VS;sz2=t.len*VS*0.15;
+      _col.setHex(v.col);
+    }else{sx2=0.0001;sy2=0.0001;sz2=0.0001;}
+    dummy.position.set(px+fx*ex,deckY+ey,pz+fz*ex);
+    dummy.rotation.set(0,heading,0);
+    dummy.scale.set(sx2,sy2,sz2);if(sc!==1)dummy.scale.multiplyScalar(sc);dummy.updateMatrix();
+    extras.setMatrixAt(idx,dummy.matrix);
+    extras.setColorAt(idx,_col);
+  }
+  const wy=deckY+t.wr*VS,wsc=t.wr*VS/0.5;
+  const rrx=fz,rrz=-fx;
+  const halfW=isTwoWheel?0:t.w*VS*0.5-0.12;
+  const axFront=(t.axf||0.31)*t.len*VS,axRear=(t.axr||0.31)*t.len*VS;
+  const nWheels=isTwoWheel?2:4;
+  for(let wq=0;wq<4;wq++){
+    if(wq>=nWheels){
+      dW.position.set(0,-50,0);dW.scale.set(0.001,0.001,0.001);if(sc!==1)dW.scale.multiplyScalar(sc);dW.updateMatrix();
+      wheels.setMatrixAt(idx*4+wq,dW.matrix);continue;
+    }
+    const sx=isTwoWheel?0:((wq&1)?1:-1);
+    const sz=isTwoWheel?(wq?1:-1):((wq&2)?1:-1);
+    const ax=sz>0?axFront:-axRear;
+    dW.position.set(px+fx*ax+rrx*halfW*sx,wy,pz+fz*ax+rrz*halfW*sx);
+    dW.rotation.set(0,heading,0);
+    dW.scale.set(wsc*(isTwoWheel?0.7:0.9),wsc,wsc);
+    if(sc!==1)dW.scale.multiplyScalar(sc);dW.updateMatrix();
+    wheels.setMatrixAt(idx*4+wq,dW.matrix);
+  }
+  if(t.id==='bike'){
+    dLight.position.set(0,-80,0);dLight.scale.set(0.001,0.001,0.001);dLight.updateMatrix();
+    heads2.setMatrixAt(idx,dLight.matrix);tails.setMatrixAt(idx,dLight.matrix);
+    pools.setMatrixAt(idx,dLight.matrix);
+  }else{
+    const hl=t.len*VS*0.5;
+    dLight.position.set(px+fx*hl,deckY+(isTwoWheel?0.7:0.85),pz+fz*hl);
+    dLight.rotation.set(0,heading,0);
+    dLight.scale.set(t.w*VS*(isTwoWheel?0.5:0.7),0.5,0.45);dLight.updateMatrix();
+    heads2.setMatrixAt(idx,dLight.matrix);
+    dLight.position.set(px-fx*hl,deckY+(isTwoWheel?0.75:0.9),pz-fz*hl);
+    dLight.scale.set(t.w*VS*(isTwoWheel?0.5:0.74),0.5,0.4);dLight.updateMatrix();
+    tails.setMatrixAt(idx,dLight.matrix);
+    tails.setColorAt(idx,v.brake?_brakeRed:_dimRed);
+    dLight.position.set(px+fx*(hl+5.5),deckY+0.12,pz+fz*(hl+5.5));
+    dLight.rotation.set(0,heading,0);
+    dLight.scale.set(t.w*VS*(isTwoWheel?1.4:2.5),1,isTwoWheel?6:10.5);dLight.updateMatrix();
+    pools.setMatrixAt(idx,dLight.matrix);
+  }
+}
 function moveVehicles(dt,nightF){
   let idx=0,renderedSpeedSum=0,renderedVeh=0;
   const brakeGlow=clamp(0.35+nightF*0.65,0,1);
@@ -11284,7 +11904,7 @@ function moveVehicles(dt,nightF){
           if(idx>=MAX_INST)continue;
           /* ---- place instances (v10.8.6 lane lerp + soft building push) ---- */
           roadPos(road,dir.sign>0?v.s:L-v.s,_rp);
-          const deckY=_rp.py+0.05;
+          let deckY=_rp.py+0.05;
           const rx=-_rp.tz,rz=_rp.tx;
           if(v._laneF==null||v._laneF===undefined)v._laneF=li;
           v._laneF+=(li-v._laneF)*Math.min(1,dt*3.4);
@@ -11319,133 +11939,28 @@ function moveVehicles(dt,nightF){
           const heading=Math.atan2(fx,fz);
           renderedSpeedSum+=v.v;renderedVeh++;
           vehRef[idx]=v;
+          /* metre mode: ride the real OSM deck/ramp height (houston-roads heightAt) */
+          if(WS!==1&&window.HTS_ROADS2&&window.HTS_ROADS2.heightAt){
+            const hy=window.HTS_ROADS2.heightAt(px,pz,_rp.py);
+            if(hy!=null)deckY=hy+0.03;
+          }
           v._px=px;v._pz=pz;v._py=deckY;v._hd=heading;v._laneI=li;
-          const t=v.type;
-          const isSemi=t.id==='semi',isTall=isSemi||t.id==='box'||t.id==='bus'||t.id==='van';
-          const isTwoWheel=t.id==='moto'||t.id==='scooter'||t.id==='bike';
-          if(isSemi){
-            dummy.position.set(px-fx*t.len*VS*0.08,deckY+0.72,pz-fz*t.len*VS*0.08);
-            dummy.rotation.set(0,heading,0);
-            dummy.scale.set(t.w*VS,t.h*VS*0.82,t.len*VS*0.74);
-            _col.setHex(v.tcol);
-          }else if(isTwoWheel){
-            dummy.position.set(px,deckY,pz);
-            dummy.rotation.set(0,heading,0);
-            dummy.scale.set(t.w*VS*0.7,t.h*VS*(t.id==='bike'?0.35:0.45),t.len*VS);
-            _col.setHex(t.id==='bike'?0x22262c:v.col);
-          }else{
-            dummy.position.set(px,deckY,pz);
-            dummy.rotation.set(0,heading,0);
-            dummy.scale.set(t.w*VS,t.h*VS*(isTall?0.98:0.6),t.len*VS);
-            _col.setHex(v.col);
-          }
-          dummy.updateMatrix();
-          bodies.setMatrixAt(idx,dummy.matrix);
-          bodies.setColorAt(idx,_col);
-          if(isSemi){
-            dummy.position.set(px+fx*t.len*VS*0.32,deckY,pz+fz*t.len*VS*0.32);
-            dummy.scale.set(t.w*VS,3.15*VS,t.len*VS*0.15);
-            _col.setHex(v.col);
-          }else if(t.id==='moto'||t.id==='scooter'){
-            dummy.position.set(px,deckY+t.h*VS*0.45,pz);
-            dummy.scale.set(t.w*VS*0.9,t.h*VS*0.55,t.len*VS*0.4);
-            _col.setHex(0x1a1d22);
-          }else if(t.id==='bike'){
-            dummy.position.set(px,deckY+t.h*VS*0.55,pz);
-            dummy.scale.set(0.45,t.h*VS*0.5,0.35);
-            _col.setHex(0x1a1d22);
-          }else if(isTall){
-            dummy.position.set(px+fx*t.len*VS*0.34,deckY+0.4,pz+fz*t.len*VS*0.34);
-            dummy.scale.set(t.w*VS*0.94,t.h*VS*0.8,t.len*VS*0.2);
-            _col.set(0x151b24);
-          }else{
-            const front=t.id==='pickup'?0.1:0;
-            dummy.position.set(px+fx*t.len*VS*front,deckY+t.h*VS*0.56,pz+fz*t.len*VS*front);
-            dummy.scale.set(t.w*VS*0.84,t.h*VS*0.5,t.len*VS*(t.id==='pickup'?0.34:0.52));
-            _col.setHex(v.police?0xf2f4f6:v.col);
-          }
-          dummy.rotation.set(0,heading,0);dummy.updateMatrix();
-          cabs.setMatrixAt(idx,dummy.matrix);
-          cabs.setColorAt(idx,_col);
-          {
-            let ex=0,ey=0,ez=0,sx2=0,sy2=0,sz2=0;
-            if(v.police){
-              const on=Math.floor(simClock*0.014)%2;
-              ex=0;ey=t.h*VS*0.62+0.42;sx2=t.w*VS*0.66;sy2=0.34;sz2=1.1;
-              _col.setHex(on?0xff2a1e:0x2a6bff);
-            }else if(isSemi){
-              ex=t.len*VS*0.435;ey=0;sx2=t.w*VS*0.9;sy2=1.85*VS;sz2=t.len*VS*0.13;
-              _col.setHex(v.col);
-            }else if(t.id==='pickup'){
-              ex=-t.len*VS*0.26;ey=t.h*VS*0.34;sx2=t.w*VS*0.78;sy2=0.5;sz2=t.len*VS*0.36;
-              _col.set(0x191c21);
-            }else if(t.id==='bus'){
-              ex=0;ey=t.h*VS*0.55;sx2=t.w*VS*1.02;sy2=t.h*VS*0.26;sz2=t.len*VS*0.8;
-              _col.set(0x121820);
-            }else if(t.id==='van'){
-              ex=0;ey=t.h*VS*0.72;sx2=t.w*VS*0.92;sy2=0.55;sz2=t.len*VS*0.7;
-              _col.setHex(v.col);
-            }else if(t.id==='taxi'){
-              ex=0;ey=t.h*VS*0.72+0.35;sx2=0.7;sy2=0.35;sz2=0.55;
-              _col.setHex(0xf5c542);
-            }else if(t.id==='moto'||t.id==='scooter'){
-              ex=-t.len*VS*0.08;ey=t.h*VS*0.5;sx2=0.62;sy2=1.05;sz2=0.55;
-              _col.setHex([0xc23a2c,0x2b5ea8,0xd9a91f,0xe8e8ea,0x1d7a4f][((v.col>>>4)%5+5)%5]);
-            }else if(t.id==='bike'){
-              ex=-t.len*VS*0.05;ey=t.h*VS*0.55;sx2=0.5;sy2=0.95;sz2=0.4;
-              _col.setHex([0x2b5ea8,0xc23a2c,0x1d7a4f,0xe8e8ea][((v.col>>>8)%4+4)%4]);
-            }else if(t.id==='box'){
-              ex=t.len*VS*0.43;ey=0;sx2=t.w*VS*0.96;sy2=1.7*VS;sz2=t.len*VS*0.15;
-              _col.setHex(v.col);
-            }else{sx2=0.0001;sy2=0.0001;sz2=0.0001;}
-            dummy.position.set(px+fx*ex,deckY+ey,pz+fz*ex);
-            dummy.rotation.set(0,heading,0);
-            dummy.scale.set(sx2,sy2,sz2);dummy.updateMatrix();
-            extras.setMatrixAt(idx,dummy.matrix);
-            extras.setColorAt(idx,_col);
-          }
-          const wy=deckY+t.wr*VS,wsc=t.wr*VS/0.5;
-          const rrx=fz,rrz=-fx;
-          const halfW=isTwoWheel?0:t.w*VS*0.5-0.12;
-          const axFront=(t.axf||0.31)*t.len*VS,axRear=(t.axr||0.31)*t.len*VS;
-          const nWheels=isTwoWheel?2:4;
-          for(let wq=0;wq<4;wq++){
-            if(wq>=nWheels){
-              dW.position.set(0,-50,0);dW.scale.set(0.001,0.001,0.001);dW.updateMatrix();
-              wheels.setMatrixAt(idx*4+wq,dW.matrix);continue;
-            }
-            const sx=isTwoWheel?0:((wq&1)?1:-1);
-            const sz=isTwoWheel?(wq?1:-1):((wq&2)?1:-1);
-            const ax=sz>0?axFront:-axRear;
-            dW.position.set(px+fx*ax+rrx*halfW*sx,wy,pz+fz*ax+rrz*halfW*sx);
-            dW.rotation.set(0,heading,0);
-            dW.scale.set(wsc*(isTwoWheel?0.7:0.9),wsc,wsc);
-            dW.updateMatrix();
-            wheels.setMatrixAt(idx*4+wq,dW.matrix);
-          }
-          if(t.id==='bike'){
-            dLight.position.set(0,-80,0);dLight.scale.set(0.001,0.001,0.001);dLight.updateMatrix();
-            heads2.setMatrixAt(idx,dLight.matrix);tails.setMatrixAt(idx,dLight.matrix);
-            pools.setMatrixAt(idx,dLight.matrix);
-          }else{
-            const hl=t.len*VS*0.5;
-            dLight.position.set(px+fx*hl,deckY+(isTwoWheel?0.7:0.85),pz+fz*hl);
-            dLight.rotation.set(0,heading,0);
-            dLight.scale.set(t.w*VS*(isTwoWheel?0.5:0.7),0.5,0.45);dLight.updateMatrix();
-            heads2.setMatrixAt(idx,dLight.matrix);
-            dLight.position.set(px-fx*hl,deckY+(isTwoWheel?0.75:0.9),pz-fz*hl);
-            dLight.scale.set(t.w*VS*(isTwoWheel?0.5:0.74),0.5,0.4);dLight.updateMatrix();
-            tails.setMatrixAt(idx,dLight.matrix);
-            tails.setColorAt(idx,v.brake?_brakeRed:_dimRed);
-            dLight.position.set(px+fx*(hl+5.5),deckY+0.12,pz+fz*(hl+5.5));
-            dLight.rotation.set(0,heading,0);
-            dLight.scale.set(t.w*VS*(isTwoWheel?1.4:2.5),1,isTwoWheel?6:10.5);dLight.updateMatrix();
-            pools.setMatrixAt(idx,dLight.matrix);
-          }
+          drawVeh(idx,v,px,pz,deckY,fx,fz,heading,1);
           idx++;
         }
       }
     }
+  }
+  /* Houston v2: cars on the real OSM lanes (houston-traffic.js) */
+  if(window.HTS_TRAFFIC2){
+    const T2=window.HTS_TRAFFIC2;
+    T2.tick(dt,cam.target.x,cam.target.z,cam.radius);
+    if(vehFade>0)T2.forEach((v)=>{
+      if(idx>=MAX_INST)return;
+      vehRef[idx]=v;renderedSpeedSum+=v.v;renderedVeh++;
+      drawVeh(idx,v,v._px,v._pz,v._py,v._fx,v._fz,v._hd,v._sc);
+      idx++;
+    },dt);
   }
   bodies.count=idx;cabs.count=idx;heads2.count=idx;tails.count=idx;wheels.count=idx*4;pools.count=idx;extras.count=idx;
   speedSum=renderedSpeedSum;totalVeh=renderedVeh;
@@ -11495,14 +12010,15 @@ function envUpdate(dt,h){
   if(htsRain)htsRain.updateFog(scene.fog,wxBlend,liveWx,baseFogFar,nightF);
   else{
     /* Night: slightly tighter fog — milky distant haze washes out real darkness */
-    const vis=baseFogFar*lerp(1,0.88,nightF);
+    /* metre mode: haze ~6–40 km at street level, horizon opens up with altitude (aerial view) */
+    const vis=(WS!==1?Math.min(150000,Math.max(baseFogFar*2.4,cam.radius*2.6)):baseFogFar)*lerp(1,0.88,nightF);
     const fogLerp=liveMode?0.04:clamp(0.08+timeScale/6000,0.08,0.35);
     scene.fog.far=lerp(scene.fog.far,vis,fogLerp);
     scene.fog.near=scene.fog.far*lerp(0.08,0.1,nightF);
   }
   const A=clamp(x,-0.2,1.2)*Math.PI;
   const sx=Math.cos(A),sy=Math.sin(A);
-  const sp=new THREE.Vector3(sx*15000,Math.max(sy,-0.25)*9000+180,4200);
+  const sp=new THREE.Vector3(sx*15000*WS,(Math.max(sy,-0.25)*9000+180)*WS,4200*WS);
   sunDisc.position.copy(sp);
   /* low sun: bigger, redder; overcast/rain: dimmer, hazier — sun disc nearly gone when socked in */
   const lowSun=clamp(1-sy*1.7,0,1);
@@ -11525,19 +12041,19 @@ function envUpdate(dt,h){
   moonDisc.lookAt(camera.position);
   moonDisc.material.opacity=clamp(Math.sin(mA)*2.5,0,0.85)*(1-wxBlend.cloud*0.9);
   hemi.intensity=keyNum(HEMI_INT,h)*lerp(1,0.32,cl)*lerp(1,0.22,nightF)*lerp(1,0.85,rainF);
-  nightAmb.intensity=nightF*0.06;          /* faint sky glow only — not a blue fill light */
-  cityFill.intensity=nightF*0.12;          /* soft CBD bounce; streetlights carry the rest */
+  nightAmb.intensity=nightF*(WS!==1?0.2:0.06); /* moonlight + sky glow: real night still shows streets */
+  cityFill.intensity=nightF*(WS!==1?0.28:0.12); /* sodium-orange urban sky glow off low cloud */
   stars.material.opacity=nightF*(1-wxBlend.cloud)*1.05;
   for(const m of towerMats){
-    m.color.setScalar(lerp(1,0.16,nightF)); /* dark facade; windows carry the glow */
-    m.emissiveIntensity=nightF*1.05;
+    m.color.setScalar(lerp(1,WS!==1?0.4:0.16,nightF)); /* dark facade; windows carry the glow */
+    m.emissiveIntensity=nightF*(WS!==1?0.8:1.05);
     if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),8,nightF);
     if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.03,nightF));
   }
   if(window.HTS_OSM_FACADE_MATS){
     for(const m of HTS_OSM_FACADE_MATS){
-      m.color.setScalar(lerp(1,0.16,nightF));
-      m.emissiveIntensity=nightF*1.05;
+      m.color.setScalar(lerp(1,WS!==1?0.4:0.16,nightF));
+      m.emissiveIntensity=nightF*(WS!==1?0.8:1.05);
       if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||70),8,nightF);
       if(m.specular&&m.specular.isColor)m.specular.setScalar(lerp(0.35,0.03,nightF));
     }
@@ -11549,6 +12065,7 @@ function envUpdate(dt,h){
   }
   if(window.towerRoof)towerRoof.color.setScalar(lerp(0.15,0.04,nightF));
   lampHeads.opacity=nightF*1.0;
+  if(window.HTS_LIGHTS2)HTS_LIGHTS2.update(nightF,cam.target,cam.radius);
   if(window.lampPoolMat)lampPoolMat.opacity=nightF*0.85;
   /* runway edge lights, PAPI & rotating beacons */
   if(window.RWEDGE)for(const m of RWEDGE)m.opacity=0.1+nightF*0.7;
@@ -11967,7 +12484,7 @@ function updateHUD(nightF,skyH){
         }else{
           const houN=list.filter(x=>x._houston===true).length;
           flSrc.style.color='#7fd6a0';
-          flSrc.textContent='· '+list.length+' in sky + panel'+(houN?' · '+houN+' '+CITY_NAME+'-verified':'')+' · '+src+(fa?' + FA':'');
+          flSrc.textContent='· '+list.length+' in sky + panel'+(houN?' · '+houN+' '+CITY_NAME+'-verified':'')+' · '+src;
         }
       }else{
         flSrc.style.color='#8a939c';
@@ -12030,6 +12547,10 @@ document.querySelectorAll('#hazYieldBtns .btn').forEach(b=>b.addEventListener('c
     if(o)hazNuclearAt(o.x,o.z,kt);
     else hazActivate('nuclear');
   }
+}));
+document.querySelectorAll('#hazNukeSpeed .btn').forEach(b=>b.addEventListener('click',()=>{
+  window.HAZARD.timeScale=Number(b.getAttribute('data-speed'))||1;
+  document.querySelectorAll('#hazNukeSpeed .btn').forEach(x=>x.classList.toggle('on',x===b));
 }));
 const hazNukeTarget=$('hazNukeTarget');
 if(hazNukeTarget)hazNukeTarget.addEventListener('change',()=>{
@@ -12284,7 +12805,7 @@ spawnWorkZone('us59',1,0.24,380,'Sugar Land');
 trafficTick(0.5);
 
 /* ---------------- live flight state machines ---------------- */
-window.LIMITS={pan:5600,rmax:9200,rmin:55};
+window.LIMITS={pan:5600*WS,rmax:9200*WS,rmin:WS===1?55:22};
 window.simOffsetSec=0;
 function houClock(offsetSec,withDate){
   const d=new Date(Date.now()+(simOffsetSec+offsetSec)*1000);
@@ -12320,6 +12841,14 @@ function updateFlights(dt){
     /* Soft anti-collision — no blinding additive flash */
     if(ud.strobe&&ud.strobe.opacity!==undefined)ud.strobe.opacity=dbl?0.35:0;
     if(ud.beacon&&ud.beacon.opacity!==undefined)ud.beacon.opacity=beaconOn?0.4:0.05;
+    if(ud.nav){
+      const nf=window._nightF||0,low=f.m.position.y<900*FT_TO_WORLD*3.3;
+      for(const [m,kind] of ud.nav){
+        if(kind==='nav')m.opacity=0.25+0.75*nf;
+        else if(kind==='st')m.opacity=dbl?0.5+0.5*nf:0;
+        else m.opacity=low?0.15+0.85*nf:0;
+      }
+    }
   }
   /* Live ADS-B planes: dim lights; halo only while following */
   if(window.LIVE_FLIGHT_LIST){
@@ -12468,9 +12997,9 @@ function frame(now){
     }
   }
   /* Day/night + sun/moon follow simH (same as early builds) so 5/30 min/s is a real time-lapse */
-  const nightF=envUpdate(dt,simH);
+  const nightF=envUpdate(dt,simH);window._nightF=nightF;
   {
-    const tTarget=inOSM?0:clamp((cam.radius-4200)/3200,0,1);
+    const tTarget=inOSM?0:clamp((cam.radius-4200*WS)/(3200*WS),0,1);
     mapT+=(tTarget-mapT)*0.07;
     _fpsN++;_fpsDt+=dt;
     if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;}
@@ -12496,7 +13025,7 @@ function frame(now){
   }
   updateFlights(dt);
   /* POI badges: close-in only, soft so they don't wallpaper the map */
-  {const o=(inOSM?0:1)*0.45*clamp((1600-cam.radius)/700,0,1)*(1-mapT);
+  {const o=(inOSM?0:1)*0.45*clamp((1600*WS-cam.radius)/(700*WS),0,1)*(1-mapT);
    for(const sp of poiSprites)sp.material.opacity=o;}
   if(userHalo.visible){
     const pk=HTS_IS_HOU?(62+10*Math.sin(simClock*0.003)):(44+14*Math.sin(simClock*0.003));
@@ -12562,7 +13091,8 @@ function frame(now){
       const p=f.m.position;
       const lim=camRadiusLimits();
       /* Keep target near the plane; allow looking above (low phi) or steep down */
-      camGoal.target.set(p.x,clamp(p.y*0.45,15,1400),p.z);
+      const o=window._followOff||{x:0,z:0};
+      camGoal.target.set(p.x+o.x,clamp(p.y*0.45,15,1400),p.z+o.z);
       camGoal.radius=clamp(camGoal.radius,lim.rmin,lim.rmax);
       camGoal.phi=clamp(camGoal.phi,lim.phiMin,lim.phiMax);
       const cs=callsignPair(f.cs,f.csIata).main||f.cs||'aircraft';
@@ -12582,6 +13112,7 @@ function frame(now){
     }
   }
   applyCam();
+  if(window.HTS_TOUR)HTS_TOUR.update(dt);
   updatePoiCardVisibility();
   /* Sky / clouds / sun always wrap the viewed area — never leave a black void */
   if(typeof skyRoot!=='undefined')skyRoot.position.set(cam.target.x,0,cam.target.z);
@@ -12602,7 +13133,7 @@ function frame(now){
   const vShow=vFade>0.01;
   const perfBinary=_fpsAvg<42&&totalVeh>2200;
   const showRoads=!inOSM&&(mapT<0.92||vShow);
-  if(gRoads3D.visible!==showRoads)gRoads3D.visible=showRoads;
+  if(!gRoads3D.userData.v2Hidden&&gRoads3D.visible!==showRoads)gRoads3D.visible=showRoads;
   if(vShow){
     const op=perfBinary?1:vFade;
     bodyMat.opacity=op;cabMat.opacity=op;extraMat.opacity=op;wheelMat.opacity=op;
@@ -12616,7 +13147,7 @@ function frame(now){
   const stripO=inOSM?0:0.55*clamp((cam.radius-40)/420,0.35,1)*clamp(1-mapT*1.2,0,1);
   for(const road of roads)for(const dir of road.dirs){if(dir.strip)dir.strip.material.opacity=stripO;}
   /* Freeway decks must stay on when zoomed in — never hide gRoads3D at close range */
-  if(!inOSM&&cam.radius<3500&&!gRoads3D.visible)gRoads3D.visible=true;
+  if(!gRoads3D.userData.v2Hidden&&!inOSM&&cam.radius<3500*WS&&!gRoads3D.visible)gRoads3D.visible=true;
 
   /* Clouds stay visible at far zoom (tiny city under sky) — use base opacity, don't multiply-decay */
   const skyFade=inOSM?0:clamp(1-mapT*0.35,0.55,1);
@@ -12625,8 +13156,8 @@ function frame(now){
     c.material.opacity=base*skyFade;
   }
   /* Place labels: only the nearest name, faint + mid-zoom — no suburb billboard clutter */
-  const tgt=(camGoal&&camGoal.target)?camGoal.target:{x:60,z:60};
-  const midBand=inOSM?0:clamp((cam.radius-1200)/500,0,1)*clamp((2200-cam.radius)/550,0,1);
+  const tgt=(camGoal&&camGoal.target)?camGoal.target:{x:W(60),z:W(60)};
+  const midBand=inOSM?0:clamp((cam.radius-1200*WS)/(500*WS),0,1)*clamp((2200*WS-cam.radius)/(550*WS),0,1);
   const lblBase=midBand*0.28;
   let bestD=null,bestDd=1e12,bestW=null,bestWd=1e12;
   for(const sp of districtSprites){
@@ -12639,13 +13170,14 @@ function frame(now){
     const dd=Math.hypot(sp.position.x-tgt.x,sp.position.z-tgt.z);
     if(dd<bestWd){bestWd=dd;bestW=sp;}
   }
-  if(bestD&&bestDd<900)bestD.material.opacity=lblBase*clamp(1-bestDd/900,0,1);
-  if(bestW&&bestWd<1100)bestW.material.opacity=lblBase*0.7*clamp(1-bestWd/1100,0,1);
+  if(bestD&&bestDd<900*WS)bestD.material.opacity=lblBase*clamp(1-bestDd/(900*WS),0,1);
+  if(bestW&&bestWd<1100*WS)bestW.material.opacity=lblBase*0.7*clamp(1-bestWd/(1100*WS),0,1);
   /* street blades: close-in only, soft */
-  const bladeO=inOSM?0:0.35*clamp((900-cam.radius)/500,0,1);
+  const bladeO=inOSM?0:0.35*clamp((900*WS-cam.radius)/(500*WS),0,1);
   for(const sp of bladeSprites)sp.material.opacity=bladeO;
   if(typeof updateOsmLod==='function'&&camGoal){
     updateOsmLod(camGoal.target.x,camGoal.target.z,camGoal.radius);
+    if(window.HTS_OSM_CITY)HTS_OSM_CITY.update(camera);
   }
   /* Always paint the frame first — HUD/API errors must never blank the canvas */
   if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update){
@@ -12667,34 +13199,99 @@ function frame(now){
       :clamp(0.28/Math.max(1,timeScale/60),0.06,0.28);
   }
 }
+try{
+  const pickSet=new Set(window.PICK_TOWERS||[]);
+  const r1=batchStaticChildren(gRoads3D,{filter:o=>!pickSet.has(o)});
+  const r2=batchStaticChildren(gDetail,{filter:o=>o.userData.batch===true&&!pickSet.has(o)});
+  console.log('%cStatic batching: roads '+r1.before+'→'+r1.after+' · towers '+r2.before+'→'+r2.after+' objects','color:#7fd6a0');
+}catch(e){console.warn('[HTS] static batch',e);}
 requestAnimationFrame(frame);
 if(typeof startLiveTrafficPolling==='function')startLiveTrafficPolling();
 if(typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),1200);
 /* OSM CBD buildings — real footprints + Houston-style window façades */
 (function bootOsmBuildings(){
+  if(!OSM_COVER.length)return;
   const cityId=HTS_CITY_ID||'houston';
-  /* Austin CBD primary; Houston pack on disk for later (avoid stacking on hand towers) */
-  const want=cityId==='austin';
-  if(!want)return;
+  const t0=performance.now();
   setTimeout(()=>{
-    loadOsmCbdBuildings({
-      parent:gDetail,
-      geoToWorld,
-      unitsPerMile:UNITS_PER_MILE,
-      cityId,
-      envMap:(window.HTS_CINEMATIC&&HTS_CINEMATIC.envMap)||null,
-      skipNear:window.HTS_AUS_LANDMARK_SKIP||[],
-      inWater:(x,z)=>typeof inWater==='function'&&inWater(x,z),
-      registerFoot:(x,z,hw,hd)=>{if(typeof registerBldgFoot==='function')registerBldgFoot(x,z,hw,hd);},
+    loadOsmCity({
+      cityId,geoToWorld,parent:gDetail,
+      hScale:OSM_H_SCALE,unitsPerMetre:UNITS_PER_MILE/1609.34,
+      aniso:Math.min(8,MAXAN),
+      skipNear:window.HTS_OSM_SKIP||[],
+      landmarks:OSM_LANDMARKS,
+      /* drop only parcels whose centre sits on a simulated road ribbon (real buildings line every street) */
+      blocked:(x,z)=>nearRoadFast(x,z,-24),
     }).then((r)=>{
-      window.HTS_OSM_BUILDINGS_COUNT=(r&&r.count)||0;
-      if(r&&r.group&&window.HTS_CINEMATIC&&HTS_CINEMATIC.markShadowCasters){
-        HTS_CINEMATIC.markShadowCasters(r.group);
+      window.HTS_OSM_CITY=r;
+      window.HTS_OSM_BUILDINGS_COUNT=r.count;
+      window.HTS_OSM_FACADE_MATS=[...(window.HTS_OSM_FACADE_MATS||[]),...r.facadeMats,r.roofMat];
+      console.log('%c'+CITY_NAME+': '+r.count+' real OSM buildings in '+r.chunks.length+' batches ('+Math.round(performance.now()-t0)+' ms) · skipped '+JSON.stringify(r.rejected),'color:#7fd6a0');
+    }).catch((e)=>console.warn('[HTS] OSM buildings',e&&e.message));
+  },250);
+})();
+/* Houston v2 roads — true-scale OSM network with bridges/interchanges (?roads2 while in review) */
+(function bootHoustonRoads(){
+  if(!HTS_IS_HOU||/[?&]roads1\b/.test(location.search))return;
+  const t0=performance.now();
+  const hr=createHoustonRoads({parent:scene,k:UNITS_PER_MILE/1609.344,baseY:0.25});
+  window.HTS_ROADS2=hr;
+  if(WS!==1){
+    const land=createHoustonLand({parent:scene,k:1});
+    window.HTS_LAND2=land;
+    if(!window.RWEDGE)window.RWEDGE=[];
+    const ap=createHoustonAirports({parent:scene,k:1,liveryFor,nightMats:window.RWEDGE,
+      planeTemplate:makeAirliner(0xff00ff,[0x00ff00,0x9aa2ab,0xff00ff,0x9aa2ab]),gaTemplate:makeProp(0x00ff00)});
+    window.HTS_PLACES2=createHoustonPlaces({camera,dom:renderer.domElement,getView:()=>({x:cam.target.x,z:cam.target.z,r:cam.radius})});
+    window.HTS_AIRPORTS2=ap;
+    const tk=createHoustonTanks({parent:scene,baseY:0.05});
+    tk.ready.then((st)=>console.log('%cHouston tanks: '+JSON.stringify(st),'color:#cfd6dc')).catch((e)=>console.warn('[HTS] tanks',e&&e.message));
+    ap.ready.then((st)=>console.log('%cHouston airports v2: '+JSON.stringify(st),'color:#7fd6a0')).catch((e)=>console.warn('[HTS] airports v2',e&&e.message));
+    /* real toll gantries (OSM highway=toll_gantry) once deck heights are known */
+    hr.ready.then(()=>{
+      const tl=createHoustonTolls({parent:scene,heightAt:hr.heightAt});window.HTS_TOLLS=tl;
+      tl.ready.then((st)=>console.log('%cHouston toll gantries: '+JSON.stringify(st),'color:#b9a3e3')).catch((e)=>console.warn('[HTS] tolls',e&&e.message));
+    }).catch(()=>{});
+    /* airport boards / fly-to frame the whole OSM airfield, not just its reference point */
+    fetch('/data/houston/airports.json').then((r)=>r.json()).then((d)=>{
+      for(const a of d.aerodromes||[]){
+        const id=String(a.iata||'').toLowerCase();if(!id||!CAM_VIEWS[id])continue;
+        let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
+        for(let i=0;i<a.r.length;i+=2){x0=Math.min(x0,a.r[i]);x1=Math.max(x1,a.r[i]);z0=Math.min(z0,a.r[i+1]);z1=Math.max(z1,a.r[i+1]);}
+        CAM_VIEWS[id]={theta:-0.7,phi:0.92,radius:clamp(Math.max(x1-x0,z1-z0)*0.8,900,7000),target:[(x0+x1)/2,(z0+z1)/2]};
       }
-    }).catch((e)=>{
-      console.warn('[HTS] OSM buildings',e&&e.message);
-    });
-  },900);
+    }).catch(()=>{});
+    window.HTS_TOUR=createTour({scene,camera,cam,camGoal,geoToWorld,$,
+      getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,
+      airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,
+      stopFollow:()=>stopFollow(),isFollowing:()=>!!(followPlane||follow),getUserGeo:()=>userGeo});
+    const signs=createHoustonSigns({parent:scene});
+    window.HTS_SIGNS=signs;
+    signs.ready.then(()=>setInterval(()=>signs.update(cam.target.x,cam.target.z,cam.radius),900))
+      .catch((e)=>console.warn('[HTS] signs',e&&e.message));
+    /* houses/trees must wait for the airfield outlines, or they get built inside SGR, DWH, … */
+    Promise.all([land.ready,ap.ready.catch(()=>null)]).then(()=>setInterval(()=>land.update(cam.target.x,cam.target.z,cam.radius),600))
+      .catch((e)=>console.warn('[HTS] land v2',e&&e.message));
+  }
+  gRoads3D.visible=false;gRoads3D.userData.v2Hidden=true;
+  hr.ready.then((st)=>{
+    console.log('%cHouston roads v2: '+st.ways+' ways, '+Math.round(st.tris/1000)+'k tris ('+Math.round(performance.now()-t0)+' ms)','color:#7fd6a0');
+    setInterval(()=>hr.update(cam.target.x,cam.target.z,cam.radius),700);
+    if(WS!==1&&!/[?&]traffic1\b/.test(location.search)){
+      const sl=createHoustonStreetlights({parent:scene,net:hr.net,baseY:0.25,kv:UNITS_PER_MILE/1609.344});
+      window.HTS_LIGHTS2=sl;
+      sl.ready.then((st)=>console.log('%cHouston streetlights: '+JSON.stringify(st),'color:#ffd080')).catch((e)=>console.warn('[HTS] streetlights',e&&e.message));
+      window.HTS_TRAFFIC2=createHoustonTraffic({net:hr.net,k:UNITS_PER_MILE/1609.344,baseY:0.25,rand,budget:MAX_INST-200,mkCar:mkCar2,
+        env:{cong:legacyCongAt,wx:()=>(wxBlend&&wxBlend.speed)||1,
+          headway:()=>clamp(lerp(5.5,1.4,clamp(demand(simH,weekend),0,1)),1.4,6)}});
+      hr.onTile((ev,id,ways)=>ev==='add'?HTS_TRAFFIC2.addTile(id,ways):HTS_TRAFFIC2.removeTile(id));
+      fetch('/data/houston/signals.json').then((r)=>r.json()).then((d)=>{HTS_TRAFFIC2.setSignals(d.s||[]);
+        console.log('%cHouston traffic signals: '+HTS_TRAFFIC2.stats.signals+' OSM nodes, '+HTS_TRAFFIC2.stats.signalled+' signalled carriageways','color:#7fd6a0');
+        const sg=createHoustonSignals({parent:scene,traffic:HTS_TRAFFIC2});window.HTS_SIGNALS2=sg;
+        setInterval(()=>sg.update(cam.target.x,cam.target.z,cam.radius),250);
+      }).catch((e)=>console.warn('[HTS] signals',e&&e.message));
+    }
+  }).catch((e)=>console.warn('[HTS] roads v2',e&&e.message));
 })();
 setTimeout(()=>{
   const l=$('loading');

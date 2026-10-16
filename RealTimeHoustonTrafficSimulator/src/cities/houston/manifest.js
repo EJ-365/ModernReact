@@ -12,7 +12,7 @@ export const houstonManifest = {
   origin: {
     lat: 29.7604,
     lng: -95.3698,
-    unitsPerMile: 210,
+    unitsPerMile: 1609.344,
   },
   bbox: {
     south: 28.7,

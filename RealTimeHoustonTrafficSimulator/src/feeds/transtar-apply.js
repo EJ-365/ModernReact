@@ -44,7 +44,10 @@ function estimateCorridorMiles(road, ax, az, bx, bz, deps) {
   const units = deps.unitsPerMile || 210;
   const a = deps.nearestArc(road, ax, az);
   const b = deps.nearestArc(road, bx, bz);
-  return Math.max(0.5, Math.abs(b - a) / units);
+  /* metre-scale roads are split into pieces, so the arc can cover only part of the corridor:
+     never report less than the straight-line distance between the corridor ends */
+  const chord = Math.hypot(bx - ax, bz - az) * 1.1;
+  return Math.max(0.5, Math.abs(b - a), chord) / units;
 }
 
 /**
@@ -106,7 +109,8 @@ export function applyTranStarTravelTimes(items, deps) {
         );
       }
     }
-    if (!(miles > 0)) miles = Math.max(4, (road.s && road.s.total ? road.s.total : 0) / units * 0.35);
+    /* no corridor hint: the segment length is unknown, so a speed would be a guess — skip it */
+    if (!(miles > 0)) continue;
     if (!buckets.has(key)) buckets.set(key, { mins: [], miles: [], road, sign });
     const b = buckets.get(key);
     b.mins.push(mins);

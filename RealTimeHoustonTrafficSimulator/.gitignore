@@ -7,3 +7,4 @@ dist
 downloads/_stage-win
 downloads/*.zip
 !downloads/README.txt
+__pycache__/

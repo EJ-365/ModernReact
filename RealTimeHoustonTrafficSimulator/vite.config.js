@@ -1,15 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import { resolve } from "node:path";
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-
-  return {
-    appType: "mpa",
-    plugins: [
-      {
-        name: "tomtom-proxy",
-        configureServer(server) {
+function registerApiMiddlewares(server, env) {
           /* TomTom — hard-disabled (billing). Free TranStar / modeled traffic only. */
           server.middlewares.use("/api/tomtom", async (_req, res) => {
             res.statusCode = 503;
@@ -77,28 +69,12 @@ export default defineConfig(({ mode }) => {
               res.end(JSON.stringify({ error: "news_unavailable" }));
             }
           });
-        },
-      },
-    ],
-    build: {
-      rollupOptions: {
-        input: {
-          main: resolve(__dirname, "index.html"),
-          about: resolve(__dirname, "about.html"),
-          download: resolve(__dirname, "download.html"),
-          app: resolve(__dirname, "app.html"),
-          docs: resolve(__dirname, "docs/index.html"),
-          docsStart: resolve(__dirname, "docs/getting-started.html"),
-          docsArch: resolve(__dirname, "docs/architecture.html"),
-          docsKeys: resolve(__dirname, "docs/api-keys.html"),
-          docsDesktop: resolve(__dirname, "docs/desktop.html"),
-          docsContrib: resolve(__dirname, "docs/contributing.html"),
-          docsCi: resolve(__dirname, "docs/ci.html"),
-        },
-      },
-    },
-    server: {
-      proxy: {
+        }
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  const apiProxy = {
         "/api/openmeteo": {
           target: "https://api.open-meteo.com",
           changeOrigin: true,
@@ -167,7 +143,40 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/hexdb/, ""),
         },
+      };
+
+  return {
+    appType: "mpa",
+    plugins: [
+      {
+        name: "tomtom-proxy",
+        configureServer(server) {
+          registerApiMiddlewares(server, env);
+        },
+        /* `vite preview` gets the same same-origin feeds (was 404 for /api/news, /api/transtar) */
+        configurePreviewServer(server) {
+          registerApiMiddlewares(server, env);
+        },
+      },
+    ],
+    build: {
+      rollupOptions: {
+        input: {
+          main: resolve(__dirname, "index.html"),
+          about: resolve(__dirname, "about.html"),
+          download: resolve(__dirname, "download.html"),
+          app: resolve(__dirname, "app.html"),
+          docs: resolve(__dirname, "docs/index.html"),
+          docsStart: resolve(__dirname, "docs/getting-started.html"),
+          docsArch: resolve(__dirname, "docs/architecture.html"),
+          docsKeys: resolve(__dirname, "docs/api-keys.html"),
+          docsDesktop: resolve(__dirname, "docs/desktop.html"),
+          docsContrib: resolve(__dirname, "docs/contributing.html"),
+          docsCi: resolve(__dirname, "docs/ci.html"),
+        },
       },
     },
+    server: { proxy: apiProxy },
+    preview: { proxy: apiProxy },
   };
 });
