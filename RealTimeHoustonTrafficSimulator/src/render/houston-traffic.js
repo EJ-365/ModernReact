@@ -5,18 +5,34 @@
  * the right lane), and ride the exact bridge/ramp deck profile. Speeds follow live probes or
  * modelled congestion via `env`. Only carriageways near the camera are simulated.
  */
+/* Houston posted speed limits — TxDOT: urban freeway 65-75 mph, arterials 35-45 mph.
+   I-10 Katy is one of the widest freeways in the world (26 lanes) at 75 mph limit. */
 const FF = {
-  motorway: 65, trunk: 55, primary: 40, motorway_link: 45, trunk_link: 35, primary_link: 30,
-  secondary: 35, secondary_link: 30, tertiary: 30, tertiary_link: 25, residential: 25, unclassified: 25, living_street: 12,
+  motorway: 75, trunk: 65, primary: 45, motorway_link: 55, trunk_link: 45, primary_link: 35,
+  secondary: 40, secondary_link: 35, tertiary: 35, tertiary_link: 28, residential: 30, unclassified: 28, living_street: 15,
 };
 /* streets carry far fewer cars than freeways: spacing multiplier + how far from the camera they are simulated */
 const STREET = {
-  secondary: [1.7, 4500], secondary_link: [2.2, 4500], tertiary: [2.6, 3600], tertiary_link: [2.6, 3600],
-  residential: [6, 2200], unclassified: [5, 2200], living_street: [10, 1600],
+  secondary: [1.5, 5000], secondary_link: [2.0, 5000], tertiary: [2.4, 4000], tertiary_link: [2.4, 4000],
+  residential: [5, 2600], unclassified: [4.5, 2600], living_street: [9, 1800],
 };
 const oneWay = (o) => !!o && o !== '0' && o !== 'no' && o !== '-1';
 const MPH = 0.44704;
-const IDM = { a: 1.5, b: 2.4, s0: 2.2, T: 1.25 };
+/* Texan driving style: aggressive following (shorter headway, higher decel comfort) */
+const IDM = { a: 2.0, b: 2.8, s0: 1.8, T: 1.05 };
+/* Houston rush hours: 7-9am and 4-7pm Central time */
+function rushHourFactor() {
+  const d = new Date();
+  const h = ((d.getUTCHours() - 5 + 24) % 24) + d.getUTCMinutes() / 60;
+  if (h >= 7.0 && h < 9.0)   return 1.60; // morning peak
+  if (h >= 16.0 && h < 19.0) return 1.65; // evening peak
+  if (h >= 6.0 && h < 7.0)   return 1.30; // morning shoulder
+  if (h >= 9.0 && h < 10.0)  return 1.20; // post-morning
+  if (h >= 15.0 && h < 16.0) return 1.35; // pre-evening
+  if (h >= 19.0 && h < 20.5) return 1.25; // post-evening
+  if (h >= 0 && h < 5.0)     return 0.28; // late night
+  return 1.0;
+}
 const nodeKey = (x, z) => `${Math.round(x * 0.5)},${Math.round(z * 0.5)}`;
 const CELL = 1000;
 /* signal timing: two-phase (E-W / N-S approaches), shared offset per intersection cluster */
@@ -27,7 +43,7 @@ function tangentAt(f, i0, i1) {
   return [dx / l, dz / l];
 }
 
-export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 0, env, mkCar, rand = Math.random, budget = 3600 }) {
+export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 0, env, mkCar, rand = Math.random, budget = 5000 }) {
   const X = (x) => (x - offset) * k + offset;
   const active = new Set();
   const stats = { carriageways: 0, active: 0, cars: 0, spawned: 0, removed: 0, waits: 0 };
