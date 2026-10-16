@@ -6,8 +6,8 @@
 <title>Live Traffic Simulator · 16 metros live · by Ejay Gabriel</title>
 <meta name="description" content="Live Traffic Simulator is a 3D metro atlas across 16 U.S. cities — freeways, suburb weather, local news, ADS-B flights, and live traffic context. By Ejay Gabriel.">
 <meta name="author" content="Ejay Gabriel">
-<meta name="theme-color" content="#0a0e14">
-<meta property="og:title" content="Live Traffic Simulator · 16 metros live">
+<meta name="theme-color" content="#0c0a08">
+<meta property="og:title" content="Traffic Simulation · 16 metros live">
 <meta property="og:description" content="Sixteen U.S. metros live with researched freeways, per-suburb weather, and real aircraft. By Ejay Gabriel.">
 <meta property="og:type" content="website">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -24,7 +24,7 @@
 <header class="nav" data-nav>
   <a class="brand" href="/">
     <span class="brand-mark" aria-hidden="true"></span>
-    <span class="brand-text">Live Traffic Simulator</span>
+    <span class="brand-text">Traffic Simulation</span>
   </a>
   <nav class="nav-links" aria-label="Primary">
     <a href="#features">Features</a>
@@ -58,70 +58,43 @@
 </div>
 
 <main id="main">
-  <section class="hero-bleed" aria-label="Live Traffic Simulator">
-    <div class="cityscape" aria-hidden="true" data-parallax>
-      <div class="cs-sky">
-        <div class="cs-haze"></div>
-        <div class="cs-stars" id="csStars"></div>
-        <div class="cs-moon"></div>
-        <div class="cs-cloud c-a"></div>
-        <div class="cs-cloud c-b"></div>
-        <div class="cs-cloud c-c"></div>
+  <section class="hero-bleed hero-dusk" aria-label="Traffic Simulation">
+    <div class="cityscape duskscape" aria-hidden="true" data-parallax>
+      <div class="cs-sky dusk-sky"></div>
+      <span class="cs-plane dusk-plane" id="csPlane">
+        <svg viewBox="0 0 120 36" aria-hidden="true">
+          <path fill="none" stroke="#1a1008" stroke-width="1.4" stroke-linecap="round" opacity=".35" d="M2 18 H18"/>
+          <path fill="#0a0808" d="M20 17.5 L22 2.5 Q28 4 32 16.5 Z"/>
+          <path fill="#0a0808" d="M18 18.5 H34 V21 H18 Z"/>
+          <path fill="#0a0808" d="M22 15.5 C26 12.2 34 11 48 11.2 L78 11.6 C92 11.8 102 13.5 110 16.5 L117 18 C118.8 18.5 118.8 19.8 117 20.3 L110 21.8 C102 24.5 92 25.4 78 25.2 L52 24.6 C36 24.2 26 22.5 22 19.5 C20.5 18.4 20.5 16.6 22 15.5 Z"/>
+          <path fill="#0a0808" d="M56 17.5 L86 16.2 L76 33 L52 33.5 Z"/>
+          <ellipse cx="68" cy="24.5" rx="9" ry="3.8" fill="#0a0808"/>
+          <ellipse cx="68" cy="24.5" rx="6.2" ry="1.9" fill="#1c120c"/>
+          <path fill="#3a2414" opacity=".5" d="M102 14.2 C107 14.6 111 15.6 114 17.2 L111.5 19.2 C108 17.4 105 16.2 102 15.6 Z"/>
+          <circle cx="116.2" cy="19.1" r="1.5" fill="#b91c1c"/>
+          <circle cx="22.5" cy="4.2" r="1.2" fill="#0e7490"/>
+        </svg>
+      </span>
+      <div class="cs-skyline dusk-skyline">
+        <img src="/img/houston-skyline-sil.png" alt="" width="639" height="175" decoding="async">
       </div>
-      <div class="cs-plane" id="csPlane"></div>
-      <div class="cs-skyline">
-        <i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i>
-        <i class="b b5"></i><i class="b b6"></i><i class="b b7"></i><i class="b b8"></i>
-        <i class="b b9"></i><i class="b b10"></i><i class="b b11"></i>
-        <span class="cs-windows"></span>
-      </div>
-      <div class="cs-freeway">
-        <div class="cs-deck upper">
-          <div class="lane-dash"></div>
-          <span class="veh v1"></span><span class="veh v2"></span><span class="veh v3"></span>
-        </div>
-        <div class="cs-deck lower">
-          <div class="lane-dash"></div>
-          <span class="veh v4"></span><span class="veh v5"></span><span class="veh v6"></span>
-        </div>
-        <div class="cs-pillar p1"></div>
-        <div class="cs-pillar p2"></div>
-        <div class="cs-pillar p3"></div>
-      </div>
-      <div class="cs-bayou">
-        <div class="bayou-shine"></div>
-      </div>
-      <div class="cs-lamps">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
-      <div class="cs-grain"></div>
-      <div class="cs-vignette"></div>
     </div>
 
-    <div class="hero-content">
-      <p class="hero-kicker reveal" data-reveal>
-        <span class="pulse-dot" aria-hidden="true"></span>
-        16 metros live · real roads · by Ejay Gabriel
-      </p>
+    <div class="hero-content hero-dusk-content">
       <h1 class="hero-brand reveal" data-reveal>
-        Live Traffic<br>Simulator
+        Traffic<br>Simulation
       </h1>
       <p class="hero-lede reveal" data-reveal>
-        A living 3D metro atlas with real road geometry, local weather, current headlines, and aircraft in motion. Start anywhere, then move through sixteen cities in real time.
+        Real Houston roads, lights, and tolls — then fifteen more metros with weather, tours, and live skies.
       </p>
       <div class="hero-actions reveal" data-reveal>
         <a class="btn primary lg glow-btn" href="/app.html">
           <span>Launch simulator</span>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a class="btn soft lg" href="#cities">All 16 cities</a>
+        <a class="btn soft lg" href="#updates">What’s new</a>
       </div>
     </div>
-
-    <a class="scroll-cue" href="#pulse" aria-label="Scroll to explore">
-      <span>Scroll</span>
-      <i></i>
-    </a>
   </section>
 
   <div class="ticker" id="pulse" aria-hidden="true">
@@ -330,32 +303,47 @@
     <p class="city-footnote reveal" data-reveal>Tip: bookmark <code>?city=austin</code> (or any id) — packs load researched roads, NWS filters, and airport boards for that metro.</p>
   </section>
 
-  <section class="section alt" id="updates">
+  <section class="section alt updates-dusk" id="updates">
     <div class="section-head reveal" data-reveal>
-      <p class="eyebrow">What’s new · v10.17</p>
-      <h2>More context. Better routes. Live skies.</h2>
-      <p>This release brings city-specific headlines, real OSM road geometry in Houston, metro airport boards, and direct airplane tracking across the full 16-city atlas.</p>
+      <p class="eyebrow">What’s new · Houston first</p>
+      <h2>Roads, signals, tours, and hazard graphics that feel real.</h2>
+      <p>The Space City pack leads the platform — researched corridors, working lights, toll markers, car and jet tours, and educational hazard overlays.</p>
     </div>
     <div class="update-rail">
       <article class="update-card reveal" data-reveal>
         <span class="update-num">01</span>
-        <h3>Local news, free</h3>
-        <p>Each metro now gets a compact local briefing from Google News RSS through a free server-side feed. Open any headline to read the original source.</p>
+        <h3>Real Houston roads</h3>
+        <p>OSM-backed freeways and arterials — I-10, I-45, 59, Beltway, Hardy — with elevated decks, congestion ribbons, and researched geometry that matches the metro.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">02</span>
-        <h3>airplanes.live tracking</h3>
-        <p>Live cards and airport boards now link directly to globe.airplanes.live, with departing, arriving, climbing, and airborne status shown in the flight card.</p>
+        <h3>Traffic lights that work</h3>
+        <p>Signalized intersections stop and release traffic in the sim. Watch queues form at reds and clear on green as you orbit downtown or the suburbs.</p>
       </article>
       <article class="update-card reveal" data-reveal>
         <span class="update-num">03</span>
-        <h3>Roads you can explore</h3>
-        <p>Houston now boots from quality-checked OSM freeway and ramp geometry. Highway chips open details and focus the selected corridor on the map.</p>
+        <h3>Toll signs &amp; road detail</h3>
+        <p>Toll markers, shields, and corridor labeling so Houston’s managed lanes and freeway mosaic read clearly from the map and the guide-sign rail.</p>
+      </article>
+      <article class="update-card reveal" data-reveal>
+        <span class="update-num">04</span>
+        <h3>Houston tours · car or plane</h3>
+        <p>Drive OSM routes to Space Center, downtown, and more with congestion-aware ETAs — or fly a Cessna or jet with takeoff, cruise, and short-final landings.</p>
+      </article>
+      <article class="update-card reveal" data-reveal>
+        <span class="update-num">05</span>
+        <h3>Hazard simulation graphics</h3>
+        <p>Hurricane, wildfire, flood, and educational nuclear drill rings — visual what-if overlays with clearer graphics, never presented as official alerts.</p>
+      </article>
+      <article class="update-card reveal" data-reveal>
+        <span class="update-num">06</span>
+        <h3>Live TranStar · weather · ADS-B</h3>
+        <p>Houston traffic where TranStar reaches, suburb-local Open-Meteo rain, NWS alerts, local headlines, and live aircraft over IAH, Hobby, and Ellington.</p>
       </article>
     </div>
     <div class="hero-actions reveal" data-reveal style="margin-top:28px">
+      <a class="btn primary" href="/app.html">Try it in Houston</a>
       <a class="btn soft" href="/docs/">Read the docs</a>
-      <a class="btn ghost" href="/docs/TECH_TRANSITION.md">Tech transition</a>
     </div>
   </section>
 
@@ -406,13 +394,12 @@
     </div>
   </section>
 
-  <section class="cta-band">
-    <div class="cta-orbit" aria-hidden="true"></div>
+  <section class="cta-band cta-dusk">
     <div class="cta-inner reveal" data-reveal>
-      <h2>Open a metro.<br>Watch it breathe.</h2>
-      <p>Choose a city and watch its roads, weather, local headlines, and airspace come to life.</p>
+      <h2>Open Houston.<br>Watch it move.</h2>
+      <p>Black sky, warm orange dusk, real roads — then weather, tours, and flights.</p>
       <div class="hero-actions">
-        <a class="btn primary lg glow-btn" href="/app.html">Launch Houston</a>
+        <a class="btn primary lg glow-btn" href="/app.html">Launch simulator</a>
         <a class="btn soft lg" href="/app.html?city=newyork">Open New York</a>
         <a class="btn ghost lg" href="/download.html">Download</a>
       </div>
@@ -424,7 +411,7 @@
   <div class="footer-brand">
     <span class="brand-mark sm"></span>
     <div>
-      <strong>Live Traffic Simulator</strong>
+      <strong>Traffic Simulation</strong>
       <p>Created by <a href="/about.html">Ejay Gabriel</a></p>
     </div>
   </div>

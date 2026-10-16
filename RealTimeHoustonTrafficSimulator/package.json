@@ -1,7 +1,7 @@
 {
   "name": "houston-traffic-simulator",
   "private": true,
-  "version": "10.31.0",
+  "version": "10.31.16",
   "type": "module",
   "description": "Award-ready 3D Houston metro simulator + marketing site. Created by Ejay Gabriel.",
   "author": "Ejay Gabriel",
@@ -27,6 +27,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "sharp": "^0.33.5",
     "vite": "^7.2.4"
   }
 }

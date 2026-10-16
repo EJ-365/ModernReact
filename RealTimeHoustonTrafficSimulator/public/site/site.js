@@ -224,7 +224,12 @@ function setupParallax() {
     const skyline = scene.querySelector(".cs-skyline");
     const freeway = scene.querySelector(".cs-freeway");
     const moon = scene.querySelector(".cs-moon");
-    if (skyline) skyline.style.transform = `translate(${mx * 8}px, ${my * 4}px)`;
+    if (skyline) {
+      const dusk = skyline.classList.contains("dusk-skyline");
+      skyline.style.transform = dusk
+        ? `translate(calc(-50% + ${mx * 8}px), ${my * 4}px)`
+        : `translate(${mx * 8}px, ${my * 4}px)`;
+    }
     if (freeway) freeway.style.transform = `translate(${mx * 14}px, ${my * 6}px)`;
     if (moon) moon.style.transform = `translate(${mx * -10}px, ${my * -6}px)`;
   };
