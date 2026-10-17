@@ -53,7 +53,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.31.24 (headlight-pools). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.31.26 (magnolia-park-dry). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -1141,7 +1141,7 @@ const clouds=new THREE.Group();skyRoot.add(clouds);
 (function(){
   const texes=[cloudTexture(),cloudTexture(),cloudTexture(),cloudTexture()];
   /* metre mode: cumulus above GA/jet cruise (~2.2–4.0 km) so plane Top never sits inside puffs */
-  const NCLOUD=HTS_PEEK?36:(WS!==1?(_isWin?70:100):32),SPREAD=WS!==1?90000:22000*WS;
+  const NCLOUD=HTS_PEEK?20:(WS!==1?(_isWin?70:100):32),SPREAD=WS!==1?90000:22000*WS;
   clouds.userData.spreadHalf=SPREAD*0.5;
   for(let i=0;i<NCLOUD;i++){
     const mat=new THREE.SpriteMaterial({map:texes[i%4],transparent:true,opacity:0.85,depthWrite:false,fog:false});
@@ -6297,7 +6297,7 @@ function pickType(){let r=rand();for(const t of VEH_TYPES){if(r<t.p)return t;r-=
 
 const MPH=WS!==1?0.44704:0.338; /* world u/s per mph — WS!==1 is the metre-scale world, which runs real time (1 mph = 0.447 m/s) */
 const VS=1.28;        /* vehicle visual scale */
-const MAX_INST=HTS_PEEK?480:(_isWin?1400:2800);
+const MAX_INST=HTS_PEEK?320:(_isWin?1400:2800);
 
 /* glasshouse texture: dark glass w/ pillars + light roofline */
 /* greenhouse texture: dark glass UPPER band, body-colored LOWER band
@@ -12085,7 +12085,7 @@ function moveVehicles(dt,nightF){
   const brakeGlow=clamp(0.45+nightF*0.55,0,1);
   const v2Owns=WS!==1&&!!window.HTS_TRAFFIC2;
   /* Lite = drop wheels/extras only. Headlights still drawn every night frame. */
-  const vehLite=_fpsAvg<40||cam.radius>(WS===1?3200:3000);
+  const vehLite=_fpsAvg<(_isWin?44:40)||cam.radius>(WS===1?3200:3000);
   const nightLights=nightF>0.18;
   /* v10.8.6 motion: no off-screen teleport respawns, smooth lane lerp, simple wrap */
   /* Houston v2 owns cars — skip the empty legacy roads×lanes walk */
@@ -12262,10 +12262,11 @@ function moveVehicles(dt,nightF){
   if(window.HTS_TRAFFIC2){
     const T2=window.HTS_TRAFFIC2;
     const tourOn=window.HTS_TOUR&&HTS_TOUR.active;
-    const planeHi=tourOn&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane'&&HTS_TOUR.state.p&&HTS_TOUR.state.p.y>140;
-    /* Plane cruise: skip ground traffic — big FPS win on long flights */
-    const needCars=!planeHi&&(vehFade>0.01||tourOn||!!follow||!!followPlane);
-    if(!planeHi&&(needCars||mapT<0.9))T2.tick(dt,cam.target.x,cam.target.z,cam.radius);
+    const planeHi=tourOn&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane'&&HTS_TOUR.state.p&&HTS_TOUR.state.p.y>90;
+    const peekFlight=HTS_PEEK&&window._htsPeek&&_htsPeek.mode==='flight';
+    /* Plane cruise / peek flight: skip ground traffic — big FPS win */
+    const needCars=!planeHi&&!peekFlight&&(vehFade>0.01||tourOn||!!follow||!!followPlane);
+    if(!planeHi&&!peekFlight&&(needCars||mapT<0.9))T2.tick(dt,cam.target.x,cam.target.z,cam.radius);
     if(needCars&&vehFade>0.01){
       const cullR=Math.max(900,cam.radius*1.15+320);
       T2.forEach((v)=>{
@@ -13556,11 +13557,11 @@ function frame(now){
   if(HTS_PEEK&&window._htsPeek&&window._htsPeek.spin){
     camGoal.theta+=dt*0.12;
   }
-  /* Tour placeCamera owns the lens except Free look (orbit) — skip double applyCam work */
+  /* Tour update first so Free look (orbit) gets a fresh target before applyCam */
+  if(!HTS_PEEK&&window.HTS_TOUR)HTS_TOUR.update(dt);
   const _tourOn=window.HTS_TOUR&&HTS_TOUR.active;
   const _tourOrbit=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.view==='orbit';
   if(!_tourOn||_tourOrbit)applyCam();
-  if(!HTS_PEEK&&window.HTS_TOUR)HTS_TOUR.update(dt);
   if(!HTS_PEEK)updatePoiCardVisibility();
   /* Sky / clouds / sun always wrap the viewed area — never leave a black void */
   if(typeof skyRoot!=='undefined')skyRoot.position.set(cam.target.x,0,cam.target.z);
@@ -13634,7 +13635,7 @@ function frame(now){
     for(const sp of bladeSprites)sp.material.opacity=bladeO;
   }
   /* High plane tours: skip street LOD churn — buildings/roads barely read at cruise */
-  const _planeCruise=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane'&&HTS_TOUR.state.p&&HTS_TOUR.state.p.y>200;
+  const _planeCruise=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane'&&HTS_TOUR.state.p&&HTS_TOUR.state.p.y>120;
   if(!_planeCruise&&!HTS_PEEK&&typeof updateOsmLod==='function'&&camGoal){
     /* Windows: skip suburb LOD churn when FPS is soft */
     if(!_isWin||_fpsAvg>=36||(simClock|0)%2===0)

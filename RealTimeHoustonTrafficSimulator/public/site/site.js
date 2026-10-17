@@ -286,7 +286,7 @@ function setupPreview() {
   let visible = false;
   let unloadTimer = 0;
   /* Cache-bust so the homepage iframe picks up the latest peek build */
-  const PEEK_SRC = "/app.html?peek=1&v=103117";
+  const PEEK_SRC = "/app.html?peek=1&v=103125";
 
   const postPeek = (payload) => {
     if (!frame || !frame.contentWindow) return;
@@ -360,7 +360,7 @@ function setupPreview() {
       frame.dataset.loaded = "0";
       peekReady = false;
       stage.classList.remove("is-live");
-    }, 12000);
+    }, 5000);
   };
 
   if (frame) {
@@ -384,7 +384,7 @@ function setupPreview() {
             }
           }
         },
-        { rootMargin: "160px 0px", threshold: [0, 0.08, 0.25] }
+        { rootMargin: "80px 0px", threshold: [0, 0.08, 0.25] }
       );
       io.observe(stage);
     } else {

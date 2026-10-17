@@ -12,8 +12,8 @@ const LAND = {
   residential: { c: 0x9aa486, y: 0.05 }, commercial: { c: 0xa9a59c, y: 0.05 }, industrial: { c: 0x9d988c, y: 0.05 },
   farm: { c: 0xa9a477, y: 0.04 }, cemetery: { c: 0x7f9a62, y: 0.06 }, grass: { c: 0x7f9c58, y: 0.07 },
   pitch: { c: 0x6f9a4c, y: 0.08 }, golf: { c: 0x6fa04e, y: 0.07 }, park: { c: 0x6c8f4b, y: 0.08 },
-  scrub: { c: 0x76804e, y: 0.07 }, wood: { c: 0x4f6a37, y: 0.09 }, wetland: { c: 0x617a55, y: 0.09 },
-  parking: { c: 0x8a8b8c, y: 0.11 }, water: { c: 0x3f6f86, y: 0.12 },
+  scrub: { c: 0x76804e, y: 0.07 }, wood: { c: 0x4f6a37, y: 0.09 }, wetland: { c: 0x6a7e58, y: 0.08 },
+  parking: { c: 0x8a8b8c, y: 0.11 }, water: { c: 0x3a6f8a, y: 0.12 },
 };
 const ORDER = ['farm', 'residential', 'commercial', 'industrial', 'cemetery', 'grass', 'golf', 'pitch', 'park', 'scrub', 'wetland', 'wood', 'parking', 'water'];
 const TREE_DENS = { wood: 1 / 90, park: 1 / 700, golf: 1 / 900, cemetery: 1 / 500, wetland: 1 / 400, residential: 0, scrub: 1 / 260 };
@@ -100,21 +100,36 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
 
   /**
    * Drop sprawling OSM “water” that floods neighborhoods (e.g. Magnolia Park /
-   * East End tagged as riverbank/ship-channel). Real ponds & compact lakes stay;
-   * long channels still draw from waterways ribbons.
+   * East End tagged as riverbank / ship-channel). Real ponds & compact lakes stay;
+   * the Ship Channel / Brays still draw from waterways ribbons.
+   *
+   * Magnolia Park (East End) is dry residential south of the Turning Basin —
+   * only the channel north edge and Brays on the east should read as water.
    */
+  function inMagnoliaParkBand(x0, z0, x1, z1) {
+    /* ~29.725–29.752 N, 95.31–95.27 W in world metres */
+    return !(x1 < 6000 || x0 > 9800 || z1 < 1100 || z0 > 4200);
+  }
   function isSpuriousWater(outer) {
     if (!outer || outer.length < 6) return true;
     const A = Math.abs(ringArea(outer));
-    if (A < 350000) return false; /* ponds / turning basins OK */
-    if (A > 5e6) return false; /* keep large lakes / bay chunks */
     const [x0, z0, x1, z1] = bbox(outer);
     const bw = x1 - x0, bh = z1 - z0;
     const boxA = Math.max(1, bw * bh);
     const fill = A / boxA;
+    const eastEnd = inMagnoliaParkBand(x0, z0, x1, z1);
+    /* East End: only keep compact channel/pond pieces — never neighborhood-scale fills */
+    if (eastEnd) {
+      if (A > 120000 && fill < 0.55) return true;
+      if ((bw > 1400 || bh > 1400) && fill < 0.5) return true;
+      /* sprawling riverbank polys whose bbox covers Magnolia streets */
+      if (A > 400000 && (bw > 2500 || bh > 2500)) return true;
+    }
+    if (A < 200000) return false; /* small ponds / turning basins OK */
+    if (A > 5e6 && fill > 0.4) return false; /* keep real bay / lake chunks */
     /* sprawling ship-channel mis-tags: huge bbox, low fill fraction */
-    if ((bw > 2000 || bh > 2000) && fill < 0.45) return true;
-    if (A > 800000 && fill < 0.35) return true;
+    if ((bw > 1800 || bh > 1800) && fill < 0.45) return true;
+    if (A > 600000 && fill < 0.38) return true;
     return false;
   }
 
@@ -198,8 +213,20 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
         await yieldIf(st);
       }
     }
-    /* Cap waterway ribbon width — OSM sometimes marks canal width as neighborhood-wide */
-    for (const wl of d.waterways || []) ribbon(wl.p, Math.min(wl.w || 8, 48), LAND.water.y * k + 0.01 * k, WP, WI);
+    /* Cap waterway ribbon width — OSM sometimes marks canal width as neighborhood-wide.
+       East End / Magnolia Park: keep Brays & Ship Channel as thin channels, not swamp fill. */
+    for (const wl of d.waterways || []) {
+      let w = Math.min(wl.w || 8, 48);
+      const p = wl.p;
+      if (p && p.length >= 4) {
+        let inEast = false;
+        for (let i = 0; i < p.length; i += 2) {
+          if (p[i] > 6000 && p[i] < 9800 && p[i + 1] > 1100 && p[i + 1] < 4200) { inEast = true; break; }
+        }
+        if (inEast) w = Math.min(w, 28);
+      }
+      ribbon(p, w, LAND.water.y * k + 0.01 * k, WP, WI);
+    }
     for (const rl of d.rail || []) ribbon(rl.p, 3.4, 0.13 * k, RP, RI);
     for (const m of [mesh(P, I, mats.land, C), mesh(WP, WI, mats.water), mesh(RP, RI, mats.rail)]) if (m) g.add(m);
     return { g, resid, block, treeAreas };

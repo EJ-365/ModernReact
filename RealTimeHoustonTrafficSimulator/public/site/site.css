@@ -55,7 +55,7 @@ a:hover{text-decoration:underline;color:#f0c078}
   width:44px;height:44px;border-radius:12px;cursor:pointer;padding:0;align-items:center;justify-content:center;flex-direction:column;gap:5px}
 .nav-burger span{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px;margin:0}
 .nav-drawer-backdrop{position:fixed;inset:0;z-index:38;background:rgba(6,4,2,.65);backdrop-filter:blur(3px);border:0;padding:0;cursor:pointer}
-.nav-drawer{position:fixed;top:72px;left:12px;right:12px;z-index:39;display:flex;flex-direction:column;gap:4px;
+.nav-drawer{position:fixed;top:calc(64px + env(safe-area-inset-top,0px));left:12px;right:12px;z-index:39;display:flex;flex-direction:column;gap:4px;
   padding:14px;border-radius:18px;background:rgba(18,14,10,.98);border:1px solid var(--line);box-shadow:var(--shadow);
   max-height:min(78vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;
   animation:drawerIn .35s var(--ease)}
@@ -529,8 +529,8 @@ a:hover{text-decoration:underline;color:#f0c078}
 .page-home .cs-plane.dusk-plane::after{content:none;display:none}
 .page-home .dusk-plane svg{display:block;width:100%;height:auto;overflow:visible}
 @keyframes dusk-fly{
-  0%{transform:translate(-18vw,0)}
-  100%{transform:translate(115vw,4vh)}
+  0%{transform:translate(-12%,0)}
+  100%{transform:translate(112%,4vh)}
 }
 .page-home .hero-content.hero-dusk-content{
   max-width:min(560px,92vw);margin:0;padding-top:0;
@@ -603,8 +603,8 @@ a:hover{text-decoration:underline;color:#f0c078}
 .page-home .preview-modes{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 .page-home .preview-mode{
   appearance:none;border:1px solid rgba(242,235,224,.14);background:transparent;
-  color:var(--muted);font:600 13px/1 var(--font);padding:8px 14px;border-radius:8px;cursor:pointer;
-  transition:color .2s,border-color .2s,background .2s;
+  color:var(--muted);font:600 13px/1 var(--font);padding:12px 16px;border-radius:8px;cursor:pointer;
+  min-height:44px;transition:color .2s,border-color .2s,background .2s;
 }
 .page-home .preview-mode:hover{color:var(--cream);border-color:rgba(232,168,56,.35)}
 .page-home .preview-mode.on{
@@ -622,9 +622,13 @@ a:hover{text-decoration:underline;color:#f0c078}
   isolation:isolate;
   transition:border-color .25s,transform .35s var(--ease),box-shadow .35s;
 }
-.page-home .preview-stage:hover{
+.page-home .preview-stage:hover,
+.page-home .preview-stage:focus-visible{
   text-decoration:none;border-color:rgba(232,168,56,.5);
-  transform:translateY(-3px);box-shadow:0 28px 72px rgba(0,0,0,.55);
+  box-shadow:0 28px 72px rgba(0,0,0,.55);
+}
+@media (hover:hover) and (pointer:fine){
+  .page-home .preview-stage:hover{transform:translateY(-3px)}
 }
 .page-home .preview-bg{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;
@@ -660,8 +664,14 @@ a:hover{text-decoration:underline;color:#f0c078}
   backdrop-filter:blur(10px);
   transition:background .2s,border-color .2s,color .2s;
 }
-.page-home .preview-stage:hover .preview-cta{
+.page-home .preview-stage:hover .preview-cta,
+.page-home .preview-stage:focus-within .preview-cta{
   background:var(--orange);color:#0c0a08;border-color:transparent;
+}
+@media (hover:none){
+  .page-home .preview-cta{
+    background:var(--orange);color:#0c0a08;border-color:transparent;
+  }
 }
 .page-home .preview-cta-play{
   width:0;height:0;border-style:solid;
@@ -772,16 +782,34 @@ a:hover{text-decoration:underline;color:#f0c078}
 }
 @media (max-width:900px){
   .page-home .hero-bleed.hero-dusk{
-    padding-bottom:min(26vh,200px);
+    padding:clamp(88px,14vh,130px) max(16px,env(safe-area-inset-left,0px)) min(22vh,160px) max(16px,env(safe-area-inset-right,0px));
     align-items:stretch;
+    min-height:auto;
   }
   .page-home .hero-content.hero-dusk-content{max-width:100%}
-  .page-home .dusk-skyline{max-height:24vh}
-  .page-home .dusk-skyline img{max-height:24vh;object-fit:contain}
-  .page-home .dusk-plane{width:clamp(48px,12vw,64px)}
+  .page-home .hero-brand{
+    font-size:clamp(36px,11vw,56px);
+    margin-bottom:10px;
+  }
+  .page-home .hero-lede{font-size:clamp(15px,4.2vw,18px);margin-bottom:18px;max-width:34ch}
+  .page-home .hero-actions{flex-direction:column;align-items:stretch;gap:12px;width:100%;max-width:320px}
+  .page-home .hero-actions .btn{width:100%;max-width:none}
+  .page-home .dusk-skyline{max-height:22vh}
+  .page-home .dusk-skyline img{max-height:22vh;object-fit:contain}
+  .page-home .dusk-plane{width:clamp(48px,12vw,64px);animation-duration:18s}
   .page-home .intro-grid,
   .page-home .cities-split,
   .page-home .preview-layout{grid-template-columns:1fr;gap:28px}
-  .page-home .preview-stage{order:-1}
+  .page-home .preview-stage{order:-1;aspect-ratio:16/11;border-radius:12px}
+  .page-home .preview-cta{bottom:12px;padding:12px 16px;font-size:12px;white-space:nowrap}
   .page-home .city-links{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){
+  .page-home .hero-bleed.hero-dusk{padding-bottom:min(18vh,120px)}
+  .page-home .hero-brand{font-size:clamp(32px,10.5vw,48px);line-height:1.05}
+  .page-home .brand-text{max-width:36vw}
+  .page-home .nav-cta .btn.primary{padding:10px 12px;font-size:12px}
+  .page-home .preview-modes{gap:6px}
+  .page-home .preview-mode{padding:10px 12px;font-size:12px;flex:1 1 auto;text-align:center}
+  .page-home .intro-title,.page-home .preview-copy h2{font-size:clamp(24px,7vw,34px)}
 }

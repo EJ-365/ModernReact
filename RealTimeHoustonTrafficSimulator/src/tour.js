@@ -715,7 +715,12 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         ew.style.display = '';
         const at = new Date(Date.now() + et * 1000 / Math.max(1, S.speedX));
         const e = hud.querySelector('#mEta');
-        if (e) e.textContent = Math.max(1, Math.round(et / 60)) + ' min · ' + at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        if (e) {
+          const clock = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          if (et < 25) e.textContent = 'Now · ' + clock;
+          else if (et < 105) e.textContent = Math.round(et) + 's · ' + clock;
+          else e.textContent = Math.round(et / 60) + ' min · ' + clock;
+        }
       } else if (ew) ew.style.display = 'none';
     } else {
       if (rw) rw.style.display = 'none';
@@ -731,14 +736,32 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function setView(v) {
     S.view = v; renderHud();
     window._followOff = { x: 0, z: 0 };
-    S.th0 = camGoal.theta;
     const car = S.kind === 'car';
-    if (v === 'orbit') { camGoal.radius = car ? 45 : 160; camGoal.phi = 1.1; }
-    if (v === 'chase') { camGoal.radius = car ? 14 : 45; camGoal.phi = 1.25; }
-    /* Plane Top stays modest — large radius put the cam inside the cumulus deck (white wash) */
-    if (v === 'top') { camGoal.radius = car ? 160 : 260; camGoal.phi = 0.1; }
-    if (v === 'driver' || v === 'cockpit' || v === 'side' || v === 'wing') camGoal.phi = 1.5;
-    S.ph0 = camGoal.phi;
+    if (v === 'orbit') {
+      /* Sync free-look spherical state from the live camera so applyCam doesn't yank */
+      const tx = S.p.x, ty = S.p.y, tz = S.p.z;
+      camGoal.target.set(tx, ty, tz);
+      cam.target.copy(camGoal.target);
+      const dx = camera.position.x - tx, dy = camera.position.y - ty, dz = camera.position.z - tz;
+      let r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (!Number.isFinite(r) || r < 1) r = car ? 45 : 160;
+      camGoal.radius = Math.min(car ? 140 : 520, Math.max(car ? 18 : 55, r));
+      cam.radius = camGoal.radius;
+      camGoal.theta = Math.atan2(dx, dz);
+      cam.theta = camGoal.theta;
+      const sp = Math.hypot(dx, dz);
+      camGoal.phi = Math.max(0.12, Math.min(1.42, Math.atan2(sp, Math.max(0.01, dy))));
+      cam.phi = camGoal.phi;
+      S.th0 = camGoal.theta;
+      S.ph0 = camGoal.phi;
+    } else {
+      S.th0 = camGoal.theta;
+      if (v === 'chase') { camGoal.radius = car ? 14 : 45; camGoal.phi = 1.25; }
+      /* Plane Top stays modest — large radius put the cam inside the cumulus deck (white wash) */
+      if (v === 'top') { camGoal.radius = car ? 160 : 260; camGoal.phi = 0.1; }
+      if (v === 'driver' || v === 'cockpit' || v === 'side' || v === 'wing') camGoal.phi = 1.5;
+      S.ph0 = camGoal.phi;
+    }
   }
 
   /* ---------- car routing over the live carriageway graph ---------- */
@@ -949,7 +972,9 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         S.trip0 = Math.hypot(dest.x - S.p.x, dest.z - S.p.z);
         S.flightT0 = performance.now();
         const cruiseKt = S.planeStyle === 'jet' ? 220 : 110;
-        S.flightEta0 = S.trip0 / (cruiseKt * KT) + 90;
+        /* Cruise + takeoff + short orbit + short-final approach (matches planeEtaSec) */
+        S.flightEta0 = S.trip0 / (cruiseKt * KT) + 28 + 22 + (S.planeStyle === 'jet' ? 55 : 85);
+        S._ga = 0;
       } else {
         S.p.set(cx, 600, cz); S.hd = cam.theta + Math.PI; S.v = 55; S.phase = 'free';
       }
@@ -1099,25 +1124,31 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const code = S.landApt || S.homeApt;
     const rw = pickRunway(code, S.p.x, S.p.z);
     if (!rw) { note('No runway data for ' + code + ' — pick another airport.'); return false; }
-    S.rw = rw; S.landNow = force;
+    S.rw = rw;
     const distRw = Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z);
-    /* Already near the field: skip the long FAF intercept and join final */
-    if (force && distRw < 9000) {
+    /* After landmark orbit (or Land now) we're already near the field — join short final.
+       The old always-toFaf path flew a 9 km intercept and looked like a respawn. */
+    if (distRw < 9500 || force) {
+      S.landNow = true;
       S.phase = 'final';
+      S.flare = 0;
       note('Short final · ' + rw.code + ' runway ' + rw.name + '.');
     } else {
+      S.landNow = force;
       S.phase = 'toFaf';
-      note((force ? 'Landing now' : 'Landing') + ' at ' + rw.code + ' runway ' + rw.name
+      note('Landing at ' + rw.code + ' runway ' + rw.name
         + (S.dest ? ' (for ' + S.dest.n + ')' : '') + '.');
     }
     return true;
   }
   function etaSec() {
     const P = S.route; if (!P) return null;
+    const rem = Math.max(0, P[P.length - 1].s - S.s);
+    if (rem < 2) return 0;
     let t = 0;
     const i0 = Math.max(1, (S._si || 0) + 1);
-    /* Sample every ~N points for speed; still realtime as you drive */
-    const step = Math.max(1, Math.floor((P.length - i0) / 180));
+    /* Denser sample so car ETA tracks curves / limits more closely */
+    const step = Math.max(1, Math.floor((P.length - i0) / 260));
     for (let i = i0; i < P.length; i += step) {
       const a = P[Math.max(i0 - 1, i - step)], b = P[i];
       const ds = b.s - a.s;
@@ -1126,10 +1157,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     const cur = Math.max(4.5, S.v || cruiseMps(P[Math.min(P.length - 1, S._si || 0)].ff, S.p.x, S.p.z));
     t += Math.max(0, (P[Math.min(P.length - 1, (S._si || 0) + 1)].s - S.s)) / cur;
-    /* Blend with “how long at current pace” so the HUD tracks live speed */
-    const rem = P[P.length - 1].s - S.s;
     const live = rem / Math.max(4.5, S.v || cur);
-    return t * 0.72 + live * 0.28;
+    /* Near the pin, trust live speed more */
+    const w = rem < 900 ? 0.55 : 0.3;
+    return t * (1 - w) + live * w;
   }
   function stepPlane(dt) {
     let wantHd = S.hd, wantY = S.p.y, wantV = S.v;
@@ -1190,30 +1221,31 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           const ax = rw.tx + ux * 220, az = rw.tz + uz * 220;
           const along = (S.p.x - ax) * ux + (S.p.z - az) * uz, xt = (S.p.x - ax) * uz - (S.p.z - az) * ux;
           if (S.phase === 'toFaf') {
-            const fafDist = S.landNow ? Math.min(7000, Math.max(2500, Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z) * 0.65)) : 9000;
+            const distToRw = Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z);
+            const fafDist = Math.min(S.landNow ? 7000 : 9000, Math.max(2200, distToRw * 0.68));
             const fx = rw.tx - ux * fafDist, fz = rw.tz - uz * fafDist;
             wantHd = Math.atan2(fx - S.p.x, fz - S.p.z);
             wantV = (jet ? 140 : 100) * KT; wantY = Math.max(800, Math.min(cruiseAlt, 1500)) * FT;
             const dFaf = Math.hypot(fx - S.p.x, fz - S.p.z);
-            if (dFaf < (S.landNow ? 700 : 900) || (along < -800 && along > -fafDist - 500 && Math.abs(xt) < (S.landNow ? 900 : 600))) {
+            if (dFaf < (S.landNow ? 700 : 900) || (along < -800 && along > -fafDist - 500 && Math.abs(xt) < (S.landNow ? 900 : 600)) || distToRw < 2800) {
               S.phase = 'final';
               S.flare = 0;
             }
-            S.remain = Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z);
+            S.remain = distToRw;
           } else {
             /* Smooth final: glide path + flare, no teleport on touchdown */
-            const kXt = S.landNow ? 0.0055 : 0.0032;
+            const kXt = S.landNow ? 0.006 : 0.0035;
             wantHd = Math.atan2(ax - S.p.x, az - S.p.z);
-            if (along > -5000 && Math.abs(xt) < 1400) wantHd = rw.hd + Math.max(-0.55, Math.min(0.55, xt * kXt));
+            if (along > -5000 && Math.abs(xt) < 1600) wantHd = rw.hd + Math.max(-0.55, Math.min(0.55, xt * kXt));
             /* Soft lateral nudge toward centerline while still airborne */
-            if (Math.abs(xt) < 180 && along > -4000) {
-              S.p.x -= xt * Math.min(0.35, dt * 0.55) * uz;
-              S.p.z += xt * Math.min(0.35, dt * 0.55) * ux;
+            if (Math.abs(xt) < 220 && along > -4500) {
+              S.p.x -= xt * Math.min(0.45, dt * 0.7) * uz;
+              S.p.z += xt * Math.min(0.45, dt * 0.7) * ux;
             }
             const gsY = Math.max(1.4, (-along) * Math.tan(3 * Math.PI / 180) + 1.4);
             const flareH = jet ? 28 : 18;
             if (S.p.y < flareH || gsY < flareH) {
-              S.flare = Math.min(1, (S.flare || 0) + dt * 0.55);
+              S.flare = Math.min(1, (S.flare || 0) + dt * 0.6);
               wantV = (jet ? 78 : 58) * KT * (1 - 0.12 * S.flare);
               wantY = 1.4 + (gsY - 1.4) * (1 - 0.72 * S.flare);
             } else {
@@ -1222,14 +1254,39 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
               wantY = gsY;
             }
             S.remain = Math.max(0, Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z));
-            const nearDeck = S.p.y <= 3.2 && along > -280 && Math.abs(xt) < 90;
-            const pastThresh = along > -40 && S.p.y < 8 && Math.abs(xt) < 120;
-            if (nearDeck || pastThresh) {
+            const nearDeck = S.p.y <= 4.8 && along > -380 && Math.abs(xt) < 150;
+            const pastThresh = along > -90 && S.p.y < 14 && Math.abs(xt) < 200;
+            const overDeck = along > 40 && along < rw.len * 0.95 && S.p.y < 32;
+            if (nearDeck || pastThresh || overDeck) {
               S.phase = 'rollout';
               S.landNow = false;
               S.flare = 0;
-              /* Keep current XY — only settle attitude/vertical; no jump */
-              S.vy = Math.min(S.vy, -0.4);
+              S.vy = Math.min(S.vy, -0.35);
+              if (Math.abs(xt) > 35) {
+                S.p.x -= xt * 0.55 * uz;
+                S.p.z += xt * 0.55 * ux;
+              }
+              S.p.y = Math.max(1.4, Math.min(S.p.y, 3.2));
+            } else if (along > rw.len + 350 && S.p.y > 10) {
+              /* Missed — one short go-around, then plant on second try */
+              if (!S._ga) {
+                S._ga = 1;
+                S.landNow = true;
+                S.phase = 'toFaf';
+                S.flare = 0;
+                note('Go-around · re-intercepting ' + rw.code + ' runway ' + rw.name + '.');
+              } else {
+                S.phase = 'parked';
+                S.landNow = false;
+                S.flare = 0;
+                S.v = 0; S.vy = 0; S.pitch = 0; S.roll = 0;
+                S.p.y = 1.4;
+                S.p.x = rw.tx + ux * (rw.len * 0.35);
+                S.p.z = rw.tz + uz * (rw.len * 0.35);
+                S.hd = rw.hd;
+                S.remain = 0;
+                note('Landed at ' + rw.code + ' runway ' + rw.name + ' (near ' + (S.dest ? S.dest.n : 'destination') + '). Pick another place to fly.');
+              }
             }
           }
         }
@@ -1300,6 +1357,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (ob) ob.visible = true;
       camera.up.copy(up0);
       if (camera.fov !== 55) { camera.fov = 55; camera.updateProjectionMatrix(); }
+      /* Lock free-look target to the aircraft — only theta/phi/radius lerp in applyCam */
+      cam.target.copy(camGoal.target);
       return;
     }
     cam.target.copy(camGoal.target);
@@ -1416,26 +1475,29 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function planeEtaSec() {
     if (S.kind !== 'plane' || S.mode !== 'tour') return null;
     if (S.phase === 'parked') return 0;
-    if (S.phase === 'rollout') return Math.max(0, S.v) / 3;
+    if (S.phase === 'rollout') return Math.max(2, Math.min(25, (S.v || 0) / 2.4));
+    const jet = S.acClass === 'jet';
+    /* Short-final approach after orbit (matches startLanding joining final when near) */
+    const apprSec = jet ? 55 : 85;
     if (S.phase === 'toFaf' || S.phase === 'final') {
-      const appr = (S.remain || 0) / Math.max(28, S.v || 65 * KT);
-      return appr + (S.phase === 'toFaf' ? 45 : 20);
+      const rem = S.remain || 0;
+      const v = Math.max(28, S.v || (jet ? 90 : 65) * KT);
+      return rem / v + (S.phase === 'toFaf' ? 22 : 10);
     }
-    if (S.phase === 'orbit') return Math.max(0, 22 - (S.orbT || 0)) + (S.acClass === 'jet' ? 100 : 160);
+    if (S.phase === 'orbit') return Math.max(0, 22 - (S.orbT || 0)) + apprSec;
     const dist = S.dest ? Math.hypot(S.dest.x - S.p.x, S.dest.z - S.p.z) : (S.remain || 0);
-    const cruise = (S.acClass === 'jet' ? 220 : 110) * KT;
-    const ground = Math.max(35, S.v || cruise) * Math.max(0.85, Math.cos(S.pitch || 0));
-    let t = dist / ground;
-    if (S.phase === 'roll') t += 35;
-    else if (S.phase === 'climb') t += 25;
-    else t += 18; /* pattern / landing buffer */
-    /* Blend with elapsed vs planned so ETA shrinks smoothly in realtime */
-    if (S.trip0 > 0 && S.flightEta0 > 0) {
-      const flown = Math.min(1, 1 - dist / S.trip0);
+    const cruise = (jet ? 220 : 110) * KT;
+    const ground = Math.max(40, Math.min(cruise, (S.v || cruise) * Math.max(0.85, Math.cos(S.pitch || 0))));
+    let t = dist / ground + 22 + apprSec;
+    if (S.phase === 'roll') t += 28;
+    else if (S.phase === 'climb') t += 16;
+    /* Light planned blend only en-route — freeze once circling / landing */
+    if ((S.phase === 'cruise' || S.phase === 'climb' || S.phase === 'roll') && S.trip0 > 0 && S.flightEta0 > 0) {
+      const flown = Math.min(1, Math.max(0, 1 - dist / S.trip0));
       const plannedLeft = Math.max(0, S.flightEta0 * (1 - flown));
-      t = t * 0.65 + plannedLeft * 0.35;
+      t = t * 0.78 + plannedLeft * 0.22;
     }
-    return t;
+    return Math.max(0, t);
   }
   function tourProgress() {
     if (S.mode !== 'tour') return 0;
