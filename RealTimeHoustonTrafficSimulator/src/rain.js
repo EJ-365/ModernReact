@@ -143,10 +143,12 @@ export function createRainSystem(deps) {
       if (!m.userData._baseEm) m.userData._baseEm = m.emissive ? m.emissive.getHex() : 0x232529;
       if (!m.userData._baseEmI) m.userData._baseEmI = m.emissiveIntensity || 0;
       const w = clamp(wet, 0, 1);
+      m.userData._wetBusy = w > 0.08;
       m.color.setScalar(1 - 0.32 * w);
       if (m.emissive) {
-        m.emissive.setHex(w > 0.12 ? 0x1a2838 : m.userData._baseEm);
-        m.emissiveIntensity = m.userData._baseEmI + w * 0.38 + nightF * 0.18;
+        m.emissive.setHex(w > 0.12 ? 0x141c24 : m.userData._baseEm);
+        /* Cap wet emissive — was flaring / glittering asphalt at night */
+        m.emissiveIntensity = m.userData._baseEmI + w * 0.16 + nightF * w * 0.06;
       }
     }
   }

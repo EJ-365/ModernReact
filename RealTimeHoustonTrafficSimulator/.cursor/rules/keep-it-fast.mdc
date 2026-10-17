@@ -1,0 +1,23 @@
+---
+description: Prefer performance when changing this traffic sim — keep FPS high on every change.
+alwaysApply: true
+---
+
+# Keep it fast
+
+Whenever you add or change features in this project, treat frame rate as a first-class requirement (especially on Windows).
+
+## Do
+
+- Prefer `MeshLambertMaterial` / `MeshBasicMaterial` over `MeshStandardMaterial` unless a single hero mesh truly needs it
+- Reuse materials and geometries; avoid allocating new mats/geos per frame
+- Cap decorative extras (escorts, particles, lights, window meshes) — fewer, cheaper instances
+- Use simpler LOD / low-poly for background or escort vehicles; detail only on the player vehicle
+- Avoid per-frame `traverse`, material dispose thrash, and unnecessary lights (PointLights are expensive)
+- After visual upgrades, immediately trim cost (counts, segments, transparency, shadows)
+
+## Don't
+
+- Don't add dozens of transparent Standard-material panes "for realism" without a cheap path
+- Don't spawn heavy full-detail meshes for AI/escort traffic
+- Don't leave performance for a follow-up — optimize in the same change

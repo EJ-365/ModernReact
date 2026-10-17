@@ -254,6 +254,188 @@ function setupParallax() {
   );
 }
 
+function setupPreview() {
+  const stage = document.querySelector("[data-preview-stage]");
+  const hint = $("previewHint");
+  const badge = $("previewBadge");
+  const clock = $("previewClock");
+  const frame = document.querySelector("[data-peek-frame]");
+  const modes = document.querySelectorAll("[data-peek]");
+  if (!stage || !modes.length) return;
+
+  const copy = {
+    traffic: {
+      hint: "Live 3D beltways — same OSM roads as the full sim, cars already moving.",
+      badge: "Live traffic",
+    },
+    tour: {
+      hint: "Street-level downtown — the view Tour Houston uses when you pick a pin.",
+      badge: "Tour view",
+    },
+    flight: {
+      hint: "Over IAH — approach corridors and the sky you’ll fly in the full sim.",
+      badge: "Flight view",
+    },
+  };
+
+  const keys = ["traffic", "tour", "flight"];
+  let i = 0;
+  let timer = 0;
+  let peekReady = false;
+  let pendingMode = "traffic";
+  let visible = false;
+  let unloadTimer = 0;
+  /* Cache-bust so the homepage iframe picks up the latest peek build */
+  const PEEK_SRC = "/app.html?peek=1&v=103117";
+
+  const postPeek = (payload) => {
+    if (!frame || !frame.contentWindow) return;
+    try {
+      frame.contentWindow.postMessage(
+        { type: "hts-peek", ...payload },
+        location.origin
+      );
+    } catch (e) {}
+  };
+
+  const setPaused = (paused) => {
+    if (!peekReady) return;
+    postPeek({ pause: !!paused, mode: pendingMode });
+  };
+
+  const apply = (key) => {
+    pendingMode = key;
+    stage.dataset.mode = key;
+    modes.forEach((btn) => {
+      const on = btn.getAttribute("data-peek") === key;
+      btn.classList.toggle("on", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    const c = copy[key] || copy.traffic;
+    if (hint) hint.textContent = c.hint;
+    if (badge) badge.textContent = c.badge;
+    if (peekReady && visible) postPeek({ mode: key, pause: false });
+  };
+
+  const tickClock = () => {
+    if (!clock) return;
+    try {
+      const t = new Date().toLocaleTimeString("en-US", {
+        timeZone: "America/Chicago",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      clock.textContent = `Houston · ${t}`;
+    } catch (e) {
+      clock.textContent = "Houston · live";
+    }
+  };
+
+  const loadPeek = () => {
+    if (!frame) return;
+    if (unloadTimer) {
+      clearTimeout(unloadTimer);
+      unloadTimer = 0;
+    }
+    if (frame.dataset.loaded === "1") {
+      setPaused(false);
+      return;
+    }
+    frame.dataset.loaded = "1";
+    peekReady = false;
+    stage.classList.remove("is-live");
+    frame.src = PEEK_SRC;
+  };
+
+  const unloadPeek = () => {
+    if (!frame || frame.dataset.loaded !== "1") return;
+    setPaused(true);
+    /* Grace period so scroll-back doesn’t cold-boot every time */
+    unloadTimer = setTimeout(() => {
+      unloadTimer = 0;
+      if (visible) return;
+      try {
+        frame.src = "about:blank";
+      } catch (e) {}
+      frame.dataset.loaded = "0";
+      peekReady = false;
+      stage.classList.remove("is-live");
+    }, 12000);
+  };
+
+  if (frame) {
+    window.addEventListener("message", (e) => {
+      if (e.origin !== location.origin || !e.data || e.data.type !== "hts-peek-ready")
+        return;
+      peekReady = true;
+      stage.classList.add("is-live");
+      postPeek({ mode: pendingMode, pause: !visible });
+    });
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const ent of entries) {
+            visible = ent.isIntersecting && ent.intersectionRatio > 0.08;
+            if (visible) {
+              loadPeek();
+              setPaused(false);
+            } else if (frame.dataset.loaded === "1") {
+              unloadPeek();
+            }
+          }
+        },
+        { rootMargin: "160px 0px", threshold: [0, 0.08, 0.25] }
+      );
+      io.observe(stage);
+    } else {
+      visible = true;
+      loadPeek();
+    }
+  }
+
+  const restartCycle = () => {
+    if (prefersReducedMotion()) return;
+    if (timer) clearInterval(timer);
+    timer = setInterval(() => {
+      i = (i + 1) % keys.length;
+      apply(keys[i]);
+    }, 5600);
+  };
+
+  modes.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-peek");
+      i = Math.max(0, keys.indexOf(key));
+      apply(key);
+      restartCycle();
+    });
+  });
+
+  apply("traffic");
+  tickClock();
+  setInterval(tickClock, 15000);
+  restartCycle();
+
+  stage.addEventListener("mouseenter", () => {
+    if (timer) {
+      clearInterval(timer);
+      timer = 0;
+    }
+    if (visible) {
+      loadPeek();
+      postPeek({ mode: pendingMode, pause: false });
+    }
+  });
+  stage.addEventListener("mouseleave", () => {
+    restartCycle();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) setPaused(true);
+    else if (visible) setPaused(false);
+  });
+}
+
 setupNav();
 setupInstall();
 registerSW();
@@ -261,3 +443,4 @@ setupStars();
 setupReveal();
 setupCounters();
 setupParallax();
+setupPreview();

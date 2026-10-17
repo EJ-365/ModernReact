@@ -41,20 +41,25 @@ function makeMaterials() {
     for (let i = 0; i < 14; i++) { g.beginPath(); g.moveTo(rnd() * w, rnd() * h); g.lineTo(rnd() * w, rnd() * h); g.stroke(); }
   });
   const dash = canvasTex(4, 64, (g) => { g.fillStyle = '#000'; g.fillRect(0, 0, 4, 64); g.fillStyle = '#fff'; g.fillRect(0, 0, 4, 16); });
+  /* Soft concrete — low-contrast grit (bright speckles caused night “glitter” under city fill) */
   const concrete = canvasTex(128, 128, (g, w, h) => {
-    g.fillStyle = '#b9b7b0'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 2500; i++) { const v = 160 + rnd() * 50 | 0; g.fillStyle = `rgb(${v},${v - 2},${v - 6})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); }
-    g.fillStyle = 'rgba(70,70,70,0.25)'; g.fillRect(0, h - 6, w, 6);
+    g.fillStyle = '#7a7872'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1400; i++) {
+      const v = 110 + rnd() * 28 | 0;
+      g.fillStyle = `rgb(${v},${v - 1},${v - 4})`;
+      g.fillRect(rnd() * w, rnd() * h, 1 + (rnd() * 2 | 0), 1);
+    }
+    g.fillStyle = 'rgba(40,40,40,0.28)'; g.fillRect(0, h - 6, w, 6);
   });
   const po = { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 };
   return {
-    surface: new THREE.MeshLambertMaterial({ map: asphalt, vertexColors: true }),
-    deck: new THREE.MeshLambertMaterial({ map: concrete, color: 0xc4c2bb, side: THREE.DoubleSide }),
-    under: new THREE.MeshLambertMaterial({ color: 0x77766f, side: THREE.DoubleSide }),
+    surface: new THREE.MeshLambertMaterial({ map: asphalt, vertexColors: true, emissive: 0x000000, emissiveIntensity: 0 }),
+    deck: new THREE.MeshLambertMaterial({ map: concrete, color: 0x8e8c86, side: THREE.DoubleSide }),
+    under: new THREE.MeshLambertMaterial({ color: 0x5c5b56, side: THREE.DoubleSide }),
     lineW: new THREE.MeshBasicMaterial({ color: 0xe6e6e0, ...po }),
     lineY: new THREE.MeshBasicMaterial({ color: 0xe0b12c, ...po }),
     dashW: new THREE.MeshBasicMaterial({ color: 0xe6e6e0, alphaMap: dash, alphaTest: 0.5, ...po }),
-    pier: new THREE.MeshLambertMaterial({ map: concrete, color: 0xbab8b0 }),
+    pier: new THREE.MeshLambertMaterial({ map: concrete, color: 0x85837d }),
     berm: new THREE.MeshLambertMaterial({ color: 0x6f8a4f, side: THREE.DoubleSide }),
   };
 }
@@ -332,7 +337,8 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
   let busy = false;
   /** Lane paint only near the camera (it is most of the triangles and sub-pixel far away). */
   function lod(camX, camZ, camDist) {
-    const lim = (camDist < 6000 * k ? 2600 : 0) * k;
+    /* Hide lane paint early — at city overview BasicMat dashes become night glitter */
+    const lim = (camDist < 2800 * k ? 1600 : 0) * k;
     for (let i = paint.length - 1; i >= 0; i--) {
       const m = paint[i];
       if (!m.parent) { paint.splice(i, 1); continue; }

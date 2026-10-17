@@ -20,11 +20,18 @@ function facadeCanvas(kind, night, bays, floors) {
   c.width = c.height = S;
   const x = c.getContext('2d');
   const bw = S / bays, fh = S / floors;
-  if (night) { x.fillStyle = '#000'; x.fillRect(0, 0, S, S); }
-  else {
+  if (night) {
+    /* Soft slate wash — Google-Maps night massing, not pure black voids */
+    x.fillStyle = '#1a222c'; x.fillRect(0, 0, S, S);
+    const wash = x.createLinearGradient(0, 0, 0, S);
+    wash.addColorStop(0, 'rgba(255,200,140,0.08)');
+    wash.addColorStop(1, 'rgba(80,110,140,0.05)');
+    x.fillStyle = wash; x.fillRect(0, 0, S, S);
+  } else {
     x.fillStyle = kind === 'glass' ? '#c9d3dc' : kind === 'stone' ? '#f1ece2' : '#efe8dc';
     x.fillRect(0, 0, S, S);
   }
+  if (night) { x.shadowColor = 'rgba(255,190,110,0.45)'; x.shadowBlur = 5; }
   for (let f = 0; f < floors; f++) {
     for (let b = 0; b < bays; b++) {
       const r = hash(f * 97 + b * 13 + (kind === 'glass' ? 7 : kind === 'stone' ? 11 : 3));
@@ -33,12 +40,13 @@ function facadeCanvas(kind, night, bays, floors) {
       else if (kind === 'stone') { wx = b * bw + bw * 0.2; ww = bw * 0.6; wy = f * fh + fh * 0.22; wh = fh * 0.58; }
       else { wx = b * bw + bw * 0.26; ww = bw * 0.48; wy = f * fh + fh * 0.28; wh = fh * 0.48; }
       if (night) {
-        const litP = kind === 'low' ? 0.26 : 0.4;
-        if (r < litP) {
-          const warm = hash(f * 31 + b * 7) < 0.78;
-          x.fillStyle = warm ? '#f2d18e' : '#bcd4ec';
-          x.globalAlpha = 0.45 + hash(f + b * 101) * 0.45;
-          x.fillRect(wx, wy, ww, wh);
+        const floorLit = hash(f * 17 + (kind === 'glass' ? 3 : 5)) < (kind === 'low' ? 0.42 : 0.34);
+        const litP = kind === 'low' ? 0.34 : kind === 'glass' ? 0.3 : 0.32;
+        if (floorLit && r < litP) {
+          const warm = hash(f * 31 + b * 7) < 0.55;
+          x.fillStyle = warm ? '#ffd090' : '#c0d4e8';
+          x.globalAlpha = 0.52 + hash(f + b * 101) * 0.35;
+          x.fillRect(wx + 1, wy + 1, ww - 2, wh - 2);
           x.globalAlpha = 1;
         }
       } else {
@@ -57,6 +65,7 @@ function facadeCanvas(kind, night, bays, floors) {
     }
     if (!night && kind === 'glass') { x.fillStyle = 'rgba(40,52,64,0.55)'; x.fillRect(0, f * fh, S, fh * 0.14); }
   }
+  if (night) x.shadowBlur = 0;
   if (!night && kind === 'glass') {
     x.fillStyle = 'rgba(235,242,248,0.5)';
     for (let b = 0; b <= bays; b++) x.fillRect(b * bw - 1, 0, 2, S);
@@ -81,11 +90,11 @@ function makeMaterials(aniso) {
     const [bays, floors] = spec[k];
     const map = tex(facadeCanvas(k, false, bays, floors), aniso);
     const em = tex(facadeCanvas(k, true, bays, floors), aniso);
-    out[k] = k === 'glass'
-      ? new THREE.MeshPhongMaterial({ map, emissiveMap: em, emissive: new THREE.Color(0xe8d4b0), emissiveIntensity: 0,
-        vertexColors: true, shininess: 80, specular: 0x6c7c8c })
-      : new THREE.MeshLambertMaterial({ map, emissiveMap: em, emissive: new THREE.Color(0xe0c898), emissiveIntensity: 0, vertexColors: true });
-    out[k].userData._shin = out[k].shininess;
+    out[k] = new THREE.MeshLambertMaterial({
+      map, emissiveMap: em, emissive: new THREE.Color(k === 'glass' ? 0xe8c898 : 0xe0b878),
+      emissiveIntensity: 0, vertexColors: true,
+    });
+    out[k].userData._shin = 0;
   }
   out.roof = new THREE.MeshLambertMaterial({ vertexColors: true });
   return out;

@@ -19,8 +19,8 @@ function poleGeometry(h, arm) {
 }
 function headGeometry(h, arm) {
   const parts = [];
-  if (!arm) { const g = new THREE.CylinderGeometry(0.32, 0.22, 0.6, 6); g.translate(0, h + 0.2, 0); parts.push(g); }
-  for (const sd of arm === 2 ? [1, -1] : arm ? [1] : []) { const g = new THREE.BoxGeometry(0.42, 0.2, 0.9); g.translate(0, h - 0.25, sd * 2.55); parts.push(g); }
+  if (!arm) { const g = new THREE.CylinderGeometry(0.38, 0.26, 0.7, 6); g.translate(0, h + 0.25, 0); parts.push(g); }
+  for (const sd of arm === 2 ? [1, -1] : arm ? [1] : []) { const g = new THREE.BoxGeometry(0.5, 0.24, 1.05); g.translate(0, h - 0.25, sd * 2.55); parts.push(g); }
   return mergeSimple(parts);
 }
 function mergeSimple(geos) {
@@ -41,20 +41,20 @@ function mergeSimple(geos) {
 export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url = '/data/houston/streetlights.json', range = 5200 }) {
   const root = new THREE.Group(); root.name = 'houston-streetlights'; parent.add(root);
   const poleMat = new THREE.MeshLambertMaterial({ color: 0x6d7378 });
-  const headMat = new THREE.MeshBasicMaterial({ color: 0x8a8f94 });
+  const headMat = new THREE.MeshBasicMaterial({ color: 0x8a8f94, transparent: true, opacity: 1, depthWrite: false });
   const poolTex = (() => {
     const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
     const g = x.createRadialGradient(32, 32, 1, 32, 32, 31);
-    g.addColorStop(0, 'rgba(255,214,150,0.75)'); g.addColorStop(0.35, 'rgba(255,196,120,0.22)'); g.addColorStop(0.7, 'rgba(255,190,110,0.05)'); g.addColorStop(1, 'rgba(255,190,110,0)');
+    g.addColorStop(0, 'rgba(255,220,160,0.85)'); g.addColorStop(0.3, 'rgba(255,200,120,0.35)'); g.addColorStop(0.65, 'rgba(255,190,110,0.1)'); g.addColorStop(1, 'rgba(255,190,110,0)');
     x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
   })();
-  const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0, blending: THREE.NormalBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
   const poolGeo = new THREE.PlaneGeometry(1, 1); poolGeo.rotateX(-Math.PI / 2);
   const KINDS = [
-    { h: 12, arm: 1 }, /* cobra-head on freeway/arterial edge */
-    { h: 13, arm: 2 }, /* twin-arm median pole */
-    { h: 8.5, arm: 1 }, /* neighbourhood street */
-    { h: 4.2, arm: 0 }, /* mapped post-top lamp */
+    { h: 12, arm: 1 },
+    { h: 13, arm: 2 },
+    { h: 8.5, arm: 1 },
+    { h: 4.2, arm: 0 },
   ].map((k) => ({ ...k, pg: poleGeometry(k.h, k.arm), hg: headGeometry(k.h, k.arm) }));
   const cells = new Map();
   const taken = new Set();
@@ -126,24 +126,41 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
     stats.cells = cells.size;
     return stats;
   });
-  let lastX = 1e9, lastZ = 1e9, night = 0;
-  const day = new THREE.Color(0x8a8f94), warm = new THREE.Color(0xffd9a0);
+  let lastX = 1e9, lastZ = 1e9, night = 0, wasNight = false;
+  const day = new THREE.Color(0x8a8f94), warm = new THREE.Color(0xffe0a8);
   function update(nightF, camPos, camR) {
     night = nightF;
-    headMat.color.copy(day).lerp(warm, Math.min(1, nightF * 1.4));
-    poolMat.opacity = nightF * 0.5;
-    const far = camR != null && camR > 9000;
+    const r = camR != null ? camR : 0;
+    /* Lit through freeway / district views; only fade at huge city overview */
+    const zoomFade = r < 2400 ? 1 : r > 5200 ? 0.08 : 1 - (r - 2400) / 2800 * 0.92;
+    const onNight = nightF > 0.12;
+    headMat.color.copy(day).lerp(warm, onNight ? Math.min(1, nightF * 1.5) : 0);
+    headMat.opacity = onNight ? (0.65 + nightF * 0.35) * zoomFade : 0.9;
+    poolMat.opacity = onNight ? nightF * 0.42 * zoomFade : 0;
+    const far = r > 6000;
     root.visible = !far;
     if (far || !camPos) return;
-    if (Math.hypot(camPos.x - lastX, camPos.z - lastZ) < 300) return;
-    lastX = camPos.x; lastZ = camPos.z;
-    let v = 0;
-    for (const c of cells.values()) {
-      const on = Math.hypot(c.x - camPos.x, c.z - camPos.z) < range;
-      if (on && !c.g) build(c);
-      if (c.g) { c.g.visible = on; if (on) { v++; c.g.userData.pool.visible = night > 0.05; } }
+    const cellR = range * (0.75 + 0.25 * zoomFade);
+    const moved = Math.hypot(camPos.x - lastX, camPos.z - lastZ) >= 200;
+    const rangeChanged = Math.abs((root.userData._cellR || 0) - cellR) >= 120;
+    const nightFlip = onNight !== wasNight;
+    if (moved || rangeChanged || nightFlip || !root.userData._built) {
+      lastX = camPos.x; lastZ = camPos.z; root.userData._cellR = cellR;
+      root.userData._built = true; wasNight = onNight;
+      let v = 0;
+      for (const c of cells.values()) {
+        const near = Math.hypot(c.x - camPos.x, c.z - camPos.z) < cellR;
+        if (near && !c.g) build(c);
+        if (c.g) {
+          c.g.visible = near;
+          if (near) {
+            v++;
+            c.g.userData.pool.visible = onNight && zoomFade > 0.08;
+          }
+        }
+      }
+      stats.visibleCells = v;
     }
-    stats.visibleCells = v;
   }
   return { root, ready, update, stats };
 }

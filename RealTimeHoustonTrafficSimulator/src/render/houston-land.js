@@ -74,7 +74,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
   const geos = makeTreeGeos();
   const mats = {
     land: new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
-    water: new THREE.MeshPhongMaterial({ color: LAND.water.c, specular: 0x24343e, shininess: 40, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
+    water: new THREE.MeshLambertMaterial({ color: LAND.water.c, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
     crown: new THREE.MeshLambertMaterial({ color: 0xffffff }),
     trunk: new THREE.MeshLambertMaterial({ color: 0x5a4632 }),
     body: new THREE.MeshLambertMaterial({ color: 0xffffff }),
@@ -97,6 +97,26 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     return m;
   }).catch(() => new Map()));
   const ready = fetch(base + 'tiles/index.json').then((r) => r.json()).then((d) => { index = d; index.land = new Set(d.layers.land); index.local = new Set(d.layers.local || []); index.minor = new Set(d.layers.minor || []); return d; });
+
+  /**
+   * Drop sprawling OSM “water” that floods neighborhoods (e.g. Magnolia Park /
+   * East End tagged as riverbank/ship-channel). Real ponds & compact lakes stay;
+   * long channels still draw from waterways ribbons.
+   */
+  function isSpuriousWater(outer) {
+    if (!outer || outer.length < 6) return true;
+    const A = Math.abs(ringArea(outer));
+    if (A < 350000) return false; /* ponds / turning basins OK */
+    if (A > 5e6) return false; /* keep large lakes / bay chunks */
+    const [x0, z0, x1, z1] = bbox(outer);
+    const bw = x1 - x0, bh = z1 - z0;
+    const boxA = Math.max(1, bw * bh);
+    const fill = A / boxA;
+    /* sprawling ship-channel mis-tags: huge bbox, low fill fraction */
+    if ((bw > 2000 || bh > 2000) && fill < 0.45) return true;
+    if (A > 800000 && fill < 0.35) return true;
+    return false;
+  }
 
   function polyTris(poly, y, col, P, C, I) {
     const outer = poly[0];
@@ -165,15 +185,21 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       const spec = LAND[cls];
       /* each entry is one OSM area: a list of polygons, each [outerRing, ...holeRings] */
       for (const poly of multis.flat(1)) {
-        if (cls === 'water') polyTris(poly, spec.y * k, col.setHex(spec.c), WP, [], WI);
-        else { col.setHex(spec.c).offsetHSL(0, 0, (hash(poly[0].length * 977 + (poly[0][0] | 0)) - 0.5) * 0.06); polyTris(poly, spec.y * k, col, P, C, I); }
+        if (cls === 'water') {
+          if (isSpuriousWater(poly[0])) continue; /* Magnolia Park / East End flood fix */
+          polyTris(poly, spec.y * k, col.setHex(spec.c), WP, [], WI);
+        } else {
+          col.setHex(spec.c).offsetHSL(0, 0, (hash(poly[0].length * 977 + (poly[0][0] | 0)) - 0.5) * 0.06);
+          polyTris(poly, spec.y * k, col, P, C, I);
+        }
         if (cls === 'residential') resid.add(poly);
         else if (NO_HOUSE[cls]) block.add(poly);
         if (TREE_DENS[cls]) treeAreas.push([cls, poly]);
         await yieldIf(st);
       }
     }
-    for (const wl of d.waterways || []) ribbon(wl.p, wl.w, LAND.water.y * k + 0.01 * k, WP, WI);
+    /* Cap waterway ribbon width — OSM sometimes marks canal width as neighborhood-wide */
+    for (const wl of d.waterways || []) ribbon(wl.p, Math.min(wl.w || 8, 48), LAND.water.y * k + 0.01 * k, WP, WI);
     for (const rl of d.rail || []) ribbon(rl.p, 3.4, 0.13 * k, RP, RI);
     for (const m of [mesh(P, I, mats.land, C), mesh(WP, WI, mats.water), mesh(RP, RI, mats.rail)]) if (m) g.add(m);
     return { g, resid, block, treeAreas };

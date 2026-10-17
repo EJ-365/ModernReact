@@ -395,12 +395,33 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
   function tick(dt, camX, camZ, camR) {
     simT += dt;
     if (simT - lastAct > 0.5 || lastAct < 0) { lastAct = simT; activate(camX, camZ, camR); }
-    const n = Math.max(1, Math.ceil(dt / 0.05)), h = dt / n;
+    /* Slightly coarser substeps under load — still stable IDM, fewer CPU passes */
+    const stepMs = total > 1800 ? 0.07 : 0.055;
+    const n = Math.max(1, Math.ceil(dt / stepMs)), h = dt / n;
     for (let j = 0; j < n; j++) simulate(h);
     stats.cars = total;
   }
-  function forEach(cb, dt = 0.016) {
-    for (const c of active) for (const lane of c.lanes) for (const car of lane) { place(car, dt); cb(car); }
+  function forEach(cb, dt = 0.016, opts) {
+    const cx = opts && opts.cx, cz = opts && opts.cz, r2 = opts && opts.r2;
+    const cull = r2 != null && cx != null && cz != null;
+    /* Carriageway bbox is in road metres; camera is world — match activate() */
+    const mx = cull ? (cx - offset) / k + offset : 0;
+    const mz = cull ? (cz - offset) / k + offset : 0;
+    const rr2 = cull ? r2 / (k * k) : 0;
+    for (const c of active) {
+      if (cull) {
+        const dx = Math.max(c.x0 - mx, 0, mx - c.x1), dz = Math.max(c.z0 - mz, 0, mz - c.z1);
+        if (dx * dx + dz * dz > rr2) continue;
+      }
+      for (const lane of c.lanes) for (const car of lane) {
+        place(car, dt);
+        if (cull) {
+          const dx = car._px - cx, dz = car._pz - cz;
+          if (dx * dx + dz * dz > r2) continue;
+        }
+        cb(car);
+      }
+    }
   }
   /* what the simulated cars are actually doing near (x,z): speed as a share of free-flow */
   function speedNear(x, z, r) {

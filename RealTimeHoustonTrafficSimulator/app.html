@@ -7,6 +7,7 @@
 <meta name="description" content="Live 3D Houston metro simulator: traffic, weather, flights, hazard predictions. Created by Ejay Gabriel.">
 <meta name="author" content="Ejay Gabriel">
 <meta name="theme-color" content="#0c0a08">
+<script>if(/[?&]peek=1(?:&|$)/.test(location.search))document.documentElement.classList.add('hts-peek');</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -814,7 +815,8 @@
       background:#1c1612;color:#a89888;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}
     #mTabs button.on{background:#2a1e14;border-color:rgba(224,122,46,.45);color:var(--amber)}
     #panel .grp{display:none;margin-bottom:14px}
-    body.m-tab-go #tourLocGrp{display:block}
+    body.m-tab-go #tourLocGrp,
+    body.m-tab-go #tourRouteGrp{display:block}
     body.m-tab-live #tourFlightGrp,
     body.m-tab-live #tourBoardGrp{display:block}
     body.m-tab-more #tourTimeGrp,
@@ -911,6 +913,22 @@
 #loading .lplane svg{width:100%;height:auto;display:block;overflow:visible}
 @keyframes lfly{0%{transform:translate(-20vw,0)}100%{transform:translate(118vw,6vh)}}
 @media (prefers-reduced-motion:reduce){#loading .lscene *,#loading .lbar>i{animation:none!important}}
+  /* Homepage iframe peek — canvas only */
+  html.hts-peek,html.hts-peek body{background:#0c0a08}
+  html.hts-peek #leftCol,html.hts-peek #panel,html.hts-peek #bottomDock,
+  html.hts-peek #locBtn,html.hts-peek #followChip,html.hts-peek #poiCard,
+  html.hts-peek #geoToast,html.hts-peek #compass,html.hts-peek #vignette,
+  html.hts-peek #mChrome,html.hts-peek #mGoFab,html.hts-peek #mLiveFab,
+  html.hts-peek #mMoreFab,html.hts-peek #mMapFab,html.hts-peek #mHud,
+  html.hts-peek #mHudLoc,html.hts-peek #mHudChip,html.hts-peek #mSheetScrim,
+  html.hts-peek #mTabs,html.hts-peek #tourRoot,html.hts-peek #tourHud,
+  html.hts-peek #tourHudPeek,html.hts-peek #ytPop,html.hts-peek #whereami,
+  html.hts-peek #rightRailToggle,html.hts-peek #leftRailToggle,
+  html.hts-peek .panelCollapseBtn{display:none!important}
+  html.hts-peek #loading{background:#120e0c}
+  html.hts-peek #loading .lplane,html.hts-peek #loading .lcopy .lsign,
+  html.hts-peek #loading .lsub{display:none}
+  html.hts-peek #scene{cursor:default}
 </style>
 </head>
 <body>
@@ -1161,15 +1179,39 @@
       <option value="freeway">Freeway level — I-10 @ 610</option>
     </select>
   </div>
+  <div class="grp" id="tourRouteGrp">
+    <label>Route planner</label>
+    <div class="sublabel">Same places as Fly to district. Snaps to real OSM roads, then offers an alternate when a corridor is jammed.</div>
+    <label class="mini" for="routeFrom" style="margin-top:4px;letter-spacing:.08em">From</label>
+    <select id="routeFrom"><option value="me">My location (GPS)</option><option value="cam">Map centre</option></select>
+    <label class="mini" for="routeTo" style="margin-top:8px;letter-spacing:.08em">To</label>
+    <select id="routeTo"><option value="">Loading places…</option></select>
+    <div class="btnrow" style="margin-top:8px">
+      <button type="button" class="btn on" id="routePlan">Plan route</button>
+      <button type="button" class="btn" id="routeAlt" style="display:none" disabled>Avoid traffic</button>
+      <button type="button" class="btn" id="routeClear">Clear</button>
+      <button type="button" class="btn" id="routeDrive" disabled>Drive it</button>
+    </div>
+    <div class="sublabel" id="routeEta" style="margin-top:8px">Pick From / To, then Plan route.</div>
+  </div>
   <div class="grp" id="tourRideGrp">
     <label>Tour Houston</label>
     <div class="btnrow" id="tourVeh"><button type="button" class="btn on" data-veh="car">By car</button><button type="button" class="btn" data-veh="plane">By plane</button></div>
     <select id="tourDest" style="margin-top:6px"><option value="">Loading places…</option></select>
-    <div class="btnrow" style="margin-top:6px"><button type="button" class="btn" id="tourGo">Start tour</button><button type="button" class="btn" id="tourFree">Free drive</button></div>
-    <div class="sublabel" id="tourNote" style="margin-top:6px">Car: Start tour drives real OSM roads to your pick. Plane: takes off nearby, flies over the place, then lands at the nearest airport to that destination. Keys 1–5 camera · Esc exit.</div>
+    <div class="btnrow" style="margin-top:6px">
+      <button type="button" class="btn" id="tourGo">Start tour</button>
+      <button type="button" class="btn" id="tourSurprise" title="Random Houston landmark">Surprise me</button>
+      <button type="button" class="btn" id="tourFree">Free drive</button>
+    </div>
+    <div class="sublabel" id="tourNote" style="margin-top:6px">Car: real OSM roads to your pick. Plane: takeoff → cruise → orbit → land near the destination. Tap Music in the tour HUD for 60+ YouTube hits. Keys 1–5 camera · H hide panel · Esc exit.</div>
   </div>
   <div class="grp" id="tourTimeGrp">
     <label>Time of day</label>
+    <div class="sublabel" style="margin-bottom:6px">Whole-city time-lapse (not flights) — jumps the sim clock + weather.</div>
+    <div class="btnrow" id="lapsePresets" aria-label="Time-lapse presets" style="margin-bottom:8px">
+      <button type="button" class="btn" data-lapse="monday" title="Sim clock → Mon-style 7:30 AM rush, 5 min/s">Rush 7:30 AM</button>
+      <button type="button" class="btn" data-lapse="friday" title="Sim clock → 5:00 PM peak, 5 min/s">Rush 5:00 PM</button>
+    </div>
     <select id="todSelect">
       <option value="live" selected>● Live — real local time</option>
       <option value="preview">Time preview</option>

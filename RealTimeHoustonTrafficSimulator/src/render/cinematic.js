@@ -34,10 +34,11 @@ export function createCinematic(opts) {
 
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
-  renderer.shadowMap.autoUpdate = true;
+  /* Only rebuild the shadow map when the view moves — big free FPS when parked */
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
   /* Tone mapping moves to OutputPass when composer is active */
   const hadTone = renderer.toneMapping;
-  const hadExposure = renderer.toneMappingExposure;
 
   /* Soft studio env — quieter for Austin clay (F4 is lit by sun + soft AO, not HDRI glass) */
   let envMap = null;
@@ -53,7 +54,10 @@ export function createCinematic(opts) {
   }
 
   sun.castShadow = true;
-  sun.shadow.mapSize.set(isAus ? 3072 : 2048, isAus ? 3072 : 2048);
+  /* Windows: smaller shadow map = faster first frame + steadier FPS */
+  const _win = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
+  const shadowRes = _win ? 1024 : (isAus ? 3072 : 2048);
+  sun.shadow.mapSize.set(shadowRes, shadowRes);
   sun.shadow.bias = -0.00015;
   sun.shadow.normalBias = 2.0;
   sun.shadow.radius = isAus ? 3.8 : 2.5;
@@ -115,6 +119,7 @@ export function createCinematic(opts) {
   let shadowsOn = false;
   let ssaoOn = false;
   let ssaoBudget = false;
+  let _shTx = 1e9, _shTz = 1e9, _shR = -1;
 
   function markShadowCasters(root) {
     if (!root) return;
@@ -137,25 +142,28 @@ export function createCinematic(opts) {
     const radius = (camState && camState.radius) || 4000;
     const tx = (camState && camState.target && camState.target.x) || 0;
     const tz = (camState && camState.target && camState.target.z) || 0;
+    const altY = camera.position.y || 0;
     const perfOk = fpsAvg == null || fpsAvg > 38;
     /* SSAO re-draws the whole scene for its normal pass (2× draw calls): only on a proven-fast GPU,
        with hysteresis so it never flickers on/off */
     if (fpsAvg != null) ssaoBudget = ssaoOn ? fpsAvg > 46 : fpsAvg > 55;
-    /* Austin metro view is more oblique — keep soft shadows farther out */
-    const wantShadow = radius < (isAus ? 4200 : 2400) && nightF < 0.85 && perfOk;
-    const wantSsao = useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
+    /* Aerial / plane cruise: drop shadows+SSAO — huge overdraw at altitude, little visual gain */
+    const aerial = altY > 380;
+    const wantShadow = !aerial && radius < (isAus ? 4200 : 2400) && nightF < 0.85 && perfOk;
+    const wantSsao = !aerial && useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
 
     if (wantShadow !== shadowsOn) {
       shadowsOn = wantShadow;
       sun.castShadow = shadowsOn;
       renderer.shadowMap.enabled = shadowsOn;
+      if (shadowsOn) {
+        _shTx = 1e9;
+        renderer.shadowMap.needsUpdate = true;
+      }
     }
 
     if (shadowsOn) {
       /* Keep shadow frustum centered on look-at so CBD stays crisp */
-      const sp = sun.position;
-      const dir = new THREE.Vector3(tx - sp.x, 80 - sp.y, tz - sp.z).normalize();
-      /* Light already positioned by envUpdate; aim shadow cam at target */
       sun.target.position.set(tx, 0, tz);
       if (!sun.target.parent) scene.add(sun.target);
       const ext = Math.max(280, Math.min(isAus ? 1400 : 1100, radius * (isAus ? 0.7 : 0.55)));
@@ -166,7 +174,11 @@ export function createCinematic(opts) {
       sc.bottom = -ext;
       sc.far = Math.max(1200, radius * 2.2);
       sc.updateProjectionMatrix();
-      void dir;
+      const moved = Math.hypot(tx - _shTx, tz - _shTz) > 55 || Math.abs(radius - _shR) > 90;
+      if (moved) {
+        _shTx = tx; _shTz = tz; _shR = radius;
+        renderer.shadowMap.needsUpdate = true;
+      }
     }
 
     if (ssaoPass) {
@@ -196,9 +208,8 @@ export function createCinematic(opts) {
       renderer.toneMapping = THREE.NoToneMapping; /* OutputPass applies ACES */
       composer.render();
     } else {
-      /* No SSAO → draw straight to the canvas with the same ACES tone map (skips 2 full-screen passes) */
+      /* Keep app-main night/weather exposure — do not restore boot-time value (was washing tours bright) */
       renderer.toneMapping = hadTone;
-      renderer.toneMappingExposure = hadExposure;
       renderer.render(scene, camera);
     }
   }
