@@ -118,11 +118,10 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     const boxA = Math.max(1, bw * bh);
     const fill = A / boxA;
     const eastEnd = inMagnoliaParkBand(x0, z0, x1, z1);
-    /* East End: only keep compact channel/pond pieces — never neighborhood-scale fills */
+    /* East End / Magnolia Park is dry residential — drop neighborhood-scale water fills */
     if (eastEnd) {
-      if (A > 120000 && fill < 0.55) return true;
-      if ((bw > 1400 || bh > 1400) && fill < 0.5) return true;
-      /* sprawling riverbank polys whose bbox covers Magnolia streets */
+      if (A > 80000) return true;
+      if ((bw > 900 || bh > 900) && fill < 0.62) return true;
       if (A > 400000 && (bw > 2500 || bh > 2500)) return true;
     }
     if (A < 200000) return false; /* small ponds / turning basins OK */
@@ -185,7 +184,9 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
   }
 
   const yieldIf = async (st) => { if (performance.now() - st.t > slice) { await new Promise((r) => setTimeout(r, 0)); st.t = performance.now(); } };
-  const MAX_TREES = 9000, MAX_HOUSES = 7000;
+  const MAX_TREES = 3200, MAX_HOUSES = 2400;
+  const TREE_SCALE = 1;
+  const HOUSE_STEP = 17;
 
   /** Base layer: land-use polygons, water, bayous, rail. Cheap; kept for the whole 12 km ring. */
   async function buildTile(key) {
@@ -237,7 +238,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     const seed = key.split('_').reduce((a, v) => a * 131 + (+v + 997), 7), rnd = rng(seed), st = { t: performance.now() };
     const trees = [], bushes = [], houses = [], roofs = [], flats = [], garages = [];
     for (const [cls, poly] of t.treeAreas) {
-      const area = Math.abs(ringArea(poly[0])), n = Math.min(cls === 'wood' ? 700 : 200, Math.floor(area * TREE_DENS[cls]));
+      const area = Math.abs(ringArea(poly[0])), n = Math.min(cls === 'wood' ? 700 : 200, Math.floor(area * TREE_DENS[cls] * TREE_SCALE));
       const [x0, z0, x1, z1] = bbox(poly[0]);
       for (let i = 0, tries = 0; i < n && tries < n * 3 && trees.length + bushes.length < MAX_TREES; tries++) {
         const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0);
@@ -274,7 +275,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
           const ax = p[i - 2], az = p[i - 1], dx = p[i] - ax, dz = p[i + 1] - az, L = Math.hypot(dx, dz);
           if (L < 1) continue;
           const ux = dx / L, uz = dz / L, ang = Math.atan2(ux, uz);
-          for (; acc < L - 6; acc += 17 + rnd() * 6) {
+          for (; acc < L - 6; acc += HOUSE_STEP + rnd() * 6) {
             for (const sd of [-1, 1]) {
               const x = ax + ux * acc - uz * setback * sd, z = az + uz * acc + ux * setback * sd;
               if (rnd() < 0.08 || t.block.hit(x, z) || !free(x, z) || inField(x, z)) continue;

@@ -9,13 +9,14 @@ const COL = { r: new THREE.Color(1, 0.12, 0.08), y: new THREE.Color(1, 0.72, 0.1
 const DY = { r: 0.42, y: 0, g: -0.42 };
 
 export function createHoustonSignals({ parent, traffic, max = 1600, range = 1500, showBelow = 3200 }) {
-  const metal = new THREE.MeshStandardMaterial({ color: 0x8a8f94, metalness: 0.6, roughness: 0.45 });
-  const housing = new THREE.MeshStandardMaterial({ color: 0x1d1f1a, roughness: 0.7 });
+  /* Lambert — Standard materials were a free FPS tax on hundreds of signal instances */
+  const metal = new THREE.MeshLambertMaterial({ color: 0x8a8f94 });
+  const housing = new THREE.MeshLambertMaterial({ color: 0x1d1f1a });
   const lampMat = new THREE.MeshBasicMaterial({ toneMapped: false });
-  const poleGeo = new THREE.CylinderGeometry(0.11, 0.15, 6.4, 8); poleGeo.translate(0, 3.2, 0);
+  const poleGeo = new THREE.CylinderGeometry(0.11, 0.15, 6.4, 5); poleGeo.translate(0, 3.2, 0);
   const armGeo = new THREE.BoxGeometry(0.12, 0.14, 1); armGeo.translate(0, 0, 0.5);
   const headGeo = new THREE.BoxGeometry(0.42, 1.34, 0.32);
-  const lampGeo = new THREE.SphereGeometry(0.15, 10, 6);
+  const lampGeo = new THREE.SphereGeometry(0.15, 6, 4);
   const mk = (g, m) => { const o = new THREE.InstancedMesh(g, m, max); o.count = 0; o.frustumCulled = false; o.castShadow = false; o.receiveShadow = false; return o; };
   const pole = mk(poleGeo, metal), arm = mk(armGeo, metal), head = mk(headGeo, housing), lamp = mk(lampGeo, lampMat);
   lamp.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);

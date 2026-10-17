@@ -333,7 +333,7 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
   function onTile(fn) { tileListeners.push(fn); for (const [id, ways] of tileNets) fn('add', id, ways); }
   let index = null;
   const indexReady = fetch(base + 'tiles/index.json').then((r) => r.json()).then((d) => { index = d; index.sets = {}; for (const [kk, v] of Object.entries(d.layers)) index.sets[kk] = new Set(v); }).catch(() => null);
-  const RADIUS = { minor: 9000, local: 5600 };
+  const RADIUS = { minor: 10000, local: 7200 };
   let busy = false;
   /** Lane paint only near the camera (it is most of the triangles and sub-pixel far away). */
   function lod(camX, camZ, camDist) {
@@ -362,7 +362,8 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
           if (d < R + T * 0.7 && index.sets[layer].has(key) && !tiles.has(layer + key)) want.push([d, key]);
         }
         want.sort((a, b) => a[0] - b[0]);
-        for (const [, key] of want.slice(0, layer === 'local' ? 4 : 2)) {
+        /* Load more local tiles near the camera so suburb streets get traffic sooner */
+        for (const [, key] of want.slice(0, layer === 'local' ? 7 : 3)) {
           const g = new THREE.Group(); tiles.set(layer + key, { g, layer, key });
           root.add(g);
           const d = await fetch(base + 'tiles/' + layer + '/' + key + '.json').then((x) => x.json()).catch(() => null);

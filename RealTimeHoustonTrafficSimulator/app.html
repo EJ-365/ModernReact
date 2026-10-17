@@ -513,6 +513,7 @@
 
   /* ---------- hover tooltip ---------- */
   #tip{position:fixed;z-index:20;display:none;pointer-events:auto;background:#0b0f14f2;
+    transition:opacity .12s ease;will-change:left,top;
     border:1px solid #333b45;border-radius:10px;padding:9px 12px;max-width:min(92vw,320px);
     box-shadow:0 10px 30px rgba(0,0,0,.55)}
   #tip .tn{font-size:12px;font-weight:800}
@@ -940,7 +941,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.31.16</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.31.50</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">

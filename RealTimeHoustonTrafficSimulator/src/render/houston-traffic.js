@@ -11,10 +11,10 @@ const FF = {
   motorway: 75, trunk: 65, primary: 45, motorway_link: 55, trunk_link: 45, primary_link: 35,
   secondary: 40, secondary_link: 35, tertiary: 35, tertiary_link: 28, residential: 30, unclassified: 28, living_street: 15,
 };
-/* streets carry far fewer cars than freeways: spacing multiplier + how far from the camera they are simulated */
+/* streets: [spacing multiplier, max sim radius]. Lower spacing = more cars on suburb roads. */
 const STREET = {
-  secondary: [1.5, 5000], secondary_link: [2.0, 5000], tertiary: [2.4, 4000], tertiary_link: [2.4, 4000],
-  residential: [5, 2600], unclassified: [4.5, 2600], living_street: [9, 1800],
+  secondary: [1.25, 5600], secondary_link: [1.6, 5600], tertiary: [1.8, 4800], tertiary_link: [1.8, 4800],
+  residential: [2.6, 3800], unclassified: [2.4, 3600], living_street: [5.5, 2200],
 };
 const oneWay = (o) => !!o && o !== '0' && o !== 'no' && o !== '-1';
 const MPH = 0.44704;
@@ -120,7 +120,7 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
     for (const sign of two ? [1, -1] : [1]) {
       const c = {
         w, f, L, sign, nl, laneW, hw, from: sign > 0 ? a : b, to: sign > 0 ? b : a,
-        ref: r.r || r.n || '', link: /_link$/.test(r.h), h: r.h, ff: FF[r.h] || 35,
+        ref: r.r || '', name: r.n || '', link: /_link$/.test(r.h), h: r.h, ff: FF[r.h] || 35,
         y0: baseY + (w.cy || 0) * kv, x0, x1, z0, z1,
         t0: sign > 0 ? tangentAt(f, 0, 1) : tangentAt(f, n - 1, n - 2),
         t1: sign > 0 ? tangentAt(f, n - 2, n - 1) : tangentAt(f, 1, 0),
@@ -138,7 +138,8 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
     const dot = c.t1[0] * d.t0[0] + c.t1[1] * d.t0[1];
     const ang = Math.acos(Math.max(-1, Math.min(1, dot)));
     if (ang > 1.75) return;
-    c.next.push({ c: d, ang, same: !!c.ref && d.ref === c.ref });
+    const lab = c.ref || c.name, dlab = d.ref || d.name;
+    c.next.push({ c: d, ang, same: !!lab && lab === dlab });
     d.prev.push(c);
   };
   const fresh = new Set(made);
@@ -169,7 +170,7 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
   let densF = 1, densS = 1, step = 0, simT = 0, lastAct = -1, total = 0, totS = 0;
   const dOf = (c) => (c.street ? densS : densF);
   const cnt = (c, d) => { total += d; if (c.street) totS += d; };
-  const capOf = (c) => (c.street ? total < budget : total - totS < budget - Math.min(budget * 0.32, sWant));
+  const capOf = (c) => (c.street ? total < budget : total - totS < budget - Math.min(budget * 0.4, sWant));
   let sWant = 0;
 
   function laneOff(c, li) { return c.hw - 0.6 - (li + 0.5) * c.laneW; }
@@ -232,8 +233,9 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
 
   function activate(camX, camZ, camR) {
     const mx = (camX - offset) / k + offset, mz = (camZ - offset) / k + offset;
-    const R = Math.min(7500, Math.max(1600, camR * 1.7)), Rout = R * 1.2;
-    for (const c of [...active]) if (bboxDist(c, mx, mz) > Math.min(Rout, c.rmax * 1.2)) drop(c);
+    /* Keep a generous near-camera ring so suburb streets stay populated when zoomed in */
+    const R = Math.min(8200, Math.max(2200, camR * 1.85)), Rout = R * 1.25;
+    for (const c of [...active]) if (bboxDist(c, mx, mz) > Math.min(Rout, c.rmax * 1.25)) drop(c);
     const cand = [];
     const g0x = Math.floor((mx - R) / CELL), g1x = Math.floor((mx + R) / CELL), g0z = Math.floor((mz - R) / CELL), g1z = Math.floor((mz + R) / CELL);
     for (let gx = g0x; gx <= g1x; gx++) for (let gz = g0z; gz <= g1z; gz++) {
@@ -244,9 +246,10 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
     let wF = 0, wS = 0;
     for (const c of active) { const w = c.L * c.nl / c.sp; if (c.street) wS += w; else wF += w; }
     sWant = wS;
-    const capS = Math.min(budget * 0.32, wS);
-    densS = Math.max(0.05, Math.min(1, capS * 0.92 / Math.max(1, wS)));
-    densF = Math.max(0.08, Math.min(1, (budget - capS) * 0.92 / Math.max(1, wF)));
+    /* Reserve ~40% of budget for streets/suburbs so freeways don't starve neighborhood roads */
+    const capS = Math.min(budget * 0.4, wS);
+    densS = Math.max(0.22, Math.min(1, capS * 0.95 / Math.max(1, wS)));
+    densF = Math.max(0.14, Math.min(1, (budget - capS) * 0.95 / Math.max(1, wF)));
     cand.sort((a, b) => bboxDist(a, mx, mz) - bboxDist(b, mx, mz));
     for (const c of cand) seed(c);
     for (const c of active) c.feed = !c.prev.some((p) => p.active);

@@ -9,8 +9,10 @@ import * as THREE from 'three';
 import { findRoute, houDriveFactor, nearestCw } from './route/houston-route.js';
 import { createTourAudio } from './tour-audio.js';
 import { createTourMusic } from './tour-music.js';
+import { attachPlaceSearch } from './ui/place-search.js';
 
 const MPH = 0.44704, KT = 0.514444, FT = 0.3048, G = 9.81;
+const _isWin = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
 const LANDMARKS = [
   ['Downtown Houston', 29.7604, -95.3698], ['Galleria / Uptown', 29.739, -95.463], ['Texas Medical Center', 29.707, -95.398],
   ['NRG Stadium', 29.6847, -95.4107], ['Hermann Park', 29.7135, -95.3905], ['Rice University', 29.7174, -95.4018],
@@ -64,13 +66,17 @@ function loadPrefs() {
       planeStyle: PLANE_STYLES.some((s) => s[0] === j.planeStyle) ? j.planeStyle : 'prop',
       hudX: Number.isFinite(+j.hudX) ? +j.hudX : null,
       hudY: Number.isFinite(+j.hudY) ? +j.hudY : null,
+      cpX: Number.isFinite(+j.cpX) ? +j.cpX : null,
+      cpY: Number.isFinite(+j.cpY) ? +j.cpY : null,
+      cpW: Number.isFinite(+j.cpW) ? +j.cpW : null,
+      cpH: Number.isFinite(+j.cpH) ? +j.cpH : null,
       soundOn: j.soundOn !== false,
       soundVol: Number.isFinite(+j.soundVol) ? Math.max(0, Math.min(1, +j.soundVol)) : 0.45,
       radioOn: j.radioOn !== false,
       musicOn: !!j.musicOn,
     };
   } catch (e) {
-    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeStyle: 'prop', hudX: null, hudY: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
+    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeStyle: 'prop', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
   }
 }
 function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } }
@@ -234,13 +240,16 @@ function makeTourCar(color, style, detail = true) {
       g.add(pool);
       poolMats.push(poolMat);
 
-      const spot = new THREE.SpotLight(0xeef4ff, 0, 42, Math.PI / 7.5, 0.58, 1.25);
-      spot.position.set(x, 0.78, zNose + 0.05);
-      spot.target.position.set(x * 1.2, -0.35, zNose + 24);
-      spot.castShadow = false;
-      g.add(spot);
-      g.add(spot.target);
-      spots.push(spot);
+      /* SpotLights are expensive on Windows — lenses + road pools are enough */
+      if (!_isWin) {
+        const spot = new THREE.SpotLight(0xeef4ff, 0, 42, Math.PI / 7.5, 0.58, 1.25);
+        spot.position.set(x, 0.78, zNose + 0.05);
+        spot.target.position.set(x * 1.2, -0.35, zNose + 24);
+        spot.castShadow = false;
+        g.add(spot);
+        g.add(spot.target);
+        spots.push(spot);
+      }
     }
   }
   g.userData.paint = paint;
@@ -257,7 +266,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const audio = createTourAudio();
   const music = createTourMusic();
   const S = { mode: null, kind: 'car', view: 'chase', speedX: 1, obj: null, p: new THREE.Vector3(), hd: 0, v: 0, pitch: 0, roll: 0,
-    route: null, s: 0, dest: null, phase: '', keys: {}, info: '', hudT: 0, orbitR: 900, runways: null, cruise: 0, odo: 0, yawRate: 0, th0: 0, ph0: 1, limit: 0, sm: null,
+    route: null, s: 0, dest: null, phase: '', keys: {}, info: '', roadName: '', hudT: 0, orbitR: 900, runways: null, cruise: 0, odo: 0, yawRate: 0, th0: 0, ph0: 1, limit: 0, sm: null,
     carColor: prefs.carColor, carStyle: prefs.carStyle, planeColor: prefs.planeColor, planeStyle: prefs.planeStyle, acClass: 'prop',
     soundOn: prefs.soundOn !== false, soundVol: Number.isFinite(prefs.soundVol) ? prefs.soundVol : 0.45,
     radioOn: prefs.radioOn !== false, musicOn: !!prefs.musicOn };
@@ -287,6 +296,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     sel.innerHTML = '<option value="">— pick a place to tour —</option>' + Object.entries(groups).map(([g, l]) => '<optgroup label="' + g + '">'
       + l.slice().sort((a, b) => a.n.localeCompare(b.n)).map((d) => '<option value="' + d.id + '">' + d.n + '</option>').join('') + '</optgroup>').join('');
     if (keep && dests.some((d) => d.id === keep)) sel.value = keep;
+    attachPlaceSearch(sel, { placeholder: 'Search tour places…', ariaLabel: 'Search tour destinations' });
   }
   function findDest(id) { return dests.find((d) => d.id === id) || null; }
   const vehBtns = document.querySelectorAll('#tourVeh .btn');
@@ -348,8 +358,30 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     + '#tourHudPeek.on{display:flex}#tourHudPeek:hover{border-color:rgba(232,168,56,.6)}'
     + '#tourPad{position:fixed;right:18px;bottom:18px;z-index:40;display:none;grid-template-columns:repeat(3,52px);gap:6px}#tourPad.on{display:grid}'
     + '#tourPad button{height:52px;border-radius:12px;background:rgba(28,23,18,.9);border:1px solid rgba(232,168,56,.28);color:#fff6ea;font-size:18px;touch-action:none}'
-    + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:min(38vh,320px);z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}#tourDash svg{width:100%;height:100%;display:block}'
-    + '#tourDash.jetCockpit{height:min(42vh,360px)}';
+    + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:min(42vh,360px);z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}'
+    + '#tourDash .dashSvg{position:absolute;inset:0;width:100%;height:100%;display:block}'
+    + '#tourDash.jetCockpit{height:min(42vh,360px)}'
+    /* CarPlay — drag eyebrow + explicit resize grip (CSS resize is unreliable on fixed) */
+    + '#tourDash .carplay{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(26vw,260px);height:min(18vh,140px);z-index:4;pointer-events:auto;'
+    + 'display:none;flex-direction:column;justify-content:center;gap:3px;padding:10px 12px 18px;border-radius:14px;background:linear-gradient(165deg,#0e1620,#0a1018);'
+    + 'border:1px solid rgba(120,160,200,.55);box-shadow:0 8px 22px rgba(0,0,0,.45);font:11px/1.25 Overpass,system-ui,sans-serif;color:#e8f0f8;'
+    + 'overflow:hidden;min-width:160px;min-height:96px;max-width:min(480px,78vw);max-height:min(280px,40vh);box-sizing:border-box}'
+    + '#tourDash.carOn .carplay{display:flex}'
+    + '#tourDash .carplay.placed{position:fixed;left:0;bottom:auto;transform:none;z-index:37}'
+    + '#tourDash .carplay .cpEyebrow{font-size:9px;font-weight:700;letter-spacing:.08em;color:#7a92a8;text-transform:uppercase;cursor:grab;user-select:none;touch-action:none;display:flex;justify-content:space-between;gap:6px}'
+    + '#tourDash .carplay .cpEyebrow:active{cursor:grabbing}'
+    + '#tourDash .carplay .cpReset{appearance:none;background:transparent;border:0;padding:0;margin:0;color:#8ab0c8;font:700 9px Overpass,system-ui,sans-serif;'
+    + 'cursor:pointer;letter-spacing:0;text-transform:none}'
+    + '#tourDash .carplay .cpReset:hover{color:#fff}'
+    + '#tourDash .carplay .cpStreet{font-size:clamp(16px,2.2vw,24px);font-weight:800;color:#fff;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:"Overpass Mono",monospace}'
+    + '#tourDash .carplay .cpSub{font-size:11px;color:#b8cce0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    + '#tourDash .carplay .cpRow{display:flex;justify-content:space-between;gap:8px;margin-top:2px;font-size:11px;font-weight:700;color:#e0eefc}'
+    + '#tourDash .carplay .cpRow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    + '#tourDash .carplay .cpResize{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;'
+    + 'background:linear-gradient(135deg,transparent 50%,rgba(140,180,220,.55) 50%);border-radius:0 0 10px 0;z-index:6}'
+    + '#tourDash .carplay .cpResize:hover{background:linear-gradient(135deg,transparent 45%,rgba(180,210,240,.85) 45%)}'
+    /* Legacy slot marker (player mounts on #tourDash itself, left of RPM) */
+    + '#tourDash .dashMusic{display:none!important}'
   document.head.appendChild(css);
   const hud = document.createElement('div'); hud.id = 'tourHud'; document.body.appendChild(hud);
   const hudPeek = document.createElement('button');
@@ -402,28 +434,44 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.addEventListener('pointerup', end); hud.addEventListener('pointercancel', end);
   })();
   const ticks = (cx, cy, r, max, step, a0, a1, lab) => { let t = ''; for (let v = 0; v <= max; v += step) { const a = (a0 + (a1 - a0) * v / max) * Math.PI / 180, big = v % (step * 2) === 0; t += '<line x1="' + (cx + Math.cos(a) * r) + '" y1="' + (cy + Math.sin(a) * r) + '" x2="' + (cx + Math.cos(a) * (r - (big ? 14 : 7))) + '" y2="' + (cy + Math.sin(a) * (r - (big ? 14 : 7))) + '" stroke="#e8eef4" stroke-width="' + (big ? 3 : 1.5) + '"/>'; if (big && lab) t += '<text x="' + (cx + Math.cos(a) * (r - 30)) + '" y="' + (cy + Math.sin(a) * (r - 30) + 5) + '" fill="#cfd8e0" font-size="14" text-anchor="middle">' + lab(v) + '</text>'; } return t; };
-  const CAR_DASH = '<svg viewBox="0 0 1000 320" preserveAspectRatio="xMidYMax slice">'
+  const CAR_DASH_SVG = '<svg class="dashSvg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMax slice">'
     + '<defs><linearGradient id="dashTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1e24"/><stop offset="1" stop-color="#0c0e12"/></linearGradient>'
     + '<linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2620"/><stop offset="1" stop-color="#1a1612"/></linearGradient></defs>'
-    /* A-pillars + windshield frame */
-    + '<path d="M0,0 L95,95 L70,320 H0 Z" fill="#12151a"/><path d="M1000,0 L905,95 L930,320 H1000 Z" fill="#12151a"/>'
+    + '<path d="M0,0 L95,95 L70,340 H0 Z" fill="#12151a"/><path d="M1000,0 L905,95 L930,340 H1000 Z" fill="#12151a"/>'
     + '<path d="M95,95 Q500,48 905,95" fill="none" stroke="#2a3138" stroke-width="10"/>'
-    + '<path d="M0,110 Q500,55 1000,110 L1000,320 L0,320 Z" fill="url(#dashTop)"/>'
-    + '<path d="M80,118 Q500,72 920,118" fill="none" stroke="#3a434c" stroke-width="2"/>'
-    /* soft upper vents */
-    + '<rect x="200" y="128" width="120" height="14" rx="4" fill="#15191e" stroke="#2a3138"/><rect x="680" y="128" width="120" height="14" rx="4" fill="#15191e" stroke="#2a3138"/>'
-    + '<circle cx="640" cy="210" r="92" fill="#06080a" stroke="#4a5560" stroke-width="4"/>' + ticks(640, 210, 86, 140, 10, 135, 405, (v) => v)
-    + '<line id="dNeedle" x1="640" y1="210" x2="640" y2="135" stroke="#ff4b2b" stroke-width="4" stroke-linecap="round"/><circle cx="640" cy="210" r="9" fill="#ff4b2b"/>'
-    + '<text id="dSpd" x="640" y="272" fill="#fff" font-size="28" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0</text><text x="640" y="292" fill="#8a96a3" font-size="11" text-anchor="middle">MPH</text>'
-    + '<circle cx="360" cy="210" r="78" fill="#06080a" stroke="#4a5560" stroke-width="4"/>' + ticks(360, 210, 72, 8, 1, 135, 405, (v) => v)
-    + '<line id="dRpm" x1="360" y1="210" x2="360" y2="148" stroke="#f5b942" stroke-width="3.5" stroke-linecap="round"/><text x="360" y="272" fill="#8a96a3" font-size="11" text-anchor="middle">RPM ×1000</text>'
-    /* leather wheel */
-    + '<g id="dWheel" transform="translate(500,318)"><circle r="155" fill="none" stroke="url(#leather)" stroke-width="30"/><circle r="155" fill="none" stroke="#3a322c" stroke-width="5"/>'
-    + '<rect x="-155" y="-14" width="310" height="28" rx="12" fill="#1b1f24"/><rect x="-16" y="-14" width="32" height="165" fill="#1b1f24"/>'
-    + '<circle r="46" fill="#15191d" stroke="#3a434c" stroke-width="3"/><text y="6" fill="#c8a070" font-size="12" text-anchor="middle" font-weight="700">HTS</text></g>'
-    + '<rect x="100" y="155" width="140" height="100" rx="12" fill="#06080a" stroke="#3a434c"/><text x="170" y="178" fill="#8a96a3" font-size="11" text-anchor="middle">TRIP · ODO</text><text id="dTrip" x="170" y="205" fill="#fff" font-size="20" text-anchor="middle" font-family="Overpass Mono,monospace">0.0 mi</text><text id="dGear" x="170" y="236" fill="#7fd6a0" font-size="20" font-weight="700" text-anchor="middle">D</text>'
-    + '<rect x="760" y="155" width="110" height="120" rx="12" fill="#fff" stroke="#111" stroke-width="4"/><text x="815" y="182" fill="#111" font-size="13" font-weight="700" text-anchor="middle">SPEED</text><text x="815" y="200" fill="#111" font-size="13" font-weight="700" text-anchor="middle">LIMIT</text><text id="dLim" x="815" y="252" fill="#111" font-size="44" font-weight="800" text-anchor="middle">—</text>'
-    + '<rect x="420" y="148" width="160" height="36" rx="8" fill="#0a1018" stroke="#2a4050"/><text id="dRoad" x="500" y="172" fill="#cfe3f5" font-size="13" text-anchor="middle"></text></svg>';
+    + '<path d="M0,118 Q500,60 1000,118 L1000,340 L0,340 Z" fill="url(#dashTop)"/>'
+    + '<path d="M80,126 Q500,78 920,126" fill="none" stroke="#3a434c" stroke-width="2"/>'
+    + '<rect x="170" y="132" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/><rect x="730" y="132" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/>'
+    /* Tach — lowered a bit for clearance from dash lip */
+    + '<circle cx="250" cy="248" r="70" fill="#06080a" stroke="#4a5560" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
+    + '<line id="dRpm" x1="250" y1="248" x2="250" y2="192" stroke="#f5b942" stroke-width="3.5" stroke-linecap="round"/>'
+    + '<text x="250" y="308" fill="#8a96a3" font-size="10" text-anchor="middle">RPM ×1000</text>'
+    /* Speedo */
+    + '<circle cx="760" cy="248" r="80" fill="#06080a" stroke="#4a5560" stroke-width="4"/>' + ticks(760, 248, 74, 140, 10, 135, 405, (v) => v)
+    + '<line id="dNeedle" x1="760" y1="248" x2="760" y2="178" stroke="#ff4b2b" stroke-width="4" stroke-linecap="round"/><circle cx="760" cy="248" r="8" fill="#ff4b2b"/>'
+    + '<text id="dSpd" x="760" y="300" fill="#fff" font-size="24" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
+    + '<text x="760" y="318" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text>'
+    /* Speed limit only — trip/ETA live on the route card (no duplicate) */
+    + '<rect x="868" y="188" width="118" height="112" rx="12" fill="#fff" stroke="#111" stroke-width="4"/>'
+    + '<text x="927" y="214" fill="#111" font-size="11" font-weight="700" text-anchor="middle">SPEED</text>'
+    + '<text x="927" y="230" fill="#111" font-size="11" text-anchor="middle" font-weight="700">LIMIT</text>'
+    + '<text id="dLim" x="927" y="274" fill="#111" font-size="40" font-weight="800" text-anchor="middle">—</text>'
+    /* Wheel */
+    + '<g id="dWheel" transform="translate(500,348)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
+    + '<rect x="-122" y="-11" width="244" height="22" rx="10" fill="#1b1f24"/><rect x="-13" y="-11" width="26" height="120" fill="#1b1f24"/>'
+    + '<circle r="34" fill="#15191d" stroke="#3a434c" stroke-width="3"/><text y="5" fill="#c8a070" font-size="11" text-anchor="middle" font-weight="700">HTS</text></g>'
+    + '</svg>'
+    + '<div class="dashMusic" id="dashMusic" title="YouTube music"></div>'
+    + '<div class="carplay" id="dashCarplay">'
+    + '<div class="cpEyebrow" title="Drag to move · grip to resize · Reset recenters">'
+    + '<span>⠿ Now on</span><button type="button" class="cpReset" data-cp-reset="1" title="Reset position">Reset</button></div>'
+    + '<div class="cpStreet" id="cpStreet">—</div>'
+    + '<div class="cpSub" id="cpSub">Looking for road…</div>'
+    + '<div class="cpRow"><span id="cpHead">000°</span><span id="dGear">D</span><span id="dTrip">0.0 mi</span></div>'
+    + '<div class="cpRow"><span id="cpDest">—</span><span id="dRem">— mi</span><span id="dEta">ETA —</span></div>'
+    + '<div class="cpResize" data-cp-resize="1" title="Drag to resize"></div>'
+    + '</div>';
+  const CAR_DASH = CAR_DASH_SVG;
   /* Jet glass-cockpit PFD */
   const JET_DASH = '<svg viewBox="0 0 1000 320" preserveAspectRatio="xMidYMax slice">'
     + '<defs>'
@@ -492,27 +540,280 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     return Math.round(S.p.y / FT);
   }
   function vsFpm() { return Math.round(((S.vy || 0) / FT) * 60 / 10) * 10; }
-  function planeDashHtml() { return S.acClass === 'jet' ? JET_DASH : PROP_DASH; }
+  function planeDashHtml() {
+    const raw = S.acClass === 'jet' ? JET_DASH : PROP_DASH;
+    return raw.replace('<svg ', '<svg class="dashSvg" ');
+  }
+  let _cpBound = false, _streetT = 0, _unsubMusic = null;
+  /** Normalize a highway tag from OSM ref/name text. */
+  function formatHwyTag(raw) {
+    const s = String(raw || '').replace(/\s+/g, ' ').trim();
+    if (!s) return '';
+    let m = s.match(/\b(FM|RM|SH|TX)\s*-?\s*(\d+[A-Za-z]?)\b/i);
+    if (m) return m[1].toUpperCase() + ' ' + m[2].toUpperCase();
+    m = s.match(/\b(?:IH|I)\s*-?\s*(\d+[A-Za-z]?)\b/i);
+    if (m) return 'I-' + m[1].toUpperCase();
+    m = s.match(/\bUS\s*-?\s*(\d+[A-Za-z]?)\b/i);
+    if (m) return 'US ' + m[1].toUpperCase();
+    m = s.match(/\b(?:BW|Beltway)\s*-?\s*(\d+[A-Za-z]?)\b/i);
+    if (m) return 'Beltway ' + m[1];
+    return '';
+  }
+  /** Live road label from the carriageway you are on (not a fixed placeholder). */
+  function liveRoadLabel(ref, name) {
+    const r = String(ref || '').replace(/\s+/g, ' ').trim();
+    const n = String(name || '').replace(/\s+/g, ' ').trim();
+    const hwy = formatHwyTag(r) || formatHwyTag(n);
+    const street = n && (!hwy || n.toLowerCase() !== hwy.toLowerCase()) ? n : '';
+    /* Prefer “FM 1464” then add local name when it adds detail */
+    if (hwy && street && !street.toLowerCase().includes(hwy.replace(/-/g, ' ').toLowerCase())
+      && !hwy.toLowerCase().includes(street.toLowerCase())) {
+      const combo = hwy + ' · ' + street;
+      return combo.length > 34 ? hwy : combo;
+    }
+    if (hwy) return hwy;
+    if (street) return street.length > 32 ? street.slice(0, 31) + '…' : street;
+    if (r) return r.length > 32 ? r.slice(0, 31) + '…' : r;
+    return '';
+  }
+  function refreshStreetInfo() {
+    /* Free-drive: probe the carriageway under the car. Tour uses route sample in stepCar. */
+    if (S.mode === 'tour') return;
+    try {
+      const T = getTraffic && getTraffic();
+      const C = T && T.carriageways;
+      if (!C || !C.length) return;
+      const hit = nearestCw(C, S.p.x, S.p.z, 70, false) || nearestCw(C, S.p.x, S.p.z, 140, false);
+      if (hit && hit.c) {
+        const cref = hit.c.ref || '';
+        const cname = hit.c.name || '';
+        if (cref || cname) {
+          S.info = cref || cname;
+          S.roadName = cname;
+        }
+        if (hit.c.ff) S.limit = hit.c.ff;
+      }
+    } catch (e) { /* ignore */ }
+  }
+  function syncDriverMusic(showDriverCar) {
+    try {
+      if (showDriverCar) music.pinToDriverSlot(dash.querySelector('#dashMusic'));
+      else music.clearDriverPin();
+    } catch (e) { /* ignore */ }
+    if (showDriverCar && !_cpBound) {
+      _cpBound = true;
+      if (_unsubMusic) _unsubMusic();
+      _unsubMusic = music.subscribe((st) => {
+        if (st.on !== S.musicOn) {
+          S.musicOn = !!st.on;
+          persistVeh();
+          renderHud();
+        }
+      });
+    }
+  }
+  let _cpDragBound = false, _cpDragging = false, _cpResizing = false;
+  function resetCarplayLayout() {
+    prefs.cpX = null; prefs.cpY = null; prefs.cpW = null; prefs.cpH = null;
+    savePrefs(prefs);
+    const el = dash.querySelector('#dashCarplay');
+    if (!el) return;
+    el.classList.remove('placed');
+    el.style.left = ''; el.style.top = ''; el.style.bottom = '';
+    el.style.width = ''; el.style.height = ''; el.style.transform = '';
+  }
+  function carplayPosOk(x, y, w, h) {
+    if (x == null || y == null) return false;
+    const ww = w || 220, hh = h || 130;
+    return x >= 4 && y >= 4 && x + 48 < innerWidth && y + 48 < innerHeight
+      && x + ww > 40 && y + hh > 40;
+  }
+  function applyCarplayLayout() {
+    const el = dash.querySelector('#dashCarplay');
+    if (!el || _cpDragging || _cpResizing) return;
+    if (!carplayPosOk(prefs.cpX, prefs.cpY, prefs.cpW, prefs.cpH)) {
+      prefs.cpX = null; prefs.cpY = null;
+    }
+    if (prefs.cpX != null && prefs.cpY != null) {
+      el.classList.add('placed');
+      el.style.left = prefs.cpX + 'px';
+      el.style.top = prefs.cpY + 'px';
+      el.style.bottom = 'auto';
+      el.style.transform = 'none';
+    } else {
+      el.classList.remove('placed');
+      el.style.left = '';
+      el.style.top = '';
+      el.style.bottom = '';
+      el.style.transform = '';
+    }
+    if (prefs.cpW) el.style.width = prefs.cpW + 'px';
+    else el.style.width = '';
+    if (prefs.cpH) el.style.height = prefs.cpH + 'px';
+    else el.style.height = '';
+  }
+  function bindCarplayChrome() {
+    const el = dash.querySelector('#dashCarplay');
+    if (!el) return;
+    applyCarplayLayout();
+    if (!_cpDragBound) {
+      _cpDragBound = true;
+      let drag = null, resize = null;
+      const onMove = (e) => {
+        if (resize && e.pointerId === resize.id) {
+          const maxW = Math.min(480, innerWidth * 0.78);
+          const maxH = Math.min(280, innerHeight * 0.4);
+          const w = Math.max(160, Math.min(maxW, e.clientX - resize.x0));
+          const h = Math.max(96, Math.min(maxH, e.clientY - resize.y0));
+          prefs.cpW = Math.round(w);
+          prefs.cpH = Math.round(h);
+          el.style.width = prefs.cpW + 'px';
+          el.style.height = prefs.cpH + 'px';
+          e.preventDefault();
+          return;
+        }
+        if (!drag || e.pointerId !== drag.id) return;
+        const w = el.offsetWidth, h = el.offsetHeight;
+        const x = Math.max(8, Math.min(innerWidth - w - 8, e.clientX - drag.dx));
+        const y = Math.max(8, Math.min(innerHeight - h - 8, e.clientY - drag.dy));
+        prefs.cpX = x; prefs.cpY = y;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+      };
+      const onEnd = (e) => {
+        if (resize && (!e || e.pointerId === resize.id)) {
+          resize = null;
+          _cpResizing = false;
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onEnd);
+          window.removeEventListener('pointercancel', onEnd);
+          savePrefs(prefs);
+          return;
+        }
+        if (!drag || (e && e.pointerId !== drag.id)) return;
+        drag = null;
+        _cpDragging = false;
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onEnd);
+        window.removeEventListener('pointercancel', onEnd);
+        savePrefs(prefs);
+      };
+      el.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cp-reset]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        resetCarplayLayout();
+      });
+      el.addEventListener('dblclick', (e) => {
+        if (!e.target.closest('.cpEyebrow')) return;
+        e.preventDefault();
+        resetCarplayLayout();
+      });
+      el.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('[data-cp-reset]')) return;
+        const grip = e.target.closest('[data-cp-resize]');
+        if (grip) {
+          const r = el.getBoundingClientRect();
+          /* Pin to fixed coords so size changes don't jump under transform centering */
+          el.classList.add('placed');
+          el.style.left = r.left + 'px';
+          el.style.top = r.top + 'px';
+          el.style.bottom = 'auto';
+          el.style.transform = 'none';
+          prefs.cpX = r.left; prefs.cpY = r.top;
+          prefs.cpW = Math.round(r.width); prefs.cpH = Math.round(r.height);
+          el.style.width = prefs.cpW + 'px';
+          el.style.height = prefs.cpH + 'px';
+          resize = { id: e.pointerId, x0: r.left, y0: r.top };
+          _cpResizing = true;
+          window.addEventListener('pointermove', onMove, { passive: false });
+          window.addEventListener('pointerup', onEnd);
+          window.addEventListener('pointercancel', onEnd);
+          try { grip.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        const handle = e.target.closest('.cpEyebrow');
+        if (!handle) return;
+        const r = el.getBoundingClientRect();
+        el.classList.add('placed');
+        el.style.left = r.left + 'px';
+        el.style.top = r.top + 'px';
+        el.style.bottom = 'auto';
+        el.style.transform = 'none';
+        prefs.cpX = r.left; prefs.cpY = r.top;
+        drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+        _cpDragging = true;
+        window.addEventListener('pointermove', onMove, { passive: false });
+        window.addEventListener('pointerup', onEnd);
+        window.addEventListener('pointercancel', onEnd);
+        try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    }
+  }
   function drawDash() {
     const show = S.view === 'driver' || S.view === 'cockpit';
+    const carDriver = show && S.kind === 'car';
     dash.classList.toggle('on', show);
-    if (!show) return;
+    dash.classList.toggle('carOn', carDriver);
+    if (!show) {
+      syncDriverMusic(false);
+      return;
+    }
     const want = S.kind === 'car' ? 'car' : (S.acClass === 'jet' ? 'jet' : 'prop');
-    if (dashKind !== want) { dash.innerHTML = S.kind === 'car' ? CAR_DASH : planeDashHtml(); dashKind = want; }
+    if (dashKind !== want) {
+      _cpBound = false;
+      _cpDragBound = false;
+      try { music.clearDriverPin(); } catch (e) { /* ignore */ }
+      dash.innerHTML = S.kind === 'car' ? CAR_DASH : planeDashHtml();
+      dashKind = want;
+    }
     dash.classList.toggle('jetCockpit', S.kind === 'plane' && S.acClass === 'jet');
+    syncDriverMusic(carDriver);
+    if (carDriver) bindCarplayChrome();
     const q = (id) => dash.querySelector('#' + id);
     if (S.kind === 'car') {
       const mph = Math.abs(S.v) / MPH, a = (135 + Math.min(140, mph) / 140 * 270) * Math.PI / 180;
-      const n = q('dNeedle'); if (n) { n.setAttribute('x2', 640 + Math.cos(a) * 72); n.setAttribute('y2', 210 + Math.sin(a) * 72); }
+      const n = q('dNeedle'); if (n) { n.setAttribute('x2', 760 + Math.cos(a) * 64); n.setAttribute('y2', 248 + Math.sin(a) * 64); }
       const ds = q('dSpd'); if (ds) ds.textContent = Math.round(mph);
       const gear = mph < 1 ? 1 : Math.min(6, 1 + Math.floor(mph / 16)), rpm = mph < 1 ? 0.75 : Math.min(7.5, 1.2 + (mph - (gear - 1) * 16) / 16 * 3.2 + gear * 0.1);
-      const ra = (135 + rpm / 8 * 270) * Math.PI / 180; const rp = q('dRpm'); if (rp) { rp.setAttribute('x2', 360 + Math.cos(ra) * 58); rp.setAttribute('y2', 210 + Math.sin(ra) * 58); }
+      const ra = (135 + rpm / 8 * 270) * Math.PI / 180; const rp = q('dRpm'); if (rp) { rp.setAttribute('x2', 250 + Math.cos(ra) * 52); rp.setAttribute('y2', 248 + Math.sin(ra) * 52); }
       const dg = q('dGear'); if (dg) dg.textContent = S.v < -0.2 ? 'R' : mph < 0.5 ? 'P' : 'D' + gear;
       const dt = q('dTrip'); if (dt) dt.textContent = (S.odo / 1609.344).toFixed(1) + ' mi';
       const dl = q('dLim'); if (dl) dl.textContent = S.limit ? S.limit : '—';
-      const dr = q('dRoad'); if (dr) dr.textContent = S.info || '';
+      const remMi = S.remain != null ? S.remain / 1609.344 : null;
+      const dRem = q('dRem'); if (dRem) dRem.textContent = remMi != null && S.phase !== 'arrived' ? remMi.toFixed(1) + ' mi' : '— mi';
+      const et = (S.mode === 'tour' && S.phase !== 'arrived') ? etaSec() : null;
+      const dEta = q('dEta');
+      if (dEta) {
+        if (et == null) dEta.textContent = 'ETA —';
+        else if (et < 25) dEta.textContent = 'ETA Now';
+        else if (et < 105) dEta.textContent = 'ETA ' + Math.round(et) + 's';
+        else dEta.textContent = 'ETA ' + Math.round(et / 60) + ' min';
+      }
       const steer = Math.abs(S.v) > 0.5 ? Math.atan(2.7 * S.yawRate / S.v) : 0;
-      const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(500,318) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
+      const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(500,348) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
+      const now = performance.now();
+      if (now - _streetT > 280) {
+        _streetT = now;
+        refreshStreetInfo();
+        const street = liveRoadLabel(S.info, S.roadName);
+        const cs = q('cpStreet'); if (cs) cs.textContent = street || '—';
+        const sub = q('cpSub');
+        if (sub) {
+          if (S.dest && S.phase !== 'arrived' && S.phase !== 'home') sub.textContent = '→ ' + S.dest.n;
+          else if (S.mode === 'free') sub.textContent = street ? 'Free drive' : 'Find a road…';
+          else if (S.phase === 'arrived') sub.textContent = 'Arrived · ' + (S.dest ? S.dest.n : '');
+          else sub.textContent = street ? (S.limit ? S.limit + ' mph zone' : 'On route') : 'Looking for road…';
+        }
+        const ch = q('cpHead'); if (ch) ch.textContent = String(Math.round(hdgDeg())).padStart(3, '0') + '°';
+        const cd = q('cpDest');
+        if (cd) cd.textContent = S.dest ? S.dest.n.slice(0, 28) : '—';
+      }
     } else {
       const kt = q('dKt'); if (kt) kt.textContent = Math.round(S.v / KT);
       const ft = q('dFt'); if (ft) ft.textContent = altFt().toLocaleString();
@@ -572,8 +873,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   }
   function nudgeMusicHint() {
     if (S.musicOn || !S.mode) return;
-    const n = music.trackCount || 60;
-    note((S.kind === 'plane' ? 'Airborne tip: ' : 'Drive tip: ') + 'tap Music for ' + n + '+ YouTube hits · Autoplay next is on.');
+    note((S.kind === 'plane' ? 'Airborne tip: ' : 'Drive tip: ') + 'tap Music · shuffle play · Autoplay next is on.');
   }
   function spawnVehicle() {
     const pos = S.p.clone(), hd = S.hd, pitch = S.pitch, roll = S.roll;
@@ -623,7 +923,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       + '<div class="row" style="margin-top:6px"><span style="color:#8a96a3">Vehicle</span>' + styles + '<span style="color:#8a96a3;margin-left:4px">Color</span>' + cols
       + '<span class="snd"><button type="button" class="mute' + (S.soundOn ? '' : ' on') + '" data-mute="1" title="Mute engine sound (M)">' + (S.soundOn ? 'Sound' : 'Muted') + '</button>'
       + '<button type="button" class="' + (S.radioOn ? 'on' : '') + '" data-radio="1" title="ATC radio chatter">Radio</button>'
-      + '<button type="button" class="' + (S.musicOn ? 'on' : '') + '" data-music="1" title="YouTube hits playlist (' + (music.trackCount || 60) + '+ tracks)">Music</button>'
+      + '<button type="button" class="' + (S.musicOn ? 'on' : '') + '" data-music="1" title="Shuffle music · ' + music.trackCount + ' songs">Music</button>'
       + '<input type="range" min="0" max="100" value="' + Math.round(S.soundVol * 100) + '" data-vol="1" title="Engine / radio volume" aria-label="Tour volume"/></span></div>';
     applyHudPos();
     hud.classList.toggle('hid', !!S.hudHid);
@@ -737,6 +1037,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     S.view = v; renderHud();
     window._followOff = { x: 0, z: 0 };
     const car = S.kind === 'car';
+    /* Leave driver/cockpit → show floating music again */
+    if (v !== 'driver' && v !== 'cockpit') {
+      try { syncDriverMusic(false); } catch (e) { /* ignore */ }
+    }
     if (v === 'orbit') {
       /* Sync free-look spherical state from the live camera so applyCam doesn't yank */
       const tx = S.p.x, ty = S.p.y, tz = S.p.z;
@@ -771,7 +1075,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     while (i > 0 && P[i].s > s) i--;
     S._si = i;
     const a = P[i], b = P[i + 1], t = Math.min(1, Math.max(0, (s - a.s) / ((b.s - a.s) || 1)));
-    o.x = a.x + (b.x - a.x) * t; o.y = a.y + (b.y - a.y) * t; o.z = a.z + (b.z - a.z) * t; o.hd = Math.atan2(b.x - a.x, b.z - a.z); o.ff = a.ff; o.ref = a.ref; o.i = i;
+    o.x = a.x + (b.x - a.x) * t; o.y = a.y + (b.y - a.y) * t; o.z = a.z + (b.z - a.z) * t;
+    o.hd = Math.atan2(b.x - a.x, b.z - a.z); o.ff = a.ff; o.ref = a.ref || ''; o.name = a.name || ''; o.i = i;
     return o;
   }
   /* sharpest heading change over the next ~60 m → max cornering speed (≈3 m/s² lateral) */
@@ -815,7 +1120,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     S.escorts = [];
     if (S.kind === 'car' && S.route && S.route.length > 4) {
       const styles = ['sedan', 'suv', 'pickup', 'coupe'];
-      const offsets = [48, 95, -55, -120];
+      const offsets = _isWin ? [48, -55] : [48, 95, -55, -120];
       for (let i = 0; i < offsets.length; i++) {
         const mesh = makeTourCar(CAR_COLORS[(i + 2) % CAR_COLORS.length], styles[i % styles.length], false);
         scene.add(mesh);
@@ -997,9 +1302,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function stop() {
     S.mode = null; S.hudHid = false; clearObj();
     audio.stop();
+    try { music.clearDriverPin(); } catch (e) { /* ignore */ }
     music.stop();
     hud.classList.remove('on', 'hid'); hudPeek.classList.remove('on');
-    pad.classList.remove('on'); dash.classList.remove('on'); window._followOff = { x: 0, z: 0 };
+    pad.classList.remove('on'); dash.classList.remove('on', 'carOn'); window._followOff = { x: 0, z: 0 };
     if (camera.fov !== 55) { camera.fov = 55; camera.updateProjectionMatrix(); }
     camera.up.set(0, 1, 0); camGoal.radius = Math.max(camGoal.radius, 600); camGoal.phi = 0.95;
   }
@@ -1069,7 +1375,9 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       sampleAt(P, S.s, o);
       S.p.set(o.x, o.y, o.z);
       let d = o.hd - S.hd; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; S.hd += d * Math.min(1, dt * 8);
-      S.info = o.ref; S.remain = end - S.s;
+      S.info = o.ref || o.name || '';
+      S.roadName = o.name || '';
+      S.remain = end - S.s;
       if (S.remain < 3 && S.v < 0.5 && S.phase === 'drive') {
         if (S.leg === 'out') { S.phase = 'arrived'; S.waitT = 0; note('Arrived · ' + S.dest.n + ' — ' + destBlurb(S.dest) + ' Heading back in a few seconds.'); }
         else { S.phase = 'home'; note('Back where you started. Surprise me for another Houston run — or tap Music.'); }
@@ -1090,7 +1398,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const R = getRoads && getRoads(), h = R && R.heightAt ? R.heightAt(S.p.x, S.p.z, S.p.y) : null;
       const gy = h != null && Math.abs(h - S.p.y) < 2.5 ? h + 0.02 : (S.p.y > 1.2 && h == null ? S.p.y : 0.27);
       S.p.y += (gy - S.p.y) * Math.min(1, dt * 10);
-      S.info = ''; S.limit = 0;
+      /* Street / limit filled by CarPlay probe in drawDash (throttled) */
     }
     let dh = S.hd - h0; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
     S.yawRate += ((dt > 0 ? dh / dt : 0) - S.yawRate) * Math.min(1, dt * 6);

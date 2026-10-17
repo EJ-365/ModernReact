@@ -137,10 +137,10 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
     headMat.color.copy(day).lerp(warm, onNight ? Math.min(1, nightF * 1.5) : 0);
     headMat.opacity = onNight ? (0.65 + nightF * 0.35) * zoomFade : 0.9;
     poolMat.opacity = onNight ? nightF * 0.42 * zoomFade : 0;
-    const far = r > 6000;
+    const far = r > 4800;
     root.visible = !far;
     if (far || !camPos) return;
-    const cellR = range * (0.75 + 0.25 * zoomFade);
+    const cellR = range * (0.65 + 0.2 * zoomFade);
     const moved = Math.hypot(camPos.x - lastX, camPos.z - lastZ) >= 200;
     const rangeChanged = Math.abs((root.userData._cellR || 0) - cellR) >= 120;
     const nightFlip = onNight !== wasNight;

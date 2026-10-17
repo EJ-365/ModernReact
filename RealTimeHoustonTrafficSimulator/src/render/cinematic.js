@@ -32,6 +32,7 @@ export function createCinematic(opts) {
     };
   }
 
+  const _win = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   /* Only rebuild the shadow map when the view moves — big free FPS when parked */
@@ -40,7 +41,7 @@ export function createCinematic(opts) {
   /* Tone mapping moves to OutputPass when composer is active */
   const hadTone = renderer.toneMapping;
 
-  /* Soft studio env — quieter for Austin clay (F4 is lit by sun + soft AO, not HDRI glass) */
+  /* Soft studio env — fill light for Lambert/Standard city (skipping this made Windows go muddy/dark) */
   let envMap = null;
   try {
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -55,7 +56,6 @@ export function createCinematic(opts) {
 
   sun.castShadow = true;
   /* Windows: smaller shadow map = faster first frame + steadier FPS */
-  const _win = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
   const shadowRes = _win ? 1024 : (isAus ? 3072 : 2048);
   sun.shadow.mapSize.set(shadowRes, shadowRes);
   sun.shadow.bias = -0.00015;
@@ -96,24 +96,25 @@ export function createCinematic(opts) {
   let composer = null;
   let ssaoPass = null;
   let useComposer = false;
-  try {
-    composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    ssaoPass = new SSAOPass(scene, camera, innerWidth, innerHeight);
-    /* Soft contact shadow — F4 reads depth from sun shadows more than SSAO */
-    ssaoPass.kernelRadius = isAus ? 8 : 12;
-    ssaoPass.minDistance = 0.0005;
-    ssaoPass.maxDistance = isAus ? 0.05 : 0.08;
-    ssaoPass.output = SSAOPass.OUTPUT.Default;
-    composer.addPass(ssaoPass);
-    composer.addPass(new OutputPass());
-    renderer.toneMapping = THREE.NoToneMapping;
-    useComposer = true;
-  } catch (e) {
-    console.warn('[HTS] cinematic SSAO unavailable', e && e.message);
-    useComposer = false;
-    renderer.toneMapping = hadTone;
-    renderer.toneMappingExposure = hadExposure;
+  /* SSAO is expensive — keep off on Windows; env + shadows carry the bright look */
+  if (!_win) {
+    try {
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      ssaoPass = new SSAOPass(scene, camera, innerWidth, innerHeight);
+      ssaoPass.kernelRadius = isAus ? 8 : 12;
+      ssaoPass.minDistance = 0.0005;
+      ssaoPass.maxDistance = isAus ? 0.05 : 0.08;
+      ssaoPass.output = SSAOPass.OUTPUT.Default;
+      composer.addPass(ssaoPass);
+      composer.addPass(new OutputPass());
+      renderer.toneMapping = THREE.NoToneMapping;
+      useComposer = true;
+    } catch (e) {
+      console.warn('[HTS] cinematic SSAO unavailable', e && e.message);
+      useComposer = false;
+      renderer.toneMapping = hadTone;
+    }
   }
 
   let shadowsOn = false;
@@ -125,7 +126,6 @@ export function createCinematic(opts) {
     if (!root) return;
     root.traverse((o) => {
       if (!o.isMesh) return;
-      /* Skip huge water planes / sprites */
       if (o.material && o.material.map && o.isSprite) return;
       const n = (o.name || '') + ((o.parent && o.parent.name) || '');
       if (/water|lake|bayou|cloud|sky/i.test(n)) {
@@ -144,13 +144,14 @@ export function createCinematic(opts) {
     const tz = (camState && camState.target && camState.target.z) || 0;
     const altY = camera.position.y || 0;
     const perfOk = fpsAvg == null || fpsAvg > 38;
-    /* SSAO re-draws the whole scene for its normal pass (2× draw calls): only on a proven-fast GPU,
-       with hysteresis so it never flickers on/off */
     if (fpsAvg != null) ssaoBudget = ssaoOn ? fpsAvg > 46 : fpsAvg > 55;
-    /* Aerial / plane cruise: drop shadows+SSAO — huge overdraw at altitude, little visual gain */
     const aerial = altY > 380;
     const wantShadow = !aerial && radius < (isAus ? 4200 : 2400) && nightF < 0.85 && perfOk;
-    const wantSsao = !aerial && useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
+    const wantSsao = !_win && !aerial && useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
+
+    /* ALWAYS aim the sun at the look-at — even when shadows are off */
+    sun.target.position.set(tx, 0, tz);
+    if (!sun.target.parent) scene.add(sun.target);
 
     if (wantShadow !== shadowsOn) {
       shadowsOn = wantShadow;
@@ -163,9 +164,6 @@ export function createCinematic(opts) {
     }
 
     if (shadowsOn) {
-      /* Keep shadow frustum centered on look-at so CBD stays crisp */
-      sun.target.position.set(tx, 0, tz);
-      if (!sun.target.parent) scene.add(sun.target);
       const ext = Math.max(280, Math.min(isAus ? 1400 : 1100, radius * (isAus ? 0.7 : 0.55)));
       const sc = sun.shadow.camera;
       sc.left = -ext;
@@ -190,7 +188,6 @@ export function createCinematic(opts) {
     }
 
     if (scene.environmentIntensity != null) {
-      /* Env bounce reads as fill light — crush it at night so darkness feels real */
       scene.environmentIntensity = isAus
         ? 0.02 + (1 - nightF) * 0.2
         : 0.04 + (1 - nightF) * 0.55;
@@ -205,16 +202,15 @@ export function createCinematic(opts) {
   function render() {
     if (useComposer && composer && ssaoOn) {
       if (ssaoPass) ssaoPass.enabled = true;
-      renderer.toneMapping = THREE.NoToneMapping; /* OutputPass applies ACES */
+      renderer.toneMapping = THREE.NoToneMapping;
       composer.render();
     } else {
-      /* Keep app-main night/weather exposure — do not restore boot-time value (was washing tours bright) */
       renderer.toneMapping = hadTone;
       renderer.render(scene, camera);
     }
   }
 
-  console.log('%cCinematic render · shadows + env' + (useComposer ? ' + SSAO' : ''), 'color:#7fd6a0');
+  console.log('%cCinematic render · shadows + env' + (useComposer ? ' + SSAO' : '') + (_win ? ' (Windows)' : ''), 'color:#7fd6a0');
 
   return {
     enabled: true,

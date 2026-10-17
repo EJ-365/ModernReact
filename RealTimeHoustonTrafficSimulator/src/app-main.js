@@ -6,6 +6,7 @@ import { createHoustonSigns } from './render/houston-signs.js';
 import { createHoustonTolls } from './render/houston-tolls.js';
 import { createTour } from './tour.js';
 import { createRoutePlanner } from './route/route-planner.js';
+import { attachPlaceSearch } from './ui/place-search.js';
 import { createHoustonTraffic } from './render/houston-traffic.js';
 import { createHoustonAirports } from './render/houston-airports.js';
 import { createHoustonStreetlights } from './render/houston-streetlights.js';
@@ -53,7 +54,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.31.26 (magnolia-park-dry). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.31.50 (more-street-cars). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -1040,6 +1041,7 @@ if(/[?&]debug\b/.test(location.search))window.HTS_DEBUG={renderer,scene,camera};
 
 const hemi=new THREE.HemisphereLight(HTS_IS_AUS?0xe8f0ff:0xd0e4ff,HTS_IS_AUS?0x6a7a50:0x4a5a3a,HTS_IS_AUS?0.95:0.88);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff5e6,HTS_IS_AUS?1.15:1.05);scene.add(sun);
+scene.add(sun.target);
 const nightAmb=new THREE.AmbientLight(0x141820,0.0);scene.add(nightAmb);
 const cityFill=new THREE.HemisphereLight(0x6a4a28,0x0a1018,0.0);scene.add(cityFill); /* warm Google-Maps CBD bounce */
 /* LOD groups: full-detail 3D vs zoom-out map mode */
@@ -1260,7 +1262,8 @@ blob(2150,-3850,640,.4,matLake,0.03);       /* Lake Houston */
 blob(2050,3020,320,.45,matLake,0.03);       /* Clear Lake */
 blob(-2650,-780,170,.4,matWater,0.035);     /* Addicks pool */
 blob(-2850,300,180,.4,matWater,0.035);      /* Barker pool */
-blob(7150,2700,3300,.22,matBay,0.03);       /* Galveston Bay */
+/* Galveston Bay — SE estuary only (never Magnolia Park / East End land) */
+blob(4650,2350,1100,.22,matBay,0.03);
 blob(2699,-1383,160,.4,matLake,0.03);       /* Sheldon Lake */
 }else if(HTS_IS_AUS){
   /* Austin — Balcones edge: flat east prairie, greenbelt + lakes west/central */
@@ -2337,11 +2340,20 @@ function syncSuburbTraffic(camX,camZ,radius,wantMeshIds){
 }
 function refreshIncidentCount(){
   const el=$('incidentCount');if(!el)return;
-  const liveN=(window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.incidents)?window.LIVE_TRAFFIC.incidents.length:0;
-  const nwsN=(window.LIVE_NWS&&window.LIVE_NWS.count)||0;
-  const shown=Math.min(10,liveN)+Math.min(6,nwsN);
+  /* Count rows actually shown in the alerts lists (not raw feed lengths) */
+  const traf=document.getElementById('alertsTraffic');
+  const wx=document.getElementById('alertsWeather');
+  const countBox=(box)=>{
+    if(!box)return 0;
+    let n=0;
+    for(const c of box.children){
+      if(c.classList&&c.classList.contains('alert')&&!c.classList.contains('clear'))n++;
+    }
+    return n;
+  };
+  const shown=countBox(traf)+countBox(wx);
   if(shown>0){
-    el.textContent=shown+(shown===1?' active':(' active'));
+    el.textContent=shown+(shown===1?' active':' active');
     el.classList.remove('empty');
   }else{
     el.textContent='Clear';
@@ -3823,9 +3835,9 @@ function makeAirliner(finCol,liv){
   const g=new THREE.Group();
   const LV=liv||[0xeef0f3,0x9aa2ab,finCol,0x9aa2ab];
   if(!liv)LV[2]=finCol;
-  const white=new THREE.MeshStandardMaterial({color:LV[0],metalness:0.3,roughness:0.42});
-  const grayB=new THREE.MeshStandardMaterial({color:LV[1],metalness:0.35,roughness:0.45});
-  const engM=new THREE.MeshStandardMaterial({color:LV[3],metalness:0.5,roughness:0.35});
+  const white=new THREE.MeshLambertMaterial({color:LV[0]});
+  const grayB=new THREE.MeshLambertMaterial({color:LV[1]});
+  const engM=new THREE.MeshLambertMaterial({color:LV[3]});
   finCol=LV[2];
   const fus=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,32,20),white);
   fus.rotation.x=Math.PI/2;g.add(fus);
@@ -3861,8 +3873,8 @@ function makeAirliner(finCol,liv){
     }
   }
   /* cockpit windshield — wraparound glass (reads as a jet flight deck from outside) */
-  const glassM=new THREE.MeshStandardMaterial({color:0x6a9bbb,metalness:0.55,roughness:0.08,transparent:true,opacity:0.42,depthWrite:false,side:THREE.DoubleSide});
-  const frameM=new THREE.MeshStandardMaterial({color:0x1a1e24,metalness:0.4,roughness:0.5});
+  const glassM=new THREE.MeshLambertMaterial({color:0x6a9bbb,transparent:true,opacity:0.42,depthWrite:false,side:THREE.DoubleSide});
+  const frameM=new THREE.MeshLambertMaterial({color:0x1a1e24});
   const cp=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.35,0.18),glassM);
   cp.position.set(0,1.15,16.55);cp.rotation.x=-0.22;g.add(cp);
   for(const sd of [1,-1]){
@@ -6297,7 +6309,7 @@ function pickType(){let r=rand();for(const t of VEH_TYPES){if(r<t.p)return t;r-=
 
 const MPH=WS!==1?0.44704:0.338; /* world u/s per mph — WS!==1 is the metre-scale world, which runs real time (1 mph = 0.447 m/s) */
 const VS=1.28;        /* vehicle visual scale */
-const MAX_INST=HTS_PEEK?320:(_isWin?1400:2800);
+const MAX_INST=HTS_PEEK?320:(_isWin?1700:2800);
 
 /* glasshouse texture: dark glass w/ pillars + light roofline */
 /* greenhouse texture: dark glass UPPER band, body-colored LOWER band
@@ -8147,11 +8159,17 @@ const cam={theta:-0.62,phi:0.86,radius:2300*WS,target:new THREE.Vector3(W(-120),
 const camGoal={theta:cam.theta,phi:cam.phi,radius:cam.radius,target:cam.target.clone()};
 if(window.HTS_DEBUG){window.HTS_DEBUG.cam=cam;window.HTS_DEBUG.camGoal=camGoal;}
 function applyCam(){
-  cam.theta+=(camGoal.theta-cam.theta)*0.14;
-  cam.phi  +=(camGoal.phi-cam.phi)*0.14;
-  /* Radius tracks zoom goal faster so wheel/pinch feel immediate */
-  cam.radius+=(camGoal.radius-cam.radius)*0.22;
-  cam.target.lerp(camGoal.target,0.14);
+  /* Smooth chase — softer on long fly-tos, snappier for small orbit/zoom nudges */
+  const dist=cam.target.distanceToSquared(camGoal.target);
+  const rGap=Math.abs(camGoal.radius-cam.radius);
+  const kOrbit=0.16;
+  const kTarget=dist>2.5e6?0.075:(dist>4e5?0.11:0.16);
+  const kRadius=rGap>900?0.12:(rGap>220?0.18:0.28);
+  cam.theta+=(camGoal.theta-cam.theta)*kOrbit;
+  cam.phi  +=(camGoal.phi-cam.phi)*kOrbit;
+  cam.radius+=(camGoal.radius-cam.radius)*kRadius;
+  cam.target.lerp(camGoal.target,kTarget);
+  if(typeof tipTick==='function')tipTick();
   const sp=Math.sin(cam.phi),y=Math.cos(cam.phi);
   camera.position.set(
     cam.target.x+cam.radius*sp*Math.sin(cam.theta),
@@ -8452,9 +8470,7 @@ const userHome=(function(){
     canopy.position.set(tx,h*0.72,tz);canopy.scale.set(1,0.85,1);add(canopy);
   }
   tree(-14,10,14);tree(18,-8,12);tree(-16,-8,11);
-  /* Warm porch glow */
-  const porch=new THREE.PointLight(0xffd2a0,0.85,52,2);porch.position.set(0,7.2,10.5);g.add(porch);
-  const glow=new THREE.PointLight(0xffc078,0.25,36,2);glow.position.set(0,5,0);g.add(glow);
+  /* Porch glow — cheap emissive plane (PointLights are expensive on Windows) */
   /* Go-to-location pin */
   const pinC=document.createElement('canvas');pinC.width=pinC.height=128;const px=pinC.getContext('2d');
   px.clearRect(0,0,128,128);
@@ -8483,7 +8499,7 @@ const userHome=(function(){
   g.add(hit);
   if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
   PICK_TOWERS.push(hit);
-  g.userData={pin,hit,porch};
+  g.userData={pin,hit};
   return g;
 })();
 function flyToMyLocation(){
@@ -9487,26 +9503,36 @@ document.getElementById('pcDir').addEventListener('click',()=>{
 /* hover tooltip for aircraft & POIs — cheap while dragging / fast pointer */
 const tipEl=document.getElementById('tip');
 let hovT=0,tipSticky=false,_hovX=0,_hovY=0,_waHoverAt=0;
-const HOV_MS=_isWin?95:70;
+let _tipX=0,_tipY=0,_tipGoalX=0,_tipGoalY=0,_tipVis=false;
+const HOV_MS=_isWin?72:48;
+function tipFollow(x,y){
+  _tipGoalX=Math.min(innerWidth-340,x+16);
+  _tipGoalY=y+14;
+  if(!_tipVis){_tipX=_tipGoalX;_tipY=_tipGoalY;}
+}
+function tipTick(){
+  if(!_tipVis||!tipEl)return;
+  _tipX+=(_tipGoalX-_tipX)*0.35;
+  _tipY+=(_tipGoalY-_tipY)*0.35;
+  tipEl.style.left=_tipX.toFixed(1)+'px';
+  tipEl.style.top=_tipY.toFixed(1)+'px';
+}
 tipEl.addEventListener('mouseenter',()=>{tipSticky=true;});
-tipEl.addEventListener('mouseleave',()=>{tipSticky=false;tipEl.style.display='none';});
+tipEl.addEventListener('mouseleave',()=>{tipSticky=false;tipEl.style.display='none';_tipVis=false;});
 canvas.addEventListener('pointerleave',()=>{
-  if(!tipSticky){tipEl.style.display='none';window._hoverPlanePos=null;}
+  if(!tipSticky){tipEl.style.display='none';_tipVis=false;window._hoverPlanePos=null;}
 });
 canvas.addEventListener('pointermove',e=>{
   if(tipSticky)return;
   /* Orbit / pan already owns the frame — skip heavy picks so hover stays fluid */
-  if(drag){tipEl.style.display='none';window._hoverPlanePos=null;return;}
+  if(drag){tipEl.style.display='none';_tipVis=false;window._hoverPlanePos=null;return;}
   const now=performance.now();
   const moved=Math.hypot(e.clientX-_hovX,e.clientY-_hovY);
   _hovX=e.clientX;_hovY=e.clientY;
-  /* Keep tip glued to cursor even between pick ticks */
-  if(tipEl.style.display==='block'){
-    tipEl.style.left=Math.min(innerWidth-340,e.clientX+16)+'px';
-    tipEl.style.top=(e.clientY+14)+'px';
-  }
+  tipFollow(e.clientX,e.clientY);
+  if(_tipVis)tipTick();
   if(now-hovT<HOV_MS)return;hovT=now;
-  const fastHover=moved>28; /* big jumps: light path only */
+  const fastHover=moved>36; /* big jumps: light path only */
   _ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
   _ray.setFromCamera(_ndc,camera);
   let html=null;
@@ -9596,12 +9622,18 @@ canvas.addEventListener('pointermove',e=>{
   }
   if(placeHint){
     hoverPlace=placeHint;
-    if(now-_waHoverAt>200){_waHoverAt=now;updateWhereAmI();}
+    if(now-_waHoverAt>90){_waHoverAt=now;updateWhereAmI();}
   }
-  if(html){tipEl.innerHTML=html;tipEl.style.display='block';
-    tipEl.style.left=Math.min(innerWidth-340,e.clientX+16)+'px';
-    tipEl.style.top=(e.clientY+14)+'px';}
-  else tipEl.style.display='none';
+  if(html){
+    if(tipEl.innerHTML!==html)tipEl.innerHTML=html;
+    tipEl.style.display='block';
+    _tipVis=true;
+    tipFollow(e.clientX,e.clientY);
+    tipTick();
+  }else{
+    tipEl.style.display='none';
+    _tipVis=false;
+  }
 });
 function stopFollow(){
   clearRouteLine();
@@ -9791,13 +9823,13 @@ function angleLerp(a,b,t){let d=(b-a)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=T
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{e.preventDefault();
   const lim=camRadiusLimits();
-  /* Metre Houston: radius-relative steps so zoom stays usable from street → city */
+  /* Soft radius-relative zoom — fewer jumpy ticks, applyCam eases the rest */
   if(WS!==1){
-    const ticks=clamp(e.deltaY/100,-5,5);
-    const k=1+0.085*Math.min(2.4,Math.max(0.55,camGoal.radius/900));
+    const ticks=clamp(e.deltaY/120,-3.2,3.2);
+    const k=1+0.072*Math.min(2.2,Math.max(0.5,camGoal.radius/1000));
     camGoal.radius=clamp(camGoal.radius*Math.pow(k,ticks),lim.rmin,lim.rmax);
   }else{
-    camGoal.radius=clamp(camGoal.radius*Math.pow(1.0016,e.deltaY),lim.rmin,lim.rmax);
+    camGoal.radius=clamp(camGoal.radius*Math.pow(1.00135,e.deltaY),lim.rmin,lim.rmax);
   }
 },{passive:false});
 function pan(dx,dy){
@@ -10334,18 +10366,21 @@ function visibleTrafficStats(renderedN,renderedSpeedSum){
   const flows=lt&&lt.flows;
   let worstC=-1,worstName='';
   const carsMph=renderedN>0?Math.round(renderedSpeedSum/renderedN/MPH):null;
-  /* On-screen Houston v2 cars — what you see around the camera */
+  /* On-screen Houston v2 cars — same set as #stVeh */
   let v2=null;
   if(window.HTS_TRAFFIC2&&HTS_TRAFFIC2.speedNear){
     const r=clamp(cam.radius*0.65,700,2800);
     const ob=HTS_TRAFFIC2.speedNear(cx,cz,r);
     if(ob&&ob.n>=5){
       const cong=clamp(1-ob.ratio,0,1);
-      v2={n:ob.n,cong,mph:carsMph,hot:cong>=0.42?(cong>=0.68?'Heavy traffic · jammed':'Heavy traffic'):null};
+      /* speedNear returns free-flow ratio — convert with on-screen car mph when available */
+      v2={n:ob.n,cong,mph:carsMph,
+        hot:cong>=0.42?(cong>=0.68?'Heavy traffic · jammed':'Heavy traffic'):null};
     }
   }
 
-  /* LIVE mode: TranStar/TomTom freeways for corridor mph — veh count always = rendered cars */
+  /* LIVE probes: prefer freeways under the camera; blend with on-screen cars so mph/cong match what you see */
+  let liveProbe=null;
   if(liveMode&&flows&&flows.size){
     let localMphN=0,localMphSum=0,localCongN=0,localCongSum=0;
     let metroMphN=0,metroMphSum=0,metroCongN=0,metroCongSum=0;
@@ -10363,7 +10398,18 @@ function visibleTrafficStats(renderedN,renderedSpeedSum){
           localMphSum+=cur;localMphN++;
           localCongSum+=flow.cong;localCongN++;
         }
-        if(flow.cong>worstC){worstC=flow.cong;worstName=road.def.short||road.def.name;}
+        if(near&&flow.cong>worstC){worstC=flow.cong;worstName=road.def.short||road.def.name;}
+      }
+    }
+    /* If nothing near camera, fall back to metro for hotspot only */
+    if(worstC<0){
+      for(const road of roads){
+        if(road.def.arterial||road.def.surface)continue;
+        for(const dir of road.dirs){
+          const flow=flows.get(road.def.id+'_'+dir.sign);
+          if(!liveFlowFresh(flow))continue;
+          if(flow.cong>worstC){worstC=flow.cong;worstName=road.def.short||road.def.name;}
+        }
       }
     }
     const useLocal=localMphN>=2;
@@ -10373,24 +10419,31 @@ function visibleTrafficStats(renderedN,renderedSpeedSum){
     const congSum=useLocal?localCongSum:metroCongSum;
     const src=lt.transtar?'TranStar':(lt.tomtom?'TomTom':(lt.src||'Live'));
     if(mphN>0){
-      let congPct=congN>0?Math.round(congSum/congN*100):0;
-      let hot=worstC>=0.42?worstName+(worstC>=0.68?' · jammed':' · heavy'):null;
-      /* Blend on-screen jam so panel matches what you see under the camera */
-      if(v2&&v2.n>=8&&v2.cong>congPct/100){
-        congPct=Math.round(lerp(congPct/100,v2.cong,0.45)*100);
-        if(!hot&&v2.hot)hot=v2.hot;
-      }
-      return {
-        veh:renderedN,
+      liveProbe={
         mph:Math.round(mphSum/mphN),
-        congPct,
-        congSrc:src+(useLocal?'':' · metro'),
-        hot,
-        live:true,
-        mphLabel:'Avg mph · '+src,
+        cong:congN>0?(congSum/congN):0,
+        src,useLocal,
+        hot:worstC>=0.42?worstName+(worstC>=0.68?' · jammed':' · heavy'):null,
       };
     }
-    /* Live feed empty — fall through to on-screen cars / predicted */
+  }
+
+  if(liveProbe){
+    let mph=liveProbe.mph;
+    let congPct=Math.round(liveProbe.cong*100);
+    let hot=liveProbe.hot;
+    let mphLabel='Avg mph · '+liveProbe.src+(liveProbe.useLocal?'':' · metro');
+    let congSrc=liveProbe.src+(liveProbe.useLocal?'':' · metro');
+    /* Prefer on-screen car speed when enough cars are visible — matches #stVeh */
+    if(v2&&v2.n>=8&&v2.mph!=null){
+      mph=Math.round(lerp(liveProbe.mph,v2.mph,0.55));
+      mphLabel='Avg mph · on screen + '+liveProbe.src;
+    }
+    if(v2&&v2.n>=8){
+      congPct=Math.round(lerp(liveProbe.cong,v2.cong,0.5)*100);
+      if(!hot&&v2.hot)hot=v2.hot;
+    }
+    return {veh:renderedN,mph,congPct,congSrc,hot,live:true,mphLabel};
   }
 
   if(v2){
@@ -10423,7 +10476,7 @@ function visibleTrafficStats(renderedN,renderedSpeedSum){
   }
   return {
     veh:renderedN,
-    mph:mphN>0?Math.round(mphSum/mphN):carsMph,
+    mph:mphN>0?Math.round(mphSum/mphN):(carsMph!=null?carsMph:null),
     congPct:congN>0?Math.round(congSum/congN*100):null,
     congSrc:congN>0?'Predicted':(liveMode?'Waiting':''),
     hot:worstC>=0.42?worstName+(worstC>=0.68?' · jammed':' · heavy'):null,
@@ -10453,13 +10506,23 @@ function mapMat(color){
   land.rotation.x=-Math.PI/2;land.position.y=0.4;land.renderOrder=10;gMap.add(land);
   /* parks — small muted pockets (match 3D; city stays asphalt-first) */
   const parks=[
-    [-1140,-3620,420,0x7a8a6a],[-880,-130,260,0x8a9a72],[1500,-3700,380,0x7a8a6a],
-    [-2650,-780,280,0x7a8468],[-2850,300,300,0x7a8468],[-1600,-5000,320,0x6a7a5a],
-    [-230,805,160,0x8a9a70],[-350,-70,140,0x7a8a68],[2699,-1383,120,0x8a9a72]
+    [W(-1140),W(-3620),Math.min(420*WS,1600),0x7a8a6a],[W(-880),W(-130),Math.min(260*WS,1000),0x8a9a72],[W(1500),W(-3700),Math.min(380*WS,1400),0x7a8a6a],
+    [W(-2650),W(-780),Math.min(280*WS,1100),0x7a8468],[W(-2850),W(300),Math.min(300*WS,1200),0x7a8468],[W(-1600),W(-5000),Math.min(320*WS,1200),0x6a7a5a],
+    [W(-230),W(805),Math.min(160*WS,700),0x8a9a70],[W(-350),W(-70),Math.min(140*WS,600),0x7a8a68],[W(2699),W(-1383),Math.min(120*WS,500),0x8a9a72]
   ];
   for(const [x,z,r,c] of parks){const m=new THREE.Mesh(new THREE.CircleGeometry(r,26),mapMat(c));
     m.rotation.x=-Math.PI/2;m.position.set(x,0.7,z);m.renderOrder=11;gMap.add(m);}
-  const waters=[[2150,-3850,640],[2050,3020,320],[-2650,-780,170],[-2850,300,180],[7150,2700,3300],[2699,-1383,160]];
+  /* Waters use W() so metre-scale Houston keeps Galveston Bay SE of the Ship Channel —
+     the old [7150,2700,3300] disk sat on Magnolia Park and flooded East End buildings. */
+  const waters=[
+    [W(2150),W(-3850),Math.min(640*WS,2400)],
+    [W(2050),W(3020),Math.min(320*WS,1200)],
+    [W(-2650),W(-780),Math.min(170*WS,700)],
+    [W(-2850),W(300),Math.min(180*WS,700)],
+    [W(4650),W(2350),Math.min(1100*WS,4200)], /* Galveston Bay — SE estuary */
+    [W(2699),W(-1383),Math.min(160*WS,600)],
+    [W(5200),W(-1200),Math.min(520*WS,2200)], /* Trinity Bay */
+  ];
   for(const [x,z,r] of waters){const m=new THREE.Mesh(new THREE.CircleGeometry(r,26),mapMat(0x6fa8c8));
     m.rotation.x=-Math.PI/2;m.position.set(x,1.0,z);m.renderOrder=12;gMap.add(m);}
   for(const pts of ALL_BAYOUS){const s2=sampleCurve(pts,false,30);
@@ -11446,7 +11509,8 @@ function hazActivate(mode){
       const r2=hazMakeRing(core.x,core.z,2000*catScale,2400*catScale,0x7c3aed,3.5,0.32);H.group.add(r2.mesh);H.rings.push(r2);
       const trackSp=warnSprite('hurricane','Landfall cone','Galveston Bay',0.4);
       trackSp.position.set(core.x,50,core.z);H.group.add(trackSp);H.labels.push(trackSp);
-      for(const [lx,lz,lr] of [[2050,3020,500],[7150,2700,1400],[3800,-200,600],[2450,420,450]]){
+      /* Surge pockets stay on bay / Clear Lake — not Magnolia Park land */
+      for(const [lx,lz,lr] of [[W(2050),W(3020),500*WS],[W(4650),W(2350),1400*WS],[W(3800),W(-200),600*WS],[W(2450),W(420),450*WS]]){
         H.group.add(hazMakeDisk(lx,lz,lr*catScale,0x2563eb,0.22,2));
       }
       for(const [x,z,r,nm] of [[60,-800,280,'I-45 N'],[-1200,-200,320,'I-10 W'],[400,-1400,300,'US-59 N'],[60,60,260,'Downtown']]){
@@ -12268,7 +12332,8 @@ function moveVehicles(dt,nightF){
     const needCars=!planeHi&&!peekFlight&&(vehFade>0.01||tourOn||!!follow||!!followPlane);
     if(!planeHi&&!peekFlight&&(needCars||mapT<0.9))T2.tick(dt,cam.target.x,cam.target.z,cam.radius);
     if(needCars&&vehFade>0.01){
-      const cullR=Math.max(900,cam.radius*1.15+320);
+      /* Wider draw cull so suburb streets under the camera still show cars */
+      const cullR=Math.max(1400,cam.radius*1.35+480);
       T2.forEach((v)=>{
         if(idx>=MAX_INST)return;
         vehRef[idx]=v;renderedSpeedSum+=v.v;renderedVeh++;
@@ -12369,8 +12434,10 @@ function envUpdate(dt,h){
   keyCol(SUN_COL,h,_sc);sun.color.copy(_sc);
   /* Clear day ≈ full sun; partly cloudy softens; overcast/rain nearly diffuse-only */
   sun.intensity=keyNum(SUN_INT,h)*lerp(1,0.16,cl)*lerp(1,0.7,rainF);
-  /* Directional light in world space: skyRoot is centered on cam.target */
+  /* Directional light must aim at the look-at every frame (not only when shadows update) */
   sun.position.set(cam.target.x+sp.x*0.4,sp.y*0.4,cam.target.z+sp.z*0.4);
+  sun.target.position.set(cam.target.x,0,cam.target.z);
+  if(!sun.target.parent)scene.add(sun.target);
   skyUni.sunDir.value.copy(sp).normalize();
   skyUni.glowCol.value.copy(_sc);
   skyUni.glowI.value=clamp(keyNum(SUN_INT,h),0,1.2)*lerp(0.85,0.04,cl)*lerp(1,0.5,rainF);
@@ -12412,6 +12479,7 @@ function envUpdate(dt,h){
     lampHeads.opacity=nightF*1.0*zf;
     if(window.lampPoolMat)lampPoolMat.opacity=nightF*0.85*zf;
   }
+  /* Windows: streetlight cell rebuild is heavy — half-rate is fine visually */
   if(window.HTS_LIGHTS2)HTS_LIGHTS2.update(nightF,cam.target,cam.radius);
   /* runway edge lights, PAPI & rotating beacons */
   if(window.RWEDGE)for(const m of RWEDGE)m.opacity=0.1+nightF*0.7;
@@ -12573,14 +12641,16 @@ function updateDriveTimes(){
     const sign=corridorTravelSign(c,outbound);
     const flow=road&&window.LIVE_TRAFFIC&&window.LIVE_TRAFFIC.flows&&window.LIVE_TRAFFIC.flows.get(road.def.id+'_'+sign);
     const liveMph=liveFlowFresh(flow)?sanitizeLiveMph(flow.cur,flow.ff,road):null;
+    /* Prefer live probe mph for color + label so chips match left-panel traffic */
+    const showMph=liveMph!=null?Math.round(liveMph):chipMph;
     const col=liveMph!=null?mphTier(liveMph):(ratio<1.15?'var(--free)':ratio<1.45?'var(--slow)':ratio<1.9?'var(--heavy)':'var(--jam)');
     c.el.querySelector('.dot2').style.background=col;
     const [sub,dtn]=c.label.split(' · ');
     c.el.querySelector('.nm').textContent=outbound?('Downtown → '+dtn):(dtn+' → Downtown');
     const src=entry
       ?(entry.src==='tomtom-route'?'TomTom':'TranStar')
-      :(fromFlow!=null?'live mph':'modeled');
-    c.el.querySelector('.tm').innerHTML=fmtMin(t)+'<small>'+sub+' · '+mi.toFixed(0)+' mi · usually '+fmtMin(usual)+' · '+src+' · '+chipMph+' mph</small>';
+      :(fromFlow!=null||liveMph!=null?'live mph':'modeled');
+    c.el.querySelector('.tm').innerHTML=fmtMin(t)+'<small>'+sub+' · '+mi.toFixed(0)+' mi · usually '+fmtMin(usual)+' · '+src+' · '+showMph+' mph</small>';
   }
 }
 function placeNameAt(x,z){
@@ -12627,7 +12697,7 @@ function updateWhereAmI(){
     name=(localWx&&localWx.place)||_placeCache.name;
     road='your location';
     kind='you';
-  }else if(hoverPlace&&hoverPlace.n&&(performance.now()-(hoverPlace.at||0)<900)){
+  }else if(hoverPlace&&hoverPlace.n&&(performance.now()-(hoverPlace.at||0)<2200)){
     name=hoverPlace.n;road=hoverPlace.road||null;kind=hoverPlace.kind||null;
   }else{
     const x=cam.target.x,z=cam.target.z;
@@ -12655,12 +12725,14 @@ function updateHUD(nightF,skyH){
   const h12=((hh+11)%12)+1,ap=hh<12?'AM':'PM';
   $('clock').textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
   const mTime=$('mHudTime');if(mTime)mTime.textContent=h12+':'+String(mm).padStart(2,'0')+' '+ap;
-  const mPhase=$('mHudPhase');if(mPhase)mPhase.textContent=$('phase')?$('phase').textContent:'';
-  $('phase').textContent=phaseLabel(simH)+(liveMode?' · LIVE traffic':' · '+simDayLabel()+' time-lapse');
+  const phaseTxt=phaseLabel(simH)+(liveMode?' · LIVE traffic':' · '+simDayLabel()+' time-lapse');
+  $('phase').textContent=phaseTxt;
+  const mPhase=$('mHudPhase');if(mPhase)mPhase.textContent=phaseTxt;
   const now=(!liveMode&&window.simOffsetSec)
     ?new Date(Date.now()+window.simOffsetSec*1000)
     :new Date();
-  $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:CHI_TZ})+(weekend?' · weekend pattern':' · weekday pattern');
+  const tz=(window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.timezone)||CHI_TZ||'America/Chicago';
+  $('dateLine').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:tz})+(weekend?' · weekend pattern':' · weekday pattern');
   /* weather card — follows camera / Fly-to suburb in liveMode; GPS is under “Your location” */
   const P=WX[wxCur];
   const fc=(!liveMode&&wxMode==='auto'&&liveWx)?forecastAt(window.simOffsetSec||0):null;
@@ -12792,6 +12864,8 @@ function updateHUD(nightF,skyH){
   cEl.className='v '+(panelStats.congPct==null?'':(panelStats.congPct>62?'jam':panelStats.congPct>42?'busy':'ok'));
   const stK=$('stTrafficK');
   if(stK)stK.textContent=panelStats.congSrc?('Congestion · '+panelStats.congSrc):'Congestion';
+  /* Keep hotspot label locked to the same stats object as mph/cong */
+  if(panelStats.hot)hotLabel=panelStats.hot;
   $('hotTxt').textContent=panelStats.hot||hotLabel||'—';
   if(!scrubbing)$('timeSlider').value=Math.round(simH*60);
   updateDriveTimes();
@@ -13427,7 +13501,7 @@ function frame(now){
     mapT+=(tTarget-mapT)*0.07;
     _fpsN++;_fpsDt+=dt;
     if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;}
-    const perfBinary=_fpsAvg<42&&totalVeh>2200;
+    const perfBinary=_fpsAvg<(_isWin?48:42)&&totalVeh>(_isWin?1400:2200);
     if(mapT<=0.3||perfBinary){
       vehFade=mapT>0.78?0:1;
     }else{
@@ -13580,7 +13654,7 @@ function frame(now){
   /* Roads should remain visible whenever vehicles are visible, otherwise cars look like they're "on the grass". */
   const vFade=vehFade;
   const vShow=vFade>0.01;
-  const perfBinary=_fpsAvg<42&&totalVeh>2200;
+  const perfBinary=_fpsAvg<(_isWin?48:42)&&totalVeh>(_isWin?1400:2200);
   const showRoads=!inOSM&&(mapT<0.92||vShow);
   if(!gRoads3D.userData.v2Hidden&&gRoads3D.visible!==showRoads)gRoads3D.visible=showRoads;
   if(vShow){
@@ -13591,13 +13665,15 @@ function frame(now){
     extraMat.transparent=bodyMat.transparent;
     wheelMat.transparent=bodyMat.transparent;
   }
-  /* Wheels/extras can cull for FPS — headlights/tails stay on at night */
-  const partsHideR=WS===1?3000:3200;
-  const showParts=vShow&&!(_fpsAvg<38||cam.radius>partsHideR);
-  const showCarLights=vShow&&(nightF>0.18||showParts);
+  /* Wheels/extras/pools cull early — big Windows win */
+  const partsHideR=WS===1?3000:(_isWin?2200:3200);
+  const showParts=vShow&&!(_fpsAvg<(_isWin?48:38)||cam.radius>partsHideR);
+  const showCarLights=vShow&&nightF>0.22&&_fpsAvg>=(_isWin?42:36);
+  const showPools=showCarLights&&_fpsAvg>=(_isWin?48:40)&&cam.radius<(_isWin?1800:2800);
   if(bodies.visible!==vShow){bodies.visible=vShow;cabs.visible=vShow;}
   if(wheels.visible!==showParts){wheels.visible=showParts;extras.visible=showParts;}
-  if(heads2.visible!==showCarLights){heads2.visible=showCarLights;tails.visible=showCarLights;pools.visible=showCarLights;}
+  if(heads2.visible!==showCarLights){heads2.visible=showCarLights;tails.visible=showCarLights;}
+  if(pools.visible!==showPools)pools.visible=showPools;
   /* Congestion tint: softer when zoomed in so asphalt + lane lines stay clear */
   if(!gRoads3D.userData.v2Hidden){
     const stripO=inOSM?0:0.55*clamp((cam.radius-40)/420,0.35,1)*clamp(1-mapT*1.2,0,1);
@@ -13638,11 +13714,12 @@ function frame(now){
   const _planeCruise=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane'&&HTS_TOUR.state.p&&HTS_TOUR.state.p.y>120;
   if(!_planeCruise&&!HTS_PEEK&&typeof updateOsmLod==='function'&&camGoal){
     /* Windows: skip suburb LOD churn when FPS is soft */
-    if(!_isWin||_fpsAvg>=36||(simClock|0)%2===0)
+    if(!_isWin||_fpsAvg>=42||(simClock|0)%3===0)
       updateOsmLod(camGoal.target.x,camGoal.target.z,camGoal.radius);
   }
   if(!_planeCruise&&window.HTS_OSM_CITY){
-    if(!_isWin||cam.radius<3500||_fpsAvg>=38)HTS_OSM_CITY.update(camera);
+    if(!_isWin||(cam.radius<2800&&_fpsAvg>=42)||(simClock|0)%2===0)
+      HTS_OSM_CITY.update(camera);
   }
   /* Always paint the frame first — HUD/API errors must never blank the canvas */
   if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update){
@@ -13756,7 +13833,8 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
         window.HTS_LIGHTS2=sl;
         sl.ready.then((st)=>console.log('%cHouston streetlights: '+JSON.stringify(st),'color:#ffd080')).catch((e)=>console.warn('[HTS] streetlights',e&&e.message));
       }
-      window.HTS_TRAFFIC2=createHoustonTraffic({net:hr.net,k:UNITS_PER_MILE/1609.344,baseY:0.25,rand,budget:MAX_INST-200,mkCar:mkCar2,
+      /* Sim budget > draw cap so near-camera streets stay full after distance cull */
+      window.HTS_TRAFFIC2=createHoustonTraffic({net:hr.net,k:UNITS_PER_MILE/1609.344,baseY:0.25,rand,budget:_isWin?Math.min(MAX_INST+900,2400):Math.min(MAX_INST+1200,4200),mkCar:mkCar2,
         env:{cong:legacyCongAt,wx:()=>(wxBlend&&wxBlend.speed)||1,
           headway:()=>clamp(lerp(5.5,1.4,clamp(demand(simH,weekend),0,1)),1.4,6)}});
       hr.onTile((ev,id,ways)=>ev==='add'?HTS_TRAFFIC2.addTile(id,ways):HTS_TRAFFIC2.removeTile(id));

@@ -3,6 +3,7 @@
  */
 import * as THREE from 'three';
 import { planRoutesWithAlt, estimateRouteEta, nearestCw } from './houston-route.js';
+import { attachPlaceSearch } from '../ui/place-search.js';
 
 function fmtMin(m) {
   if (!Number.isFinite(m) || m < 0.5) return '<1 min';
@@ -102,6 +103,11 @@ export function createRoutePlanner({
         sel.value = keep && [...sel.options].some((o) => o.value === keep) ? keep
           : (gall ? gall.id : (places.find((p) => /downtown/i.test(p.n)) || places[0] || {}).id || 'cam');
       }
+      attachPlaceSearch(sel, {
+        placeholder: id === 'routeFrom' ? 'Search from…' : 'Search destination…',
+        ariaLabel: id === 'routeFrom' ? 'Search route from' : 'Search route to',
+        size: 8,
+      });
     }
   }
 

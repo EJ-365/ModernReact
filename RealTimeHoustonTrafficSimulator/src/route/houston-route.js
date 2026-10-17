@@ -163,6 +163,7 @@ export function buildPath(seq, a, b) {
         y: c.y0 + (f.ys ? f.ys[i] : 0) + 0.02,
         ff: c.ff,
         ref: c.ref || '',
+        name: c.name || '',
         h: c.h || '',
       });
     }
