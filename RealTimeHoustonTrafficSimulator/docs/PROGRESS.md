@@ -1,10 +1,43 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.47.1** — Aircraft sit on their gear, live cockpit gauges per aircraft, in-cabin engine sound, Wikipedia links on building cards.
+**Current build:** **v10.53.0** — C-130 tail rebuilt; airliner parts share materials and gear is batched (default view 1,002 → 838 draw calls).
 **SW cache:** `hts-shell-v155`
 
 This log captures the work from the late **v10.8.x / v10.9** baseline through the current **v10.18.0** real-3D-city release.
+
+## v10.53.0
+
+- **C-130 tail:** the fin used to sit behind the end of the fuselage as a flat slab with a forward-leaning trailing edge. It now rises from the aft body with a dorsal fillet, a ~25° swept leading edge, a rounded tip, a near-vertical trailing edge and a rudder hinge line. The aft body keeps a level top line while the belly sweeps up to the ramp, and the tailplane (16 m span) sits at the fin root.
+- **Speed:** airliner fin/winglets and both engine intakes share one material each, so `batchStaticChildren` merges them; the landing-gear group is batched too (it animates as a whole). Default Houston view: 1,002 → 838 draw calls, 1,264 → 656 geometries since v10.51.0.
+- `?debug` now also exposes `HTS_DEBUG.makers` (aircraft constructors) for isolated model renders.
+
+## v10.52.0
+
+- **Sound:** measured the Web Audio output per vehicle. The car bed was much quieter than the aircraft and sat low in pitch (hard for laptop speakers to play); it is now −40 dBFS at idle / −34 dBFS flat-out with the growl moved up into the speaker range. Aircraft beds measure −36…−24 dBFS from idle to full power. The audio context also resumes on the next tap/key if a tour started it outside a click.
+- **Speed:** each airliner (live flights, tour jet, parked jets) merged its ~60 static parts into one draw per material via `batchStaticChildren`; road work-zone cones/barriers share materials and merge (7 → 2 draws each). Default Houston view: 1,522 → 1,002 draw calls, 6,135 → 4,849 meshes.
+
+## v10.51.0
+
+- **Car dashboards:** the music player measures the left gauge cluster (`.dLeft`) and sits in the gap beside it, or just above it when the screen is too narrow; it re-places on window resize. Fixes the player covering the SUV/van screen and the pickup fuel/temp dials.
+- **Speed:** `nearestWeatherZone` keeps a one-entry memo (repeat calls for the same spot within 1 s skip the zone scan).
+
+## v10.50.0
+
+- **Speed:** road deck `heightAt` (called per car per frame) uses numeric grid keys instead of string concatenation; place labels skip the DOM pass when the camera is still and read the canvas size once per frame (was a layout read per label); rain lookup memoised per 60 m / 1 s; freeway hotspot congestion cached 2 s instead of 0.5 s.
+
+## v10.49.0
+
+- **Aircraft paint:** Tour Houston aircraft now have a *Main* palette (whole airframe) and a separate *Accent* palette with a *None* swatch. The accent paints a fuselage cheat-line, tail fin, nose and engines (jet: fin, winglets, engines, cheat-line, nose crown; Cessna: cheat-line, wingtips, fin; helicopter: tail, nose cap, cabin/boom stripes; F-16: radome, fin, stabilators; C-130: nose, fin, nacelles, cheat-line). The choice is remembered.
+
+## v10.48.0
+
+- **Route planner → Drive it:** corridor tiles are released after the drive starts; live-traffic speed target refreshed twice a second instead of every frame.
+- **ETA:** static drive-time table per route (limits, curves, cruise) + a live-traffic factor resampled every 3 s and eased; computed at most 4×/s; resets on route change.
+- **Car dashboards:** sedan twin dials, SUV/van digital screens, pickup rugged dials with fuel/temp + 4WD, coupe sport tach; dashboard height follows screen width so laptops no longer crop it.
+- **Aircraft:** optional *Taxi to park* after landing (nearest OSM apron), runway designators from OSM refs (e.g. 15L), centreline and green threshold lights, brighter edge lights; Cessna panel re-spaced below the glare shield; helicopter nose (frames, chin bubbles, landing light, pitot); helicopter panel re-spaced.
+- **Tour panel:** "Aircraft" label for aircraft, more accent colours for cars and planes; locate-me button re-placed after the side panel finishes sliding.
+- **Music:** 65 dead YouTube IDs removed, 66 verified tracks added (Afrobeats, gospel, pop, hip-hop/rap, new Country genre).
 
 ---
 

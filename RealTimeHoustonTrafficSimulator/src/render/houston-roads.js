@@ -179,10 +179,11 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
   const pierGeo = new THREE.BoxGeometry(1, 1, 1); pierGeo.translate(0, 0.5, 0);
   const stats = { ways: 0, tris: 0, tiles: 0 };
   /* 10 m grid of deck heights on the major network: heightAt(x,z,hint) → world Y of the surface */
-  const HG = 10, hgrid = new Map();
+  /* numeric cell keys: heightAt runs per car per frame, and string keys cost 9 concatenations a call */
+  const HG = 10, hgrid = new Map(), hkey = (gx, gz) => (gx + 50000) * 100000 + (gz + 50000);
   function noteHeights(pts, ys, cls) {
     for (let i = 0; i < pts.length / 2; i++) {
-      const key = Math.floor(pts[2 * i] / HG) + ',' + Math.floor(pts[2 * i + 1] / HG);
+      const key = hkey(Math.floor(pts[2 * i] / HG), Math.floor(pts[2 * i + 1] / HG));
       let a = hgrid.get(key); if (!a) hgrid.set(key, (a = []));
       a.push(baseY + ((ys ? ys[i] : 0) + cls.y) * kv);
     }
@@ -192,7 +193,7 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
     const gx = Math.floor(mx / HG), gz = Math.floor(mz / HG);
     let best = null, bd = 1e9;
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
-      const a = hgrid.get((gx + dx) + ',' + (gz + dz)); if (!a) continue;
+      const a = hgrid.get(hkey(gx + dx, gz + dz)); if (!a) continue;
       for (const y of a) { const d = Math.abs(y - (hint == null ? 0 : hint)); if (d < bd) { bd = d; best = y; } }
     }
     return best;

@@ -504,6 +504,7 @@
   #locBtn:hover{background:#2a1e16;border-color:rgba(232,168,56,.45)}
   #locBtn{background:rgba(20,24,30,.88)!important;border:1px solid rgba(255,255,255,.14)!important;backdrop-filter:blur(6px);transition:transform .15s,background .15s}
   #locBtn:hover{background:rgba(36,42,52,.95)!important;transform:scale(1.06)}
+  #locBtn{box-shadow:0 3px 14px rgba(0,0,0,.6),0 0 0 2px rgba(232,168,56,.35);transition:transform .15s,background .15s,right .32s cubic-bezier(.22,1,.36,1)}
   #locBtn.active svg circle,#locBtn.active svg path{stroke:#4aa3ff}#locBtn.active svg .dot{fill:#4aa3ff;stroke:none}
   #geoToast{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 14px);left:50%;transform:translateX(-50%);z-index:12;
     display:none;align-items:center;gap:9px;background:#0d1319f4;border:1px solid #2c4258;
@@ -946,7 +947,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.47.1</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.53.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">

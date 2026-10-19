@@ -27,6 +27,9 @@ export function createTourAudio() {
       radioGain = ctx.createGain();
       radioGain.gain.value = 0.55;
       radioGain.connect(master);
+      /* if the context was created outside a click (async tour start), resume it on the next tap or key */
+      const unlock = () => { if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {}); };
+      for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, unlock, { passive: true });
       return true;
     } catch (e) {
       return false;
@@ -40,7 +43,7 @@ export function createTourAudio() {
      car: engine growl + road hiss · prop: 4-cyl piston buzz at firing rate · turboprop: constant-speed prop drone
      heli: 27.5 Hz blade-pass + per-rev rotor thump + turbine whine · jet: deep cabin rumble + fan whine · fighter: roar + whine */
   const BED = {
-    car: { a: 'sawtooth', b: 'triangle', ga: 0.12, gb: 0.08, lp: 900, nLp: 900, nG: 0.045, brown: false, lfoF: 0, lfoD: 0 },
+    car: { a: 'sawtooth', b: 'triangle', ga: 0.26, gb: 0.14, lp: 1400, nLp: 900, nG: 0.07, brown: false, lfoF: 0, lfoD: 0 },
     prop: { a: 'sawtooth', b: 'square', ga: 0.16, gb: 0.035, lp: 450, nLp: 500, nG: 0.9, brown: true, lfoF: 4, lfoD: 0.06 },
     turboprop: { a: 'sawtooth', b: 'sine', ga: 0.14, gb: 0.05, lp: 380, nLp: 420, nG: 1.0, brown: true, lfoF: 1.3, lfoD: 0.08 },
     heli: { a: 'sawtooth', b: 'sine', ga: 0.16, gb: 0.006, lp: 220, nLp: 600, nG: 0.8, brown: true, lfoF: 6.9, lfoD: 0.35, whine: true },
@@ -221,11 +224,12 @@ export function createTourAudio() {
     const spd = Math.max(0, speedMps || 0);
     const p = k === 'car' ? Math.min(1, spd / 40)
       : Number.isFinite(power) ? Math.max(0, Math.min(1, power)) : Math.min(1, spd / (k === 'jet' || k === 'fighter' ? 120 : 55));
-    const level = muted ? 0.0001 : k === 'car' ? 0.04 + p * 0.22 : k === 'heli' ? 0.2 + p * 0.12 : 0.15 + p * 0.25;
+    /* measured: car bed was -58 dBFS at idle and mostly below 180 Hz, so laptop speakers dropped it; aircraft -40…-30 dBFS */
+    const level = muted ? 0.0001 : k === 'car' ? 0.16 + p * 0.3 : k === 'heli' ? 0.32 + p * 0.18 : 0.24 + p * 0.38;
     const T = ctx.currentTime, at = (prm, v, tc = 0.12) => { if (prm) prm.setTargetAtTime(v, T, tc); };
     at(bedGain && bedGain.gain, level, 0.15);
     let fa, fb, lp, nlp;
-    if (k === 'car') { fa = 42 + p * 70; fb = 84 + p * 110; lp = 900; nlp = 700 + p * 900; }
+    if (k === 'car') { fa = 58 + p * 120; fb = fa * 2; lp = 1300 + p * 1500; nlp = 800 + p * 1400; }
     else if (k === 'prop') { const rpm = 600 + Math.sqrt(p) * 1850, f = rpm / 60 * 2; fa = f; fb = f * 2; lp = 380 + p * 500; nlp = 380 + p * 600; }
     else if (k === 'turboprop') { fa = 68; fb = 136; lp = 300 + p * 300; nlp = 330 + p * 500; }
     else if (k === 'heli') { fa = 27.5; fb = 5600 + p * 500; lp = 220; nlp = 450 + p * 400; }

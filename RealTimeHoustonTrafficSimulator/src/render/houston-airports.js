@@ -254,24 +254,82 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
     }
     return false;
   }
-  /** white runway edge lights every 60 m; their material joins the app's night-lighting list */
+  /** runway lighting: white edge lights every 60 m, centreline lights every 30 m, green threshold bars at both ends.
+   *  Each set is one InstancedMesh whose material joins the app's night-lighting list (bright at night, faint by day). */
   function runwayLights(rws) {
-    const pts = [];
+    const edge = [], cl = [], thr = [];
     for (const r of rws) {
       const hw = r.w / 2 + 1;
       for (let i = 2; i < r.p.length; i += 2) {
         const ax = r.p[i - 2], az = r.p[i - 1], dx = r.p[i] - ax, dz = r.p[i + 1] - az, L = Math.hypot(dx, dz);
         if (L < 1) continue;
-        for (let s = 0; s < L; s += 60) for (const sd of [-1, 1]) pts.push(ax + dx * s / L - dz / L * hw * sd, az + dz * s / L + dx / L * hw * sd);
+        for (let s = 0; s < L; s += 60) for (const sd of [-1, 1]) edge.push(ax + dx * s / L - dz / L * hw * sd, az + dz * s / L + dx / L * hw * sd);
+        for (let s = 15; s < L; s += 30) cl.push(ax + dx * s / L, az + dz * s / L);
+      }
+      const n = r.p.length;
+      for (const e of [0, 1]) {
+        const i = e ? n - 2 : 0, j = e ? n - 4 : 2, dx = r.p[j] - r.p[i], dz = r.p[j + 1] - r.p[i + 1], l = Math.hypot(dx, dz) || 1;
+        for (let o = -hw; o <= hw + 0.1; o += 3.2) thr.push(r.p[i] - dz / l * o, r.p[i + 1] + dx / l * o);
       }
     }
-    if (!pts.length) return;
-    const m = new THREE.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0 });
-    const im = new THREE.InstancedMesh(new THREE.SphereGeometry(0.7, 6, 4), m, pts.length / 2);
-    const o = new THREE.Object3D();
-    for (let i = 0; i < pts.length; i += 2) { o.position.set(X(pts[i]), 0.9 * k, X(pts[i + 1])); o.updateMatrix(); im.setMatrixAt(i / 2, o.matrix); }
-    root.add(im);
-    if (nightMats) nightMats.push(m);
+    const set = (pts, color, rad, y) => {
+      if (!pts.length) return;
+      const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0 });
+      const im = new THREE.InstancedMesh(new THREE.SphereGeometry(rad, 6, 4), m, pts.length / 2);
+      const o = new THREE.Object3D();
+      for (let i = 0; i < pts.length; i += 2) { o.position.set(X(pts[i]), y * k, X(pts[i + 1])); o.updateMatrix(); im.setMatrixAt(i / 2, o.matrix); }
+      root.add(im);
+      if (nightMats) nightMats.push(m);
+    };
+    set(edge, 0xfff2d0, 1.1, 0.9);
+    set(cl, 0xe8f0ff, 0.7, 0.45);
+    set(thr, 0x3dff6a, 1.0, 0.8);
+  }
+  /** painted runway designators ("17", "35L"…) just past the threshold piano keys, one atlas + one merged mesh */
+  function runwayNumbers(rws) {
+    const labels = [];
+    for (const r of rws) {
+      if (!r.ref || r.p.length < 4) continue;
+      const parts = String(r.ref).split('/').map((t) => t.trim()).filter(Boolean), n = r.p.length;
+      for (const e of [0, 1]) {
+        const i = e ? n - 2 : 0, j = e ? n - 4 : 2, dx = r.p[j] - r.p[i], dz = r.p[j + 1] - r.p[i + 1], l = Math.hypot(dx, dz) || 1;
+        const ux = dx / l, uz = dz / l, brg = ((Math.atan2(ux, -uz) * 180 / Math.PI) + 360) % 360;
+        let best = null, bd = 1e9;
+        for (const t of parts) { const m = /^(\d{1,2})([LRC]?)$/.exec(t); if (!m) continue; let d = Math.abs(+m[1] * 10 - brg) % 360; d = Math.min(d, 360 - d); if (d < bd) { bd = d; best = m; } }
+        if (!best || bd > 40) continue;
+        labels.push({ num: best[1].padStart(2, '0'), side: best[2], x: r.p[i] + ux * 72, z: r.p[i + 1] + uz * 72, ux, uz, w: Math.min(r.w * 0.55, 20) });
+      }
+    }
+    if (!labels.length) return;
+    const CW = 128, CH = 192, cols = 16, rows = Math.ceil(labels.length / cols);
+    const c = document.createElement('canvas'); c.width = CW * cols; c.height = CH * rows;
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    const pos = [], uv = [], idx = [];
+    labels.forEach((L, q) => {
+      const cx = (q % cols) * CW, cy = Math.floor(q / cols) * CH;
+      x.font = 'bold 112px Arial, sans-serif'; x.fillText(L.num, cx + CW / 2, cy + (L.side ? 62 : 96));
+      if (L.side) { x.font = 'bold 74px Arial, sans-serif'; x.fillText(L.side, cx + CW / 2, cy + 150); }
+      const h = L.w * 1.5, rx = -L.uz, rz = L.ux, y = 0.3 * k, b = pos.length / 3;
+      const P = (s, t) => pos.push(X(L.x + rx * L.w * s + L.ux * h * t), y, X(L.z + rz * L.w * s + L.uz * h * t));
+      P(-0.5, -0.5); P(0.5, -0.5); P(0.5, 0.5); P(-0.5, 0.5);
+      const u0 = cx / c.width, u1 = (cx + CW) / c.width, vb = 1 - (cy + CH) / c.height, vt = 1 - cy / c.height;
+      uv.push(u0, vb, u1, vb, u1, vt, u0, vt);
+      idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx); geo.computeVertexNormals();
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+    const m = new THREE.MeshLambertMaterial({ map: tex, emissive: 0x6a6a6a, emissiveMap: tex, transparent: true, alphaTest: 0.35, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+    const me = new THREE.Mesh(geo, m); me.renderOrder = 2; root.add(me);
+  }
+  /** apron parking spots (OSM apron interiors) for the tour aircraft to taxi to after landing */
+  const spots = [];
+  function nearestSpot(x, z, maxD = 4500) {
+    let best = null, bd = maxD;
+    for (const s of spots) { const d = Math.hypot(s.x - x, s.z - z); if (d < bd) { bd = d; best = s; } }
+    return best;
   }
   const ready = fetch(url).then((r) => r.json()).then((d) => {
     const L = {};
@@ -283,6 +341,13 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
       fields.push({ r: a.r, x0, x1, z0, z1 });
     }
     for (const a of d.aprons) poly([a.r], 0.2 * k, ...L.apron);
+    for (const a of d.aprons) {
+      let cx = 0, cz = 0; const m = a.r.length / 2;
+      for (let i = 0; i < a.r.length; i += 2) { cx += a.r[i]; cz += a.r[i + 1]; }
+      cx /= m; cz /= m;
+      if (!inRing(a.r, cx, cz)) { cx = (cx + a.r[0]) / 2; cz = (cz + a.r[1]) / 2; if (!inRing(a.r, cx, cz)) continue; }
+      spots.push({ x: X(cx), z: X(cz) });
+    }
     for (const t of d.taxiways) { ribbon(t.p, t.w, 0.23 * k, ...L.taxi); ribbon(t.p, 0.35, 0.25 * k, ...L.yellow); }
     for (const r of d.runways) {
       ribbon(r.p, r.w, 0.26 * k, ...L.runway);
@@ -313,11 +378,12 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
     const parked = parkPlanes(d);
     const towers = buildTowers(d);
     runwayLights(d.runways);
+    runwayNumbers(d.runways);
     return { parked, towers, bridges: (d.bridges || []).length, aerodromes: d.aerodromes.length, runways: d.runways.length, taxiways: d.taxiways.length, terminals: d.terminals.length, hangars: d.hangars.length };
   });
   function inAerodrome(x, z) {
     for (const f of fields) if (x >= f.x0 && x <= f.x1 && z >= f.z0 && z <= f.z1 && inRing(f.r, x, z)) return true;
     return false;
   }
-  return { root, ready, inAerodrome };
+  return { root, ready, inAerodrome, nearestSpot };
 }

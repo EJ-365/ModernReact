@@ -101,8 +101,12 @@ export function chunkWeatherZones(zones, size) {
  * @param {number} x
  * @param {number} z
  */
+let _nz = null, _nzZones = null, _nzX = 0, _nzZ = 0, _nzT = 0;
 export function nearestWeatherZone(zones, x, z) {
   if (!zones || !zones.length) return null;
+  /* one-entry memo: callers ask for the same spot many times a frame; weather cells are kilometres wide */
+  const now = Date.now();
+  if (_nz && _nzZones === zones && now - _nzT < 1000 && Math.abs(x - _nzX) < 1 && Math.abs(z - _nzZ) < 1) return _nz;
   let best = null;
   let bestD = 1e18;
   for (const zn of zones) {
@@ -113,7 +117,9 @@ export function nearestWeatherZone(zones, x, z) {
       best = zn;
     }
   }
-  return best ? { zone: best, dist: bestD } : null;
+  const out = best ? { zone: best, dist: bestD } : null;
+  _nz = out; _nzZones = zones; _nzX = x; _nzZ = z; _nzT = now;
+  return out;
 }
 
 /**

@@ -40,17 +40,26 @@ export function createHoustonPlaces({ camera, dom, getView, url = '/data/houston
       if (shown.length >= MAXV) break;
     }
     shown.forEach(([p], i) => { const e = pool(i); if (e._p !== p) { e._p = p; e.textContent = p[3]; e.style.font = FONT[p[2]] + ' system-ui,-apple-system,Segoe UI,sans-serif'; e.style.textTransform = p[2] <= 1 ? 'uppercase' : 'none'; } });
-    for (let i = shown.length; i < els.length; i++) els[i].style.opacity = '0';
+    for (let i = shown.length; i < els.length; i++) { els[i].style.opacity = '0'; els[i]._op = '0'; }
   }
+  /* skip the label pass when the camera and label set haven't changed; read the canvas size once per frame, not per label */
+  const lastM = new Float64Array(17); let lastShown = null;
   function frame() {
+    requestAnimationFrame(frame);
+    const me = camera.matrixWorld.elements, pe = camera.projectionMatrix.elements;
+    let same = lastShown === shown && lastM[16] === pe[0] + pe[5];
+    for (let i = 0; i < 16 && same; i++) if (lastM[i] !== me[i]) same = false;
+    if (same) return;
+    for (let i = 0; i < 16; i++) lastM[i] = me[i];
+    lastM[16] = pe[0] + pe[5]; lastShown = shown;
+    const W = dom.clientWidth, H = dom.clientHeight;
     for (let i = 0; i < shown.length; i++) {
       const [p, a] = shown[i], e = els[i];
       v.set(p[0], 0, p[1]).project(camera);
-      const W = dom.clientWidth, H = dom.clientHeight;
       e.style.transform = `translate(${((v.x + 1) / 2 * W).toFixed(1)}px,${((1 - v.y) / 2 * H).toFixed(1)}px) translate(-50%,-50%)`;
-      e.style.opacity = v.z > 1 ? '0' : String(a);
+      const op = v.z > 1 ? '0' : String(a);
+      if (e._op !== op) { e._op = op; e.style.opacity = op; }
     }
-    requestAnimationFrame(frame);
   }
   const ready = fetch(url).then((r) => r.json()).then((d) => {
     P = (d.p || []).slice().sort((a, b) => a[2] - b[2]);

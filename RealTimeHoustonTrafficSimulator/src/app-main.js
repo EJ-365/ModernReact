@@ -1039,7 +1039,7 @@ const MAXAN=Math.min(_isWin?4:8,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
 scene.fog=new THREE.Fog(0xc5d8ea,1400*WS,18000*WS);
 const camera=new THREE.PerspectiveCamera(55,innerWidth/innerHeight,WS===1?2:1.5,42000*WS);
-if(/[?&]debug\b/.test(location.search))window.HTS_DEBUG={renderer,scene,camera};
+if(/[?&]debug\b/.test(location.search))window.HTS_DEBUG={renderer,scene,camera,makers:{makeMilitary,tourJet,makeTourHeli,makeProp}};
 
 const hemi=new THREE.HemisphereLight(HTS_IS_AUS?0xe8f0ff:0xd0e4ff,HTS_IS_AUS?0x6a7a50:0x4a5a3a,HTS_IS_AUS?0.95:0.88);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff5e6,HTS_IS_AUS?1.15:1.05);scene.add(sun);
@@ -1887,7 +1887,7 @@ function hotspotLiveCong(hs){
   const now=performance.now();
   const cached=_hotCongCache.get(hs.name);
   /* Per-hotspot TTL — avoid wiping the whole map every 400 ms */
-  if(cached&&(now-cached.at)<500)return cached.out;
+  if(cached&&(now-cached.at)<2000)return cached.out; /* feeds refresh in minutes; 2 s keeps rings live without rescanning every road */
   if(!window.roads||!roads.length){
     const out={cong:0,liveShare:0,samples:0,live:false};
     _hotCongCache.set(hs.name,{at:now,out});return out;
@@ -3920,18 +3920,19 @@ function makeAirliner(finCol,liv){
   const belly=new THREE.Mesh(new THREE.CylinderGeometry(2.36,2.36,30,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB);
   belly.rotation.x=Math.PI/2;g.add(belly);
   /* swept wings */
+  const finM=new THREE.MeshLambertMaterial({color:finCol}),intakeM=new THREE.MeshBasicMaterial({color:0x15181c});
   for(const sd of [1,-1]){
     const w=new THREE.Mesh(new THREE.BoxGeometry(21,0.55,6.4),white);
     w.position.set(sd*10.5,-1,0.2);w.rotation.y=sd*0.42;w.rotation.z=sd*0.06;g.add(w);
-    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,3.2,2.6),new THREE.MeshLambertMaterial({color:finCol}));
+    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,3.2,2.6),finM);
     wl.position.set(sd*19.6,0.7,-3.4);g.add(wl);
     const eng=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.35,4.6,10),engM);
     eng.rotation.x=Math.PI/2;eng.position.set(sd*7.2,-2.5,3.2);g.add(eng);
-    const intake=new THREE.Mesh(new THREE.CircleGeometry(1.3,16),new THREE.MeshBasicMaterial({color:0x15181c}));intake.position.set(sd*7.2,-2.5,5.52);g.add(intake);
+    const intake=new THREE.Mesh(new THREE.CircleGeometry(1.3,16),intakeM);intake.position.set(sd*7.2,-2.5,5.52);g.add(intake);
     const st=new THREE.Mesh(new THREE.BoxGeometry(8.6,0.45,3.6),white);
     st.position.set(sd*4.6,1.6,-21);st.rotation.y=sd*0.5;g.add(st);
   }
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.7,8.4,5.6),new THREE.MeshLambertMaterial({color:finCol}));
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.7,8.4,5.6),finM);
   fin.position.set(0,4.6,-21.5);fin.rotation.x=-0.28;g.add(fin);
   /* Passenger windows — shared mats, modest count (keeps airliner cheap) */
   const winGlass=new THREE.MeshLambertMaterial({color:0x5a82a0,transparent:true,opacity:0.55,depthWrite:false});
@@ -3975,18 +3976,31 @@ function makeAirliner(finCol,liv){
     t2.rotation.z=Math.PI/2;t2.position.set(x,-4.4,z);gear.add(t2);
   }
   leg(0,11);leg(-2.6,-1.5);leg(2.6,-1.5);
+  batchStaticChildren(gear,{cell:1e6}); /* gear animates as one group (scale/visible) */
   g.add(gear);g.userData.gear=gear;
   const strobe=new THREE.Sprite(navGlowMat(0xffffff));
   strobe.scale.set(4,4,1);strobe.position.set(0,-2.4,0);g.add(strobe);
   const beacon=new THREE.Sprite(navGlowMat(0xff3626));
   beacon.scale.set(4,4,1);beacon.position.set(0,3.4,-2);g.add(beacon);
   g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,19.8,-25),gear,gearDrop:5.25};
+  /* ~60 static parts → one draw per material (windows, frames, skin…); gear group and light sprites stay separate */
+  batchStaticChildren(g,{cell:1e6});
   return g;
 }
-function makeTourHeli(col){
+function tourJet(c,a){
+  /* tour jet: main colour everywhere; optional accent paints fin, winglets, engines, a cheat-line and a nose crown */
+  if(a==null)return makeAirliner(c,[c,c,c,c]);
+  const g=makeAirliner(c,[c,c,a,a]);
+  const m=new THREE.MeshLambertMaterial({color:a});
+  for(const sd of [1,-1]){const st=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.42,33),m);st.position.set(sd*2.36,0.02,0.5);g.add(st);}
+  const crown=new THREE.Mesh(new THREE.SphereGeometry(2.37,18,12,0,Math.PI*2,0,Math.PI*0.32),m);crown.rotation.x=Math.PI/2;crown.position.z=16;crown.scale.set(1,1.7,1);g.add(crown);
+  return g;
+}
+function makeTourHeli(col,acc){
   /* Bell 407-class: lathe-turned cabin, tinted wrap canopy, tapered boom, skids with cross tubes, 4-blade rotor */
   const g=new THREE.Group();
   const paint=new THREE.MeshPhongMaterial({color:col,specular:0x555555,shininess:60});
+  const accM=acc!=null?new THREE.MeshPhongMaterial({color:acc,specular:0x555555,shininess:60}):paint;
   const dark=new THREE.MeshPhongMaterial({color:0x22252a,specular:0x222222,shininess:20});
   const metal=new THREE.MeshPhongMaterial({color:0x9aa1a8,specular:0x888888,shininess:70});
   const glass=new THREE.MeshPhongMaterial({color:0x1d3346,specular:0xbfd0e0,shininess:120,transparent:true,opacity:0.82});
@@ -3997,9 +4011,9 @@ function makeTourHeli(col){
   add(new THREE.BoxGeometry(1.0,0.5,1.7),paint,0,1.95,0.1);                               /* engine cowl */
   add(new THREE.CylinderGeometry(0.12,0.2,0.4,10),dark,0,2.35,0.15);                       /* mast */
   add(new THREE.CylinderGeometry(0.14,0.34,4.8,12),paint,0,1.35,-3.1,Math.PI/2);           /* tapered tail boom */
-  add(new THREE.BoxGeometry(0.08,1.25,0.85),paint,0,1.85,-5.35,-0.35,0,0);                 /* vertical fin */
-  add(new THREE.BoxGeometry(1.7,0.06,0.42),paint,0,1.35,-4.5);                             /* stabiliser */
-  for(const sd of [1,-1])add(new THREE.BoxGeometry(0.06,0.4,0.45),paint,sd*0.85,1.45,-4.5);
+  add(new THREE.BoxGeometry(0.08,1.25,0.85),accM,0,1.85,-5.35,-0.35,0,0);                 /* vertical fin */
+  add(new THREE.BoxGeometry(1.7,0.06,0.42),accM,0,1.35,-4.5);                             /* stabiliser */
+  for(const sd of [1,-1])add(new THREE.BoxGeometry(0.06,0.4,0.45),accM,sd*0.85,1.45,-4.5);
   for(const sd of [1,-1]){
     add(new THREE.CapsuleGeometry(0.06,3.4,4,8),metal,sd*0.9,-0.2,0.5,Math.PI/2);         /* skid */
     for(const zz of [1.35,-0.4]){const t=add(new THREE.CylinderGeometry(0.05,0.05,1.0,8),metal,sd*0.72,0.22,zz,0,0,sd*0.45);t.castShadow=true;}
@@ -4009,15 +4023,29 @@ function makeTourHeli(col){
   for(let i=0;i<4;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.035,5.2),dark);b.position.set(Math.sin(i*Math.PI/2)*2.65,0.06,Math.cos(i*Math.PI/2)*2.65);b.rotation.y=i*Math.PI/2;rotor.add(b);}
   const tail=new THREE.Group();tail.position.set(0.12,1.85,-5.5);g.add(tail);
   for(let i=0;i<2;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.1,1.2),dark);b.rotation.x=i*Math.PI/2;tail.add(b);}
+  /* face: framed windshield (centre post + bows), chin bubbles, nose landing light, wipers, pitot and a dark nose cap */
+  const frame=new THREE.MeshPhongMaterial({color:0x15171a,specular:0x333333,shininess:30});
+  add(new THREE.BoxGeometry(0.07,0.95,0.07),frame,0,1.52,2.08,-0.62);                      /* centre windshield post */
+  for(const sd of [1,-1]){
+    add(new THREE.BoxGeometry(0.06,1.05,0.06),frame,sd*0.78,1.45,1.7,-0.45,0,sd*0.28);     /* A-pillars */
+    const ch=add(new THREE.SphereGeometry(0.3,14,10),glass,sd*0.36,0.66,2.28);ch.scale.set(1,0.72,0.75); /* chin bubble */
+    add(new THREE.BoxGeometry(0.03,0.02,0.5),frame,sd*0.3,1.12,2.3,-0.9,0,sd*0.2);          /* wiper */
+    add(new THREE.BoxGeometry(0.05,0.9,1.25),frame,sd*1.02,1.0,0.25);                        /* door frame */
+  }
+  add(new THREE.SphereGeometry(0.36,14,10,0,Math.PI*2,0,Math.PI/2),accM,0,1.0,2.36,Math.PI/2).scale.set(1.5,1,0.55); /* nose cap */
+  add(new THREE.CircleGeometry(0.13,14),new THREE.MeshBasicMaterial({color:0xfff6dc}),0,0.42,2.42,0,0,0);           /* landing light */
+  add(new THREE.CylinderGeometry(0.018,0.018,0.7,6),metal,0.22,1.62,2.35,Math.PI/2-0.25);                           /* pitot */
+  if(acc!=null){for(const sd of [1,-1]){add(new THREE.BoxGeometry(0.05,0.2,3.0),accM,sd*1.05,0.72,0.35);add(new THREE.BoxGeometry(0.04,0.12,2.2),accM,sd*0.24,1.4,-3.4);}} /* accent cheat-line on cabin + boom */
   const beacon=add(new THREE.SphereGeometry(0.09,8,6),new THREE.MeshBasicMaterial({color:0xff3030}),0,2.25,-0.75);
   g.userData.rotor=rotor;g.userData.prop=tail;g.userData.beacon=beacon;g.userData.gearDrop=0.26;
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
 }
-function makeMilitary(kind,col){
+function makeMilitary(kind,col,acc){
   /* F-16 Fighting Falcon (~15 m) or C-130 Hercules (~30 m), built in metres facing +z */
   const g=new THREE.Group();
   const paint=new THREE.MeshPhongMaterial({color:col,specular:0x444444,shininess:45});
+  const accM=acc!=null?new THREE.MeshPhongMaterial({color:acc,specular:0x444444,shininess:45}):paint;
   const dark=new THREE.MeshLambertMaterial({color:0x1c1f24});
   const glass=new THREE.MeshPhongMaterial({color:0xc9a54a,specular:0xffffff,shininess:120,transparent:true,opacity:0.85});
   const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
@@ -4026,7 +4054,7 @@ function makeMilitary(kind,col){
   const wheel=(x,y,z,r)=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(r,r,r*0.7,12),dark);w.rotation.z=Math.PI/2;w.position.set(x,y,z);gear.add(w);const st=new THREE.Mesh(new THREE.CylinderGeometry(r*0.18,r*0.18,-y,6),dark);st.position.set(x,y/2,z);gear.add(st);};
   if(kind==='fighter'){
     add(new THREE.CylinderGeometry(0.55,0.75,11,14),paint,0,0,-0.5,Math.PI/2);                /* fuselage */
-    add(new THREE.ConeGeometry(0.55,3.2,14),paint,0,0,6.6,Math.PI/2);                        /* radome */
+    add(new THREE.ConeGeometry(0.55,3.2,14),accM,0,0,6.6,Math.PI/2);                        /* radome */
     /* one-piece bubble canopy: light-gold tinted glass over a dark cockpit tub with seat + HUD, frame bow behind the pilot */
     const cGlass=new THREE.MeshPhongMaterial({color:0xb9c9d4,specular:0xffffff,shininess:140,transparent:true,opacity:0.38,depthWrite:false,side:THREE.DoubleSide});
     const cTint=new THREE.MeshPhongMaterial({color:0xd8b25a,specular:0xffffff,shininess:160,transparent:true,opacity:0.22,depthWrite:false});
@@ -4039,11 +4067,11 @@ function makeMilitary(kind,col){
     add(new THREE.CylinderGeometry(0.42,0.6,3.6,14),paint,0,0.12,-1.6,Math.PI/2+0.05);          /* dorsal spine */
     add(new THREE.BoxGeometry(1.1,0.7,2.2),dark,0,-0.7,2.0);                                  /* belly intake */
     flat([[0,2.2],[4.7,-1.6],[4.7,-2.4],[0,-2.2],[-4.7,-2.4],[-4.7,-1.6]],0.12,paint,-0.05);   /* cropped delta wing */
-    flat([[0,-4.6],[2.6,-6.4],[2.6,-6.9],[0,-6.6],[-2.6,-6.9],[-2.6,-6.4]],0.08,paint,0);     /* stabilators */
+    flat([[0,-4.6],[2.6,-6.4],[2.6,-6.9],[0,-6.6],[-2.6,-6.9],[-2.6,-6.4]],0.08,accM,0);     /* stabilators */
     /* swept vertical tail over the engine: x = aft from root leading edge, y = height; rudder + dielectric tip in dark */
     const fin=new THREE.Shape([[0,0],[3.6,0],[3.75,0.25],[3.55,3.35],[2.55,3.35],[0.2,0.35]].map(([x,y])=>new THREE.Vector2(x,y)));
     const fg=new THREE.ExtrudeGeometry(fin,{depth:0.14,bevelEnabled:true,bevelThickness:0.03,bevelSize:0.03,bevelSegments:1});fg.rotateY(Math.PI/2);
-    const f=new THREE.Mesh(fg,paint);f.position.set(-0.07,0.5,-2.7);g.add(f);
+    const f=new THREE.Mesh(fg,accM);f.position.set(-0.07,0.5,-2.7);g.add(f);
     const rud=new THREE.Shape([[0,0],[0.75,0],[0.6,2.2],[0,2.2]].map(([x,y])=>new THREE.Vector2(x,y)));
     const rg=new THREE.ExtrudeGeometry(rud,{depth:0.16,bevelEnabled:false});rg.rotateY(Math.PI/2);const r=new THREE.Mesh(rg,dark);r.position.set(-0.08,0.85,-2.7-3.0);g.add(r);
     add(new THREE.BoxGeometry(0.17,0.22,0.95),dark,0,3.78,-6.0);                               /* fin-tip antenna fairing */
@@ -4053,22 +4081,30 @@ function makeMilitary(kind,col){
     wheel(0,-1.3,3.4,0.32);wheel(1.2,-1.3,-1.2,0.4);wheel(-1.2,-1.3,-1.2,0.4);
   }else{
     add(new THREE.CylinderGeometry(2.1,2.1,21,16),paint,0,0,0,Math.PI/2);                     /* fuselage */
-    const nose=add(new THREE.SphereGeometry(2.1,16,12,0,Math.PI*2,0,Math.PI/2),paint,0,0,10.5,Math.PI/2);nose.scale.set(1,1.15,0.95);
+    const nose=add(new THREE.SphereGeometry(2.1,16,12,0,Math.PI*2,0,Math.PI/2),accM,0,0,10.5,Math.PI/2);nose.scale.set(1,1.15,0.95);
     add(new THREE.BoxGeometry(2.6,0.7,0.9),glass,0,1.25,11.2,0.5,0,0);                        /* cockpit windows */
-    add(new THREE.CylinderGeometry(2.1,0.6,7,16),paint,0,0.7,-13.5,Math.PI/2+0.12);          /* upswept tail cone */
+    /* aft body: top line stays level while the belly sweeps up to the cargo ramp (sheared taper, not a tilted cone) */
+    {const tc=new THREE.CylinderGeometry(2.1,0.5,7.6,16,4);tc.rotateX(Math.PI/2);const tp=tc.attributes.position;
+      for(let i=0;i<tp.count;i++){const t=(3.8-tp.getZ(i))/7.6;tp.setY(i,tp.getY(i)+t*1.55);}tc.computeVertexNormals();
+      add(tc,paint,0,0,-14.3);}
     flat([[0,2.2],[20,1.2],[20,-0.8],[0,-1.6],[-20,-0.8],[-20,1.2]],0.35,paint,2.0);          /* high wing, 40 m span */
-    flat([[0,-14],[7,-15.5],[7,-17.2],[0,-17],[-7,-17.2],[-7,-15.5]],0.2,paint,1.4);          /* tailplane */
-    const fin=new THREE.Shape([[0,0],[5.5,0],[4.6,6.5],[2.4,6.5]].map(([x,y])=>new THREE.Vector2(x,y)));
-    const fg=new THREE.ExtrudeGeometry(fin,{depth:0.25,bevelEnabled:false});fg.rotateY(Math.PI/2);const f=new THREE.Mesh(fg,paint);f.position.set(-0.12,1.6,-17.5);g.add(f);
+    flat([[0,-13.4],[8,-15.3],[8.1,-16.6],[0,-17.6],[-8.1,-16.6],[-8,-15.3]],0.24,paint,1.05);   /* tailplane, 16 m span at the fin root */
+    /* tall vertical tail on the aft body: dorsal fillet, ~25° swept leading edge, rounded tip, near-vertical trailing edge
+       (x = metres aft of z=-10, y = metres above the fuselage top line) */
+    const fin=new THREE.Shape([[0,0],[2.6,0.55],[3.4,1.3],[5.7,6.5],[6.1,6.9],[6.8,7.05],[7.7,7.0],[8.05,6.75],[8.25,0.9],[8.5,0]].map(([x,y])=>new THREE.Vector2(x,y)));
+    const fg=new THREE.ExtrudeGeometry(fin,{depth:0.2,bevelEnabled:true,bevelThickness:0.09,bevelSize:0.09,bevelSegments:2});fg.rotateY(Math.PI/2);
+    const f=new THREE.Mesh(fg,accM);f.position.set(-0.1,1.95,-10);g.add(f);
+    add(new THREE.BoxGeometry(0.4,5.7,0.04),dark,0,5.15,-16.8,-0.07);                           /* rudder hinge line */
     const props=new THREE.Group();g.add(props);
     for(const ex of [-11,-5.5,5.5,11]){
-      add(new THREE.CylinderGeometry(0.75,0.6,4.6,12),paint,ex,1.6,2.2,Math.PI/2);            /* nacelle */
+      add(new THREE.CylinderGeometry(0.75,0.6,4.6,12),accM,ex,1.6,2.2,Math.PI/2);            /* nacelle */
       const hub=new THREE.Group();hub.position.set(ex,1.6,4.7);props.add(hub);
       for(let i=0;i<4;i++){const bl=new THREE.Mesh(new THREE.BoxGeometry(0.28,2.0,0.06),dark);bl.position.y=1;const arm=new THREE.Group();arm.rotation.z=i*Math.PI/2;arm.add(bl);hub.add(arm);}
     }
     g.userData.propHubs=props.children;
     g.userData.prop={rotation:{set z(v){for(const h of props.children)h.rotation.z=v;},get z(){return props.children[0].rotation.z;}}};
-    for(const sd of [1,-1])add(new THREE.BoxGeometry(1.2,1.4,6),paint,sd*2.2,-1.4,0);          /* gear sponsons */
+    for(const sd of [1,-1])add(new THREE.BoxGeometry(1.2,1.4,6),paint,sd*2.2,-1.4,0);
+    if(acc!=null)for(const sd of [1,-1])add(new THREE.BoxGeometry(0.06,0.45,20),accM,sd*2.1,0.25,0); /* accent cheat-line */          /* gear sponsons */
     wheel(0,-2.6,8.6,0.5);for(const sd of [1,-1]){wheel(sd*2.4,-2.6,1.2,0.62);wheel(sd*2.4,-2.6,-1.2,0.62);}
   }
   function metal(){return new THREE.MeshPhongMaterial({color:0x9aa1a8,shininess:60});}
@@ -4076,12 +4112,12 @@ function makeMilitary(kind,col){
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
 }
-function makeProp(col){
+function makeProp(col,acc){
   /* Cessna 172-class: tapered fuselage, high wing, framed cabin windows, seats, fixed gear */
   const g=new THREE.Group();
   /* chosen colour paints the whole airframe; white cheat-line stripe for contrast */
   const body=new THREE.MeshPhongMaterial({color:col,specular:0x333333,shininess:40});
-  const trim=new THREE.MeshLambertMaterial({color:0xf4f5f7});
+  const trim=new THREE.MeshLambertMaterial({color:acc!=null?acc:0xf4f5f7}); /* accent: cheat-line, wingtips, fin */
   const glass=new THREE.MeshLambertMaterial({
     color:0x6a9bbb,transparent:true,opacity:0.42,depthWrite:false,side:THREE.DoubleSide,
   });
@@ -8211,7 +8247,7 @@ function bootRainSystem(){
   htsRain=window.__htsRainInit({
     THREE,scene,roadMats,getUnderpasses:()=>UNDERPASSES,rand,lerp,clamp,
     getLiveWx:()=>activeViewWeather()||liveWx,getWxBlend:()=>wxBlend,getCam:()=>cam,
-    getRainAtWorld:(x,z)=>rainIntensityAt(window.WX_ZONES||[],x,z),
+    getRainAtWorld:(()=>{let lx=1e9,lz=1e9,lt=0,lz0=null,lv=0;return(x,z)=>{const zs=window.WX_ZONES||[],t=performance.now();if(zs===lz0&&t-lt<1000&&Math.abs(x-lx)<60&&Math.abs(z-lz)<60)return lv;lx=x;lz=z;lt=t;lz0=zs;return lv=rainIntensityAt(zs,x,z);};})(),
     getRainZonesLive:()=>(window.WX_ZONES||[]).some(z=>z&&z.wx),
   });
   window.__htsRain=htsRain;
@@ -10839,14 +10875,17 @@ function buildIncidentVisual(kind){
     bar.position.set(0,2.5,-9);grp.add(bar);
   }else if(isWork){
     /* Visible closure: cones + barrier + CLOSED sign sprite */
+    /* cones + barrier share materials and merge into 2 draws per work zone (was 7) */
+    const wz=new THREE.Group(),orangeM=new THREE.MeshLambertMaterial({color:0xe8641b});grp.add(wz);
     for(const [x,z] of [[-2.4,2],[0,0],[2.4,-2],[4.2,-5],[-4,-5]]){
-      const cone=new THREE.Mesh(new THREE.ConeGeometry(0.75,1.55,8),new THREE.MeshLambertMaterial({color:0xe8641b}));
-      cone.position.set(x,0.78,z);grp.add(cone);
+      const cone=new THREE.Mesh(new THREE.ConeGeometry(0.75,1.55,8),orangeM);
+      cone.position.set(x,0.78,z);wz.add(cone);
     }
     const barr=new THREE.Mesh(new THREE.BoxGeometry(7.2,1.35,0.55),new THREE.MeshLambertMaterial({color:0xf4f5f6}));
-    barr.position.set(0,0.85,-7.5);grp.add(barr);
-    const stripe=new THREE.Mesh(new THREE.BoxGeometry(7.2,0.35,0.58),new THREE.MeshLambertMaterial({color:0xe8641b}));
-    stripe.position.set(0,1.35,-7.5);grp.add(stripe);
+    barr.position.set(0,0.85,-7.5);wz.add(barr);
+    const stripe=new THREE.Mesh(new THREE.BoxGeometry(7.2,0.35,0.58),orangeM);
+    stripe.position.set(0,1.35,-7.5);wz.add(stripe);
+    batchStaticChildren(wz,{cell:1e6});
     const closedTex=(function(){
       const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');
       x.fillStyle='#1a1c20';x.fillRect(0,0,128,64);
@@ -14072,7 +14111,7 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       }).catch(()=>{});
       window.HTS_TOUR=createTour({scene,camera,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,
-        airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:(c)=>makeAirliner(c,[c,c,c,c]),makeHeli:makeTourHeli,makeMil:makeMilitary,
+        airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:(c,a)=>tourJet(c,a),makeHeli:makeTourHeli,makeMil:makeMilitary,
         stopFollow:()=>stopFollow(),isFollowing:()=>!!(followPlane||follow),getUserGeo:()=>userGeo});
       window.HTS_ROUTE=createRoutePlanner({scene,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,getUserGeo:()=>userGeo,
@@ -14503,10 +14542,13 @@ if('serviceWorker' in navigator){
   const place=()=>{
     const r=p.getBoundingClientRect();
     const open=r.width>40&&getComputedStyle(p).display!=='none'&&!document.body.classList.contains('right-collapsed');
-    b.style.right=open?Math.round(innerWidth-r.left+12)+'px':'';
+    b.style.right=open?Math.round(innerWidth-r.left+16)+'px':'';
   };
   addEventListener('resize',place);
   new MutationObserver(place).observe(document.body,{attributes:true,attributeFilter:['class']});
   new ResizeObserver(place).observe(p);
+  /* the rail slides in with a .32 s transition — re-place once it settles so the button never ends up under it */
+  p.addEventListener('transitionend',place);
+  new MutationObserver(()=>setTimeout(place,360)).observe(document.body,{attributes:true,attributeFilter:['class']});
   setTimeout(place,500);place();
 })();

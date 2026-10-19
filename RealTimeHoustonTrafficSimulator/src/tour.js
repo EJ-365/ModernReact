@@ -54,8 +54,10 @@ const VIEWS = { car: [['chase', 'Chase'], ['driver', 'Driver'], ['side', 'Side']
   plane: [['chase', 'Chase'], ['cockpit', 'Cockpit'], ['wing', 'Wing'], ['top', 'Top'], ['orbit', 'Free look']] };
 const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van']];
 const PLANE_STYLES = [['prop', 'Cessna'], ['jet', 'Jet'], ['heli', 'Helicopter'], ['fighter', 'F-16 fighter'], ['c130', 'C-130 Hercules']];
-const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a];
-const PLANE_COLORS = [0xc23a2c, 0x2b5ea8, 0xf3f4f6, 0xd9a441, 0x1a6b4a, 0x5a2d7a, 0x9aa3ad, 0x1a1c22]; /* one white; silver instead of a second off-white */
+const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a, 0x14a3a3, 0x5bb8ff, 0xd94f8a, 0x8cc63f, 0x9aa3ad, 0x6e1f2b];
+/* accent palette (cheat-line, tail, nose, engines); -1 = none */
+const PLANE_ACCENTS = [0xc23a2c, 0x5bb8ff, 0x2b5ea8, 0x1b2a4a, 0xd9a441, 0xe6c34a, 0xf3f4f6, 0x9aa3ad, 0x1a1c22, 0x1a6b4a, 0xff7a1a, 0xd94f8a, 0x5a2d7a, 0x14a3a3];
+const PLANE_COLORS = [0xc23a2c, 0x2b5ea8, 0xf3f4f6, 0xd9a441, 0x1a6b4a, 0x5a2d7a, 0x9aa3ad, 0x1a1c22, 0x14a3a3, 0xff7a1a, 0x5bb8ff, 0xd94f8a, 0x1b2a4a]; /* one white; silver instead of a second off-white */
 const PREF_KEY = 'hts-tour-veh';
 function loadPrefs() {
   try {
@@ -64,6 +66,7 @@ function loadPrefs() {
       carColor: CAR_COLORS.includes(+j.carColor) ? +j.carColor : CAR_COLORS[0],
       carStyle: CAR_STYLES.some((s) => s[0] === j.carStyle) ? j.carStyle : 'sedan',
       planeColor: PLANE_COLORS.includes(+j.planeColor) ? +j.planeColor : PLANE_COLORS[0],
+      planeAccent: PLANE_ACCENTS.includes(+j.planeAccent) ? +j.planeAccent : -1,
       planeStyle: PLANE_STYLES.some((s) => s[0] === j.planeStyle) ? j.planeStyle : 'prop',
       hudX: Number.isFinite(+j.hudX) ? +j.hudX : null,
       hudY: Number.isFinite(+j.hudY) ? +j.hudY : null,
@@ -77,7 +80,7 @@ function loadPrefs() {
       musicOn: !!j.musicOn,
     };
   } catch (e) {
-    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeStyle: 'prop', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
+    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeAccent: -1, planeStyle: 'prop', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
   }
 }
 function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } }
@@ -269,7 +272,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const music = createTourMusic();
   const S = { mode: null, kind: 'car', view: 'chase', speedX: 1, obj: null, p: new THREE.Vector3(), hd: 0, v: 0, pitch: 0, roll: 0,
     route: null, s: 0, dest: null, phase: '', keys: {}, info: '', roadName: '', hudT: 0, orbitR: 900, runways: null, cruise: 0, odo: 0, yawRate: 0, th0: 0, ph0: 1, limit: 0, sm: null,
-    carColor: prefs.carColor, carStyle: prefs.carStyle, planeColor: prefs.planeColor, planeStyle: prefs.planeStyle, acClass: 'prop',
+    carColor: prefs.carColor, carStyle: prefs.carStyle, planeColor: prefs.planeColor, planeAccent: prefs.planeAccent, planeStyle: prefs.planeStyle, acClass: 'prop',
     soundOn: prefs.soundOn !== false, soundVol: Number.isFinite(prefs.soundVol) ? prefs.soundVol : 0.45,
     radioOn: prefs.radioOn !== false, musicOn: !!prefs.musicOn };
   const dests = [];
@@ -382,13 +385,14 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     + '#tourHud .tbar .tplane{position:absolute;top:50%;transform:translate(-50%,-50%);font-size:12px;line-height:1;pointer-events:none;filter:drop-shadow(0 1px 2px #000)}'
     + '#tourHud .sw{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,236,210,.25);padding:0;cursor:pointer}'
     + '#tourHud .sw.on{border-color:#fff6ea;box-shadow:0 0 0 1px #e8a838}'
+    + '#tourHud .sw.none{background:linear-gradient(135deg,transparent 44%,#e03a2f 44%,#e03a2f 56%,transparent 56%),#2a2f36}'
     + '#tourHudPeek{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:40;display:none;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:linear-gradient(165deg,rgba(28,23,18,.94),rgba(14,12,10,.96));border:1px solid rgba(232,168,56,.35);color:#fff6ea;font:12px/1 Overpass,system-ui,sans-serif;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}'
     + '#tourHudPeek.on{display:flex}#tourHudPeek:hover{border-color:rgba(232,168,56,.6)}'
     + '#tourPad{position:fixed;right:18px;bottom:18px;z-index:40;display:none;grid-template-columns:repeat(3,52px);gap:6px}#tourPad.on{display:grid}'
     + '#tourPad button{height:52px;border-radius:12px;background:rgba(28,23,18,.9);border:1px solid rgba(232,168,56,.28);color:#fff6ea;font-size:18px;touch-action:none}'
-    + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:min(42vh,360px);z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}'
+    + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:max(min(42vh,360px),min(21vw,48vh));z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}'
     + '#tourDash .dashSvg{position:absolute;inset:0;width:100%;height:100%;display:block}'
-    + '#tourDash.jetCockpit{height:min(42vh,360px)}'
+    + '#tourDash.jetCockpit{height:max(min(42vh,360px),min(21vw,48vh))}'
     /* CarPlay — drag eyebrow + explicit resize grip (CSS resize is unreliable on fixed) */
     + '#tourDash .carplay{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(26vw,260px);height:min(18vh,140px);z-index:4;pointer-events:auto;'
     + 'display:none;flex-direction:column;justify-content:center;gap:3px;padding:10px 12px 18px;border-radius:14px;background:linear-gradient(165deg,#0e1620,#0a1018);'
@@ -462,34 +466,75 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.addEventListener('pointerup', end); hud.addEventListener('pointercancel', end);
   })();
   const ticks = (cx, cy, r, max, step, a0, a1, lab) => { let t = ''; for (let v = 0; v <= max; v += step) { const a = (a0 + (a1 - a0) * v / max) * Math.PI / 180, big = v % (step * 2) === 0; t += '<line x1="' + (cx + Math.cos(a) * r) + '" y1="' + (cy + Math.sin(a) * r) + '" x2="' + (cx + Math.cos(a) * (r - (big ? 14 : 7))) + '" y2="' + (cy + Math.sin(a) * (r - (big ? 14 : 7))) + '" stroke="#e8eef4" stroke-width="' + (big ? 3 : 1.5) + '"/>'; if (big && lab) t += '<text x="' + (cx + Math.cos(a) * (r - 30)) + '" y="' + (cy + Math.sin(a) * (r - 30) + 5) + '" fill="#cfd8e0" font-size="14" text-anchor="middle">' + lab(v) + '</text>'; } return t; };
-  const CAR_DASH_SVG = '<svg class="dashSvg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMax slice">'
-    + '<defs><linearGradient id="dashTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1e24"/><stop offset="1" stop-color="#0c0e12"/></linearGradient>'
-    + '<linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2620"/><stop offset="1" stop-color="#1a1612"/></linearGradient></defs>'
-    + '<path d="M0,0 L95,95 L70,340 H0 Z" fill="#12151a"/><path d="M1000,0 L905,95 L930,340 H1000 Z" fill="#12151a"/>'
-    + '<path d="M95,95 Q500,48 905,95" fill="none" stroke="#2a3138" stroke-width="10"/>'
-    + '<path d="M0,118 Q500,60 1000,118 L1000,340 L0,340 Z" fill="url(#dashTop)"/>'
-    + '<path d="M80,126 Q500,78 920,126" fill="none" stroke="#3a434c" stroke-width="2"/>'
-    + '<rect x="170" y="132" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/><rect x="730" y="132" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/>'
-    /* Tach — lowered a bit for clearance from dash lip */
-    + '<circle cx="250" cy="248" r="70" fill="#06080a" stroke="#4a5560" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
-    + '<line id="dRpm" x1="250" y1="248" x2="250" y2="192" stroke="#f5b942" stroke-width="3.5" stroke-linecap="round"/>'
-    + '<text x="250" y="308" fill="#8a96a3" font-size="10" text-anchor="middle">RPM ×1000</text>'
-    /* Speedo */
-    + '<circle cx="760" cy="248" r="80" fill="#06080a" stroke="#4a5560" stroke-width="4"/>' + ticks(760, 248, 74, 140, 10, 135, 405, (v) => v)
-    + '<line id="dNeedle" x1="760" y1="248" x2="760" y2="178" stroke="#ff4b2b" stroke-width="4" stroke-linecap="round"/><circle cx="760" cy="248" r="8" fill="#ff4b2b"/>'
-    + '<text id="dSpd" x="760" y="300" fill="#fff" font-size="24" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
-    + '<text x="760" y="318" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text>'
-    /* Speed limit only — trip/ETA live on the route card (no duplicate) */
-    + '<rect x="868" y="188" width="118" height="112" rx="12" fill="#fff" stroke="#111" stroke-width="4"/>'
-    + '<text x="927" y="214" fill="#111" font-size="11" font-weight="700" text-anchor="middle">SPEED</text>'
-    + '<text x="927" y="230" fill="#111" font-size="11" text-anchor="middle" font-weight="700">LIMIT</text>'
-    + '<text id="dLim" x="927" y="274" fill="#111" font-size="40" font-weight="800" text-anchor="middle">—</text>'
-    /* Wheel */
-    + '<g id="dWheel" transform="translate(500,348)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
-    + '<rect x="-122" y="-11" width="244" height="22" rx="10" fill="#1b1f24"/><rect x="-13" y="-11" width="26" height="120" fill="#1b1f24"/>'
-    + '<circle r="34" fill="#15191d" stroke="#3a434c" stroke-width="3"/><text y="5" fill="#c8a070" font-size="11" text-anchor="middle" font-weight="700">HTS</text></g>'
-    + '</svg>'
-    + '<div class="dashMusic" id="dashMusic" title="YouTube music"></div>'
+  /* each body style gets its own cluster: sedan twin dials, SUV/van digital screens, pickup rugged dials + aux gauges, coupe sport tach */
+  const CAR_THEMES = {
+    sedan: { ring: '#4a5560', face: '#06080a', nd: '#ff4b2b', rp: '#f5b942', acc: '#c8a070', badge: 'HTS', lay: 'twin' },
+    suv: { ring: '#2f6f9f', face: '#040a12', nd: '#46b4ff', rp: '#46b4ff', acc: '#7fc8ff', badge: 'SUV', lay: 'digital' },
+    pickup: { ring: '#aab2ba', face: '#0b0a08', nd: '#ffb020', rp: '#ffb020', acc: '#e8c43a', badge: '4X4', lay: 'twin', extra: 1 },
+    coupe: { ring: '#b3202a', face: '#050505', nd: '#ff2a2a', rp: '#ff2a2a', acc: '#ff5a3a', badge: 'GT', lay: 'sport' },
+    van: { ring: '#56606a', face: '#0a0c0e', nd: '#ffffff', rp: '#31d06a', acc: '#9aa3ab', badge: 'VAN', lay: 'digital' },
+  };
+  const ndl = (id, cx, cy, r, max, col, w) => '<line id="' + id + '" data-c="' + cx + ',' + cy + ',' + r + ',' + max + '" x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (cy - r) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>';
+  const arcP = (cx, cy, r, f0, f1) => { const A = (f) => (135 + f * 270) * Math.PI / 180, p0 = [cx + Math.cos(A(f0)) * r, cy + Math.sin(A(f0)) * r], p1 = [cx + Math.cos(A(f1)) * r, cy + Math.sin(A(f1)) * r]; return 'M' + p0[0].toFixed(1) + ',' + p0[1].toFixed(1) + ' A' + r + ',' + r + ' 0 ' + ((f1 - f0) * 270 > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(1) + ',' + p1[1].toFixed(1); };
+  function carDashSvg(style) {
+    const t = CAR_THEMES[style] || CAR_THEMES.sedan;
+    let g = '<svg class="dashSvg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMax slice">'
+      + '<defs><linearGradient id="dashTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1e24"/><stop offset="1" stop-color="#0c0e12"/></linearGradient>'
+      + '<linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2620"/><stop offset="1" stop-color="#1a1612"/></linearGradient></defs>'
+      + '<path d="M0,0 L95,95 L70,340 H0 Z" fill="#12151a"/><path d="M1000,0 L905,95 L930,340 H1000 Z" fill="#12151a"/>'
+      + '<path d="M95,95 Q500,48 905,95" fill="none" stroke="#2a3138" stroke-width="10"/>'
+      + '<path d="M0,118 Q500,60 1000,118 L1000,340 L0,340 Z" fill="url(#dashTop)"/>'
+      + '<path d="M80,126 Q500,78 920,126" fill="none" stroke="' + t.ring + '" stroke-opacity=".55" stroke-width="2"/>'
+      + '<rect x="170" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/><rect x="730" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/>';
+    if (t.lay === 'digital') {
+      g += '<g class="dLeft"><rect x="148" y="184" width="204" height="120" rx="16" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+        + '<text x="250" y="208" fill="' + t.acc + '" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">RPM ×1000</text>'
+        + '<text id="dRpmTxt" x="250" y="244" fill="#fff" font-size="30" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0.8</text>'
+        + '<rect x="170" y="262" width="160" height="14" rx="7" fill="#1a222c"/><rect id="dRpmBar" x="170" y="262" width="0" height="14" rx="7" fill="' + t.rp + '"/>'
+        + '<text x="250" y="294" fill="#7a8a9a" font-size="10" text-anchor="middle">ECO · ' + t.badge + '</text></g>'
+        + '<rect x="652" y="174" width="208" height="134" rx="18" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+        + '<path id="dSpdArc" d="' + arcP(760, 250, 58, 0, 1) + '" fill="none" stroke="#1a222c" stroke-width="7" stroke-linecap="round"/>'
+        + '<text x="760" y="206" fill="' + t.acc + '" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">DRIVE</text>'
+        + '<text id="dSpd" x="760" y="266" fill="#fff" font-size="50" font-weight="800" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
+        + '<text x="760" y="292" fill="#8a96a3" font-size="11" text-anchor="middle">MPH</text>';
+    } else if (t.lay === 'sport') {
+      g += '<g class="dLeft"><circle cx="250" cy="250" r="66" fill="' + t.face + '" stroke="#3a3f46" stroke-width="4"/>' + ticks(250, 250, 60, 160, 10, 135, 405, (v) => (v % 40 ? '' : v))
+        + ndl('dNeedle', 250, 250, 52, 160, '#f2f2f2', 3) + '<circle cx="250" cy="250" r="6" fill="#f2f2f2"/>'
+        + '<text x="250" y="304" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text></g>'
+        + '<circle cx="760" cy="244" r="88" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="5"/>'
+        + '<path d="' + arcP(760, 244, 80, 6.5 / 8, 1) + '" fill="none" stroke="#e03a2f" stroke-width="7"/>' + ticks(760, 244, 82, 8, 1, 135, 405, (v) => v)
+        + ndl('dRpm', 760, 244, 74, 8, t.nd, 4) + '<circle cx="760" cy="244" r="9" fill="' + t.nd + '"/>'
+        + '<text id="dSpd" x="760" y="296" fill="#fff" font-size="28" font-weight="800" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
+        + '<text x="760" y="314" fill="#8a96a3" font-size="9" text-anchor="middle">MPH · RPM ×1000</text>';
+    } else {
+      g += '<g class="dLeft"><circle cx="250" cy="248" r="70" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
+        + ndl('dRpm', 250, 248, 52, 8, t.rp, 3.5)
+        + '<text x="250" y="308" fill="#8a96a3" font-size="10" text-anchor="middle">RPM ×1000</text></g>'
+        + '<circle cx="760" cy="248" r="80" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(760, 248, 74, 140, 10, 135, 405, (v) => v)
+        + ndl('dNeedle', 760, 248, 64, 140, t.nd, 4) + '<circle cx="760" cy="248" r="8" fill="' + t.nd + '"/>'
+        + '<text id="dSpd" x="760" y="300" fill="#fff" font-size="24" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
+        + '<text x="760" y="318" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text>';
+      if (t.extra) {
+        for (const [cy, lab, f] of [[206, 'FUEL', 0.72], [282, 'TEMP', 0.48]]) {
+          const A = (135 + f * 270) * Math.PI / 180;
+          /* fuel/temp sit between the tach and the wheel rim so the left of the dash stays free for the music player */
+          g += '<g class="dLeft"><circle cx="345" cy="' + cy + '" r="24" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+            + '<line x1="345" y1="' + cy + '" x2="' + (345 + Math.cos(A) * 17).toFixed(1) + '" y2="' + (cy + Math.sin(A) * 17).toFixed(1) + '" stroke="' + t.nd + '" stroke-width="2.5" stroke-linecap="round"/>'
+            + '<text x="345" y="' + (cy + 16) + '" fill="#9aa3ab" font-size="8" text-anchor="middle">' + lab + '</text></g>';
+        }
+        g += '<rect x="826" y="160" width="40" height="18" rx="4" fill="#1d1a10" stroke="#e8c43a"/><text x="846" y="173" fill="#e8c43a" font-size="10" font-weight="800" text-anchor="middle">4WD</text>';
+      }
+    }
+    return g + '<rect x="868" y="188" width="118" height="112" rx="12" fill="#fff" stroke="#111" stroke-width="4"/>'
+      + '<text x="927" y="214" fill="#111" font-size="11" font-weight="700" text-anchor="middle">SPEED</text>'
+      + '<text x="927" y="230" fill="#111" font-size="11" text-anchor="middle" font-weight="700">LIMIT</text>'
+      + '<text id="dLim" x="927" y="274" fill="#111" font-size="40" font-weight="800" text-anchor="middle">—</text>'
+      + '<g id="dWheel" transform="translate(500,348)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
+      + '<rect x="-122" y="-11" width="244" height="22" rx="10" fill="#1b1f24"/><rect x="-13" y="-11" width="26" height="120" fill="#1b1f24"/>'
+      + '<circle r="34" fill="#15191d" stroke="' + t.ring + '" stroke-width="3"/><text y="5" fill="' + t.acc + '" font-size="11" text-anchor="middle" font-weight="700">' + t.badge + '</text></g>'
+      + '</svg>';
+  }
+  const CAR_DASH_REST = '<div class="dashMusic" id="dashMusic" title="YouTube music"></div>'
     + '<div class="carplay" id="dashCarplay">'
     + '<div class="cpEyebrow" title="Drag to move · grip to resize · Reset recenters">'
     + '<span>⠿ Now on</span><button type="button" class="cpReset" data-cp-reset="1" title="Reset position">Reset</button></div>'
@@ -499,7 +544,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     + '<div class="cpRow"><span id="cpDest">—</span><span id="dRem">— mi</span><span id="dEta">ETA —</span></div>'
     + '<div class="cpResize" data-cp-resize="1" title="Drag to resize"></div>'
     + '</div>';
-  const CAR_DASH = CAR_DASH_SVG;
+  const carDash = (st) => carDashSvg(st) + CAR_DASH_REST;
   let dashKind = '';
   function hdgDeg() { return (((180 - S.hd * 180 / Math.PI) % 360) + 360) % 360; }
   function altFt() {
@@ -730,12 +775,12 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       syncDriverMusic(false);
       return;
     }
-    const want = S.kind === 'car' ? 'car' : dashType();
+    const want = S.kind === 'car' ? 'car:' + S.carStyle : dashType();
     if (dashKind !== want) {
       _cpBound = false;
       _cpDragBound = false;
       try { music.clearDriverPin(); } catch (e) { /* ignore */ }
-      dash.innerHTML = S.kind === 'car' ? CAR_DASH : planeDashHtml();
+      dash.innerHTML = S.kind === 'car' ? carDash(S.carStyle) : planeDashHtml();
       dashKind = want;
     }
     dash.classList.toggle('jetCockpit', S.kind === 'plane' && S.acClass === 'jet');
@@ -743,11 +788,14 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (carDriver) bindCarplayChrome();
     const q = (id) => dash.querySelector('#' + id);
     if (S.kind === 'car') {
-      const mph = Math.abs(S.v) / MPH, a = (135 + Math.min(140, mph) / 140 * 270) * Math.PI / 180;
-      const n = q('dNeedle'); if (n) { n.setAttribute('x2', 760 + Math.cos(a) * 64); n.setAttribute('y2', 248 + Math.sin(a) * 64); }
+      const mph = Math.abs(S.v) / MPH;
+      const nd = (id, val) => { const n = q(id); if (!n) return; const c = n._c || (n._c = n.getAttribute('data-c').split(',').map(Number)); const an = (135 + Math.min(1, Math.max(0, val / c[3])) * 270) * Math.PI / 180; n.setAttribute('x2', (c[0] + Math.cos(an) * c[2]).toFixed(1)); n.setAttribute('y2', (c[1] + Math.sin(an) * c[2]).toFixed(1)); };
+      nd('dNeedle', mph);
       const ds = q('dSpd'); if (ds) ds.textContent = Math.round(mph);
       const gear = mph < 1 ? 1 : Math.min(6, 1 + Math.floor(mph / 16)), rpm = mph < 1 ? 0.75 : Math.min(7.5, 1.2 + (mph - (gear - 1) * 16) / 16 * 3.2 + gear * 0.1);
-      const ra = (135 + rpm / 8 * 270) * Math.PI / 180; const rp = q('dRpm'); if (rp) { rp.setAttribute('x2', 250 + Math.cos(ra) * 52); rp.setAttribute('y2', 248 + Math.sin(ra) * 52); }
+      nd('dRpm', rpm);
+      const rb = q('dRpmBar'); if (rb) { rb.setAttribute('width', (Math.min(8, rpm) / 8 * 160).toFixed(1)); rb.setAttribute('fill', rpm > 6.5 ? '#e03a2f' : (CAR_THEMES[S.carStyle] || CAR_THEMES.sedan).rp); }
+      const rt = q('dRpmTxt'); if (rt) rt.textContent = rpm.toFixed(1);
       const dg = q('dGear'); if (dg) dg.textContent = S.v < -0.2 ? 'R' : mph < 0.5 ? 'P' : 'D' + gear;
       const dt = q('dTrip'); if (dt) dt.textContent = (S.odo / 1609.344).toFixed(1) + ' mi';
       const dl = q('dLim'); if (dl) dl.textContent = S.limit ? S.limit : '—';
@@ -810,7 +858,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const key = (...c) => c.some((k) => S.keys[k]);
 
   function persistVeh() {
-    prefs.carColor = S.carColor; prefs.carStyle = S.carStyle; prefs.planeColor = S.planeColor; prefs.planeStyle = S.planeStyle;
+    prefs.carColor = S.carColor; prefs.carStyle = S.carStyle; prefs.planeColor = S.planeColor; prefs.planeAccent = S.planeAccent; prefs.planeStyle = S.planeStyle;
     prefs.soundOn = S.soundOn; prefs.soundVol = S.soundVol;
     prefs.radioOn = S.radioOn; prefs.musicOn = S.musicOn;
     savePrefs(prefs);
@@ -826,7 +874,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function gearWanted() {
     if (S.acClass !== 'jet') return true;
     const ph = S.phase || '';
-    if (/roll|rollout|parked|final/.test(ph)) return true;
+    if (/roll|rollout|taxi|parked|final/.test(ph)) return true;
     if (ph === 'toFaf') return (S.remain || 1e9) < 9300;
     if (ph === 'climb') return S.p.y < 60;
     return S.p.y < 12;
@@ -842,7 +890,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (S.kind !== 'plane') return 0;
     const ph = S.phase || '', v = Math.abs(S.v);
     let t;
-    if (ph === 'parked' || ph === 'home' || ph === 'arrived') t = v > 2 ? 0.12 : 0.02;
+    if (ph === 'taxi') t = 0.16;
+    else if (ph === 'parked' || ph === 'home' || ph === 'arrived') t = v > 2 ? 0.12 : 0.02;
     else if (ph === 'roll') t = 1;
     else if (ph === 'climb') t = 0.93;
     else if (ph === 'rollout') t = v > 30 ? 0.72 : 0.06;
@@ -869,7 +918,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const jet = S.planeStyle === 'jet' && typeof makeJet === 'function';
       const heli = S.planeStyle === 'heli' && typeof makeHeli === 'function';
       const mil = /^(fighter|c130)$/.test(S.planeStyle) && typeof makeMil === 'function';
-      S.obj = jet ? makeJet(S.planeColor) : heli ? makeHeli(S.planeColor) : mil ? makeMil(S.planeStyle, S.planeColor) : makePlane(S.planeColor);
+      const acc = S.planeAccent >= 0 ? S.planeAccent : null;
+      S.obj = jet ? makeJet(S.planeColor, acc) : heli ? makeHeli(S.planeColor, acc) : mil ? makeMil(S.planeStyle, S.planeColor, acc) : makePlane(S.planeColor, acc);
       S.acClass = (jet || mil) ? 'jet' : 'prop';
       S.obj.scale.setScalar(jet ? 0.55 : 1);
       S._gearK = null; S._pwr = null; animGear(gearWanted(), 1e3);
@@ -884,12 +934,16 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const views = VIEWS[S.kind].map(([id, n], i) => '<button data-view="' + id + '" class="' + (S.view === id ? 'on' : '') + '" title="key ' + (i + 1) + '">' + n + '</button>').join('');
     const speeds = S.kind === 'car' && S.mode === 'tour'
       ? '<span style="color:#8a96a3;align-self:center">Cruise</span>' + [0, 30, 40, 50, 60, 70, 80, 90, 100].map((x) => '<button data-cruise="' + x + '" class="' + (S.cruise === x ? 'on' : '') + '">' + (x ? x : 'Limit +5') + '</button>').join('')
-      : [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '">×' + x + '</button>').join('');
+      : [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '">×' + x + '</button>').join('')
+        + (S.kind === 'plane' && S.planeStyle !== 'heli' ? '<button data-park="1" class="' + (S.taxiPark !== false ? 'on' : '') + '" title="After landing, leave the runway and taxi to an apron parking spot">Taxi to park</button>' : '');
     const styles = (S.kind === 'car' ? CAR_STYLES : PLANE_STYLES).map(([id, n]) => '<button data-style="' + id + '" class="' + ((S.kind === 'car' ? S.carStyle : S.planeStyle) === id ? 'on' : '') + '">' + n + '</button>').join('');
     const cols = (S.kind === 'car' ? CAR_COLORS : PLANE_COLORS).map((c) => {
       const on = (S.kind === 'car' ? S.carColor : S.planeColor) === c;
-      return '<button type="button" class="sw' + (on ? ' on' : '') + '" data-col="' + c + '" style="background:#' + c.toString(16).padStart(6, '0') + '" title="Paint"></button>';
+      return '<button type="button" class="sw' + (on ? ' on' : '') + '" data-col="' + c + '" style="background:#' + c.toString(16).padStart(6, '0') + '" title="' + (S.kind === 'car' ? 'Paint' : 'Main colour') + '"></button>';
     }).join('');
+    const accs = S.kind === 'car' ? '' : '<span style="flex-basis:100%;height:0"></span><span style="color:#8a96a3">Accent</span>'
+      + '<button type="button" class="sw none' + (S.planeAccent < 0 ? ' on' : '') + '" data-acc="-1" title="No accent — one solid colour"></button>'
+      + PLANE_ACCENTS.map((c) => '<button type="button" class="sw' + (S.planeAccent === c ? ' on' : '') + '" data-acc="' + c + '" style="background:#' + c.toString(16).padStart(6, '0') + '" title="Accent: stripe, tail, nose, engines"></button>').join('');
     hud.innerHTML = '<div class="tt"><span><span class="drag" title="Drag panel">⠿</span><span id="tourTitle"></span></span>'
       + '<span class="acts"><button type="button" class="hide" data-hide="1" title="Hide panel (H)">Hide</button>'
       + '<button type="button" class="x" data-exit="1">Exit (Esc)</button></span></div>'
@@ -908,7 +962,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       + '<div class="row" style="margin-top:6px">' + speeds
       + (S.kind === 'plane' && S.mode === 'tour' ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">Land at</span><select data-land="1" style="background:#1b232c;color:#dbe6f0;border:1px solid #34404c;border-radius:7px;padding:4px">' + aptList().map((a) => '<option value="' + a.code + '"' + (a.code === S.landApt ? ' selected' : '') + '>' + a.code + '</option>').join('') + '</select><button data-landnow="1">Land now</button>' : '')
       + (S.mode === 'free' ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">' + (S.kind === 'car' ? 'W/S throttle · A/D steer' : 'W/S pitch · A/D bank · Q/E yaw · Shift/X throttle') + '</span>' : '') + '</div>'
-      + '<div class="row" style="margin-top:6px"><span style="color:#8a96a3">Vehicle</span>' + styles + '<span style="color:#8a96a3;margin-left:4px">Color</span>' + cols
+      + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span style="color:#8a96a3">' + (S.kind === 'car' ? 'Vehicle' : 'Aircraft') + '</span>' + styles + '<span style="color:#8a96a3;margin-left:4px">' + (S.kind === 'car' ? 'Color' : 'Main') + '</span>' + cols + accs
       + '<span class="snd"><button type="button" class="mute' + (S.soundOn ? '' : ' on') + '" data-mute="1" title="Mute engine sound (M)">' + (S.soundOn ? 'Sound' : 'Muted') + '</button>'
       + (S.kind === 'plane' ? '<button type="button" class="' + (S.radioOn ? 'on' : '') + '" data-radio="1" title="ATC radio chatter">Radio</button>' : '')
       + '<button type="button" class="' + (S.musicOn ? 'on' : '') + '" data-music="1" title="Shuffle music · ' + music.trackCount + ' songs">Music</button>'
@@ -919,6 +973,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.getAttribute('data-view'))));
     hud.querySelectorAll('[data-sx]').forEach((b) => b.addEventListener('click', () => { S.speedX = +b.getAttribute('data-sx'); renderHud(); }));
     hud.querySelectorAll('[data-cruise]').forEach((b) => b.addEventListener('click', () => { S.cruise = +b.getAttribute('data-cruise'); renderHud(); }));
+    hud.querySelectorAll('[data-park]').forEach((b) => b.addEventListener('click', () => { S.taxiPark = S.taxiPark === false; renderHud(); }));
     const hb = hud.querySelector('[data-hide]'); if (hb) hb.addEventListener('click', () => setHudHidden(true));
     hud.querySelector('[data-exit]').addEventListener('click', stop);
     const mb = hud.querySelector('[data-mute]');
@@ -972,6 +1027,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.querySelectorAll('[data-col]').forEach((b) => b.addEventListener('click', () => {
       const c = +b.getAttribute('data-col');
       if (S.kind === 'car') S.carColor = c; else S.planeColor = c;
+      persistVeh(); spawnVehicle(); renderHud();
+    }));
+    hud.querySelectorAll('[data-acc]').forEach((b) => b.addEventListener('click', () => {
+      S.planeAccent = +b.getAttribute('data-acc');
       persistVeh(); spawnVehicle(); renderHud();
     }));
   }
@@ -1211,7 +1270,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     stopFollow && stopFollow();
     clearObj();
     window._followOff = { x: 0, z: 0 };
-    S.kind = kind; S.mode = mode; S.dest = dest; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S.phase = ''; S.odo = 0; S.vy = 0;
+    S.kind = kind; S.mode = mode; S.dest = dest; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0;
     S.th0 = camGoal.theta; S.ph0 = camGoal.phi; camGoal.radius = kind === 'car' ? 14 : 45; camGoal.phi = 1.25; S.ph0 = 1.25;
     const cx = origin.x, cz = origin.z;
     S.origin = { x: cx, z: cz }; S.leg = 'out'; S.waitT = 0; S.orbT = 0;
@@ -1362,7 +1421,9 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const P = S.route, end = P[P.length - 1].s;
       sampleAt(P, S.s, o);
       S.limit = o.ff;
-      const v0 = Math.min(cruiseMps(o.ff, o.x, o.z), curveLimit(P, o.i));
+      /* live-traffic speed target refreshed twice a second, not every frame */
+      if (!S._cm || (S._cmT -= dt) <= 0 || S._cm.ff !== o.ff || S._cm.cr !== S.cruise) { S._cm = { v: cruiseMps(o.ff, o.x, o.z), ff: o.ff, cr: S.cruise }; S._cmT = 0.5; }
+      const v0 = Math.min(S._cm.v, curveLimit(P, o.i));
       let [gap, lv] = leaderAhead(T, S.p.x, S.p.z, S.hd, 200);
       if (end - S.s - 2 < gap) { gap = Math.max(0.1, end - S.s - 2); lv = 0; }
       const acc = Math.max(-7, idm(S.v, v0, gap, lv));
@@ -1380,7 +1441,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       }
       if (S.phase === 'arrived' && (S.waitT += dt) > 6) {
         const P2 = T && findRoute(T, S.p.x, S.p.z, S.origin.x, S.origin.z);
-        if (P2) { S.route = P2; S.s = 0; S._si = 0; S.leg = 'back'; S.phase = 'drive'; S.tripLen = P2[P2.length - 1].s; note('Driving back to where you started.'); }
+        if (P2) { S.route = P2; S.s = 0; S._si = 0; S._eta = null; S._etaF = 0; S.leg = 'back'; S.phase = 'drive'; S.tripLen = P2[P2.length - 1].s; note('Driving back to where you started.'); }
         else { S.phase = 'home'; note('No road route back from here — tour ended.'); }
       }
     } else {
@@ -1402,6 +1463,13 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   }
   /* time to go along the rest of the route at the speed you would actually hold (cruise, limit, curves) */
   /* landing runway at an airport: longest OSM runway, landing in the direction we arrive from */
+  /* real painted designator from the OSM ref ("15L/33R"), falling back to the true-heading number */
+  function rwName(r, num) {
+    const parts = String(r.ref || '').split('/');
+    let best = null, bd = 99;
+    for (const t of parts) { const m = /^\s*(\d{1,2})([LRC]?)\s*$/.exec(t); if (!m) continue; let d = Math.abs(+m[1] - num) % 36; d = Math.min(d, 36 - d); if (d < bd) { bd = d; best = m[1].padStart(2, '0') + m[2]; } }
+    return best && bd <= 3 ? best : String(num).padStart(2, '0');
+  }
   function pickRunway(code, fx, fz) {
     const ap = aptList().find((q) => q.code === code); if (!ap) return null;
     if (ap.rws && ap.rws.length) {
@@ -1411,7 +1479,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const r = rws0[0]; let ax = r.p[0], az = r.p[1], bx = r.p[r.p.length - 2], bz = r.p[r.p.length - 1];
       if (Math.hypot(bx - fx, bz - fz) < Math.hypot(ax - fx, az - fz)) [ax, az, bx, bz] = [bx, bz, ax, az];
       const hd = Math.atan2(bx - ax, bz - az), num = Math.round(((((180 - hd * 180 / Math.PI) % 360) + 360) % 360) / 10) || 36;
-      return { code, tx: ax, tz: az, ex: bx, ez: bz, hd, len: len0(r), name: String(num).padStart(2, '0') };
+      return { code, tx: ax, tz: az, ex: bx, ez: bz, hd, len: len0(r), name: rwName(r, num) };
     }
     /* only runways inside that airport's real OSM aerodrome outline (midpoint test), never a road */
     const inR = (f, x, z) => { let c = false; for (let i = 0, j = f.length - 2; i < f.length; j = i, i += 2) { const xi = f[i], zi = f[i + 1], xj = f[j], zj = f[j + 1]; if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) c = !c; } return c; };
@@ -1424,10 +1492,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const r = rws[0]; let ax = r.p[0], az = r.p[1], bx = r.p[r.p.length - 2], bz = r.p[r.p.length - 1];
     if (Math.hypot(bx - fx, bz - fz) < Math.hypot(ax - fx, az - fz)) [ax, az, bx, bz] = [bx, bz, ax, az];
     const hd = Math.atan2(bx - ax, bz - az), num = Math.round(((((180 - hd * 180 / Math.PI) % 360) + 360) % 360) / 10) || 36;
-    return { code, tx: ax, tz: az, ex: bx, ez: bz, hd, len: len(r), name: String(num).padStart(2, '0') };
+    return { code, tx: ax, tz: az, ex: bx, ez: bz, hd, len: len(r), name: rwName(r, num) };
   }
   function startLanding(opts) {
-    if (S.kind !== 'plane' || S.mode !== 'tour' || /toFaf|final|rollout|parked/.test(S.phase)) return false;
+    if (S.kind !== 'plane' || S.mode !== 'tour' || /toFaf|final|rollout|taxi|parked/.test(S.phase)) return false;
     const force = !!(opts && opts.force);
     /* Respect the Land-at dropdown; only auto-pick nearest-to-dest when none chosen */
     if (!S.landApt && S.dest) {
@@ -1455,31 +1523,52 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     return true;
   }
+  /* static drive time along the route (limits, curves, cruise) — built once per route, then O(1) lookups */
+  function routeTimes(P) {
+    if (P._tf && P._tfCr === S.cruise) return P._tf;
+    const tf = new Float64Array(P.length), hf = houDriveFactor();
+    for (let i = 1; i < P.length; i++) {
+      const lim = Math.max(20, P[i - 1].ff || 45);
+      let mph = S.cruise ? S.cruise : lim * hf;
+      if (!S.cruise && lim <= 45) mph = Math.min(mph, lim * Math.max(0.42, hf - 0.05));
+      const v = Math.max(4.5, Math.min(Math.max(8, Math.min(lim + 2, mph)) * MPH, curveLimit(P, i - 1)));
+      tf[i] = tf[i - 1] + (P[i].s - P[i - 1].s) / v;
+    }
+    P._tf = tf; P._tfCr = S.cruise;
+    return tf;
+  }
+  /* live traffic slow-down on the road ahead, resampled every 3 s and eased (no per-frame jumps) */
+  function trafficFactor(P, tf) {
+    const now = performance.now();
+    if (S._etaFT && now - S._etaFT < 3000 && S._etaF) return S._etaF;
+    S._etaFT = now;
+    let tb = 0, tl = 0;
+    const i0 = S._si || 0, n = 14, span = Math.max(20, Math.round((P.length - i0) / n));
+    for (let k = 0, i = i0; k < n && i < P.length - 1; k++, i += span) {
+      const j = Math.min(P.length - 1, i + span), dt0 = tf[j] - tf[i];
+      if (dt0 <= 0) continue;
+      const vb = (P[j].s - P[i].s) / dt0, vl = Math.max(3, Math.min(vb, cruiseMps(P[i].ff, P[i].x, P[i].z)));
+      tb += dt0; tl += dt0 * vb / vl;
+    }
+    const f = tb > 0 ? Math.min(3, Math.max(1, tl / tb)) : 1;
+    S._etaF = S._etaF ? S._etaF + (f - S._etaF) * 0.35 : f;
+    return S._etaF;
+  }
   function etaSec() {
     const P = S.route; if (!P) return null;
     const rem = Math.max(0, P[P.length - 1].s - S.s);
     if (rem < 2) return 0;
-    let t = 0;
-    const i0 = Math.max(1, (S._si || 0) + 1);
-    /* Denser sample so car ETA tracks curves / limits more closely */
-    const step = Math.max(1, Math.floor((P.length - i0) / 260));
-    for (let i = i0; i < P.length; i += step) {
-      const a = P[Math.max(i0 - 1, i - step)], b = P[i];
-      const ds = b.s - a.s;
-      const v = Math.max(4.5, Math.min(cruiseMps(b.ff || a.ff, b.x, b.z), curveLimit(P, i)));
-      t += ds / v;
-    }
-    const cur = Math.max(4.5, S.v || cruiseMps(P[Math.min(P.length - 1, S._si || 0)].ff, S.p.x, S.p.z));
-    t += Math.max(0, (P[Math.min(P.length - 1, (S._si || 0) + 1)].s - S.s)) / cur;
-    const live = rem / Math.max(4.5, S.v || cur);
-    /* Near the pin, trust live speed more */
-    const w = rem < 900 ? 0.55 : 0.3;
-    const raw = t * (1 - w) + live * w;
-    /* smooth: count down steadily with traffic instead of jumping on every brake tap / light */
-    const now = performance.now(), dtE = S._etaT ? Math.min(2, (now - S._etaT) / 1000) : 1; S._etaT = now;
-    if (S._eta == null || Math.abs(raw - S._eta) > 600) S._eta = raw;
-    else S._eta += (raw - S._eta) * Math.min(1, dtE * 0.25);
-    S._eta = Math.max(0, S._eta - 0);
+    const now = performance.now();
+    if (S._eta != null && S._etaT && now - S._etaT < 250) return S._eta;
+    const tf = routeTimes(P), i = Math.min(P.length - 2, S._si || 0), a = P[i], b = P[i + 1];
+    const tHere = tf[i] + (tf[i + 1] - tf[i]) * Math.min(1, Math.max(0, (S.s - a.s) / ((b.s - a.s) || 1)));
+    let raw = (tf[P.length - 1] - tHere) * trafficFactor(P, tf);
+    /* last few hundred metres: what you're actually doing matters most */
+    if (rem < 300) raw = raw * 0.5 + 0.5 * rem / Math.max(4.5, S.v);
+    const dtE = S._etaT ? Math.min(2, (now - S._etaT) / 1000) : 1; S._etaT = now;
+    if (S._eta == null || Math.abs(raw - S._eta) > 180) S._eta = raw;
+    else S._eta += (raw - S._eta) * Math.min(1, dtE * 0.6);
+    S._eta = Math.max(0, S._eta);
     return S._eta;
   }
   function stepPlane(dt) {
@@ -1491,6 +1580,20 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (S.phase === 'roll') {
         S.v += (jet ? 4.5 : 2.2) * dt; S.rollS += S.v * dt; S.p.y = 1.4; S.vy = 0;
         if (S.v >= rotateKt * KT) S.phase = 'climb';
+      } else if (S.phase === 'taxi') {
+        /* taxi at ~15 kt to the apron spot picked at touchdown, slowing for turns and the final stop */
+        const T2 = S.taxi, tdx = T2.x - S.p.x, tdz = T2.z - S.p.z, td = Math.hypot(tdx, tdz);
+        let dH = Math.atan2(tdx, tdz) - S.hd; while (dH > Math.PI) dH -= 2 * Math.PI; while (dH < -Math.PI) dH += 2 * Math.PI;
+        S.hd += Math.max(-0.4 * dt, Math.min(0.4 * dt, dH));
+        const wantT = td < 40 ? Math.max(1.2, td * 0.12) : Math.abs(dH) > 0.6 ? 3 : 8;
+        S.v += Math.max(-2 * dt, Math.min(1.2 * dt, wantT - S.v));
+        S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4); S.vy = 0;
+        S.pitch += (0 - S.pitch) * Math.min(1, dt * 3); S.roll += (0 - S.roll) * Math.min(1, dt * 3);
+        S.remain = td;
+        if (td < 5 || (T2.t = (T2.t || 0) + dt) > 300) {
+          S.phase = 'parked'; S.v = 0; S.remain = 0;
+          note('Parked on the ' + (S.rw ? S.rw.code : S.landApt) + ' apron (near ' + (S.dest ? S.dest.n : 'destination') + '). Pick another place to fly.');
+        }
       } else if (S.phase === 'rollout' || S.phase === 'parked') {
         const rw = S.rw;
         if (rw) {
@@ -1512,7 +1615,11 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4);
         }
         S.v = Math.max(0, S.v - (jet ? 3.2 : 2.2) * dt);
-        if (S.phase === 'rollout' && S.v < 0.45) {
+        const AP2 = window.HTS_AIRPORTS2, spot = S.phase === 'rollout' && S.v < 9 && S.taxiPark !== false && S.planeStyle !== 'heli' && AP2 && AP2.nearestSpot ? AP2.nearestSpot(S.p.x, S.p.z, 3500) : null;
+        if (spot) {
+          S.phase = 'taxi'; S.taxi = { x: spot.x, z: spot.z, t: 0 };
+          note('Landed ' + (S.rw ? S.rw.code + ' runway ' + S.rw.name : S.landApt) + ' — vacating the runway, taxiing to parking.');
+        } else if (S.phase === 'rollout' && S.v < 0.45) {
           S.phase = 'parked'; S.v = 0; S.vy = 0; S.pitch = 0; S.roll = 0;
           note('Landed at ' + (S.rw ? S.rw.code : S.landApt) + ' (near ' + (S.dest ? S.dest.n : 'destination') + ')'
             + (S.rw ? ', runway ' + S.rw.name : '') + '. Pick another place to fly.');
@@ -1611,7 +1718,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
             }
           }
         }
-        if (S.phase !== 'rollout' && S.phase !== 'parked') {
+        if (S.phase !== 'rollout' && S.phase !== 'parked' && S.phase !== 'taxi') {
           let climbRate = (wantY - S.p.y) * (S.phase === 'final' ? 0.35 : S.phase === 'climb' ? 0.12 : 0.1);
           if (S.phase === 'final') {
             /* Cap sink so we don't slam into the deck */
@@ -1642,7 +1749,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       }
       if (!/toFaf|final|rollout|parked/.test(S.phase)) S.remain = dist; else if (S.phase !== 'toFaf' && S.phase !== 'final') S.remain = 0;
       S.info = S.phase === 'roll' ? 'Takeoff roll · ' + S.apt : S.phase === 'climb' ? 'Climbing' : S.phase === 'cruise' ? 'Cruise → ' + D.n : S.phase === 'orbit' ? 'Arriving · ' + D.n
-        : S.phase === 'toFaf' ? 'Approach · ' + S.rw.code : S.phase === 'final' ? 'Final · ' + S.rw.code + ' RWY ' + S.rw.name : S.phase === 'rollout' ? 'Landing rollout' : 'Landed · ' + (S.rw ? S.rw.code : S.landApt);
+        : S.phase === 'toFaf' ? 'Approach · ' + S.rw.code : S.phase === 'final' ? 'Final · ' + S.rw.code + ' RWY ' + S.rw.name : S.phase === 'rollout' ? 'Landing rollout' : S.phase === 'taxi' ? 'Taxiing to parking · ' + (S.rw ? S.rw.code : S.landApt) : 'Landed · ' + (S.rw ? S.rw.code : S.landApt);
     } else {
       const rollIn = (key('KeyD', 'ArrowRight') ? 1 : 0) - (key('KeyA', 'ArrowLeft') ? 1 : 0);
       const pitchIn = (key('KeyS', 'ArrowDown') ? 1 : 0) - (key('KeyW', 'ArrowUp') ? 1 : 0);
@@ -1800,6 +1907,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function planeEtaSec() {
     if (S.kind !== 'plane' || S.mode !== 'tour') return null;
     if (S.phase === 'parked') return 0;
+    if (S.phase === 'taxi') return Math.max(5, (S.remain || 0) / Math.max(2, S.v || 0));
     if (S.phase === 'rollout') return Math.max(2, Math.min(25, (S.v || 0) / 2.4));
     const jet = S.acClass === 'jet';
     /* Short-final approach after orbit (matches startLanding joining final when near) */
@@ -1828,7 +1936,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (S.mode !== 'tour') return 0;
     if (S.kind === 'car' && S.route && S.tripLen) return Math.min(1, S.s / S.tripLen);
     if (S.kind === 'plane') {
-      if (S.phase === 'parked' || S.phase === 'rollout') return 1;
+      if (S.phase === 'parked' || S.phase === 'rollout' || S.phase === 'taxi') return 1;
       if (S.phase === 'toFaf' || S.phase === 'final') return 0.82 + 0.16 * (1 - Math.min(1, (S.remain || 0) / 12000));
       if (S.phase === 'orbit') return 0.72 + 0.1 * Math.min(1, (S.orbT || 0) / 22);
       const trip0 = S.trip0 || 1;

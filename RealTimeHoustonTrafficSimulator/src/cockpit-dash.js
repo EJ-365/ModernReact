@@ -56,55 +56,59 @@ const svgOpen = (vb = '0 0 1000 320') => '<svg class="dashSvg" viewBox="' + vb +
 const panelGrad = (id, a, b) => '<linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient>';
 
 function propDash() {
-  /* Cessna 172: classic six-pack (ASI AI ALT / TC HI VSI), tach left, radio stack right */
+  /* Cessna 172: six-pack (ASI AI ALT / TC HI VSI) spaced in two rows, tach + fuel left, radio stack right — all below the glare shield */
+  const r1 = 200, r2 = 280;
+  const altNums = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map((n, i) => { const [x, y] = pt(560, r1, 25, i * 36); return tx(x, +y + 3, 8, '#e8ecef', n); }).join('');
   return svgOpen() + '<defs>' + panelGrad('pP', '#3b3f45', '#1d2024') + panelGrad('pG', '#1b1d20', '#0c0d0f') + '</defs>'
-    + '<path d="M0,0 L70,40 L60,320 H0 Z" fill="#202226"/><path d="M1000,0 L930,40 L940,320 H1000 Z" fill="#202226"/>'
-    + '<path d="M60,112 Q500,82 940,112 L940,320 H60 Z" fill="url(#pP)"/>'
-    + '<path d="M50,108 Q500,74 950,108 L950,122 Q500,92 50,122 Z" fill="url(#pG)"/>'
-    + dial(165, 220, 54, { label: 'RPM ×100', id: 'nRpm', min: 0, max: 3500, a0: -135, a1: 135, ticks: 14, nums: ['0', '5', '10', '15', '20', '25', '30', '35'].filter((_, i) => i % 1 === 0), arcs: [[2100, 2700, '#2fa84f'], [2700, 2750, '#e03a2f']] })
-    + tx(165, 258, 13, '#fff', '0', 'dRpm', 700)
-    + dial(380, 168, 46, { label: 'KNOTS', id: 'nKt', min: 0, max: 200, a0: -150, a1: 150, ticks: 20, nums: ['0', '40', '80', '120', '160', '200'], arcs: [[33, 85, '#e8ecef'], [44, 129, '#2fa84f'], [129, 163, '#e8c43a']] })
-    + tx(380, 204, 12, '#fff', '0', 'dKt', 700)
-    + attitude(500, 168, 46, 2.0)
-    + dial(620, 168, 46, { label: 'ALT', id: 'nAlt', min: 0, max: 1000, a0: 0, a1: 360, ticks: 10, nums: null })
-    + ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map((n, i) => { const [x, y] = pt(620, 168, 30, i * 36); return tx(x, +y + 4, 9, '#e8ecef', n); }).join('')
-    + tx(620, 204, 12, '#fff', '0', 'dFt', 700)
-    + '<circle cx="380" cy="272" r="51" fill="#2b2e33" stroke="#0b0c0e" stroke-width="2"/><circle cx="380" cy="272" r="40" fill="#0a0b0d"/>'
-    + tx(380, 252, 8, '#9aa3ab', 'TURN COORD.') + '<g id="nTc" data-c="380 272"><path d="M346,272 H372 L380,266 L388,272 H414 M380,266 V284" stroke="#f4f6f8" stroke-width="3" fill="none"/></g>'
-    + '<line x1="352" y1="286" x2="356" y2="290" stroke="#e8ecef" stroke-width="2"/><line x1="408" y1="286" x2="404" y2="290" stroke="#e8ecef" stroke-width="2"/>'
-    + hdgCard(500, 272, 40)
-    + dial(620, 272, 40, { label: 'VERT SPEED', id: 'nVs', min: -2000, max: 2000, a0: -260, a1: 80, ticks: 8, nums: null })
-    + tx(620, 300, 10, '#7fd6a0', '0', 'dVs', 700)
-    + '<rect x="712" y="134" width="210" height="160" rx="6" fill="#121417" stroke="#05060a"/>'
-    + '<rect x="722" y="144" width="190" height="34" rx="3" fill="#050608"/>' + tx(762, 166, 12, '#31d06a', 'COM1') + tx(852, 166, 14, '#31d06a', 'ACTIVE')
-    + '<rect x="722" y="186" width="190" height="34" rx="3" fill="#050608"/>' + tx(760, 208, 12, '#ffb020', 'XPDR') + tx(840, 208, 15, '#ffb020', '1200 ALT', '', 700)
-    + '<rect x="722" y="228" width="190" height="56" rx="3" fill="#050608"/>' + tx(817, 250, 12, '#cfe3f5', '', 'dPhase') + tx(817, 272, 11, '#9aa3ab', 'HDG 000°', 'dHdg')
-    + '<rect x="86" y="140" width="34" height="58" rx="4" fill="#0a0b0d"/>' + tx(103, 156, 8, '#9aa3ab', 'FUEL') + '<rect id="dFuel" x="94" y="162" width="18" height="30" fill="#2fa84f"/>'
-    + '<rect x="440" y="300" width="120" height="18" rx="3" fill="#0f1012"/>' + tx(500, 313, 10, '#ffb020', 'FLAPS 0°', 'dFlap')
+    + '<path d="M0,40 L70,80 L60,320 H0 Z" fill="#202226"/><path d="M1000,40 L930,80 L940,320 H1000 Z" fill="#202226"/>'
+    + '<path d="M60,154 Q500,128 940,154 L940,320 H60 Z" fill="url(#pP)"/>'
+    + '<path d="M50,148 Q500,118 950,148 L950,160 Q500,132 50,160 Z" fill="url(#pG)"/>'
+    + '<rect x="76" y="188" width="36" height="96" rx="4" fill="#0a0b0d" stroke="#05060a"/>' + tx(94, 203, 8, '#9aa3ab', 'FUEL')
+    + '<rect x="85" y="210" width="18" height="66" rx="2" fill="#15181b"/><rect id="dFuel" x="85" y="222" width="18" height="54" rx="2" fill="#2fa84f"/>'
+    + tx(94, 300, 8, '#9aa3ab', 'F  ·  E')
+    + dial(200, 240, 50, { label: 'RPM ×100', id: 'nRpm', min: 0, max: 3500, a0: -135, a1: 135, ticks: 14, nums: ['0', '5', '10', '15', '20', '25', '30', '35'], arcs: [[2100, 2700, '#2fa84f'], [2700, 2750, '#e03a2f']] })
+    + tx(200, 276, 12, '#fff', '0', 'dRpm', 700)
+    + dial(340, r1, 37, { label: 'KNOTS', id: 'nKt', min: 0, max: 200, a0: -150, a1: 150, ticks: 20, nums: ['0', '50', '100', '150', '200'], arcs: [[33, 85, '#e8ecef'], [44, 129, '#2fa84f'], [129, 163, '#e8c43a']] })
+    + tx(340, r1 + 25, 10, '#fff', '0', 'dKt', 700)
+    + attitude(450, r1, 37, 2.0)
+    + dial(560, r1, 37, { label: 'ALT', id: 'nAlt', min: 0, max: 1000, a0: 0, a1: 360, ticks: 10, nums: null }) + altNums
+    + tx(560, r1 + 25, 10, '#fff', '0', 'dFt', 700)
+    + '<circle cx="340" cy="' + r2 + '" r="37" fill="#2b2e33" stroke="#0b0c0e" stroke-width="2"/><circle cx="340" cy="' + r2 + '" r="29" fill="#0a0b0d"/>'
+    + tx(340, r2 - 15, 7, '#9aa3ab', 'TURN COORD.') + '<g id="nTc" data-c="340 ' + r2 + '"><path d="M316,' + r2 + ' H334 L340,' + (r2 - 5) + ' L346,' + r2 + ' H364 M340,' + (r2 - 5) + ' V' + (r2 + 10) + '" stroke="#f4f6f8" stroke-width="2.5" fill="none"/></g>'
+    + tx(340, r2 + 24, 7, '#9aa3ab', 'L      R')
+    + hdgCard(450, r2, 33)
+    + dial(560, r2, 33, { label: 'VSI', id: 'nVs', min: -2000, max: 2000, a0: -260, a1: 80, ticks: 8, nums: null })
+    + tx(560, r2 + 22, 9, '#7fd6a0', '0', 'dVs', 700)
+    + '<rect x="646" y="166" width="270" height="146" rx="6" fill="#121417" stroke="#05060a"/>'
+    + '<rect x="656" y="174" width="250" height="28" rx="3" fill="#050608"/>' + tx(700, 193, 11, '#31d06a', 'COM1') + tx(810, 193, 12, '#31d06a', '118.700  121.900', '', 700)
+    + '<rect x="656" y="208" width="250" height="28" rx="3" fill="#050608"/>' + tx(700, 227, 11, '#ffb020', 'XPDR') + tx(810, 227, 13, '#ffb020', '1200  ALT', '', 700)
+    + '<rect x="656" y="242" width="250" height="34" rx="3" fill="#050608"/>' + tx(730, 264, 11, '#cfe3f5', '', 'dPhase') + tx(860, 264, 11, '#9aa3ab', 'HDG 000°', 'dHdg')
+    + '<rect x="656" y="282" width="120" height="22" rx="3" fill="#0f1012"/>' + tx(716, 297, 10, '#ffb020', 'FLAPS 0°', 'dFlap')
+    + '<rect x="786" y="282" width="120" height="22" rx="3" fill="#0f1012"/>' + tx(846, 297, 10, '#9aa3ab', 'MIXTURE RICH')
     + '</svg>';
 }
 
 function heliDash() {
-  /* Bell 407: low centre panel, big chin windows; NR/NP dual tach, torque, MGT */
+  /* Bell 407: one row of gauges (NR/NP, IAS, ATT, HDG, ALT, TRQ) with a status strip below, kept clear of the top crop */
+  const y = 228;
   return svgOpen() + '<defs>' + panelGrad('hP', '#34383d', '#17191c') + '</defs>'
     + '<path d="M0,40 Q30,30 80,40 L120,320 H0 Z" fill="#1b1d20"/><path d="M1000,40 Q970,30 920,40 L880,320 H1000 Z" fill="#1b1d20"/>'
-    + '<path d="M120,320 L180,240 L300,236 L300,320 Z" fill="rgba(120,160,190,.10)" stroke="#1b1d20" stroke-width="6"/>'
-    + '<path d="M880,320 L820,240 L700,236 L700,320 Z" fill="rgba(120,160,190,.10)" stroke="#1b1d20" stroke-width="6"/>'
-    + '<path d="M290,120 Q500,96 710,120 L716,320 H284 Z" fill="url(#hP)"/>'
-    + '<path d="M282,116 Q500,88 718,116 L718,128 Q500,102 282,128 Z" fill="#101113"/>'
-    + '<rect x="310" y="124" width="380" height="16" rx="3" fill="#0a0b0d"/>'
-    + tx(350, 136, 10, '#31d06a', 'ENG OK') + tx(410, 136, 10, '#31d06a', 'XMSN') + tx(590, 136, 10, '#ffb020', 'MGT', '', 700) + tx(645, 136, 11, '#ffb020', '0°C', 'dMgt', 700)
-    + dial(370, 190, 44, { label: 'KNOTS', id: 'nKt', min: 0, max: 160, a0: -150, a1: 150, ticks: 16, nums: ['0', '40', '80', '120', '160'], arcs: [[0, 133, '#2fa84f'], [133, 140, '#e03a2f']] })
-    + tx(370, 224, 11, '#fff', '0', 'dKt', 700)
-    + attitude(500, 190, 44, 1.9)
-    + dial(630, 190, 44, { label: 'ALT', id: 'nAlt', min: 0, max: 1000, a0: 0, a1: 360, ticks: 10 })
-    + tx(630, 224, 11, '#fff', '0', 'dFt', 700)
-    + dial(370, 274, 32, { label: 'NR  NP', id: 'nNr', min: 0, max: 120, a0: -135, a1: 135, ticks: 12, arcs: [[99, 101, '#2fa84f'], [104, 106, '#e03a2f']] })
-    + hdgCard(500, 274, 32)
-    + dial(630, 274, 32, { label: 'TRQ %', id: 'nTrq', min: 0, max: 110, a0: -135, a1: 135, ticks: 11, arcs: [[0, 93, '#2fa84f'], [93, 100, '#e8c43a'], [100, 110, '#e03a2f']] })
-    + tx(630, 298, 9, '#fff', '0', 'dTrq', 700)
-    + '<rect x="716" y="150" width="120" height="70" rx="5" fill="#0f1012" stroke="#05060a"/>' + tx(776, 170, 10, '#9aa3ab', 'VSI') + tx(776, 196, 16, '#7fd6a0', '0', 'dVs', 700) + tx(776, 212, 9, '#9aa3ab', 'FT/MIN')
-    + '<rect x="164" y="150" width="120" height="70" rx="5" fill="#0f1012" stroke="#05060a"/>' + tx(224, 176, 9, '#cfe3f5', '', 'dPhase') + tx(224, 200, 11, '#ffb020', 'HDG 000°', 'dHdg')
+    + '<path d="M140,170 Q500,140 860,170 L870,320 H130 Z" fill="url(#hP)"/>'
+    + '<path d="M136,166 Q500,134 864,166 L864,176 Q500,146 136,176 Z" fill="#101113"/>'
+    + dial(200, y, 32, { label: 'NR  NP', id: 'nNr', min: 0, max: 120, a0: -135, a1: 135, ticks: 12, arcs: [[99, 101, '#2fa84f'], [104, 106, '#e03a2f']] })
+    + dial(310, y, 40, { label: 'KNOTS', id: 'nKt', min: 0, max: 160, a0: -150, a1: 150, ticks: 16, nums: ['0', '40', '80', '120', '160'], arcs: [[0, 133, '#2fa84f'], [133, 140, '#e03a2f']] })
+    + tx(310, y + 30, 11, '#fff', '0', 'dKt', 700)
+    + attitude(430, y, 40, 1.7)
+    + hdgCard(550, y, 40)
+    + dial(670, y, 40, { label: 'ALT', id: 'nAlt', min: 0, max: 1000, a0: 0, a1: 360, ticks: 10 })
+    + tx(670, y + 30, 11, '#fff', '0', 'dFt', 700)
+    + dial(790, y, 32, { label: 'TRQ %', id: 'nTrq', min: 0, max: 110, a0: -135, a1: 135, ticks: 11, arcs: [[0, 93, '#2fa84f'], [93, 100, '#e8c43a'], [100, 110, '#e03a2f']] })
+    + tx(790, y + 24, 9, '#fff', '0', 'dTrq', 700)
+    + '<rect x="160" y="282" width="680" height="24" rx="4" fill="#0a0b0d" stroke="#05060a"/>'
+    + tx(212, 299, 11, '#31d06a', 'ENG OK') + tx(276, 299, 11, '#31d06a', 'XMSN')
+    + tx(430, 299, 11, '#cfe3f5', '', 'dPhase')
+    + tx(586, 299, 11, '#9aa3ab', 'VS') + tx(632, 299, 12, '#7fd6a0', '0', 'dVs', 700)
+    + tx(722, 299, 11, '#ffb020', 'MGT', '', 700) + tx(782, 299, 12, '#ffb020', '0°C', 'dMgt', 700)
     + '</svg>';
 }
 

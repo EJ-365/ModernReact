@@ -5,6 +5,73 @@
  */
 
 const TRACKS = [
+  /* Verified embeddable (YouTube oEmbed) — Oct 2026 refresh */
+  { g: 'afrobeat', id: 'CQLsdm1ZYAw', title: 'Calm Down' },
+  { g: 'afrobeat', id: 'jipQpjUA_o8', title: 'Essence' },
+  { g: 'afrobeat', id: 'D-YDEyuDxWU', title: 'Love Nwantiti' },
+  { g: 'afrobeat', id: 'lPe09eE6Xio', title: 'Ye' },
+  { g: 'afrobeat', id: 'pekzpzNCNDQ', title: 'Peru' },
+  { g: 'afrobeat', id: 'OSBan_sH_b8', title: 'Unavailable' },
+  { g: 'afrobeat', id: 'crtQSTYWtqE', title: 'Rush' },
+  { g: 'afrobeat', id: '3Iyuym-Gci0', title: 'Fall' },
+  { g: 'afrobeat', id: '1VrWaED18_g', title: 'Soco' },
+  { g: 'afrobeat', id: 'XoiOOiuH8iI', title: 'Water' },
+  { g: 'afrobeat', id: 'bbVZo4Yw7pI', title: 'Lonely At The Top' },
+  { g: 'afrobeat', id: 'Q7QiLceJSLQ', title: 'Ojuelegba' },
+  { g: 'afrobeat', id: 'fXl5dPuiJa0', title: 'Joha' },
+  { g: 'gospel', id: 'QM8jQHE5AAk', title: 'Way Maker' },
+  { g: 'gospel', id: '6xx0d3R2LoU', title: 'Reckless Love' },
+  { g: 'gospel', id: 'n0FBb6hnwTo', title: 'Goodness of God' },
+  { g: 'gospel', id: 'Y-4NFvI5U9w', title: 'Amazing Grace (My Chains Are Gone)' },
+  { g: 'gospel', id: 'XtwIT8JjddM', title: '10,000 Reasons' },
+  { g: 'gospel', id: 'KBD18rsVJHk', title: 'How Great Is Our God' },
+  { g: 'gospel', id: 'mC-zw0zCCtg', title: 'Jireh' },
+  { g: 'gospel', id: 'KwX1f2gYKZ4', title: 'Graves Into Gardens' },
+  { g: 'gospel', id: '3aD8OK07iIY', title: 'Love Theory' },
+  { g: 'gospel', id: 'ucY6NwQTI3M', title: 'Break Every Chain' },
+  { g: 'gospel', id: 'qlsQrycKKsY', title: 'Good Good Father' },
+  { g: 'gospel', id: 'N_lrrq_opng', title: 'I Can Only Imagine' },
+  { g: 'pop', id: 'eVli-tstM5E', title: 'Espresso' },
+  { g: 'pop', id: 'V9PVRfjEBTI', title: 'Birds of a Feather' },
+  { g: 'pop', id: 'suAR1PYFNYA', title: 'Houdini' },
+  { g: 'pop', id: 'ic8j13piAhQ', title: 'Cruel Summer' },
+  { g: 'pop', id: 'RlPNh_PBZb4', title: 'vampire' },
+  { g: 'pop', id: 'E07s5ZYygMg', title: 'Watermelon Sugar' },
+  { g: 'pop', id: 'XXYlFuWEuKI', title: 'Save Your Tears' },
+  { g: 'pop', id: 'kPa7bsKwL-c', title: 'Die With A Smile' },
+  { g: 'pop', id: 'ekr2nIex040', title: 'APT.' },
+  { g: 'pop', id: 'q0hyYWKXF0Q', title: 'Dance Monkey' },
+  { g: 'pop', id: 'orJSJGHjBLI', title: 'Bad Habits' },
+  { g: 'pop', id: 'lY2yjAdbvdQ', title: 'Treat You Better' },
+  { g: 'pop', id: 'ZbZSe6N_BXs', title: 'Happy' },
+  { g: 'hiphop', id: 'H58vbez_m4E', title: 'Not Like Us' },
+  { g: 'hiphop', id: '6ONRf7h3Mdk', title: 'SICKO MODE' },
+  { g: 'hiphop', id: 'tvTRZJ-4EyI', title: 'HUMBLE.' },
+  { g: 'hiphop', id: 'xFYQQPAOz7Y', title: 'Lose Yourself' },
+  { g: 'hiphop', id: 'xvZqHgFz51I', title: 'Mask Off' },
+  { g: 'hiphop', id: 'PEGccV-NOm8', title: 'Bodak Yellow' },
+  { g: 'hiphop', id: 'yQBImEeXNZ4', title: 'FIRST CLASS' },
+  { g: 'hiphop', id: 'UceaB4D0jpo', title: 'Rockstar' },
+  { g: 'hiphop', id: '7ZAYzLjQAd4', title: 'Still Tippin\'' },
+  { g: 'country', id: 'bUjPPBxbQrQ', title: 'Last Night' },
+  { g: 'country', id: 'Fr7oYjnt3bM', title: 'Fast Car' },
+  { g: 'country', id: 'ZVVvJjwzl6c', title: 'I Remember Everything' },
+  { g: 'country', id: '4zAThXFOy2c', title: 'Tennessee Whiskey' },
+  { g: 'country', id: 't7bQwwqW-Hc', title: 'A Bar Song (Tipsy)' },
+  { g: 'country', id: '238Z4YaAr1g', title: 'TEXAS HOLD \'EM' },
+  { g: 'country', id: 'wtVeDaZxAXo', title: 'Amarillo By Morning' },
+  { g: 'country', id: 'WaSy8yy-mr8', title: 'Before He Cheats' },
+  { g: 'country', id: '8PvebsWcpto', title: 'Cruise' },
+  { g: 'country', id: 'Lb9q1ScC4cg', title: 'Dirt Road Anthem' },
+  { g: 'country', id: 'e4ujS1er1r0', title: 'Chicken Fried' },
+  { g: 'country', id: 'Mdh2p03cRfw', title: 'Body Like a Back Road' },
+  { g: 'country', id: 'dRX0wDNK6S4', title: 'Heaven' },
+  { g: 'country', id: 'eM213aMKTHg', title: 'Need You Now' },
+  { g: 'rock', id: 'gOsM-DYAEhY', title: 'Whatever It Takes' },
+  { g: 'rock', id: '0I647GU3Jsc', title: 'Natural' },
+  { g: 'rock', id: 'D9G1VOjN_84', title: 'Enemy' },
+  { g: 'rock', id: 'F90Cw4l-8NY', title: 'Pompeii' },
+  { g: 'electronic', id: '_ovdm2yX4MA', title: 'Levels' },
   /* Pop / mainstream */
   { g: 'pop', id: 'kJQP7kiw5Fk', title: 'Despacito' },
   { g: 'pop', id: 'OPf0YbXqDm0', title: 'Uptown Funk' },
@@ -26,7 +93,6 @@ const TRACKS = [
   { g: 'pop', id: 'b1kbLwvqugk', title: 'Anti-Hero' },
   { g: 'pop', id: 'H5v3kku4y6Q', title: 'As It Was' },
   { g: 'pop', id: 'U3ASj1L6_sY', title: 'Easy On Me' },
-  { g: 'pop', id: 'KUN5Uf9mAcU', title: 'Dance Monkey' },
   { g: 'pop', id: '3tmd-ClpJxA', title: 'Closer' },
   { g: 'pop', id: '8EJ3zbKTWQ8', title: 'New Rules' },
   { g: 'pop', id: 'aJOTlE1K90k', title: 'Girls Like You' },
@@ -41,7 +107,6 @@ const TRACKS = [
   { g: 'pop', id: 'nYh-n7EOtMA', title: 'Cheap Thrills' },
   { g: 'pop', id: 'DyDfgMOUjCI', title: 'bad guy' },
   { g: 'pop', id: 'ZmDBbnmKpqQ', title: 'drivers license' },
-  { g: 'pop', id: 'fKMkL5v6o2g', title: 'Enemy' },
   { g: 'pop', id: '5anLPw0Efmo', title: 'Bones' },
   /* Hip-hop / R&B */
   { g: 'hiphop', id: 'uelHwf8o7_U', title: 'Love The Way You Lie' },
@@ -53,13 +118,10 @@ const TRACKS = [
   { g: 'hiphop', id: 'gCYcHz2k5x0', title: 'HUMBLE.' },
   { g: 'hiphop', id: 'E5yFcdPAGv0', title: 'In My Feelings' },
   { g: 'hiphop', id: 'LsoLEjrDogU', title: "That's What I Like" },
-  { g: 'hiphop', id: '2Vj-tfvtQbY', title: 'The Hills' },
-  { g: 'hiphop', id: 'tnTsW-YkAYk', title: 'Lose Yourself' },
   { g: 'hiphop', id: 'r7qovpFAGrQ', title: 'Old Town Road' },
   { g: 'hiphop', id: 'ApXoWvfEYVU', title: 'Sunflower' },
   { g: 'hiphop', id: 'wXhTHyIgQ_U', title: 'Circles' },
   { g: 'hiphop', id: 'ru0K8uYEZWw', title: "Can't Feel My Face" },
-  { g: 'hiphop', id: '0EVVKms3cOY', title: 'Treat You Better' },
   { g: 'hiphop', id: 'PIh2xe4jnpk', title: 'Adorn' },
   { g: 'hiphop', id: 'U0CGsw6h60k', title: 'Earned It' },
   { g: 'hiphop', id: 'yzTuBuRdAyA', title: 'No Guidance' },
@@ -77,26 +139,19 @@ const TRACKS = [
   { g: 'rock', id: 'kXYiU_JCYtU', title: 'Numb' },
   { g: 'rock', id: 'eVTXPUF4Oz4', title: 'In the End' },
   { g: 'rock', id: '7wtfhZwyrcc', title: 'Believer' },
-  { g: 'rock', id: '09tdoFH5c6A', title: 'Radioactive' },
   { g: 'rock', id: 'fKopy74weus', title: 'Demons' },
-  { g: 'rock', id: 'CD-EOMCQYv8', title: 'Thunder' },
   { g: 'rock', id: 'ktvTqknDobU', title: 'Centuries' },
   { g: 'rock', id: '1w7OgIMMRc4', title: 'Sweet Child O Mine' },
   { g: 'rock', id: 'tAGnKpE4NCI', title: 'Something Just Like This' },
   { g: 'rock', id: 'SBjQ9tuuTJQ', title: 'Eye of the Tiger' },
   { g: 'rock', id: 'pXRviuL6vMY', title: 'Stressed Out' },
   { g: 'rock', id: 'Pw-0pbY9JeU', title: 'Ride' },
-  { g: 'rock', id: 'loez18SRdb0', title: 'Whatever It Takes' },
-  { g: 'rock', id: 'qEnfeG6MviY', title: 'Natural' },
   { g: 'rock', id: '1G4isv_Fylg', title: 'Paradise' },
-  { g: 'rock', id: 'UUZB_XfZpQ0', title: 'Pompeii' },
   /* Electronic / dance */
   { g: 'electronic', id: '60ItHLz5WEA', title: 'Faded' },
   { g: 'electronic', id: 'IcrbM1l_BoI', title: 'Wake Me Up' },
-  { g: 'electronic', id: 'kOK1YAI3Igo', title: 'Animals' },
   { g: 'electronic', id: 'YqeW9_5kURI', title: 'Lean On' },
   { g: 'electronic', id: 'hHUbLv4ThOo', title: 'Clarity' },
-  { g: 'electronic', id: 'iUkASdXl09Q', title: 'Levels' },
   { g: 'electronic', id: '9bZkp7q19f0', title: 'Gentleman' },
   { g: 'electronic', id: 'YVkUvmDQ3HY', title: 'Gangnam Style' },
   /* Latin / global */
@@ -109,42 +164,20 @@ const TRACKS = [
   { g: 'latin', id: 'QaXhVryxVBk', title: 'Bichota' },
   { g: 'latin', id: 'fJ9rUzIMcZQ', title: 'Bohemian Rhapsody' },
   /* Afrobeat */
-  { g: 'afrobeat', id: 'CxowNxLfs8U', title: 'Calm Down' },
-  { g: 'afrobeat', id: 'orixmxRi0Ns', title: 'Essence' },
-  { g: 'afrobeat', id: '1X77wR1L5tE', title: 'Love Nwantiti' },
   { g: 'afrobeat', id: '8xg3vE8Ie_E', title: 'Last Last' },
-  { g: 'afrobeat', id: 'hHDPHJRK5Bk', title: 'Ye' },
-  { g: 'afrobeat', id: 'gUYA60dh6Yw', title: 'Peru' },
-  { g: 'afrobeat', id: 'TQTgRBR5J5A', title: 'Unavailable' },
   { g: 'afrobeat', id: '1cQh1ccqu8M', title: 'Rush' },
-  { g: 'afrobeat', id: 'E9c-gRSryC4', title: 'On the Low' },
-  { g: 'afrobeat', id: 'hlObmEkvlFI', title: 'Fall' },
-  { g: 'afrobeat', id: 'a2YFvsjGObg', title: 'Soco' },
   /* Gospel / worship */
   { g: 'gospel', id: 'dy9nwe9_xzw', title: 'Oceans (Where Feet May Fail)' },
-  { g: 'gospel', id: 'JbeAVROqX0I', title: 'Way Maker' },
-  { g: 'gospel', id: 'y5LvidQt3mY', title: 'Reckless Love' },
-  { g: 'gospel', id: 'y_PRfAVPxC0', title: 'Goodness of God' },
-  { g: 'gospel', id: 'X5qpFn_K4ZE', title: 'Amazing Grace (My Chains Are Gone)' },
-  { g: 'gospel', id: '1INe_uAcXus', title: 'What a Beautiful Name' },
-  { g: 'gospel', id: 'cc0ooO10vDo', title: 'Way Maker (Live)' },
-  { g: 'gospel', id: 'XQtofrEV7_I', title: 'Good Good Father' },
   { g: 'gospel', id: 'nQWFzMvCfLE', title: 'Build My Life' },
-  { g: 'gospel', id: '6xfGLkFJyhQ', title: 'How Great Is Our God' },
-  { g: 'gospel', id: 'C2epMyo-D8E', title: '10,000 Reasons' },
   /* More hits / classics */
   { g: 'classics', id: 'fRh_vgS2dFE', title: 'Sorry' },
   { g: 'classics', id: '09R8_2nJtjg', title: 'Sugar' },
-  { g: 'classics', id: 'RubBee1bGLk', title: 'Happy' },
   { g: 'classics', id: 'fLexgOxsZu0', title: 'Uptown Funk (alt)' },
   { g: 'classics', id: 'hT_nvWreIhg', title: 'Counting Stars' },
   { g: 'classics', id: 'YQHsXMglC9A', title: 'Hello' },
   { g: 'classics', id: '450p7goxZqg', title: 'All of Me' },
   { g: 'classics', id: 'RBumgq5yVrA', title: 'Let Her Go' },
   { g: 'classics', id: '1y6smkh6c-0', title: 'Cruise' },
-  { g: 'classics', id: 'cwqgA-R1UV8', title: 'Dirt Road Anthem' },
-  { g: 'classics', id: 'rCOwoBWrP4A', title: 'Chicken Fried' },
-  { g: 'classics', id: 'VJj0QbX0j8E', title: 'Body Like a Back Road' },
   { g: 'classics', id: '9bZkp7q19f0', title: 'Gentleman' },
   { g: 'classics', id: 'CevxZvSJLk8', title: 'Roar' },
   { g: 'classics', id: 'KQ6zr6kCPj8', title: 'Party Rock Anthem' },
@@ -159,9 +192,7 @@ const TRACKS = [
   { g: 'classics', id: 'fJ9rUzIMcZQ', title: 'Bohemian Rhapsody' },
   { g: 'classics', id: 'eVTXPUF4Oz4', title: 'In the End' },
   { g: 'classics', id: '7wtfhZwyrcc', title: 'Believer' },
-  { g: 'classics', id: '09tdoFH5c6A', title: 'Radioactive' },
   { g: 'classics', id: 'fKopy74weus', title: 'Demons' },
-  { g: 'classics', id: 'CD-EOMCQYv8', title: 'Thunder' },
   { g: 'classics', id: 'pXRviuL6vMY', title: 'Stressed Out' },
   { g: 'classics', id: 'Pw-0pbY9JeU', title: 'Ride' },
   { g: 'classics', id: '60ItHLz5WEA', title: 'Faded' },
@@ -175,19 +206,12 @@ const TRACKS = [
   { g: 'classics', id: 'xpVfcZ0ZcFM', title: "God's Plan" },
   { g: 'classics', id: 'gCYcHz2k5x0', title: 'HUMBLE.' },
   { g: 'classics', id: 'ApXoWvfEYVU', title: 'Sunflower' },
-  { g: 'classics', id: 'CxowNxLfs8U', title: 'Calm Down' },
-  { g: 'classics', id: 'orixmxRi0Ns', title: 'Essence' },
   { g: 'classics', id: 'dy9nwe9_xzw', title: 'Oceans' },
-  { g: 'classics', id: 'JbeAVROqX0I', title: 'Way Maker' },
-  { g: 'classics', id: 'y_PRfAVPxC0', title: 'Goodness of God' },
-  { g: 'classics', id: '1INe_uAcXus', title: 'What a Beautiful Name' },
-  { g: 'classics', id: 'C2epMyo-D8E', title: '10,000 Reasons' },
   { g: 'classics', id: 'hTWKbfoikeg', title: 'Smells Like Teen Spirit' },
   { g: 'classics', id: '1w7OgIMMRc4', title: 'Sweet Child O Mine' },
   { g: 'classics', id: 'SBjQ9tuuTJQ', title: 'Eye of the Tiger' },
   { g: 'classics', id: 'Zi_XLOBDo_Y', title: 'Billie Jean' },
   { g: 'classics', id: 'sOnqjkJTMaA', title: 'Thriller' },
-  { g: 'classics', id: 'tnTsW-YkAYk', title: 'Lose Yourself' },
   { g: 'classics', id: 'XbGs_qK2PQA', title: 'Rap God' },
   { g: 'classics', id: 'j5-yKhDd64s', title: 'Not Afraid' },
   { g: 'classics', id: 'uelHwf8o7_U', title: 'Love The Way You Lie' },
@@ -197,22 +221,14 @@ const TRACKS = [
   { g: 'classics', id: 'QaXhVryxVBk', title: 'Bichota' },
   { g: 'classics', id: '7F37r50VUTQ', title: 'Tusa' },
   { g: 'classics', id: 'pRpeEdMmmQ0', title: 'Waka Waka' },
-  { g: 'classics', id: '1X77wR1L5tE', title: 'Love Nwantiti' },
   { g: 'classics', id: '8xg3vE8Ie_E', title: 'Last Last' },
-  { g: 'classics', id: 'gUYA60dh6Yw', title: 'Peru' },
-  { g: 'classics', id: 'TQTgRBR5J5A', title: 'Unavailable' },
   { g: 'classics', id: '1cQh1ccqu8M', title: 'Rush' },
-  { g: 'classics', id: 'hHDPHJRK5Bk', title: 'Ye' },
-  { g: 'classics', id: 'a2YFvsjGObg', title: 'Soco' },
   { g: 'classics', id: 'YqeW9_5kURI', title: 'Lean On' },
-  { g: 'classics', id: 'iUkASdXl09Q', title: 'Levels' },
-  { g: 'classics', id: 'kOK1YAI3Igo', title: 'Animals' },
   { g: 'classics', id: 'KQ6zr6kCPj8', title: 'Party Rock Anthem' },
   { g: 'classics', id: 'fWNaR-rxAic', title: 'Call Me Maybe' },
   { g: 'classics', id: '2vjPBrBU-TM', title: 'Chandelier' },
   { g: 'classics', id: 'ytQ5CYE1VZw', title: 'Royals' },
   { g: 'classics', id: 'iS1g8G_njx8', title: 'Titanium' },
-  { g: 'classics', id: 'RubBee1bGLk', title: 'Happy' },
   { g: 'classics', id: 'RgKAFK5djSk', title: 'See You Again' },
   { g: 'classics', id: 'b1kbLwvqugk', title: 'Anti-Hero' },
   { g: 'classics', id: 'H5v3kku4y6Q', title: 'As It Was' },
@@ -224,32 +240,25 @@ const TRACKS = [
   { g: 'classics', id: 'aJOTlE1K90k', title: 'Girls Like You' },
   { g: 'classics', id: 'e-ORhEE9VVg', title: 'Blank Space' },
   { g: 'classics', id: 'nfWlot6h_JM', title: 'Shake It Off' },
-  { g: 'classics', id: 'KUN5Uf9mAcU', title: 'Dance Monkey' },
   { g: 'classics', id: 'U3ASj1L6_sY', title: 'Easy On Me' },
   { g: 'classics', id: '3tmd-ClpJxA', title: 'Closer' },
   { g: 'classics', id: '8EJ3zbKTWQ8', title: 'New Rules' },
   { g: 'classics', id: 'nYh-n7EOtMA', title: 'Cheap Thrills' },
   { g: 'classics', id: 'DyDfgMOUjCI', title: 'bad guy' },
   { g: 'classics', id: 'ZmDBbnmKpqQ', title: 'drivers license' },
-  { g: 'classics', id: 'fKMkL5v6o2g', title: 'Enemy' },
   { g: 'classics', id: '5anLPw0Efmo', title: 'Bones' },
   { g: 'classics', id: 'YykjpeuMNEk', title: 'Hymn for the Weekend' },
   { g: 'classics', id: 'PT2_F-1esPk', title: 'The Middle' },
   { g: 'classics', id: 'tAGnKpE4NCI', title: 'Something Just Like This' },
-  { g: 'classics', id: 'loez18SRdb0', title: 'Whatever It Takes' },
-  { g: 'classics', id: 'qEnfeG6MviY', title: 'Natural' },
   { g: 'classics', id: 'ktvTqknDobU', title: 'Centuries' },
   { g: 'classics', id: '1G4isv_Fylg', title: 'Paradise' },
-  { g: 'classics', id: 'UUZB_XfZpQ0', title: 'Pompeii' },
   { g: 'classics', id: 'r7qovpFAGrQ', title: 'Old Town Road' },
   { g: 'classics', id: 'wXhTHyIgQ_U', title: 'Circles' },
   { g: 'classics', id: 'LsoLEjrDogU', title: "That's What I Like" },
-  { g: 'classics', id: '2Vj-tfvtQbY', title: 'The Hills' },
   { g: 'classics', id: 'QK8mJJJvaes', title: 'Sicko Mode' },
   { g: 'classics', id: 'E5yFcdPAGv0', title: 'In My Feelings' },
   { g: 'classics', id: 'uxpDa-c-4Mc', title: 'Hotline Bling' },
   { g: 'classics', id: 'ru0K8uYEZWw', title: "Can't Feel My Face" },
-  { g: 'classics', id: '0EVVKms3cOY', title: 'Treat You Better' },
   { g: 'classics', id: 'lp-EO5I60KA', title: 'Thinking Out Loud' },
   { g: 'classics', id: 'rYEDA3JcQqw', title: 'Rolling in the Deep' },
   { g: 'classics', id: 'hLQl3WQQoQ0', title: 'Someone Like You' },
@@ -257,14 +266,7 @@ const TRACKS = [
   { g: 'classics', id: 'VuNIsY6JdUw', title: "Say You Won't Let Go" },
   { g: 'classics', id: 'RBumgq5yVrA', title: 'Let Her Go' },
   { g: 'classics', id: '450p7goxZqg', title: 'All of Me' },
-  { g: 'classics', id: 'y5LvidQt3mY', title: 'Reckless Love' },
-  { g: 'classics', id: 'X5qpFn_K4ZE', title: 'Amazing Grace' },
-  { g: 'classics', id: 'cc0ooO10vDo', title: 'Way Maker (Live)' },
-  { g: 'classics', id: 'XQtofrEV7_I', title: 'Good Good Father' },
   { g: 'classics', id: 'nQWFzMvCfLE', title: 'Build My Life' },
-  { g: 'classics', id: '6xfGLkFJyhQ', title: 'How Great Is Our God' },
-  { g: 'classics', id: 'hlObmEkvlFI', title: 'Fall' },
-  { g: 'classics', id: 'E9c-gRSryC4', title: 'On the Low' },
   { g: 'classics', id: 'hHUbLv4ThOo', title: 'Clarity' },
   { g: 'classics', id: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up' },
 ];
@@ -279,7 +281,7 @@ const ALL = (() => {
   return out;
 })();
 
-const GENRES = [['all', 'All'], ['pop', 'Pop'], ['hiphop', 'Hip-hop / R&B'], ['rock', 'Rock'], ['electronic', 'Electronic'], ['latin', 'Latin'], ['afrobeat', 'Afrobeat'], ['gospel', 'Gospel'], ['classics', 'Classics']];
+const GENRES = [['all', 'All'], ['pop', 'Pop'], ['hiphop', 'Hip-hop / Rap'], ['rock', 'Rock'], ['electronic', 'Electronic'], ['latin', 'Latin'], ['afrobeat', 'Afrobeat'], ['gospel', 'Gospel'], ['country', 'Country'], ['classics', 'Classics']];
 const BED = { bpm: 110, root: 110, pattern: [1, 0, 0.5, 0, 1, 0, 0.35, 0.2], wave: 'triangle' };
 
 const POS_KEY = 'hts-tour-yt-pos';
@@ -832,10 +834,27 @@ export function createTourMusic() {
     if (!wrap || !dashEl || !dashEl.classList.contains('on')) return;
     const r = dashEl.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) return;
-    const w = Math.min(r.width * 0.24, 268, window.innerWidth * 0.24);
-    const h = Math.min(r.height * 0.58, 210, window.innerHeight * 0.28);
-    const left = r.left + r.width * 0.016;
-    const top = r.bottom - r.height * 0.14 - h;
+    let w = Math.min(r.width * 0.24, 268, window.innerWidth * 0.24);
+    let h = Math.min(r.height * 0.58, 210, window.innerHeight * 0.28);
+    let left = r.left + r.width * 0.016;
+    let top = r.bottom - r.height * 0.14 - h;
+    /* Car dashes: never cover the left gauge cluster (pickup fuel/temp dials, SUV/van screens).
+       Sit in the gap left of it when there is room, otherwise just above it. */
+    let gl = 1e9, gt = 1e9, gr = -1e9;
+    dashEl.querySelectorAll('.dLeft').forEach((el) => {
+      const b = el.getBoundingClientRect();
+      if (b.width > 0) { gl = Math.min(gl, b.left); gt = Math.min(gt, b.top); gr = Math.max(gr, b.right); }
+    });
+    if (gr > gl) {
+      const room = gl - r.left - 14;
+      if (room >= 170) {
+        w = Math.min(w, room - 4); left = r.left + 8;
+      } else {
+        w = Math.max(170, Math.min(w, gr - Math.max(4, r.left + 8)));
+        h = Math.min(h, 150, Math.max(110, gt - 10));
+        left = r.left + 8; top = gt - h - 10;
+      }
+    }
     wrap.style.left = Math.max(4, left) + 'px';
     wrap.style.top = Math.max(4, top) + 'px';
     wrap.style.width = Math.max(160, w) + 'px';
@@ -843,6 +862,8 @@ export function createTourMusic() {
     wrap.style.right = 'auto';
     wrap.style.bottom = 'auto';
   }
+
+  window.addEventListener('resize', () => { if (driverMode) placeDashOverlay(); });
 
   function syncMount() {
     ensureUi();
