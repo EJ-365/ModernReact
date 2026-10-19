@@ -22,7 +22,7 @@ function facadeCanvas(kind, night, bays, floors) {
   const bw = S / bays, fh = S / floors;
   if (night) {
     /* Soft slate wash — Google-Maps night massing, not pure black voids */
-    x.fillStyle = '#1a222c'; x.fillRect(0, 0, S, S);
+    x.fillStyle = '#222b37'; x.fillRect(0, 0, S, S);
     const wash = x.createLinearGradient(0, 0, 0, S);
     wash.addColorStop(0, 'rgba(255,200,140,0.08)');
     wash.addColorStop(1, 'rgba(80,110,140,0.05)');
@@ -40,12 +40,14 @@ function facadeCanvas(kind, night, bays, floors) {
       else if (kind === 'stone') { wx = b * bw + bw * 0.2; ww = bw * 0.6; wy = f * fh + fh * 0.22; wh = fh * 0.58; }
       else { wx = b * bw + bw * 0.26; ww = bw * 0.48; wy = f * fh + fh * 0.28; wh = fh * 0.48; }
       if (night) {
-        const floorLit = hash(f * 17 + (kind === 'glass' ? 3 : 5)) < (kind === 'low' ? 0.42 : 0.34);
-        const litP = kind === 'low' ? 0.34 : kind === 'glass' ? 0.3 : 0.32;
-        if (floorLit && r < litP) {
-          const warm = hash(f * 31 + b * 7) < 0.55;
-          x.fillStyle = warm ? '#ffd090' : '#c0d4e8';
-          x.globalAlpha = 0.52 + hash(f + b * 101) * 0.35;
+        /* evening occupancy: whole floors stay lit (offices, cleaning crews), the rest scattered — towers read
+           as cool LED offices, low-rise/apartments as warm homes */
+        const floorLit = hash(f * 17 + (kind === 'glass' ? 3 : 5)) < (kind === 'low' ? 0.38 : 0.3);
+        const litP = kind === 'low' ? 0.34 : kind === 'glass' ? 0.42 : 0.36;
+        if ((floorLit && r < litP) || r < 0.04) {
+          const warm = hash(f * 31 + b * 7) < (kind === 'glass' ? 0.3 : 0.75);
+          x.fillStyle = warm ? '#ffd296' : '#e4ecf4';
+          x.globalAlpha = 0.4 + hash(f + b * 101) * 0.3;
           x.fillRect(wx + 1, wy + 1, ww - 2, wh - 2);
           x.globalAlpha = 1;
         }

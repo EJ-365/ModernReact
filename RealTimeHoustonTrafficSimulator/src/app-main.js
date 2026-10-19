@@ -54,7 +54,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.31.50 (more-street-cars). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.32.0 (tour-airports-sky). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -1024,9 +1024,11 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.08; /* weather-scaled each frame — clear days brighter, overcast softer */
 canvas.addEventListener('webglcontextlost',(e)=>{
   e.preventDefault();
-  console.warn('[HTS] WebGL context lost — reload the page if the map stays blank');
+  console.warn('[HTS] WebGL context lost — waiting for restore');
+  clearTimeout(window._htsCtxT);window._htsCtxT=setTimeout(()=>{try{if(renderer.getContext().isContextLost())location.reload();}catch(_e){location.reload();}},4000);
 },{passive:false});
 canvas.addEventListener('webglcontextrestored',()=>{
+  clearTimeout(window._htsCtxT);
   try{
     renderer.setSize(innerWidth,innerHeight);
     renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
@@ -1042,7 +1044,7 @@ if(/[?&]debug\b/.test(location.search))window.HTS_DEBUG={renderer,scene,camera};
 const hemi=new THREE.HemisphereLight(HTS_IS_AUS?0xe8f0ff:0xd0e4ff,HTS_IS_AUS?0x6a7a50:0x4a5a3a,HTS_IS_AUS?0.95:0.88);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xfff5e6,HTS_IS_AUS?1.15:1.05);scene.add(sun);
 scene.add(sun.target);
-const nightAmb=new THREE.AmbientLight(0x141820,0.0);scene.add(nightAmb);
+const nightAmb=new THREE.AmbientLight(0x2c3a58,0.0); /* blue-grey moon/skyglow so night façades keep shape */scene.add(nightAmb);
 const cityFill=new THREE.HemisphereLight(0x6a4a28,0x0a1018,0.0);scene.add(cityFill); /* warm Google-Maps CBD bounce */
 /* LOD groups: full-detail 3D vs zoom-out map mode */
 const gRoads3D=new THREE.Group();scene.add(gRoads3D);
@@ -1110,13 +1112,14 @@ const moonDisc=(function(){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),
     transparent:true,depthWrite:false,fog:false}));
   sp.scale.set(400,400,1);skyRoot.add(sp);return sp;})();
+let _glV=null,_glS=null;
 const sunGlare=(function(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
   const g=x.createRadialGradient(64,64,4,64,64,64);
   g.addColorStop(0,'rgba(255,240,205,.9)');g.addColorStop(.35,'rgba(255,215,150,.26)');g.addColorStop(1,'rgba(255,200,120,0)');
   x.fillStyle=g;x.fillRect(0,0,128,128);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),
     blending:THREE.AdditiveBlending,depthWrite:false,fog:false,transparent:true,opacity:0}));
-  sp.scale.set(2800,2800,1);skyRoot.add(sp);return sp;})();
+  sp.scale.set(1000,1000,1);skyRoot.add(sp);return sp;})();
 
 /* ---------------- cumulus clouds (multi-puff billboards) ---------------- */
 function cloudTexture(){
@@ -1137,11 +1140,62 @@ function cloudTexture(){
   x.globalCompositeOperation='source-atop';
   x.fillStyle=sg;x.fillRect(0,0,256,128);
   x.globalCompositeOperation='source-over';
+  fadeCloudEdges(x,256,128);
   const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+}
+/* altocumulus / "mackerel sky": rows of small cells — the dotted clouds that light up pink/orange at sunset */
+function dottedCloudTexture(){
+  const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');
+  const rows=6+Math.floor(rand()*4),cols=14+Math.floor(rand()*8),skew=(rand()-.5)*0.5;
+  {const w=x.createRadialGradient(256,128,10,256,128,250);w.addColorStop(0,'rgba(240,244,250,.22)');w.addColorStop(1,'rgba(240,244,250,0)');
+   x.save();x.scale(1,0.5);x.fillStyle=w;x.fillRect(0,0,512,512);x.restore();}
+  x.filter='blur(2px)';
+  for(let r=0;r<rows;r++)for(let k=0;k<cols;k++){
+    const u=(k+0.5+(r%2)*0.5)/cols,v=(r+0.5)/rows;
+    const ex=Math.pow(Math.sin(u*Math.PI),0.7)*Math.pow(Math.sin(v*Math.PI),0.9);
+    if(rand()>ex*1.25)continue;
+    /* bigger, overlapping, soft-edged cells (real altocumulus), not a grid of hard dots */
+    const px=u*512+skew*v*120+(rand()-.5)*22,py=v*256+(rand()-.5)*16,pr=(13+rand()*12)*(0.6+ex*0.6);
+    const g=x.createRadialGradient(px,py-pr*0.25,pr*0.05,px,py,pr);
+    g.addColorStop(0,'rgba(255,255,255,.7)');g.addColorStop(0.5,'rgba(244,247,252,.35)');g.addColorStop(1,'rgba(235,240,250,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(px,py,pr*1.35,pr,0,0,TAU);x.fill();
+  }
+  const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+}
+/* cirrus: thin, high ice streaks */
+function cirrusTexture(){
+  const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');
+  x.lineCap='round';
+  for(let i=0;i<26;i++){
+    const y0=20+rand()*88,x0=rand()*160,len=180+rand()*300,curl=(rand()-.5)*40;
+    const g=x.createLinearGradient(x0,0,x0+len,0);
+    g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.3,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
+    x.strokeStyle=g;x.lineWidth=1.5+rand()*4;x.beginPath();x.moveTo(x0,y0);x.quadraticCurveTo(x0+len*0.5,y0+curl,x0+len,y0-curl*0.4);x.stroke();
+  }
+  const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+}
+/* stratus / nimbostratus: broad soft grey sheet for overcast and rain */
+/* fade every cloud canvas to transparent at its border so sprites never show square edges */
+function fadeCloudEdges(x,w,h){
+  x.save();x.globalCompositeOperation='destination-in';x.translate(w/2,h/2);x.scale(w/2,h/2);
+  const g=x.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(0.62,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g;x.fillRect(-1,-1,2,2);x.restore();
+}
+function stratusTexture(){
+  const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');
+  for(let i=0;i<40;i++){
+    const px=rand()*256,py=30+rand()*68,pr=26+rand()*40;
+    const g=x.createRadialGradient(px,py,0,px,py,pr);
+    g.addColorStop(0,'rgba(236,238,242,.42)');g.addColorStop(1,'rgba(225,228,234,0)');
+    x.fillStyle=g;x.beginPath();x.arc(px,py,pr,0,TAU);x.fill();
+  }
+  fadeCloudEdges(x,256,128);
+  const t=new THREE.CanvasTexture(c);return t;
 }
 const clouds=new THREE.Group();skyRoot.add(clouds);
 (function(){
   const texes=[cloudTexture(),cloudTexture(),cloudTexture(),cloudTexture()];
+  const ciTex=[cirrusTexture(),cirrusTexture()],stTex=[stratusTexture(),stratusTexture()];
   /* metre mode: cumulus above GA/jet cruise (~2.2–4.0 km) so plane Top never sits inside puffs */
   const NCLOUD=HTS_PEEK?20:(WS!==1?(_isWin?70:100):32),SPREAD=WS!==1?90000:22000*WS;
   clouds.userData.spreadHalf=SPREAD*0.5;
@@ -1153,8 +1207,22 @@ const clouds=new THREE.Group();skyRoot.add(clouds);
     sp.position.set((rand()-.5)*SPREAD,WS===1?920+rand()*640:2200+rand()*1800,(rand()-.5)*SPREAD);
     sp.userData.vx=5+rand()*9;
     sp.userData.baseOp=0.85;
+    sp.userData.type='cu';sp.userData.u=rand();
     clouds.add(sp);
   }
+  /* other layers: every cloud is its own shape, size, height and drift speed */
+  const add=(type,n,tex,wMin,wMax,aspect,yFn,vMul)=>{
+    for(let i=0;i<n;i++){
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex[i%tex.length],transparent:true,opacity:0,depthWrite:false,fog:false}));
+      const w=wMin+rand()*(wMax-wMin);sp.scale.set(w,w*aspect*(0.8+rand()*0.4),1);
+      sp.material.rotation=(rand()-.5)*0.5;
+      sp.position.set((rand()-.5)*SPREAD,yFn(),(rand()-.5)*SPREAD);
+      sp.userData.vx=(5+rand()*9)*vMul;sp.userData.baseOp=0;sp.userData.type=type;sp.userData.u=rand();
+      sp.visible=false;clouds.add(sp);
+    }
+  };
+  const M=WS===1?1:2.4;
+  add('st',Math.round(NCLOUD*0.3),stTex,5000,9000,0.4,()=>(700+rand()*300)*M,0.7);
 })();
 
 /* ---------------- ground — Houston lawn / Austin prairie (same green family) ---------------- */
@@ -1191,12 +1259,12 @@ window.EXCLUDES=[]; /* circles where nothing may be built: water, airfields, sta
 /* Austin water: flat F4 blue + ripple map (Lambert). Houston keeps reflective PBR. */
 const matWater=HTS_IS_AUS
   ?new THREE.MeshLambertMaterial({color:0x2a8ab8})
-  :new THREE.MeshStandardMaterial({color:0x2a6a88,metalness:0.55,roughness:0.18,envMapIntensity:1.2});
-const matBayou=new THREE.MeshStandardMaterial({color:0x2a6a58,metalness:0.25,roughness:0.35,envMapIntensity:0.7});
+  :new THREE.MeshStandardMaterial({color:0x2a5f78,metalness:0.12,roughness:0.42,envMapIntensity:0.55});
+const matBayou=new THREE.MeshStandardMaterial({color:0x2f5a48,metalness:0.08,roughness:0.5,envMapIntensity:0.45});
 const matLake =HTS_IS_AUS
   ?new THREE.MeshLambertMaterial({color:0x2488b8})
-  :new THREE.MeshStandardMaterial({color:0x2e78a0,metalness:0.62,roughness:0.12,envMapIntensity:1.35});
-const matBay  =new THREE.MeshStandardMaterial({color:0x246080,metalness:0.5,roughness:0.22,envMapIntensity:1.0});
+  :new THREE.MeshStandardMaterial({color:0x2a6488,metalness:0.12,roughness:0.4,envMapIntensity:0.55});
+const matBay  =new THREE.MeshStandardMaterial({color:0x235a76,metalness:0.12,roughness:0.42,envMapIntensity:0.5});
 if(htsCinematic&&htsCinematic.envMap&&!HTS_IS_AUS){
   for(const m of [matWater,matBayou,matLake,matBay])m.envMap=htsCinematic.envMap;
 }
@@ -1258,6 +1326,9 @@ blob(-500,1400,200,.3,matLawn,0.02);        /* Midtown / Museum fringe */
 blob(400,-2200,280,.3,matForest,0.02);      /* north pine belt */
 blob(-3200,-2000,340,.3,matLawn,0.02);      /* Katy / Cinco Ranch yards */
 /* lakes, reservoirs, bay */
+/* legacy schematic lakes were placed in the old 210-unit/mile map; on the real metre-scale map they land in
+   Fifth Ward / Second Ward as giant glaring pools. OSM land tiles already draw the real water there. */
+if(Math.abs(geoToWorld(29.95,-95.13).x)<10000){
 blob(2150,-3850,640,.4,matLake,0.03);       /* Lake Houston */
 blob(2050,3020,320,.45,matLake,0.03);       /* Clear Lake */
 blob(-2650,-780,170,.4,matWater,0.035);     /* Addicks pool */
@@ -1265,6 +1336,7 @@ blob(-2850,300,180,.4,matWater,0.035);      /* Barker pool */
 /* Galveston Bay — SE estuary only (never Magnolia Park / East End land) */
 blob(4650,2350,1100,.22,matBay,0.03);
 blob(2699,-1383,160,.4,matLake,0.03);       /* Sheldon Lake */
+}
 }else if(HTS_IS_AUS){
   /* Austin — Balcones edge: flat east prairie, greenbelt + lakes west/central */
   const dtLawn=geoToWorld(30.2672,-97.7431);
@@ -3013,7 +3085,7 @@ function addTowers(cx,cz,count,rad,hmin,hmax,cylP){
 window.PICK_TOWERS=[];
 window.HTS_AUS_LANDMARK_SKIP=[];
 /* Hand-modelled icons that real OSM footprints must not double-stack with */
-window.HTS_OSM_SKIP=[];
+window.HTS_OSM_SKIP=[{...geoToWorld(29.640889,-95.671661),r:20}]; /* owner's home lot — the custom model replaces the OSM footprint */
 if(HTS_IS_AUS){
   /*
    * Proven approach (before spacing experiments): Houston-style landmark towers at
@@ -3595,7 +3667,7 @@ function canopyGeom(){
   /* Live-oak / pine greens — saturated but not neon under ACES */
   const GREENS=HTS_IS_AUS
     ?[0x2a6e28,0x348028,0x3a882e,0x246820,0x4a9034,0x2e7424]
-    :[0x2f6a28,0x356e2c,0x3a7830,0x2a5e24,0x427a34,0x285820];
+    :[0x2c5224,0x325a28,0x38632c,0x284a21,0x3d6630,0x26461f]; /* Houston live oak / water oak: deep, slightly olive */
   const PINEG=[0x1e4a28,0x285830,0x1a4022];
   let idx=0,pidx=0;
   function put(x,z,pine){
@@ -3835,9 +3907,10 @@ function makeAirliner(finCol,liv){
   const g=new THREE.Group();
   const LV=liv||[0xeef0f3,0x9aa2ab,finCol,0x9aa2ab];
   if(!liv)LV[2]=finCol;
-  const white=new THREE.MeshLambertMaterial({color:LV[0]});
-  const grayB=new THREE.MeshLambertMaterial({color:LV[1]});
-  const engM=new THREE.MeshLambertMaterial({color:LV[3]});
+  /* small neutral self-fill so the blue sky light doesn't turn white paint lavender at a distance */
+  const white=new THREE.MeshLambertMaterial({color:LV[0],emissive:0x2a2826});
+  const grayB=new THREE.MeshLambertMaterial({color:LV[1],emissive:0x1a1a1a});
+  const engM=new THREE.MeshPhongMaterial({color:LV[3],specular:0x444444,shininess:40});
   finCol=LV[2];
   const fus=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,32,20),white);
   fus.rotation.x=Math.PI/2;g.add(fus);
@@ -3907,14 +3980,108 @@ function makeAirliner(finCol,liv){
   strobe.scale.set(4,4,1);strobe.position.set(0,-2.4,0);g.add(strobe);
   const beacon=new THREE.Sprite(navGlowMat(0xff3626));
   beacon.scale.set(4,4,1);beacon.position.set(0,3.4,-2);g.add(beacon);
-  g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,19.8,-25)};
+  g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,19.8,-25),gear,gearDrop:5.25};
+  return g;
+}
+function makeTourHeli(col){
+  /* Bell 407-class: lathe-turned cabin, tinted wrap canopy, tapered boom, skids with cross tubes, 4-blade rotor */
+  const g=new THREE.Group();
+  const paint=new THREE.MeshPhongMaterial({color:col,specular:0x555555,shininess:60});
+  const dark=new THREE.MeshPhongMaterial({color:0x22252a,specular:0x222222,shininess:20});
+  const metal=new THREE.MeshPhongMaterial({color:0x9aa1a8,specular:0x888888,shininess:70});
+  const glass=new THREE.MeshPhongMaterial({color:0x1d3346,specular:0xbfd0e0,shininess:120,transparent:true,opacity:0.82});
+  const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
+  const prof=[[0,-1.9],[0.55,-1.75],[0.95,-1.2],[1.08,-0.3],[1.05,0.6],[0.85,1.4],[0.45,1.9],[0,2.0]].map(([r,y])=>new THREE.Vector2(r,y));
+  const cab=add(new THREE.LatheGeometry(prof,20),paint,0,1.0,0.5,Math.PI/2);cab.scale.set(1,1,0.95);
+  const can=add(new THREE.SphereGeometry(1,20,14,-Math.PI*0.42,Math.PI*0.84,Math.PI*0.18,Math.PI*0.5),glass,0,1.15,1.15,0,0,0);can.scale.set(1.02,0.92,1.25);
+  add(new THREE.BoxGeometry(1.0,0.5,1.7),paint,0,1.95,0.1);                               /* engine cowl */
+  add(new THREE.CylinderGeometry(0.12,0.2,0.4,10),dark,0,2.35,0.15);                       /* mast */
+  add(new THREE.CylinderGeometry(0.14,0.34,4.8,12),paint,0,1.35,-3.1,Math.PI/2);           /* tapered tail boom */
+  add(new THREE.BoxGeometry(0.08,1.25,0.85),paint,0,1.85,-5.35,-0.35,0,0);                 /* vertical fin */
+  add(new THREE.BoxGeometry(1.7,0.06,0.42),paint,0,1.35,-4.5);                             /* stabiliser */
+  for(const sd of [1,-1])add(new THREE.BoxGeometry(0.06,0.4,0.45),paint,sd*0.85,1.45,-4.5);
+  for(const sd of [1,-1]){
+    add(new THREE.CapsuleGeometry(0.06,3.4,4,8),metal,sd*0.9,-0.2,0.5,Math.PI/2);         /* skid */
+    for(const zz of [1.35,-0.4]){const t=add(new THREE.CylinderGeometry(0.05,0.05,1.0,8),metal,sd*0.72,0.22,zz,0,0,sd*0.45);t.castShadow=true;}
+  }
+  const rotor=new THREE.Group();rotor.position.set(0,2.6,0.15);g.add(rotor);
+  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.16,12),dark));
+  for(let i=0;i<4;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.035,5.2),dark);b.position.set(Math.sin(i*Math.PI/2)*2.65,0.06,Math.cos(i*Math.PI/2)*2.65);b.rotation.y=i*Math.PI/2;rotor.add(b);}
+  const tail=new THREE.Group();tail.position.set(0.12,1.85,-5.5);g.add(tail);
+  for(let i=0;i<2;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.1,1.2),dark);b.rotation.x=i*Math.PI/2;tail.add(b);}
+  const beacon=add(new THREE.SphereGeometry(0.09,8,6),new THREE.MeshBasicMaterial({color:0xff3030}),0,2.25,-0.75);
+  g.userData.rotor=rotor;g.userData.prop=tail;g.userData.beacon=beacon;g.userData.gearDrop=0.26;
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  return g;
+}
+function makeMilitary(kind,col){
+  /* F-16 Fighting Falcon (~15 m) or C-130 Hercules (~30 m), built in metres facing +z */
+  const g=new THREE.Group();
+  const paint=new THREE.MeshPhongMaterial({color:col,specular:0x444444,shininess:45});
+  const dark=new THREE.MeshLambertMaterial({color:0x1c1f24});
+  const glass=new THREE.MeshPhongMaterial({color:0xc9a54a,specular:0xffffff,shininess:120,transparent:true,opacity:0.85});
+  const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
+  const flat=(pts,th,m,y)=>{const sh=new THREE.Shape(pts.map(([x,z])=>new THREE.Vector2(x,z)));const geo=new THREE.ExtrudeGeometry(sh,{depth:th,bevelEnabled:false});geo.rotateX(Math.PI/2);const me=new THREE.Mesh(geo,m);me.position.y=y+th/2;g.add(me);return me;};
+  const gear=new THREE.Group();g.add(gear);
+  const wheel=(x,y,z,r)=>{const w=new THREE.Mesh(new THREE.CylinderGeometry(r,r,r*0.7,12),dark);w.rotation.z=Math.PI/2;w.position.set(x,y,z);gear.add(w);const st=new THREE.Mesh(new THREE.CylinderGeometry(r*0.18,r*0.18,-y,6),dark);st.position.set(x,y/2,z);gear.add(st);};
+  if(kind==='fighter'){
+    add(new THREE.CylinderGeometry(0.55,0.75,11,14),paint,0,0,-0.5,Math.PI/2);                /* fuselage */
+    add(new THREE.ConeGeometry(0.55,3.2,14),paint,0,0,6.6,Math.PI/2);                        /* radome */
+    /* one-piece bubble canopy: light-gold tinted glass over a dark cockpit tub with seat + HUD, frame bow behind the pilot */
+    const cGlass=new THREE.MeshPhongMaterial({color:0xb9c9d4,specular:0xffffff,shininess:140,transparent:true,opacity:0.38,depthWrite:false,side:THREE.DoubleSide});
+    const cTint=new THREE.MeshPhongMaterial({color:0xd8b25a,specular:0xffffff,shininess:160,transparent:true,opacity:0.22,depthWrite:false});
+    add(new THREE.BoxGeometry(0.78,0.32,2.6),dark,0,0.42,2.7);                                 /* cockpit tub */
+    add(new THREE.BoxGeometry(0.46,0.5,0.36),dark,0,0.66,2.05,-0.2);                            /* ejection seat */
+    add(new THREE.BoxGeometry(0.34,0.24,0.06),cTint,0,0.92,3.55,-0.5);                         /* HUD combiner */
+    const cp=add(new THREE.SphereGeometry(0.5,22,14,0,Math.PI*2,0,Math.PI/2),cGlass,0,0.48,2.85);cp.scale.set(0.92,1.15,2.9);
+    const cpT=add(new THREE.SphereGeometry(0.505,22,14,0,Math.PI*2,0,Math.PI/2),cTint,0,0.48,2.85);cpT.scale.set(0.92,1.15,2.9);
+    const bow=add(new THREE.TorusGeometry(0.47,0.035,6,18,Math.PI),dark,0,0.48,1.85);bow.scale.set(0.98,1.15,1);
+    add(new THREE.CylinderGeometry(0.42,0.6,3.6,14),paint,0,0.12,-1.6,Math.PI/2+0.05);          /* dorsal spine */
+    add(new THREE.BoxGeometry(1.1,0.7,2.2),dark,0,-0.7,2.0);                                  /* belly intake */
+    flat([[0,2.2],[4.7,-1.6],[4.7,-2.4],[0,-2.2],[-4.7,-2.4],[-4.7,-1.6]],0.12,paint,-0.05);   /* cropped delta wing */
+    flat([[0,-4.6],[2.6,-6.4],[2.6,-6.9],[0,-6.6],[-2.6,-6.9],[-2.6,-6.4]],0.08,paint,0);     /* stabilators */
+    /* swept vertical tail over the engine: x = aft from root leading edge, y = height; rudder + dielectric tip in dark */
+    const fin=new THREE.Shape([[0,0],[3.6,0],[3.75,0.25],[3.55,3.35],[2.55,3.35],[0.2,0.35]].map(([x,y])=>new THREE.Vector2(x,y)));
+    const fg=new THREE.ExtrudeGeometry(fin,{depth:0.14,bevelEnabled:true,bevelThickness:0.03,bevelSize:0.03,bevelSegments:1});fg.rotateY(Math.PI/2);
+    const f=new THREE.Mesh(fg,paint);f.position.set(-0.07,0.5,-2.7);g.add(f);
+    const rud=new THREE.Shape([[0,0],[0.75,0],[0.6,2.2],[0,2.2]].map(([x,y])=>new THREE.Vector2(x,y)));
+    const rg=new THREE.ExtrudeGeometry(rud,{depth:0.16,bevelEnabled:false});rg.rotateY(Math.PI/2);const r=new THREE.Mesh(rg,dark);r.position.set(-0.08,0.85,-2.7-3.0);g.add(r);
+    add(new THREE.BoxGeometry(0.17,0.22,0.95),dark,0,3.78,-6.0);                               /* fin-tip antenna fairing */
+    add(new THREE.BoxGeometry(0.5,0.35,1.6),paint,0,0.7,-5.2);                                 /* drag-chute / fin root fairing */
+    add(new THREE.CylinderGeometry(0.6,0.5,0.9,14,1,true),dark,0,0,-6.4,Math.PI/2);          /* nozzle */
+    for(const sd of [1,-1])add(new THREE.CylinderGeometry(0.08,0.08,3.2,6),metal(),sd*4.75,0,-1.4,Math.PI/2); /* wingtip rails */
+    wheel(0,-1.3,3.4,0.32);wheel(1.2,-1.3,-1.2,0.4);wheel(-1.2,-1.3,-1.2,0.4);
+  }else{
+    add(new THREE.CylinderGeometry(2.1,2.1,21,16),paint,0,0,0,Math.PI/2);                     /* fuselage */
+    const nose=add(new THREE.SphereGeometry(2.1,16,12,0,Math.PI*2,0,Math.PI/2),paint,0,0,10.5,Math.PI/2);nose.scale.set(1,1.15,0.95);
+    add(new THREE.BoxGeometry(2.6,0.7,0.9),glass,0,1.25,11.2,0.5,0,0);                        /* cockpit windows */
+    add(new THREE.CylinderGeometry(2.1,0.6,7,16),paint,0,0.7,-13.5,Math.PI/2+0.12);          /* upswept tail cone */
+    flat([[0,2.2],[20,1.2],[20,-0.8],[0,-1.6],[-20,-0.8],[-20,1.2]],0.35,paint,2.0);          /* high wing, 40 m span */
+    flat([[0,-14],[7,-15.5],[7,-17.2],[0,-17],[-7,-17.2],[-7,-15.5]],0.2,paint,1.4);          /* tailplane */
+    const fin=new THREE.Shape([[0,0],[5.5,0],[4.6,6.5],[2.4,6.5]].map(([x,y])=>new THREE.Vector2(x,y)));
+    const fg=new THREE.ExtrudeGeometry(fin,{depth:0.25,bevelEnabled:false});fg.rotateY(Math.PI/2);const f=new THREE.Mesh(fg,paint);f.position.set(-0.12,1.6,-17.5);g.add(f);
+    const props=new THREE.Group();g.add(props);
+    for(const ex of [-11,-5.5,5.5,11]){
+      add(new THREE.CylinderGeometry(0.75,0.6,4.6,12),paint,ex,1.6,2.2,Math.PI/2);            /* nacelle */
+      const hub=new THREE.Group();hub.position.set(ex,1.6,4.7);props.add(hub);
+      for(let i=0;i<4;i++){const bl=new THREE.Mesh(new THREE.BoxGeometry(0.28,2.0,0.06),dark);bl.position.y=1;const arm=new THREE.Group();arm.rotation.z=i*Math.PI/2;arm.add(bl);hub.add(arm);}
+    }
+    g.userData.propHubs=props.children;
+    g.userData.prop={rotation:{set z(v){for(const h of props.children)h.rotation.z=v;},get z(){return props.children[0].rotation.z;}}};
+    for(const sd of [1,-1])add(new THREE.BoxGeometry(1.2,1.4,6),paint,sd*2.2,-1.4,0);          /* gear sponsons */
+    wheel(0,-2.6,8.6,0.5);for(const sd of [1,-1]){wheel(sd*2.4,-2.6,1.2,0.62);wheel(sd*2.4,-2.6,-1.2,0.62);}
+  }
+  function metal(){return new THREE.MeshPhongMaterial({color:0x9aa1a8,shininess:60});}
+  g.userData.gear=gear;g.userData.gearDrop=kind==='fighter'?1.7:3.22;
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
 }
 function makeProp(col){
   /* Cessna 172-class: tapered fuselage, high wing, framed cabin windows, seats, fixed gear */
   const g=new THREE.Group();
-  const body=new THREE.MeshLambertMaterial({color:0xf4f5f7});
-  const trim=new THREE.MeshLambertMaterial({color:col});
+  /* chosen colour paints the whole airframe; white cheat-line stripe for contrast */
+  const body=new THREE.MeshPhongMaterial({color:col,specular:0x333333,shininess:40});
+  const trim=new THREE.MeshLambertMaterial({color:0xf4f5f7});
   const glass=new THREE.MeshLambertMaterial({
     color:0x6a9bbb,transparent:true,opacity:0.42,depthWrite:false,side:THREE.DoubleSide,
   });
@@ -3952,7 +4119,7 @@ function makeProp(col){
   add(new THREE.BoxGeometry(3.4,0.1,1.0),body,0,0.25,-4.3);                          /* stabiliser */
   add(new THREE.BoxGeometry(0.1,1.5,1.1),trim,0,0.95,-4.35,-0.25);                   /* fin */
   const prop=add(new THREE.CircleGeometry(0.95,16),new THREE.MeshBasicMaterial({color:0x8a8e94,transparent:true,opacity:0.25,side:THREE.DoubleSide}),0,-0.05,4.75);
-  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'prop',nav:addNavLights(g,5.5,-4.6),prop};
+  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'prop',nav:addNavLights(g,5.5,-4.6),prop,gearDrop:1.53};
   return g;
 }
 function makeHeli(col){
@@ -4045,7 +4212,7 @@ for(const a of AIRPORTS){
       if(!HTS_HAS_PACK){
         const pk=makeAirliner(FIN_COLS[(b+AIRPORTS.indexOf(a))%FIN_COLS.length]);
         pk.scale.setScalar(0.85);
-        pk.position.set(a.x+a.dx*300*f+(-a.dz)*40,2.6,a.z+a.dz*300*f+(a.dx)*40);
+        pk.position.set(a.x+a.dx*300*f+(-a.dz)*40,5.25*0.85+0.15,a.z+a.dz*300*f+(a.dx)*40);
         pk.rotation.y=Math.atan2(-a.dz,a.dx)+Math.PI/2;
         pk.userData.decorParked=true;
         grp.add(pk);
@@ -4871,6 +5038,9 @@ let ASTRO={x:0,z:0};
 /* Module-scoped: trafficTick event congestion must see NRG even though the mesh
    builder lives inside if(!HTS_HAS_PACK). Block-scoped const caused black screens
    whenever event traffic kicked in (ReferenceError: NRG is not defined). */
+/* owner's home lot (16623 Red Gully Dr): position + keep-out used by OSM buildings, generated houses and the GPS bungalow */
+window.HTS_HOUSE_POS=geoToWorld(29.640889,-95.671661);
+window.HTS_HOUSE_EXCL=(x,z)=>Math.hypot(x-HTS_HOUSE_POS.x,z-HTS_HOUSE_POS.z)<24;
 const NRG=geoToWorld(29.6847,-95.4107);
 if(!HTS_HAS_PACK){
 /* Real NRG Stadium @ 1 NRG Pkwy — rectangular glass bowl, translucent PTFE roof,
@@ -4885,78 +5055,51 @@ if(!HTS_HAS_PACK){
   const conc=new THREE.MeshLambertMaterial({color:0xb8b4ac});
   const turf=new THREE.MeshLambertMaterial({color:0x2f6b38});
   const g=new THREE.Group();g.name='nrg-stadium';
-  const W=96,D=76; /* sized so Astrodome to the east keeps a clear plaza gap */
-  /* Concrete podium */
-  const base=new THREE.Mesh(towerGeo,conc);
-  base.scale.set(W,8,D);base.position.set(cx,0,cz);g.add(base);
-  /* Glass curtain walls — transparent facade like the real stadium */
-  const wallH=28;
-  const walls=[
-    {sx:W*0.98,sz:2.6,px:0,pz:D*0.5-1.3,mat:glass},
-    {sx:W*0.98,sz:2.6,px:0,pz:-(D*0.5-1.3),mat:glass},
-    {sx:2.6,sz:D*0.98,px:W*0.5-1.3,pz:0,mat:glassDark},
-    {sx:2.6,sz:D*0.98,px:-(W*0.5-1.3),pz:0,mat:glassDark},
-  ];
-  for(const w of walls){
-    const wall=new THREE.Mesh(towerGeo,w.mat);
-    wall.scale.set(w.sx,wallH,w.sz);wall.position.set(cx+w.px,8,cz+w.pz);g.add(wall);
+  /* Local frame: x = long axis (N–S after the group's 90° turn), z = width. Group scale (3.05,1.75,3.05) → ~293 × 232 m, ~70 m roof.
+     Matches the aerial view: elliptical plan, white fabric "wings" on the long sides with the nrg stadium wordmark,
+     a central N–S vaulted retractable roof between two grey supertrusses that run past both ends to pylons, flat glass end walls. */
+  const W=96,D=76;
+  const white=new THREE.MeshLambertMaterial({color:0xd6dade}); /* fabric wings read slightly grey next to the bright retractable panels */
+  const panelM=new THREE.MeshLambertMaterial({color:0xffffff,emissive:0x202224,side:THREE.DoubleSide});
+  const seamM=new THREE.MeshLambertMaterial({color:0x7d858d});
+  const trussM=new THREE.MeshLambertMaterial({color:0x9aa2aa});
+  const bx=(w,h,d,m,x,y,z)=>{const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);me.position.set(x,y+h/2,z);g.add(me);return me;};
+  bx(W*1.04,5,D*1.02,conc,cx,0,cz);                                     /* podium / concourse */
+  /* elliptical facade drum (dark glass) */
+  const drum=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,48,1,true),glassDark);
+  drum.scale.set(W*0.5,24,D*0.5);drum.position.set(cx,5+12,cz);g.add(drum);
+  /* white fabric roof shell over the whole ellipse (low dome) */
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(1,48,10,0,Math.PI*2,0,Math.PI/2),white);
+  shell.scale.set(W*0.5,7,D*0.5);shell.position.set(cx,29,cz);g.add(shell);
+  /* flat glass end walls (north / south) */
+  for(const sx of [-1,1])bx(1.6,24,D*0.46,glass,cx+sx*W*0.47,5,cz);
+  /* nrg stadium wordmark on each fabric wing */
+  const logoTex=(()=>{const c=document.createElement('canvas');c.width=640;c.height=128;const x=c.getContext('2d');
+    x.fillStyle='#2b3440';x.font='bold 76px Arial,sans-serif';x.textBaseline='middle';x.fillText('nrg',36,66);
+    const st=[['#e2231a',0],['#f7a800',1],['#00a3e0',2],['#7ab800',3]];for(const [col,k] of st){x.fillStyle=col;x.beginPath();x.arc(206+(k%2)*22,48+(k>>1)*22,10,0,Math.PI*2);x.fill();}
+    x.fillStyle='#2b3440';x.fillText('stadium',250,66);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;})();
+  for(const sz of [-1,1]){
+    const lg=new THREE.Mesh(new THREE.PlaneGeometry(W*0.5,W*0.1),new THREE.MeshLambertMaterial({map:logoTex,transparent:true}));
+    lg.rotation.x=-Math.PI/2;lg.rotation.z=Math.PI/2;lg.position.set(cx,35.2,cz+sz*D*0.35);g.add(lg);
   }
-  /* Upper seating bowl (inset) */
-  const bowl=new THREE.Mesh(towerGeo,new THREE.MeshLambertMaterial({color:0x9aa3ab}));
-  bowl.scale.set(W*0.88,18,D*0.88);bowl.position.set(cx,8,cz);g.add(bowl);
-  /* Playing field + yard lines */
-  const field=new THREE.Mesh(new THREE.PlaneGeometry(W*0.62,D*0.55),turf);
-  field.rotation.x=-Math.PI/2;field.position.set(cx,26.4,cz);g.add(field);
-  for(let i=-4;i<=4;i++){
-    const stripe=new THREE.Mesh(new THREE.PlaneGeometry(1.1,D*0.52),new THREE.MeshLambertMaterial({color:0xe8efe8}));
-    stripe.rotation.x=-Math.PI/2;stripe.position.set(cx+i*8.2,26.5,cz);g.add(stripe);
+  /* central retractable roof: vaulted panels between the trusses, seams between panels */
+  const RW=D*0.42,NP=6;
+  for(let k=0;k<NP;k++){
+    const pl=W*0.86/NP;
+    /* half-cylinder (theta 0..π = local +x half), axis turned onto x; local x → up */
+    const vault=new THREE.Mesh(new THREE.CylinderGeometry(1,1,pl*0.97,24,1,true,0,Math.PI),panelM);
+    vault.scale.set(6,1,RW*0.5);vault.rotation.set(0,0,Math.PI/2);
+    vault.position.set(cx-W*0.43+pl*(k+0.5),35.5,cz);g.add(vault);
+    if(k)bx(0.5,6.4,RW*1.0,seamM,cx-W*0.43+pl*k,35.3,cz);
   }
-  /* Twin longitudinal burgundy supertrusses — the signature “parentheses” arches */
-  function superTruss(side){
-    const grp=new THREE.Group();
-    const len=W*0.92,rise=52,y0=34,segs=18;
-    for(let i=0;i<segs;i++){
-      const t=(i+0.5)/segs;
-      const x=-len/2+t*len;
-      const y=y0+Math.sin(t*Math.PI)*rise;
-      const piece=new THREE.Mesh(new THREE.BoxGeometry(len/segs*1.2,4.4,5.8),burg);
-      piece.position.set(x,y,side*(D*0.5+2));
-      piece.rotation.z=Math.cos(t*Math.PI)*0.62;
-      grp.add(piece);
-    }
-    for(const t of [0.06,0.5,0.94]){
-      const x=-len/2+t*len;
-      const top=y0+Math.sin(t*Math.PI)*rise;
-      const post=new THREE.Mesh(towerGeo,burg);
-      post.scale.set(4.8,Math.max(8,top-6),5.2);post.position.set(x,6,side*(D*0.5+2));
-      grp.add(post);
-    }
-    grp.position.set(cx,0,cz);g.add(grp);
+  /* twin supertrusses along the long axis, extending past both ends to pylons */
+  for(const sz of [-1,1]){
+    const z=cz+sz*RW*0.52;
+    bx(W*1.18,3.2,2.4,trussM,cx,40,z);bx(W*1.18,1.2,1.6,trussM,cx,35.5,z);
+    for(let k=0;k<=12;k++){const d=bx(0.6,4.6,0.6,trussM,cx-W*0.59+k*W*1.18/12,35.5,z);d.rotation.z=(k%2?0.5:-0.5);}
+    for(const sx of [-1,1])bx(3.2,41,3.2,trussM,cx+sx*W*0.59,0,z);
   }
-  superTruss(1);superTruss(-1);
-  /* Translucent PTFE retractable roof — two panels meeting at midfield */
-  const roofY=58;
-  const roofL=new THREE.Mesh(new THREE.BoxGeometry(W*0.44,2.2,D*0.78),roofFab);
-  roofL.position.set(cx-W*0.23,roofY,cz);g.add(roofL);
-  const roofR=new THREE.Mesh(new THREE.BoxGeometry(W*0.44,2.2,D*0.78),roofFab);
-  roofR.position.set(cx+W*0.23,roofY,cz);g.add(roofR);
-  /* Cross beams between arches */
-  for(let i=0;i<5;i++){
-    const t=(i+0.5)/5;
-    const x=cx-W*0.42+t*W*0.84;
-    const y=34+Math.sin(t*Math.PI)*48;
-    const cross=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.2,D*0.96),steel);
-    cross.position.set(x,y,cz);g.add(cross);
-  }
-  /* Corner concrete supercolumns */
-  for(const sx of [-1,1])for(const sz of [-1,1]){
-    const col=new THREE.Mesh(towerGeo,conc);
-    col.scale.set(10,48,8);col.position.set(cx+sx*(W*0.48),0,cz+sz*(D*0.48));g.add(col);
-  }
-  /* Plaza apron */
-  const plaza=new THREE.Mesh(new THREE.PlaneGeometry(W*1.35,D*1.35),new THREE.MeshLambertMaterial({color:0x6a7078}));
-  plaza.rotation.x=-Math.PI/2;plaza.position.set(cx,0.15,cz);g.add(plaza);
-  const sp=textSprite('NRG Stadium',0.55);sp.position.set(cx,96,cz);g.add(sp);
+  const sp=textSprite('Reliant Stadium (NRG)',0.34);sp.position.set(cx,70,cz);g.add(sp);
   /* Pickable volume for hover / Wikipedia card (must stay visible:true for raycasts) */
   const hit=new THREE.Mesh(
     new THREE.BoxGeometry(W*1.15,72,D*1.15),
@@ -5014,30 +5157,30 @@ if(!HTS_HAS_PACK){
     {n:'Toyota Center',x:cx,z:cz,addr:'1510 Polk St — Houston Rockets · concerts'});
 })();
 /* Astrodome — east of NRG with a clear plaza gap (real sites are neighbors; sim scale needs space) */
-ASTRO={x:NRG.x+210*WS,z:NRG.z-18*WS};
+ASTRO={x:NRG.x+280,z:NRG.z-55}; /* real centres: Astrodome sits ~285 m east of NRG Stadium */
 (function(){
   const cx=ASTRO.x,cz=ASTRO.z;
   const domeMat=new THREE.MeshLambertMaterial({color:0xc9c4b8});
   const ringMat=new THREE.MeshLambertMaterial({color:0xa8a49a});
-  const R=52;
+  const R=105; /* real dome ≈ 216 m across, ~63 m tall */
   const base=new THREE.Mesh(new THREE.CylinderGeometry(R*0.92,R*1.05,18,28),ringMat);
   base.position.set(cx,9,cz);gDetail.add(base);
   const dome=new THREE.Mesh(new THREE.SphereGeometry(R,28,16,0,TAU,0,Math.PI*0.52),domeMat);
-  dome.position.set(cx,22,cz);gDetail.add(dome);
+  dome.position.set(cx,22,cz);dome.scale.y=0.36;gDetail.add(dome);
   /* lattice ribs */
   for(let i=0;i<12;i++){
     const ang=i/12*TAU;
     const rib=new THREE.Mesh(new THREE.TorusGeometry(R-2,0.9,6,20,Math.PI*0.5),
       new THREE.MeshLambertMaterial({color:0x8e8a82}));
     rib.position.set(cx,22,cz);
-    rib.rotation.y=ang;rib.rotation.z=Math.PI/2;
+    rib.rotation.y=ang;rib.rotation.z=Math.PI/2;rib.scale.x=0.36;
     gDetail.add(rib);
   }
   /* parking / plaza strip between NRG and Astrodome */
   const midX=(NRG.x+ASTRO.x)*0.5,midZ=(NRG.z+ASTRO.z)*0.5;
   const lot=new THREE.Mesh(new THREE.PlaneGeometry(95,70),new THREE.MeshLambertMaterial({color:0x4a5058}));
   lot.rotation.x=-Math.PI/2;lot.position.set(midX,0.12,midZ);gDetail.add(lot);
-  const sp=textSprite('Astrodome',0.48);sp.position.set(cx,92,cz);gDetail.add(sp);
+  const sp=textSprite('Astrodome',0.48);sp.position.set(cx,80,cz);gDetail.add(sp);
   EXCLUDES.push({x:cx,z:cz,r:95});
   registerLandmarkHit(cx,32,cz,120,85,120,
     {n:'Astrodome',d:'1965 · world’s first domed stadium · “Eighth Wonder of the World” · NRG Park'},
@@ -6008,6 +6151,9 @@ window.updateCrowds=(function(){
     {x:W(60),z:W(60),r:200*WS,dens:9.5,kind:'core'},
     {x:W(95),z:W(75),r:140*WS,dens:8.5,kind:'core'},   /* Main St / transit */
     {x:W(126),z:W(104),r:110*WS,dens:7.5,kind:'core'},  /* Main Street Square */
+    /* real-coordinate hubs: downtown Main St / Discovery Green, Galleria + Post Oak, Waterwall — people walk and cross streets here */
+    ...[[29.7604,-95.3632,320,7.5,'core'],[29.7535,-95.3598,220,6.0,'venue'],[29.7392,-95.4634,300,7.0,'mall'],
+        [29.7465,-95.4610,260,4.5,'core'],[29.7363,-95.4613,140,3.5,'park']].map(([la,lo,r,dens,kind])=>{const p=geoToWorld(la,lo);return {x:p.x,z:p.z,r,dens,kind};}),
     {x:W(40),z:W(40),r:120*WS,dens:6.5,kind:'core'},    /* Theater District */
     {x:W(180),z:W(50),r:130*WS,dens:6.0,kind:'venue'},  /* Discovery Green / GRB */
     {x:W(89),z:W(8),r:90*WS,dens:5.5,kind:'venue'},     /* Downtown Aquarium */
@@ -6035,7 +6181,7 @@ window.updateCrowds=(function(){
   const densSum=PED_HUBS.reduce((s,h)=>s+h.dens,0);
   /* Pool sized for peak lunch outdoor life across hubs (~0.02–0.08 peds
      per 1000 sq ft of active plaza — Houston, not Manhattan) */
-  const NP=820;
+  const NP=1100;
   const pedGeom=(function(){
     const body=new THREE.BoxGeometry(0.55,1.1,0.34);body.translate(0,0.55,0);
     const head=new THREE.SphereGeometry(0.22,6,5);head.translate(0,1.32,0);
@@ -6421,7 +6567,7 @@ function makeVehicle(road,s,speedMph){
   const v={s,v:clamp(v0,4*MPH,ff*0.95*MPH),type:t,brake:false,
     aggr:0.85+rand()*0.32, /* individual driving style */
     _laneI:0,_lcCd:0,
-    hl:pickHeadlight(t),
+    hl:pickHeadlight(t),drl:rand()<0.3, /* ~30% run daytime running lights */
     col:t.id==='taxi'?TAXI_YELLOW:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
   if(t.id==='semi')v.tcol=TRAILER_COLS[Math.floor(rand()*TRAILER_COLS.length)];
   if(t.id==='bike'||t.id==='scooter'||t.id==='moto')v.aggr=1.05+rand()*0.25;
@@ -6435,7 +6581,7 @@ function mkCar2(h){
   if(t.id==='bike'||t.id==='scooter')t=VEH_TYPES[0];
   if(!fw&&t.len>9&&rand()<0.75)t=VEH_TYPES[1];
   const v={type:t,len:t.len*VS,aggr:0.88+rand()*0.24,brake:false,v:0,
-    hl:pickHeadlight(t),
+    hl:pickHeadlight(t),drl:rand()<0.3, /* ~30% run daytime running lights */
     col:t.id==='taxi'?TAXI_YELLOW:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
   if(t.id==='semi')v.tcol=TRAILER_COLS[Math.floor(rand()*TRAILER_COLS.length)];
   return v;
@@ -6552,6 +6698,7 @@ const ICONS={
  storm:'<svg viewBox="0 0 40 40">'+_cloudPath+' fill="#a8b2be" transform="translate(0,-6) scale(.9)"/><path d="M22 26l-6 8h5l-2 6 7-9h-5l3-5z" fill="#ffd35c"/></svg>',
 };
 let wxMode='auto',wxCur='clear',wxDesc='Clear',wxBlend={...WX.clear},wxNextRoll=-1;
+window.wxBlend=wxBlend; /* traffic speed/congestion read weather through window.wxBlend — it was never set, so rain never slowed traffic */
 
 /* live weather via Open-Meteo (works when the file is opened in a browser;
    falls back to a simulated typical Gulf-Coast pattern if blocked/offline) */
@@ -6731,8 +6878,8 @@ function openMeteoUrl(lat,lng,hourly){
   const tz=encodeURIComponent((window.HTS_CITY&&window.HTS_CITY.feeds&&window.HTS_CITY.feeds.timezone)||'America/Chicago');
   return openMeteoHost()+'/v1/forecast?latitude='+la+'&longitude='+lo
     +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,'
-    +'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
-    +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation':'')
+    +'weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
+    +(hourly?'&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,pressure_msl,uv_index,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,precipitation':'')
     +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max'
     +'&forecast_days=3'
     +'&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone='+tz;
@@ -6742,7 +6889,7 @@ function openMeteoLocalUrl(lat,lng){
   const la=Number(lat).toFixed(5),lo=Number(lng).toFixed(5);
   return openMeteoHost()+'/v1/forecast?latitude='+la+'&longitude='+lo
     +'&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,'
-    +'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
+    +'weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,dew_point_2m,pressure_msl,uv_index,visibility'
     +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max'
     +'&forecast_days=3'
     +'&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch'
@@ -6776,6 +6923,7 @@ function parseOpenMeteo(j,extra){
   return {temp:Math.round(c.temperature_2m),feels:Math.round(c.apparent_temperature),
     hum:Math.round(c.relative_humidity_2m),wind:Math.round(c.wind_speed_10m),
     windDir:c.wind_direction_10m,precip,cloud:c.cloud_cover/100,
+    cloudLow:c.cloud_cover_low!=null?c.cloud_cover_low/100:null,cloudMid:c.cloud_cover_mid!=null?c.cloud_cover_mid/100:null,cloudHigh:c.cloud_cover_high!=null?c.cloud_cover_high/100:null,wcode:c.weather_code,
     dew:Math.round(c.dew_point_2m),press:(c.pressure_msl*0.02953).toFixed(2),
     uv:Math.round(c.uv_index),vis:Math.round((c.visibility||24000)/1609),
     preset:m.preset,label:m.label,rainAmt,at:Date.now(),
@@ -7091,6 +7239,9 @@ function parseZonalWeatherRows(j){
         precipitation:Array.isArray(j.current.precipitation)?j.current.precipitation[i]:c.precipitation,
         weather_code:Array.isArray(j.current.weather_code)?j.current.weather_code[i]:c.weather_code,
         cloud_cover:Array.isArray(j.current.cloud_cover)?j.current.cloud_cover[i]:c.cloud_cover,
+        cloud_cover_low:Array.isArray(j.current.cloud_cover_low)?j.current.cloud_cover_low[i]:c.cloud_cover_low,
+        cloud_cover_mid:Array.isArray(j.current.cloud_cover_mid)?j.current.cloud_cover_mid[i]:c.cloud_cover_mid,
+        cloud_cover_high:Array.isArray(j.current.cloud_cover_high)?j.current.cloud_cover_high[i]:c.cloud_cover_high,
         wind_speed_10m:Array.isArray(j.current.wind_speed_10m)?j.current.wind_speed_10m[i]:c.wind_speed_10m,
         wind_direction_10m:Array.isArray(j.current.wind_direction_10m)?j.current.wind_direction_10m[i]:c.wind_direction_10m,
         dew_point_2m:Array.isArray(j.current.dew_point_2m)?j.current.dew_point_2m[i]:c.dew_point_2m,
@@ -7987,7 +8138,7 @@ async function refreshStormTracker(force){
 
 /* weather blending toward current target */
 function wxUpdate(dt){
-  let targetPreset,label,rainAmt=null,cloudOv=null;
+  let targetPreset,label,rainAmt=null,cloudOv=null,layersOv=null;
   const fc=(!liveMode&&wxMode==='auto'&&typeof forecastAt==='function')?forecastAt(window.simOffsetSec||0):null;
   if(wxMode!=='auto'){targetPreset=wxMode;label=WX[wxMode].desc;}
   else if(!liveMode){
@@ -7995,6 +8146,7 @@ function wxUpdate(dt){
     if(fc&&fc.preset){
       targetPreset=fc.preset;label=fc.label||WX[fc.preset].desc;
       rainAmt=fc.rainAmt!=null?fc.rainAmt:null;cloudOv=fc.cloud!=null?fc.cloud:null;
+      layersOv=fc.cloudLow!=null?{lo:fc.cloudLow,mid:fc.cloudMid||0,hi:fc.cloudHigh||0}:null;
     }else{
       if(simH>wxNextRoll||wxNextRoll-simH>6){wxCur=rollWeather(simH);wxNextRoll=(simH+1.5+rand()*2.5)%24;}
       targetPreset=wxCur;label=WX[wxCur].desc;
@@ -8006,6 +8158,7 @@ function wxUpdate(dt){
       label=view.label||(WX[targetPreset]?WX[targetPreset].desc:'Clear');
       rainAmt=view.rainAmt!=null?view.rainAmt:(WX[targetPreset]?WX[targetPreset].rain:0);
       cloudOv=view.cloud!=null?view.cloud:null;
+      layersOv=view.cloudLow!=null?{lo:view.cloudLow,mid:view.cloudMid||0,hi:view.cloudHigh||0}:null;
     }else{
       targetPreset='clear';label=view&&view.place?(view.place+' · loading'):'Loading…';
       rainAmt=0;cloudOv=0.25;
@@ -8024,6 +8177,13 @@ function wxUpdate(dt){
              fogK:T.fogK,speed:T.speed,cong:T.cong,
              rain:rainTarget};
   for(const key of ['cloud','fogK','speed','cong','rain'])wxBlend[key]=lerp(wxBlend[key],tgt[key],k);
+  /* low / mid / high cloud decks: measured by the live model (Open-Meteo cloud_cover_low/mid/high) when we have it,
+     otherwise inferred from the weather type — so cumulus, altocumulus and cirrus only show when they're really up there */
+  {
+    const c=tgt.cloud,L=layersOv||{lo:targetPreset==='clear'?c*0.6:c*0.85,mid:targetPreset==='partly'?c*0.6:c*0.4,hi:targetPreset==='clear'?0.15:c*0.3};
+    for(const [kk,v] of [['cLow',L.lo],['cMid',L.mid],['cHigh',L.hi]])wxBlend[kk]=lerp(wxBlend[kk]==null?v:wxBlend[kk],clamp(v,0,1),k);
+    wxBlend.layersLive=!!layersOv;
+  }
   wxBlend.storm=!!(T.storm||rainTarget>=0.85);wxBlend.tempD=T.tempD;
   /* Wind slant always tracks the active weather source — never freeze in preview */
   {
@@ -8074,7 +8234,27 @@ const HEMI_INT=[{t:0,v:.04},{t:5.5,v:.08},{t:6.6,v:.48},{t:9,v:.82},{t:12,v:.9},
 const FOG_COL=[{t:0,v:'#03050a'},{t:6.2,v:'#7a5a58'},{t:7.5,v:'#c0d4e4'},{t:12,v:'#bcd2e4'},
  {t:18,v:'#ccc4ac'},{t:19.6,v:'#5a3840'},{t:20.6,v:'#04060c'}];
 
-const SUNRISE=6.4,SUNSET=20.4;
+/* real Houston sunrise/sunset for today (NOAA solar equations, America/Chicago clock) — sky keyframes are authored
+   for a 6.4 h / 20.4 h day, so envUpdate remaps the clock onto them and dawn/dusk land at the real times */
+let SUNRISE=6.4,SUNSET=20.4;
+function houSunTimes(d=new Date()){
+  const doy=Math.floor((Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())-Date.UTC(d.getUTCFullYear(),0,0))/864e5);
+  const g=2*Math.PI/365*(doy-1),lat=29.7604*Math.PI/180,lng=-95.3698;
+  const eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)-0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
+  const dec=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  const ha=Math.acos(Math.cos(90.833*Math.PI/180)/(Math.cos(lat)*Math.cos(dec))-Math.tan(lat)*Math.tan(dec))*180/Math.PI;
+  let off=-6;
+  try{const lh=+new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',hour12:false}).format(d)%24;off=((lh-d.getUTCHours()+36)%24)-12;}catch(_e){}
+  const rise=((720-4*(lng+ha)-eq)/60+off+24)%24,set=((720-4*(lng-ha)-eq)/60+off+24)%24;
+  if(Number.isFinite(rise)&&Number.isFinite(set)&&set>rise){SUNRISE=rise;SUNSET=set;}
+}
+try{houSunTimes();setInterval(houSunTimes,10*60*1000);}catch(_e){}
+function solarH(h){
+  const day=SUNSET-SUNRISE,night=24-day;
+  if(h>=SUNRISE&&h<=SUNSET)return 6.4+(h-SUNRISE)/day*14;
+  const n=h>SUNSET?h-SUNSET:h+24-SUNSET;
+  return (20.4+n/night*10)%24;
+}
 function phaseLabel(h){
   if(h>=SUNRISE-0.8&&h<SUNRISE+0.7)return 'Dawn';
   if(h>=SUNRISE+0.7&&h<11.5)return 'Morning';
@@ -8110,6 +8290,9 @@ function forecastSample(i){
     windDir:h.wind_direction_10m?h.wind_direction_10m[i]:(liveWx.windDir||0),
     precip:h.precipitation[i],
     cloud:h.cloud_cover[i]/100,
+    cloudLow:h.cloud_cover_low?h.cloud_cover_low[i]/100:null,
+    cloudMid:h.cloud_cover_mid?h.cloud_cover_mid[i]/100:null,
+    cloudHigh:h.cloud_cover_high?h.cloud_cover_high[i]/100:null,
     dew:h.dew_point_2m?h.dew_point_2m[i]:(h.temperature_2m[i]-(100-h.relative_humidity_2m[i])/2.8),
     press:pressRaw!=null?(pressRaw*0.02953):null,
     uv:h.uv_index!=null?h.uv_index[i]:0,
@@ -8128,6 +8311,7 @@ function forecastAt(offsetSec){
       wind:Math.round(a.wind),windDir:a.windDir,precip:a.precip,cloud:a.cloud,
       dew:Math.round(a.dew),press:a.press!=null?a.press.toFixed(2):liveWx.press,
       uv:Math.round(a.uv),vis:a.vis,preset:a.preset,label:a.label,rainAmt:a.rainAmt,at:a.at,
+      cloudLow:a.cloudLow,cloudMid:a.cloudMid,cloudHigh:a.cloudHigh,
     };
   }
   const u=hit.u;
@@ -8147,6 +8331,9 @@ function forecastAt(offsetSec){
     wind:Math.round(lerp(a.wind,next.wind,u)),
     windDir:lerpAng(a.windDir,next.windDir,u),
     precip,cloud,
+    cloudLow:a.cloudLow!=null&&next.cloudLow!=null?lerp(a.cloudLow,next.cloudLow,u):a.cloudLow,
+    cloudMid:a.cloudMid!=null&&next.cloudMid!=null?lerp(a.cloudMid,next.cloudMid,u):a.cloudMid,
+    cloudHigh:a.cloudHigh!=null&&next.cloudHigh!=null?lerp(a.cloudHigh,next.cloudHigh,u):a.cloudHigh,
     dew:Math.round(lerp(a.dew,next.dew,u)),
     press:pr!=null?pr.toFixed(2):liveWx.press,
     uv:Math.round(lerp(a.uv,next.uv,u)),
@@ -8182,7 +8369,7 @@ function applyCam(){
     if(Math.abs(nn-camera.near)>camera.near*0.15){camera.near=nn;camera.updateProjectionMatrix();}
   }
   const roseEl=document.getElementById('rose');
-  if(roseEl)roseEl.style.transform='rotate('+(-cam.theta*180/Math.PI)+'deg)';
+  if(roseEl)roseEl.style.transform='rotate('+(cam.theta*180/Math.PI)+'deg)'; /* view heading = −theta, so N rotates by +theta */
   /* Plane-hover needle: screen-relative bearing from look-at point to the aircraft */
   const pn=document.getElementById('planeNeedle');
   if(pn){
@@ -8486,8 +8673,8 @@ const userHome=(function(){
   px.fillRect(54,44,20,14);
   px.beginPath();px.moveTo(50,44);px.lineTo(64,32);px.lineTo(78,44);px.closePath();px.fill();
   const pin=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(pinC),transparent:true,depthWrite:false,depthTest:false}));
-  const pinSz=clamp(24*WS,22,52);
-  pin.scale.set(pinSz,pinSz,1);pin.position.set(0,clamp(30*WS,28,64),0);pin.renderOrder=21;pin.center.set(0.5,0);add(pin);
+  const pinSz=clamp(6*WS,8,13);
+  pin.scale.set(pinSz,pinSz,1);pin.position.set(0,clamp(3*WS,10,14),0);g.userData.pin=pin; /* just above the roof, not floating high */pin.renderOrder=21;pin.center.set(0.5,0);add(pin);
   const hit=new THREE.Mesh(
     new THREE.BoxGeometry(36,38,30),
     new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})
@@ -8513,8 +8700,8 @@ function flyToMyLocation(){
       /* Close enough to read the pin / house, not buried under the camera */
       camGoal.radius=clamp(320*WS,260,900);
       camGoal.phi=1.05;
-      userPin.visible=true;
-      userHalo.visible=true;
+      userPin.visible=!userHome; /* one icon: the home pin replaces the generic pin */
+      userHalo.visible=false;
       if(userHome)userHome.visible=true;
       const btn=document.getElementById('locBtn');if(btn)btn.classList.add('active');
       const mLoc=document.getElementById('mHudLoc');if(mLoc)mLoc.classList.add('on');
@@ -8534,18 +8721,21 @@ function updateUserMarker(){
   const w=geoToWorld(userGeo.lat,userGeo.lng);
   userWorld=inMetroMap(w)?w:null;
   const on=!!userWorld;
-  userPin.visible=on;
-  userHalo.visible=on;
+  userPin.visible=on&&!userHome;
+  userHalo.visible=false;
   userDot.visible=on&&!HTS_IS_HOU;
   if(userHome)userHome.visible=on;
   if(userWorld){
-    const pinH=clamp(22*WS,18,48);
+    const pinH=clamp(9*WS,9,20);
     userPin.position.set(userWorld.x,pinH,userWorld.z);
-    userPin.scale.set(pinH*1.35,pinH*1.35,1);
+    userPin.scale.set(pinH*1.1,pinH*1.1,1);
     userHalo.position.set(userWorld.x,0.5,userWorld.z);
-    userHalo.scale.set(clamp(48*WS,40,120),clamp(48*WS,40,120),1);
+    userHalo.scale.set(clamp(12*WS,14,30),clamp(12*WS,14,30),1);
     if(userHome){
-      userHome.position.set(userWorld.x,0,userWorld.z);
+      /* at (or near) the real home: put the pin on the modelled house and hide the stand-in bungalow so nothing overlaps it */
+      const hp0=window.HTS_HOUSE_POS,atHome=!!(hp0&&Math.hypot(userWorld.x-hp0.x,userWorld.z-hp0.z)<250);
+      userHome.position.set(atHome?hp0.x:userWorld.x,0,atHome?hp0.z:userWorld.z);
+      for(const ch of userHome.children)if(ch!==userHome.userData.pin&&ch!==userHome.userData.hit)ch.visible=!atHome;
       if(userHome.userData.hit&&userHome.userData.hit.userData.poi){
         const poi=userHome.userData.hit.userData.poi;
         poi.x=userWorld.x;poi.z=userWorld.z;
@@ -9417,6 +9607,7 @@ function updateLiveFlights(dt){
       const dCam=camera.position.distanceTo(f.m.position);
       f.m.scale.setScalar(ud.baseSc*Math.max(1,dCam/1800));
     }
+    {const gd=f.m.userData&&f.m.userData.gearDrop;if(gd!=null){const gy=gd*f.m.scale.y+0.15;if(f.m.position.y<gy)f.m.position.y=gy;}}
     /* Spin helicopter rotors */
     if(cls==='heli'&&f.m.userData){
       if(f.m.userData.rotor)f.m.userData.rotor.rotation.z+=dt*18;
@@ -9448,12 +9639,42 @@ function poiEtaText(p){
   const eta=dist/(34*(1-0.5*overallCong))*60;
   return dist.toFixed(1)+' mi · about '+fmtMin(Math.max(2,eta))+' in current traffic · '+src;
 }
+/* iconic buildings: OSM wikipedia tag -> Wikipedia REST summary (CC BY-SA), cached; shown in the hover tip */
+let _wikiB=null;const _wikiS=new Map();
+fetch('/data/houston/wiki-buildings.json').then((r)=>r.json()).then((d)=>{_wikiB=d.filter((e)=>e.wp).map((e)=>{const w=geoToWorld(e.lat,e.lng);return {...e,x:w.x,z:w.z};});}).catch(()=>{});
+function wikiTipHtml(x,z){
+  if(!_wikiB||HTS_CITY_ID!=='houston')return '';
+  let best=null,bd=90*Math.max(1,WS/8);
+  for(const e of _wikiB){const d=Math.hypot(e.x-x,e.z-z);if(d<bd){bd=d;best=e;}}
+  if(!best)return '';
+  const m=/^(\w+):(.+)$/.exec(best.wp);if(!m)return '';
+  const key=best.wp;let sm=_wikiS.get(key);
+  if(sm===undefined){_wikiS.set(key,null);
+    fetch('https://'+m[1]+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(m[2].replace(/ /g,'_'))).then((r)=>r.ok?r.json():null)
+      .then((j)=>_wikiS.set(key,j&&j.extract?{t:j.title,x:j.extract,img:j.thumbnail&&j.thumbnail.source}:false)).catch(()=>_wikiS.set(key,false));
+    return '<div class="ts" style="opacity:.7">Loading Wikipedia…</div>';}
+  if(!sm)return '';
+  const ex=sm.x.length>320?sm.x.slice(0,317).replace(/\s+\S*$/,'')+'…':sm.x;
+  return '<div class="ts" style="margin-top:6px;max-width:300px;line-height:1.45">'+(sm.img?'<img src="'+escHtml(sm.img)+'" style="float:right;width:72px;margin:0 0 4px 8px;border-radius:4px">':'')
+    +escHtml(ex)+'</div><div class="te">Wikipedia · '+escHtml(sm.t)+' (CC BY-SA)</div>';
+}
+function wikiLinkNear(name,x,z){
+  const ws=WIKI_SUMMARY.get(name);if(ws&&ws.wiki)return wikiUrl(ws.wiki);
+  if(!_wikiB||x==null||z==null)return null;
+  let best=null,bd=120*Math.max(1,WS/8);
+  for(const e of _wikiB){const d=Math.hypot(e.x-x,e.z-z);if(d<bd){bd=d;best=e;}}
+  const m=best&&/^(\w+):(.+)$/.exec(best.wp);
+  return m?'https://'+m[1]+'.wikipedia.org/wiki/'+encodeURIComponent(m[2].replace(/ /g,'_')):null;
+}
 function openPoiCard(p,cx,cy){
   pcPoi=p;
   pcOpenedAt=performance.now();
   document.getElementById('pcName').textContent=p.n;
   document.getElementById('pcAddr').textContent=p.addr||'';
   applyPlaceHistoryToCard(p.n);
+  {const wb=document.getElementById('pcWiki');
+   if(wb&&wb.style.display==='none'){const u=wikiLinkNear(p.n,p.x,p.z);
+     if(u){wb.style.display='';wb.onclick=()=>window.open(u,'_blank','noopener,noreferrer');}}}
   const etaEl=document.getElementById('pcEta');
   if(p.x!=null&&p.z!=null){etaEl.style.display='';etaEl.textContent=poiEtaText(p);}
   else{etaEl.style.display='none';etaEl.textContent='';}
@@ -9594,6 +9815,8 @@ canvas.addEventListener('pointermove',e=>{
       html='<div class="tn">'+escHtml(nm)+'</div><div class="ts">'+(inf&&inf.d?escHtml(inf.d)+'<br>':'')
         +Math.round(b.hM)+' m ('+Math.round(b.hM*3.28)+' ft) · ~'+fl+' floors</div>'
         +(inf||b.name?historyTipHtml(nm,b.cx,b.cz):'')
+        +wikiTipHtml(b.cx,b.cz)
+        +'<div class="te" style="color:#8fd6a8">Click for directions · Fly there · route planner</div>'
         +'<div class="te">Real footprint · © OpenStreetMap contributors</div>';
       const road=nearestRoadLabel(b.cx,b.cz);
       placeHint={n:nm,road:road?('near '+road):null,kind:'landmark',at:now};
@@ -9699,21 +9922,30 @@ function likelyAirportFor(f,mode){
   return best;
 }
 function drawRouteLine(f,wx,wy,wz){
+  /* free GPU buffers of the previous trail — it is rebuilt every 1.5 s while following */
+  if(window._routeLine)window._routeLine.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose();}});
   clearRouteLine();
   const here=[wx,wy,wz];
-  const rr=clamp(camera.position.distanceTo(new THREE.Vector3(wx,wy,wz))/320,1.5,90);
+  const rr=clamp(camera.position.distanceTo(new THREE.Vector3(wx,wy,wz))/560,1,40);
   const g=new THREE.Group();
-  const tube=(pts,col,op)=>{
+  /* fade=true: contrail-style trail, transparent at its oldest end, solid at the aircraft */
+  const tube=(pts,col,op,fade)=>{
     if(pts.length<2)return;
-    const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
-    const m=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(400,Math.max(8,pts.length*2)),rr,6,false),
-      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false,fog:false}));
+    const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])),false,'centripetal');
+    const segs=Math.min(400,Math.max(8,pts.length*2)),rad=6;
+    const geo=new THREE.TubeGeometry(curve,segs,rr,rad,false);
+    if(fade){
+      const n=geo.attributes.position.count,ca=new Float32Array(n*4),c=new THREE.Color(col);
+      for(let i=0;i<n;i++){const t=Math.floor(i/(rad+1))/segs;ca[i*4]=c.r;ca[i*4+1]=c.g;ca[i*4+2]=c.b;ca[i*4+3]=Math.pow(t,1.6);}
+      geo.setAttribute('color',new THREE.BufferAttribute(ca,4));
+    }
+    const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:fade?0xffffff:col,vertexColors:!!fade,transparent:true,opacity:op,depthWrite:false,fog:false}));
     m.renderOrder=6;g.add(m);
   };
   /* where it has been: the positions this aircraft was actually drawn at (sampled every 1.5 s) */
   const tr=(f._wtrack||[]).slice();
   if(tr.length)tr.push(here);
-  if(tr.length>=3)tube(tr,0xfbbf24,0.9);
+  if(tr.length>=3)tube(tr.slice(-160),0xfbbf24,0.9,true);
   /* where it is going: only for a verified Houston arrival, as a descent to that airport */
   const arr=f._routeVerified&&isHoustonApt(f.arr)?APT_COORDS[icaoToDisp(f.arr)]:null;
   if(arr){
@@ -12121,7 +12353,8 @@ function drawVeh(idx,v,px,pz,deckY,fx,fz,heading,sc,detail){
     dLight.position.set(px+fx*hl,deckY+(isTwoWheel?0.75:0.95),pz+fz*hl);
     dLight.rotation.set(0,heading,0);
     dLight.scale.set(t.w*VS*(isTwoWheel?0.65:0.95),0.55,0.55);dLight.updateMatrix();
-    heads2.setMatrixAt(idx,dLight.matrix);
+    /* night: every moving car has headlights on; day: only cars with DRLs */
+    heads2.setMatrixAt(idx,((window._htsNightF||0)>0.18||v.drl)?dLight.matrix:(window._hz0||(window._hz0=new THREE.Matrix4().makeScale(0,0,0))));
     dLight.position.set(px-fx*hl,deckY+(isTwoWheel?0.8:1.0),pz-fz*hl);
     dLight.scale.set(t.w*VS*(isTwoWheel?0.6:0.9),0.55,0.5);dLight.updateMatrix();
     tails.setMatrixAt(idx,dLight.matrix);
@@ -12145,6 +12378,7 @@ function drawVeh(idx,v,px,pz,deckY,fx,fz,heading,sc,detail){
   }
 }
 function moveVehicles(dt,nightF){
+  window._htsNightF=nightF;
   let idx=0,renderedSpeedSum=0,renderedVeh=0;
   const brakeGlow=clamp(0.45+nightF*0.55,0,1);
   const v2Owns=WS!==1&&!!window.HTS_TRAFFIC2;
@@ -12369,7 +12603,7 @@ function moveVehicles(dt,nightF){
     if(extras.instanceColor)extras.instanceColor.needsUpdate=true;
     wheels.instanceMatrix.needsUpdate=true;
   }
-  headMat2.opacity=nightLights?clamp(0.55+nightF*0.45,0,1)*lightZoom:0;
+  headMat2.opacity=nightLights?clamp(0.55+nightF*0.45,0,1)*lightZoom:0.7*lightZoom;
   tailMat.opacity=nightLights?clamp(0.5+brakeGlow*0.5,0,1)*Math.max(0.4,lightZoom):clamp(brakeGlow*0.35,0,0.35);
 }
 
@@ -12386,14 +12620,18 @@ const GRAY_DT=new THREE.Color(0x6a7581),GRAY_DB=new THREE.Color(0xaab3bb),
       _gt=new THREE.Color(),_gb=new THREE.Color(),_nightFog=new THREE.Color(0x1c1814);
 let lightningT=0;
 function envUpdate(dt,h){
-  const x=(h-SUNRISE)/(SUNSET-SUNRISE);
+  h=solarH(h);
+  const x=(h-6.4)/14;
   const el=Math.sin(clamp(x,-0.35,1.35)*Math.PI);
   const nightF=clamp(0.5-el*2.4,0,1);
   keyCol(SKY_TOP,h,skyUni.top.value);
   keyCol(SKY_BOT,h,skyUni.bot.value);
   keyCol(FOG_COL,h,_fc);
-  /* Weather pattern drives the whole dome: clear = blue sky + hard sun; overcast = gray + soft light */
-  const cl=wxBlend.cloud;
+  /* Weather pattern drives the whole dome: clear = blue sky + hard sun; overcast = gray + soft light.
+     With live cloud decks, thin high cirrus barely dims the sun; a low deck does (optical thickness, not just %) */
+  const cl=wxBlend.layersLive&&wxBlend.cLow!=null
+    ?clamp(Math.max(wxBlend.cLow,wxBlend.cMid*0.65,wxBlend.cHigh*0.25)+(wxBlend.rain||0)*0.3,0,1)
+    :wxBlend.cloud;
   const rainF=clamp(wxBlend.rain,0,1);
   _gt.copy(GRAY_DT).lerp(GRAY_NT,nightF);
   _gb.copy(GRAY_DB).lerp(GRAY_NB,nightF);
@@ -12425,12 +12663,15 @@ function envUpdate(dt,h){
   sunDisc.position.copy(sp);
   /* low sun: bigger, redder; overcast/rain: dimmer, hazier — sun disc nearly gone when socked in */
   const lowSun=clamp(1-sy*1.7,0,1);
-  const sscl=740*(1+lowSun*0.8)*(1-cl*0.35);
+  /* the real sun is ~0.5° wide; atmospheric haze makes it look only slightly larger at sunrise/sunset */
+  const sscl=430*(1+lowSun*0.22)*(1-cl*0.35);
   sunDisc.scale.set(sscl,sscl,1);
   sunDisc.material.color.copy(_sc2Sun(_sc,h));
   sunDisc.material.opacity=clamp(sy*3,0,1)*(1-cl)*(1-rainF*0.5);
   sunGlare.position.copy(sp);
-  sunGlare.material.opacity=sunDisc.material.opacity*0.85;
+  /* glare only when you actually look toward the sun — it used to wash over the map from above */
+  {const _vd=camera.getWorldDirection(_glV||( _glV=new THREE.Vector3())),_sd=_glS||(_glS=new THREE.Vector3());_sd.copy(sp).sub(camera.position).normalize();
+   sunGlare.material.opacity=sunDisc.material.opacity*0.45*clamp((_vd.dot(_sd)-0.55)/0.4,0,1);}
   keyCol(SUN_COL,h,_sc);sun.color.copy(_sc);
   /* Clear day ≈ full sun; partly cloudy softens; overcast/rain nearly diffuse-only */
   sun.intensity=keyNum(SUN_INT,h)*lerp(1,0.16,cl)*lerp(1,0.7,rainF);
@@ -12440,16 +12681,18 @@ function envUpdate(dt,h){
   if(!sun.target.parent)scene.add(sun.target);
   skyUni.sunDir.value.copy(sp).normalize();
   skyUni.glowCol.value.copy(_sc);
-  skyUni.glowI.value=clamp(keyNum(SUN_INT,h),0,1.2)*lerp(0.85,0.04,cl)*lerp(1,0.5,rainF);
+  skyUni.glowI.value=clamp(keyNum(SUN_INT,h),0,1.2)*lerp(0.5,0.03,cl)*lerp(1,0.5,rainF);
   const mA=A+Math.PI;
   moonDisc.position.set(Math.cos(mA)*15000,Math.max(Math.sin(mA),-0.2)*9000+400,-4200);
   moonDisc.lookAt(camera.position);
   moonDisc.material.opacity=clamp(Math.sin(mA)*2.5,0,0.85)*(1-wxBlend.cloud*0.9);
   hemi.intensity=keyNum(HEMI_INT,h)*lerp(1,0.32,cl)*lerp(1,0.35,nightF)*lerp(1,0.85,rainF);
   /* Google-Maps night: soft moonlight + warm CBD bounce so towers keep volume */
-  nightAmb.intensity=nightF*(WS!==1?0.38:0.16);
+  nightAmb.intensity=nightF*(WS!==1?0.55:0.2)*(1-wxBlend.rain*0.3);
   cityFill.intensity=nightF*(WS!==1?0.42:0.22);
   stars.material.opacity=nightF*(1-wxBlend.cloud)*0.85;
+  /* keep the star dome centred on the camera — zoomed far out it used to show as a giant dotted dome over the map */
+  skyRoot.worldToLocal(stars.position.copy(camera.position));
   /* Skyscrapers: slate glass + warm window glow (not black blocks / not neon grid) */
   for(const m of towerMats){
     if(!m.userData._dayCol)m.userData._dayCol=m.color.clone();
@@ -12460,12 +12703,15 @@ function envUpdate(dt,h){
     for(const m of HTS_OSM_FACADE_MATS){
       if(!m.userData._dayCol)m.userData._dayCol=m.color.clone();
       m.color.copy(m.userData._dayCol).lerp(_nightTower,nightF*0.85);
-      m.emissiveIntensity=nightF*(WS!==1?1.15:1.25);
+      m.emissiveIntensity=nightF*(WS!==1?0.6:0.8);
       if(m.shininess!=null)m.shininess=lerp(m.userData._shin||(m.shininess||24),0,nightF);
       if(m.specular&&m.specular.isColor)m.specular.setScalar(0);
     }
   }
   for(const m of crownMats)m.opacity=nightF*0.9;
+  /* suburb houses: warm windows after dusk */
+  if(window.HTS_MYHOUSE)HTS_MYHOUSE.update(camera.position.x,camera.position.z,nightF);
+  if(window.HTS_LAND2&&HTS_LAND2.materials&&HTS_LAND2.materials.body)HTS_LAND2.materials.body.emissiveIntensity=nightF*0.85;
   if(window.sprawlMat){
     if(!sprawlMat.userData._dayCol)sprawlMat.userData._dayCol=sprawlMat.color.clone();
     sprawlMat.color.copy(sprawlMat.userData._dayCol).lerp(_nightTowerWarm,nightF*0.8);
@@ -12547,19 +12793,34 @@ function envUpdate(dt,h){
   skyUni.haze.value.lerp(_cityGlow,nightF*0.28*(1-wxBlend.cloud*0.35));
   for(const road of roads)if(road.signMats)road.signMats.emissiveIntensity=nightF*0.55;
   {
-    const lowSun2=clamp(1-Math.abs(Math.sin(clamp((h-SUNRISE)/(SUNSET-SUNRISE),-0.3,1.3)*Math.PI))*1.5,0,1);
+    const lowSun2=clamp(1-Math.abs(Math.sin(clamp((h-6.4)/14,-0.3,1.3)*Math.PI))*1.5,0,1);
     const dayN=1-nightF;
     const wrap=clouds.userData.spreadHalf||45000;
     const cx=camera.position.x,cy=camera.position.y,cz=camera.position.z;
     const drift=dt*(liveMode?1:clamp(1+timeScale/70,1,48));
+    /* layer mix follows the live cloud cover + rain (Open-Meteo/NWS in live mode): clear = a few fair-weather
+       cumulus + cirrus; partly = cumulus + altocumulus; overcast/rain = a grey stratus deck */
+    const cl=wxBlend.cloud,rn=wxBlend.rain||0;
+    const lo=wxBlend.cLow==null?cl:wxBlend.cLow,md=wxBlend.cMid==null?cl*0.5:wxBlend.cMid,hiC=wxBlend.cHigh==null?0.2:wxBlend.cHigh;
+    /* fraction of each layer's sprites shown = that deck's measured coverage; low deck >70% or rain = solid stratus */
+    /* mid deck now drawn as flatter cumulus — no dotted altocumulus sprites */
+    const amt={cu:clamp(Math.max(lo,md*0.75)*1.1,0,1)*(1-clamp((lo-0.75)*3,0,0.7)),
+      ac:clamp(md*1.05,0,1)*(1-clamp((lo-0.85)*5,0,0.9)),
+      ci:clamp(hiC*1.05,0,1)*(1-clamp((lo-0.8)*4,0,1)),
+      st:clamp(Math.max((lo-0.6)*2.5,rn*1.3),0,1)};
+    const grey=lerp(1,0.55,clamp(rn*1.2+Math.max(0,cl-0.85)*2,0,1));
     for(const c of clouds.children){
-      const base=clamp(0.28+wxBlend.cloud*0.72,0,0.96)*lerp(1,0.35,nightF);
+      const ty=c.userData.type||'cu';
+      const on=c.userData.u<amt[ty];
+      const base=on?(ty==='cu'?clamp(0.45+cl*0.5,0,0.95):ty==='ac'?0.82:ty==='ci'?0.3*dayN:clamp(0.35+cl*0.55,0,0.9))*lerp(1,0.35,nightF):0;
       c.userData.baseOp=base;
-      /* white by day -> ember/plum at golden hour -> nearly black silhouettes at night */
+      /* high clouds keep catching the sun for a while after sunset (that's when the dotted altocumulus glows) */
+      const hi=ty==='ac'?0.6:ty==='ci'?0.85:ty==='st'?-0.3:0;
+      const lit=clamp(dayN+hi*0.35*lowSun2,0,1),gold=clamp(lowSun2*(1+hi*0.6),0,1)*lit;
       c.material.color.setRGB(
-        lerp(lerp(0.14,1,dayN), lerp(1.0,_sc.r*1.05,0.75), lowSun2*dayN),
-        lerp(lerp(0.16,1,dayN), lerp(0.86,_sc.g*0.9,0.75),  lowSun2*dayN),
-        lerp(lerp(0.22,1,dayN),  lerp(0.9,_sc.b*0.95,0.6),   lowSun2*dayN));
+        lerp(lerp(0.14,grey,lit), lerp(1.0,_sc.r*1.08,0.8), gold),
+        lerp(lerp(0.16,grey,lit), lerp(0.78,_sc.g*0.82,0.8), gold),
+        lerp(lerp(0.22,grey*1.04,lit), lerp(0.82,_sc.b*0.9+0.08*hi,0.7), gold));
       c.position.x+=c.userData.vx*drift;
       if(c.position.x>wrap)c.position.x-=wrap*2;
       else if(c.position.x<-wrap)c.position.x+=wrap*2;
@@ -13436,7 +13697,8 @@ function updateFlights(dt){
     }
     const px=a.x+a.dx*f.s+(-a.dz)*(f.lat||0);
     const pz=a.z+a.dz*f.s+(a.dx)*(f.lat||0);
-    f.m.position.set(px,f.alt,pz);
+    const gd=f.m.userData&&f.m.userData.gearDrop;
+    f.m.position.set(px,gd!=null?Math.max(f.alt,gd*f.m.scale.y+0.15):f.alt,pz);
     f.m.rotation.set(-(f.pitch||0),Math.atan2(a.dx,a.dz),0);
   }
 }
@@ -13532,7 +13794,7 @@ function frame(now){
       const base=clamp(48*WS,40,120);
       const pk=base*(1+0.08*Math.sin(simClock*0.003));
       userHalo.scale.set(pk,pk,1);
-      const pinH=clamp(22*WS,18,48);
+      const pinH=clamp(9*WS,9,20);
       userPin.position.y=pinH+2.2*Math.sin(simClock*0.004);
       userPin.material.opacity=0.92+0.08*Math.sin(simClock*0.005);
       if(userHome&&userHome.visible&&userHome.userData.pin){
@@ -13648,7 +13910,7 @@ function frame(now){
   if(on)for(const m of mapMats)m.opacity=mapOp;
   /* Night: lift midtones slightly (Google city night) — don’t crush façades to ink */
   renderer.toneMappingExposure=lerp(lerp(1.12,0.78,nightF),0.9,mapT)
-    *lerp(1,0.72,wxBlend.cloud)*lerp(1,0.9,wxBlend.rain);
+    *lerp(1,0.72,wxBlend.layersLive&&wxBlend.cLow!=null?clamp(Math.max(wxBlend.cLow,wxBlend.cMid*0.65,wxBlend.cHigh*0.25),0,1):wxBlend.cloud)*lerp(1,0.9,wxBlend.rain);
   const showDetail=!inOSM&&mapT<0.98;
   if(gDetail.visible!==showDetail)gDetail.visible=showDetail;
   /* Roads should remain visible whenever vehicles are visible, otherwise cars look like they're "on the grass". */
@@ -13668,8 +13930,9 @@ function frame(now){
   /* Wheels/extras/pools cull early — big Windows win */
   const partsHideR=WS===1?3000:(_isWin?2200:3200);
   const showParts=vShow&&!(_fpsAvg<(_isWin?48:38)||cam.radius>partsHideR);
-  const showCarLights=vShow&&nightF>0.22&&_fpsAvg>=(_isWin?42:36);
-  const showPools=showCarLights&&_fpsAvg>=(_isWin?48:40)&&cam.radius<(_isWin?1800:2800);
+  /* headlights/tails are one cheap instanced draw each — never drop them at night; daytime DRLs only when zoomed in */
+  const showCarLights=vShow&&(nightF>0.18||cam.radius<(_isWin?2200:3200));
+  const showPools=showCarLights&&nightF>0.22&&_fpsAvg>=(_isWin?48:40)&&cam.radius<(_isWin?1800:2800);
   if(bodies.visible!==vShow){bodies.visible=vShow;cabs.visible=vShow;}
   if(wheels.visible!==showParts){wheels.visible=showParts;extras.visible=showParts;}
   if(heads2.visible!==showCarLights){heads2.visible=showCarLights;tails.visible=showCarLights;}
@@ -13809,12 +14072,12 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       }).catch(()=>{});
       window.HTS_TOUR=createTour({scene,camera,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,
-        airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:makeAirliner,
+        airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:(c)=>makeAirliner(c,[c,c,c,c]),makeHeli:makeTourHeli,makeMil:makeMilitary,
         stopFollow:()=>stopFollow(),isFollowing:()=>!!(followPlane||follow),getUserGeo:()=>userGeo});
       window.HTS_ROUTE=createRoutePlanner({scene,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,getUserGeo:()=>userGeo,
         requestGeo,getCamViews:()=>CAM_VIEWS,
-        startTourDrive:(dest)=>{if(window.HTS_TOUR)HTS_TOUR.start('car','tour',dest);}});
+        startTourDrive:(dest,o)=>{if(window.HTS_TOUR)HTS_TOUR.start('car','tour',dest,o);}});
       const signs=createHoustonSigns({parent:scene});
       window.HTS_SIGNS=signs;
       signs.ready.then(()=>setInterval(()=>signs.update(cam.target.x,cam.target.z,cam.radius),900))
@@ -13831,6 +14094,10 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       if(!HTS_PEEK){
         const sl=createHoustonStreetlights({parent:scene,net:hr.net,baseY:0.25,kv:UNITS_PER_MILE/1609.344});
         window.HTS_LIGHTS2=sl;
+        hr.onTile((ev,id,ways)=>{if(ev==='add')sl.addWays(ways);});
+        /* owner's home, 16623 Red Gully Dr (OSM/Microsoft footprint) — custom model, generated houses kept off it */
+        {const hp=window.HTS_HOUSE_POS;
+         import('./render/my-house.js').then((m)=>{window.HTS_MYHOUSE=m.createMyHouse({parent:scene,x:hp.x,z:hp.z,yaw:0});}).catch((e)=>console.warn('[HTS] my house',e&&e.message));}
         sl.ready.then((st)=>console.log('%cHouston streetlights: '+JSON.stringify(st),'color:#ffd080')).catch((e)=>console.warn('[HTS] streetlights',e&&e.message));
       }
       /* Sim budget > draw cap so near-camera streets stay full after distance cull */
@@ -13977,6 +14244,10 @@ setTimeout(()=>{
   whenHtsReady(()=>{
     aim('traffic');
     try{hideGeoToast();}catch(e){}
+    /* homepage peek: show Houston at golden hour when it is dark there, so the preview is readable */
+    try{const hh=+new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',hour12:false}).format(new Date())%24;
+      const sl=document.getElementById('timeSlider');
+      if(sl&&(hh<7||hh>=19)){sl.value=Math.round(17.6*60);sl.dispatchEvent(new Event('input'));sl.dispatchEvent(new Event('change'));}}catch(_e){}
     try{parent.postMessage({type:'hts-peek-ready'},location.origin);}catch(e){}
   });
   addEventListener('message',(e)=>{
@@ -14226,3 +14497,16 @@ if(!htsReadyFired&&!document.getElementById('loading'))fireHtsReady();
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
 }
+/* keep the locate-me button just left of the side panel at every breakpoint (it used to sit on top of the panel) */
+(function(){
+  const b=document.getElementById('locBtn'),p=document.getElementById('panel');if(!b||!p)return;
+  const place=()=>{
+    const r=p.getBoundingClientRect();
+    const open=r.width>40&&getComputedStyle(p).display!=='none'&&!document.body.classList.contains('right-collapsed');
+    b.style.right=open?Math.round(innerWidth-r.left+12)+'px':'';
+  };
+  addEventListener('resize',place);
+  new MutationObserver(place).observe(document.body,{attributes:true,attributeFilter:['class']});
+  new ResizeObserver(place).observe(p);
+  setTimeout(place,500);place();
+})();

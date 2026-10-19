@@ -120,7 +120,7 @@ export function createCinematic(opts) {
   let shadowsOn = false;
   let ssaoOn = false;
   let ssaoBudget = false;
-  let _shTx = 1e9, _shTz = 1e9, _shR = -1;
+  let _shTx = 1e9, _shTz = 1e9, _shR = -1, _shT = 0;
 
   function markShadowCasters(root) {
     if (!root) return;
@@ -143,10 +143,12 @@ export function createCinematic(opts) {
     const tx = (camState && camState.target && camState.target.x) || 0;
     const tz = (camState && camState.target && camState.target.z) || 0;
     const altY = camera.position.y || 0;
-    const perfOk = fpsAvg == null || fpsAvg > 38;
+    /* hysteresis everywhere: shadows used to pop on/off every time fps or zoom crossed a threshold (the flicker) */
+    const perfOk = fpsAvg == null || fpsAvg > (shadowsOn ? 22 : 34);
     if (fpsAvg != null) ssaoBudget = ssaoOn ? fpsAvg > 46 : fpsAvg > 55;
-    const aerial = altY > 380;
-    const wantShadow = !aerial && radius < (isAus ? 4200 : 2400) && nightF < 0.85 && perfOk;
+    const aerial = altY > (shadowsOn ? 460 : 380);
+    const rMax = (isAus ? 4200 : 2400) * (shadowsOn ? 1.15 : 1);
+    const wantShadow = !aerial && radius < rMax && nightF < (shadowsOn ? 0.9 : 0.8) && perfOk;
     const wantSsao = !_win && !aerial && useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
 
     /* ALWAYS aim the sun at the look-at — even when shadows are off */
@@ -164,7 +166,8 @@ export function createCinematic(opts) {
     }
 
     if (shadowsOn) {
-      const ext = Math.max(280, Math.min(isAus ? 1400 : 1100, radius * (isAus ? 0.7 : 0.55)));
+      /* cover what the camera actually sees in oblique views, so there is no hard lit/unlit rectangle */
+      const ext = Math.max(320, Math.min(isAus ? 1600 : 1400, radius * (isAus ? 0.85 : 0.8)));
       const sc = sun.shadow.camera;
       sc.left = -ext;
       sc.right = ext;
@@ -173,7 +176,10 @@ export function createCinematic(opts) {
       sc.far = Math.max(1200, radius * 2.2);
       sc.updateProjectionMatrix();
       const moved = Math.hypot(tx - _shTx, tz - _shTz) > 55 || Math.abs(radius - _shR) > 90;
-      if (moved) {
+      const now = performance.now();
+      /* the sun keeps moving: refresh shadows every 2 s even when the camera is parked */
+      if (moved || now - _shT > 2000) {
+        _shT = now;
         _shTx = tx; _shTz = tz; _shR = radius;
         renderer.shadowMap.needsUpdate = true;
       }

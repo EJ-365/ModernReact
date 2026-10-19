@@ -56,7 +56,8 @@ export function resolveCity(id) {
  * @returns {string}
  */
 export function activeCityId() {
-  if (typeof window === 'undefined') return 'houston';
+  /* Houston-only release: other city packs stay in the repo but are not reachable */
+  if (typeof window === 'undefined' || true) return 'houston';
   try {
     const q = new URLSearchParams(window.location.search).get('city');
     if (q && CITY_PACKS[String(q).toLowerCase()]) {

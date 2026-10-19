@@ -286,7 +286,7 @@ function setupPreview() {
   let visible = false;
   let unloadTimer = 0;
   /* Cache-bust so the homepage iframe picks up the latest peek build */
-  const PEEK_SRC = "/app.html?peek=1&v=103125";
+  const PEEK_SRC = "/app.html?peek=1&v=103800";
 
   const postPeek = (payload) => {
     if (!frame || !frame.contentWindow) return;

@@ -18,19 +18,19 @@ function tubeFor(path, col, op, radScale) {
   const pts = [];
   for (let i = 0; i < path.length; i += step) {
     const p = path[i];
-    pts.push(new THREE.Vector3(p.x, (p.y || 0.3) + 1.8, p.z));
+    pts.push(new THREE.Vector3(p.x, (p.y || 0.3) + 3, p.z));
   }
   const last = path[path.length - 1];
-  pts.push(new THREE.Vector3(last.x, (last.y || 0.3) + 1.8, last.z));
+  pts.push(new THREE.Vector3(last.x, (last.y || 0.3) + 3, last.z));
   if (pts.length < 2) return null;
   const curve = new THREE.CatmullRomCurve3(pts);
   const len = path[path.length - 1].s;
-  const rad = Math.min(14, Math.max(3.2, len / 900)) * (radScale || 1);
+  const rad = Math.min(22, Math.max(5, len / 700)) * (radScale || 1);
   const segs = Math.min(500, Math.max(24, pts.length * 3));
   const mesh = new THREE.Mesh(
     new THREE.TubeGeometry(curve, segs, rad, 6, false),
     new THREE.MeshBasicMaterial({
-      color: col, transparent: true, opacity: op, depthWrite: false, fog: false,
+      color: col, transparent: true, opacity: op, depthWrite: false, depthTest: false, fog: false,
     }),
   );
   mesh.renderOrder = 7;
@@ -213,22 +213,23 @@ export function createRoutePlanner({
     while (performance.now() - t0 < (ms || 14000)) {
       const T = getTraffic && getTraffic();
       if (T && T.carriageways && T.carriageways.length > 40) return T;
-      setStatus('Loading Houston roads…');
+      setStatus('Loading Houston roads… your route will plan automatically when they are ready.');
       await new Promise((r) => setTimeout(r, 250));
     }
     return getTraffic && getTraffic();
   }
 
   /** Stream tiles along the corridor so both ends share one connected graph */
-  function preloadCorridor(R, from, to) {
+  /* update() is skipped while another tile load is in flight, so await each corridor point (with retries)
+     and pin the corridor so the camera's own streaming can't evict the far end before routing */
+  async function preloadCorridor(R, from, to) {
     if (!R || !R.update) return;
-    const steps = 6;
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      R.update(from.x + (to.x - from.x) * t, from.z + (to.z - from.z) * t, 0);
+    const steps = 6, pts = [];
+    for (let i = 0; i <= steps; i++) { const t = i / steps; pts.push([from.x + (to.x - from.x) * t, from.z + (to.z - from.z) * t]); }
+    if (R.update.setPins) R.update.setPins(pts);
+    for (const [x, z] of [pts[0], pts[steps], ...pts.slice(1, steps)]) {
+      for (let k = 0; k < 3; k++) { await R.update(x, z, 0); await new Promise((r) => setTimeout(r, 40)); }
     }
-    R.update(from.x, from.z, 0);
-    R.update(to.x, to.z, 0);
   }
 
   function refreshStatus() {
@@ -276,9 +277,9 @@ export function createRoutePlanner({
       }
       setStatus('Loading roads for ' + from.n + ' → ' + to.n + '…');
       const R = getRoads && getRoads();
-      preloadCorridor(R, from, to);
+      await preloadCorridor(R, from, to);
       await new Promise((r) => setTimeout(r, 400));
-      const T = await waitTraffic(16000);
+      const T = await waitTraffic(90000);
       if (!T || !T.carriageways || T.carriageways.length < 10) {
         setStatus('Roads not ready yet — wait a moment and try again.');
         return;
@@ -357,8 +358,8 @@ export function createRoutePlanner({
       return;
     }
     if (typeof startTourDrive === 'function') {
-      startTourDrive({ n: state.to.n, x: state.to.x, z: state.to.z });
-      setStatus('Starting car tour to ' + state.to.n + '…');
+      startTourDrive({ n: state.to.n, x: state.to.x, z: state.to.z }, { origin: state.from, route: path });
+      setStatus('Driving ' + state.from.n + ' → ' + state.to.n + ' on the planned route…');
     } else {
       setStatus('Tour not ready — try Start tour in Tour Houston.');
     }

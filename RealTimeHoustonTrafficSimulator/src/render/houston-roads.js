@@ -60,7 +60,7 @@ function makeMaterials() {
     lineY: new THREE.MeshBasicMaterial({ color: 0xe0b12c, ...po }),
     dashW: new THREE.MeshBasicMaterial({ color: 0xe6e6e0, alphaMap: dash, alphaTest: 0.5, ...po }),
     pier: new THREE.MeshLambertMaterial({ map: concrete, color: 0x85837d }),
-    berm: new THREE.MeshLambertMaterial({ color: 0x6f8a4f, side: THREE.DoubleSide }),
+    berm: new THREE.MeshLambertMaterial({ color: 0xb9b4a8, side: THREE.DoubleSide }),
   };
 }
 
@@ -126,11 +126,17 @@ function deckH(r) {
 /** Heights at way endpoints: bridges pin their layer height; approaches relax at GRADE. */
 export function solveHeights(roads) {
   const H = new Map();
-  const bump = (k, h) => { if (h > (H.get(k) || 0)) { H.set(k, h); return true; } return false; };
   const ends = roads.map((r) => {
     const p = r.p, L = wayLen(p);
     return { a: nodeKey(p[0], p[1]), b: nodeKey(p[p.length - 2], p[p.length - 1]), L, d: deckH(r) };
   });
+  /* at-grade junctions (3+ ordinary ways, no bridge) stay on the ground: before, a short ramp could lift the
+     frontage road / cross street it joins, which made roads hump up and "merge" into each other */
+  const deg = new Map(), bridgeNode = new Set();
+  ends.forEach((e) => { for (const k of [e.a, e.b]) { deg.set(k, (deg.get(k) || 0) + 1); if (e.d) bridgeNode.add(k); } });
+  const pinned = new Set();
+  for (const [k, n] of deg) if (n >= 3 && !bridgeNode.has(k)) pinned.add(k);
+  const bump = (k, h) => { if (pinned.has(k)) return false; if (h > (H.get(k) || 0)) { H.set(k, h); return true; } return false; };
   ends.forEach((e) => { if (e.d) { bump(e.a, e.d); bump(e.b, e.d); } });
   for (let it = 0; it < 12; it++) {
     let changed = false;
@@ -147,13 +153,17 @@ export function solveHeights(roads) {
 function profile(r, e, H) {
   const ha = H ? H.get(e.a) || 0 : 0, hb = H ? H.get(e.b) || 0 : 0;
   if (!ha && !hb && !e.d) return null;
-  const L0 = wayLen(r.p), ra = ha / GRADE + 30, rb = L0 - hb / GRADE - 30;
+  const L0 = wayLen(r.p);
+  /* a ramp too short for the normal 4.5 % grade gets steeper (up to the real end height) instead of ending in mid-air */
+  const gA = !e.d && ha > hb ? Math.max(GRADE, (ha - hb) / Math.max(L0, 1)) : GRADE;
+  const gB = !e.d && hb > ha ? Math.max(GRADE, (hb - ha) / Math.max(L0, 1)) : GRADE;
+  const ra = ha / gA + 30, rb = L0 - hb / gB - 30;
   const p = e.d ? resample(r.p, 10) : resample(r.p, 8, (s0, s1) => s0 < ra || s1 > rb);
   const n = p.length / 2, ys = new Float32Array(n);
   let s = 0; const L = wayLen(p);
   for (let i = 0; i < n; i++) {
     if (i) s += Math.hypot(p[2 * i] - p[2 * i - 2], p[2 * i + 1] - p[2 * i - 1]);
-    let y = Math.max(e.d, ha - GRADE * s, hb - GRADE * (L - s), 0);
+    let y = Math.max(e.d, ha - gA * s, hb - gB * (L - s), 0);
     if (!H && e.d) { const t = Math.min(s, L - s); y = e.d * Math.min(1, t / Math.max(8, e.d / GRADE)); }
     ys[i] = y;
   }
@@ -239,13 +249,12 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
       const dk = buckets('deck'), bm = buckets('berm');
       wall(dk, hw + 0.25, 0, 0.85); wall(dk, -hw - 0.25, 0, 0.85);
       for (const sg of [1, -1]) {
-        const b = bm.vc;
+        const b = bm.vc, off = (hw + 0.25) * sg;
         for (let i = 0; i < f.n; i++) {
-          const x = f.pts[2 * i], z = f.pts[2 * i + 1], mm = Math.min(f.m[i], 1.25), y = yAt(i), hgt = Math.min(14, Math.max(0, ys[i] || 0));
-          const o0 = (hw + 0.25) * sg, o1 = (hw + 0.6 + hgt * 1.6) * sg;
-          bm.vert(X(x + f.nx[i] * o0 * mm), y - 0.05 * kv, Z(z + f.nz[i] * o0 * mm), f.nx[i] * sg * 0.45, 0.89, f.nz[i] * sg * 0.45, 0, 0);
-          bm.vert(X(x + f.nx[i] * o1 * mm), baseY + 0.02 * kv, Z(z + f.nz[i] * o1 * mm), f.nx[i] * sg * 0.45, 0.89, f.nz[i] * sg * 0.45, 1, 0);
-          if (i) { const a = b + 2 * (i - 1); if (sg > 0) bm.i.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); else bm.quad(a); }
+          const x = X(f.pts[2 * i] + f.nx[i] * off * f.m[i]), z = Z(f.pts[2 * i + 1] + f.nz[i] * off * f.m[i]), y = yAt(i);
+          bm.vert(x, y, z, f.nx[i] * sg, 0, f.nz[i] * sg, f.cum[i] / 6, 0);
+          bm.vert(x, baseY, z, f.nx[i] * sg, 0, f.nz[i] * sg, f.cum[i] / 6, 1);
+          if (i) bm.quad(b + 2 * (i - 1));
         }
       }
     }
@@ -346,6 +355,9 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
       m.visible = lim > 0 && Math.hypot(bs.center.x - camX, bs.center.z - camZ) < lim + bs.radius;
     }
   }
+  /* pinned world points (route corridor): tiles near them are never evicted by camera moves */
+  let pins = [];
+  update.setPins = (p) => { pins = p || []; };
   async function update(camX, camZ, camDist = 0) {
     lod(camX, camZ, camDist);
     if (!index || busy) return;
@@ -375,7 +387,8 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
         for (const [id, t] of tiles) {
           if (t.layer !== layer) continue;
           const [ax, az] = t.key.split('_').map(Number);
-          if (Math.hypot((ax + 0.5) * T - mx, (az + 0.5) * T - mz) > R * 1.6 + T) {
+          if (Math.hypot((ax + 0.5) * T - mx, (az + 0.5) * T - mz) > R * 1.6 + T
+            && !pins.some(([px, pz]) => Math.hypot((ax + 0.5) * T - ((px - offset) / k + offset), (az + 0.5) * T - ((pz - offset) / k + offset)) < R * 1.2 + T)) {
             t.g.traverse((o) => { if (o.geometry && o.geometry !== pierGeo) o.geometry.dispose(); });
             root.remove(t.g); tiles.delete(id);
             if (tileNets.delete(id)) for (const fn of tileListeners) fn('drop', id);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Architecture — Live Traffic Simulator</title>
+<title>Architecture — Houston Traffic Simulation</title>
 <meta name="author" content="Ejay Gabriel">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body class="page-docs">
 <div class="sky" aria-hidden="true"><div class="sky-grid"></div></div>
 <header class="nav">
-  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Traffic Simulation</span></a>
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulation</span></a>
   <nav class="nav-links"><a href="/docs/">Docs</a><a href="/docs/architecture.html" aria-current="page">Architecture</a></nav>
   <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
   <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
@@ -62,7 +62,7 @@
     <p>Browser calls same-origin <code>/api/*</code>. Vite middleware and Netlify/Vercel functions proxy public feeds: TranStar, Google News RSS, airplanes.live, Open-Meteo, NWS, and other free ADS-B providers. Paid APIs are disabled and no secrets ship to the client bundle.</p>
 
     <h2>Roads and city packs</h2>
-    <p>Each city pack supplies researched roads, districts, airports, weather filters, and route metadata. Houston boots a quality-checked OSM freeway/ramp set; the app rejects individual geometries with high reversal or duplicate-point rates before road meshes are built. Arterials and local streets stream through the OSM LOD layer.</p>
+    <p>The Houston pack supplies the roads, districts, airports, weather filters and route data (other cities are switched off while Houston is finished). Houston boots a quality-checked OSM freeway/ramp set; the app rejects individual geometries with high reversal or duplicate-point rates before road meshes are built. Arterials and local streets stream through the OSM LOD layer.</p>
 
     <h2>Flight and news data</h2>
     <p>Live ADS-B aircraft are normalized into flight cards and airport arrivals/departures reconstructed from confirmed or inferred active routes. Tracking links open <code>globe.airplanes.live</code>. Local-news cards request a metro-specific Google News RSS feed via <code>/api/news</code>; the UI degrades to an offline notice if the free upstream feed is unavailable.</p>

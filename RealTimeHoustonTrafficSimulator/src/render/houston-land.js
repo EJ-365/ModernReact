@@ -10,9 +10,9 @@ import * as THREE from 'three';
 
 const LAND = {
   residential: { c: 0x9aa486, y: 0.05 }, commercial: { c: 0xa9a59c, y: 0.05 }, industrial: { c: 0x9d988c, y: 0.05 },
-  farm: { c: 0xa9a477, y: 0.04 }, cemetery: { c: 0x7f9a62, y: 0.06 }, grass: { c: 0x7f9c58, y: 0.07 },
-  pitch: { c: 0x6f9a4c, y: 0.08 }, golf: { c: 0x6fa04e, y: 0.07 }, park: { c: 0x6c8f4b, y: 0.08 },
-  scrub: { c: 0x76804e, y: 0.07 }, wood: { c: 0x4f6a37, y: 0.09 }, wetland: { c: 0x6a7e58, y: 0.08 },
+  farm: { c: 0xa9a477, y: 0.04 }, cemetery: { c: 0x7f9a62, y: 0.06 }, grass: { c: 0x73894f, y: 0.07 },
+  pitch: { c: 0x638a45, y: 0.08 }, golf: { c: 0x628f47, y: 0.07 }, park: { c: 0x5f7f44, y: 0.08 },
+  scrub: { c: 0x76804e, y: 0.07 }, wood: { c: 0x3f5a2e, y: 0.09 }, wetland: { c: 0x6a7e58, y: 0.08 },
   parking: { c: 0x8a8b8c, y: 0.11 }, water: { c: 0x3a6f8a, y: 0.12 },
 };
 const ORDER = ['farm', 'residential', 'commercial', 'industrial', 'cemetery', 'grass', 'golf', 'pitch', 'park', 'scrub', 'wetland', 'wood', 'parking', 'water'];
@@ -21,7 +21,8 @@ const TREE_DENS = { wood: 1 / 90, park: 1 / 700, golf: 1 / 900, cemetery: 1 / 50
 const NO_HOUSE = { commercial: 1, industrial: 1, parking: 1, park: 1, wood: 1, water: 1, wetland: 1, golf: 1, cemetery: 1, pitch: 1 };
 const HOUSE_COLS = [0xcfc4ad, 0xbfae90, 0xd8d0c0, 0xa9aeb0, 0xb48c70, 0xc9bfa6, 0xe0d8c8, 0x9c8f80];
 const ROOF_COLS = [0x55504a, 0x6a5848, 0x4c5056, 0x6f655a, 0x3f4245];
-const TREE_COLS = [0x3f5a2c, 0x4a6632, 0x56703a, 0x3a5230, 0x5f7a40];
+/* Houston canopy: dark glossy live oak, loblolly pine, yaupon/wax myrtle, crepe myrtle (lighter), water oak */
+const TREE_COLS = [0x2f4824, 0x37522a, 0x2a3f22, 0x41592e, 0x4b6533, 0x334a2a];
 
 /* airfields (houston-airports.js) stay clear of trees and houses */
 const inField = (x, z) => !!(globalThis.HTS_AIRPORTS2 && globalThis.HTS_AIRPORTS2.inAerodrome(x, z));
@@ -56,9 +57,20 @@ class PolyGrid {
 }
 
 function makeTreeGeos() {
-  const crown = new THREE.IcosahedronGeometry(1, 0); crown.scale(1, 0.85, 1); crown.translate(0, 1.55, 0);
+  /* live-oak style crown: three merged lobes (wide, slightly flat), baked light-top / dark-underside shading */
+  const lobes = [[0, 1.6, 0, 1], [0.55, 1.35, 0.25, 0.72], [-0.5, 1.4, -0.2, 0.75]], P = [];
+  for (const [lx, ly, lz, ls] of lobes) {
+    const g = new THREE.IcosahedronGeometry(ls, 0); g.scale(1.15, 0.78, 1.15); g.translate(lx, ly, lz);
+    const a = g.attributes.position.array; for (let i = 0; i < a.length; i++) P.push(a[i]); g.dispose();
+  }
+  const crown = new THREE.BufferGeometry(); crown.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); crown.computeVertexNormals();
+  { let y0 = 1e9, y1 = -1e9; for (let i = 1; i < P.length; i += 3) { y0 = Math.min(y0, P[i]); y1 = Math.max(y1, P[i]); }
+    const col = new Float32Array(P.length); for (let i = 0; i < P.length; i += 3) { const k = 0.55 + 0.45 * (P[i + 1] - y0) / (y1 - y0); col[i] = col[i + 1] = col[i + 2] = k; }
+    crown.setAttribute('color', new THREE.BufferAttribute(col, 3)); }
   const trunk = new THREE.CylinderGeometry(0.09, 0.13, 1, 5); trunk.translate(0, 0.5, 0);
   const body = new THREE.BoxGeometry(1, 1, 1); body.translate(0, 0.5, 0);
+  /* top/bottom faces map to the dark corner of the window texture (no "windows" on roofs) */
+  { const uv = body.attributes.uv; for (let i = 8; i < 16; i++) uv.setXY(i, 0.02, 0.02); uv.needsUpdate = true; }
   const roof = new THREE.BufferGeometry();
   roof.setAttribute('position', new THREE.Float32BufferAttribute([
     -0.55, 0, -0.55, 0.55, 0, -0.55, 0, 0.42, -0.55, -0.55, 0, 0.55, 0, 0.42, 0.55, 0.55, 0, 0.55,
@@ -75,9 +87,15 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
   const mats = {
     land: new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
     water: new THREE.MeshLambertMaterial({ color: LAND.water.c, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
-    crown: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+    crown: new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true }),
     trunk: new THREE.MeshLambertMaterial({ color: 0x5a4632 }),
-    body: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+    body: new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffc27a, emissiveIntensity: 0, emissiveMap: (() => {
+      /* two warm windows per wall — lit by app night logic (HTS_LAND2.materials.body) */
+      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d');
+      x.fillStyle = '#000'; x.fillRect(0, 0, 64, 64); x.fillStyle = '#ffd9a0';
+      x.fillRect(10, 22, 13, 15); x.fillStyle = '#c99a62'; x.fillRect(40, 22, 13, 15);
+      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+    })() }),
     roof: new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }),
     rail: new THREE.MeshLambertMaterial({ color: 0x5d564e }),
   };
@@ -278,7 +296,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
           for (; acc < L - 6; acc += HOUSE_STEP + rnd() * 6) {
             for (const sd of [-1, 1]) {
               const x = ax + ux * acc - uz * setback * sd, z = az + uz * acc + ux * setback * sd;
-              if (rnd() < 0.08 || t.block.hit(x, z) || !free(x, z) || inField(x, z)) continue;
+              if (rnd() < 0.08 || t.block.hit(x, z) || !free(x, z) || inField(x, z) || (window.HTS_HOUSE_EXCL && window.HTS_HOUSE_EXCL(X(x), X(z)))) continue;
               const w = 11 + rnd() * 5, dep = 12 + rnd() * 6, h = rnd() < 0.25 ? 6.8 + rnd() * 1.4 : 3.6 + rnd() * 1.2;
               houses.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0] });
               roofs.push({ x, z, y: h * k, sx: w * 1.06, sy: 3 + rnd() * 1.5, sz: dep * 1.06, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });

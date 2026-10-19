@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Docs — Live Traffic Simulator</title>
+<title>Docs — Houston Traffic Simulation</title>
 <meta name="author" content="Ejay Gabriel">
 <meta name="theme-color" content="#0c0a08">
 <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
@@ -16,7 +16,7 @@
 <body class="page-docs">
 <div class="sky" aria-hidden="true"><div class="sky-grid"></div><div class="sky-glow sky-glow-a"></div></div>
 <header class="nav">
-  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Traffic Simulation</span></a>
+  <a class="brand" href="/"><span class="brand-mark"></span><span class="brand-text">Houston Traffic Simulation</span></a>
   <nav class="nav-links"><a href="/docs/" aria-current="page">Docs</a><a href="/docs/getting-started.html">Start</a><a href="/docs/architecture.html">Architecture</a><a href="/docs/desktop.html">Desktop</a></nav>
   <div class="nav-cta"><a class="btn primary" href="/app.html">Launch</a></div>
   <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navDrawer"><span></span><span></span></button>
@@ -45,8 +45,8 @@
   </aside>
   <article class="docs-body">
     <p class="eyebrow">Developer handbook</p>
-    <h1>Live Traffic Simulator docs</h1>
-    <p class="lead">Everything you need to run, extend, and ship the multi-city simulator — created by <strong>Ejay Gabriel</strong>. Sixteen U.S. metros ship today on one engine; city modules plug in roads, weather, local news, flights, airports, and landmarks per metro.</p>
+    <h1>Houston Traffic Simulation docs</h1>
+    <p class="lead">Everything you need to run, extend and ship the Houston simulator — created by <strong>Ejay Gabriel</strong>. Houston is the case study: one city, built from OpenStreetMap, with live traffic, weather, flights, guided car and aircraft tours, and a route planner. Current build: <strong>v10.47.0</strong>.</p>
 
     <div class="docs-cards">
       <a class="docs-card" href="/docs/getting-started.html"><h3>Getting started</h3><p>Install Node, run Vite, open the marketing site and the 3D app.</p></a>
@@ -62,7 +62,15 @@
 ├── about.html          # Creator — Ejay Gabriel
 ├── download.html       # Web install + desktop download
 ├── app.html            # Full 3D simulator
+├── src/
+│   ├── app-main.js     # Scene, roads, buildings, traffic, flights, weather
+│   ├── tour.js         # Tour Houston: car + aircraft tours, HUD, gear, ETA
+│   ├── cockpit-dash.js # Cessna / heli / jet / C-130 / F-16 instrument panels
+│   ├── tour-audio.js   # Engine sound per vehicle (Web Audio, no files)
+│   ├── route/          # Route planner + Houston routing
+│   └── render/         # Your-house model and other render helpers
 ├── public/
+│   ├── data/houston/   # OSM-derived roads, buildings, Wikipedia tags
 │   ├── site/           # Marketing CSS/JS
 │   ├── icons/          # PWA icons
 │   ├── manifest.webmanifest
@@ -71,6 +79,17 @@
 ├── downloads/          # Desktop zip artifacts
 ├── vite.config.js      # Dev proxies + multi-page build
 └── package.json</code></pre>
+
+    <h2>Latest update — v10.47.0</h2>
+    <ul>
+      <li>Aircraft sit on their wheels or skids on runways (tour, live and parked planes).</li>
+      <li>Retractable gear on the jet, F-16 and C-130: up after take-off, down about 5 miles out.</li>
+      <li>New cockpit panels in <code>src/cockpit-dash.js</code> with live gauges; jet engine gauges show real power instead of a fixed value.</li>
+      <li>Engine sound for each aircraft, rising with engine power; cars keep their engine sound.</li>
+      <li>F-16 swept tail and tinted bubble canopy; jet engines take the chosen colour.</li>
+      <li>Building cards link to Wikipedia from the OSM <code>wikipedia</code> tag.</li>
+    </ul>
+    <p>Full history: <code>docs/PROGRESS.md</code>.</p>
 
     <h2>Quick links</h2>
     <ul>

@@ -336,6 +336,9 @@
   .grp:last-child{margin-bottom:10px}
   .grp label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.13em;
     text-transform:uppercase;color:var(--dim);margin-bottom:10px;line-height:1.45}
+  #houFacts .sublabel{font-size:13.5px!important;line-height:1.6!important;color:#d7dde3!important;font-weight:500!important}
+  #houFacts .sublabel b{color:#f0b55a}
+  #houFacts > label{font-size:13px}
   .grp .sublabel{font-size:10px;font-weight:600;letter-spacing:.02em;text-transform:none;color:#6d7883;margin-top:-4px;margin-bottom:10px;line-height:1.5}
   .btnrow{display:flex;gap:7px;flex-wrap:wrap}
   .btn{flex:1;min-width:44px;background:#1c1612;border:1px solid rgba(224,122,46,.22);color:var(--ink);
@@ -499,7 +502,9 @@
     background:#14100cee;border:1px solid rgba(224,122,46,.28);cursor:pointer;display:flex;align-items:center;
     justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.5)}
   #locBtn:hover{background:#2a1e16;border-color:rgba(232,168,56,.45)}
-  #locBtn.active svg path{fill:#6cb8ff}
+  #locBtn{background:rgba(20,24,30,.88)!important;border:1px solid rgba(255,255,255,.14)!important;backdrop-filter:blur(6px);transition:transform .15s,background .15s}
+  #locBtn:hover{background:rgba(36,42,52,.95)!important;transform:scale(1.06)}
+  #locBtn.active svg circle,#locBtn.active svg path{stroke:#4aa3ff}#locBtn.active svg .dot{fill:#4aa3ff;stroke:none}
   #geoToast{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 14px);left:50%;transform:translateX(-50%);z-index:12;
     display:none;align-items:center;gap:9px;background:#0d1319f4;border:1px solid #2c4258;
     border-radius:12px;padding:10px 13px;max-width:min(92vw,430px);
@@ -681,7 +686,7 @@
     background:conic-gradient(from -8deg,transparent 0 344deg,#5ec8ff 344deg 360deg);
     opacity:.92;transition:opacity .15s}
   #planeNeedle[hidden]{display:none!important;opacity:0}
-  #loading{position:fixed;inset:0;z-index:30;background:#9a4518;
+  #loading{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse 70% 45% at 50% 66%,rgba(224,122,46,.32),rgba(224,122,46,0) 70%),linear-gradient(180deg,#0b0807 0%,#140c08 55%,#24140b 100%);
     display:flex;align-items:center;justify-content:center;
     padding:0;transition:opacity .55s ease;pointer-events:none}
   #loading .lstage{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
@@ -901,7 +906,7 @@
 </style>
 <style>
 /* loading: dusk sky + silhouette (no paste, no HOUSTON label) */
-#loading{background:#9a4518}
+#loading{background:radial-gradient(ellipse 70% 45% at 50% 66%,rgba(224,122,46,.32),rgba(224,122,46,0) 70%),linear-gradient(180deg,#0b0807 0%,#140c08 55%,#24140b 100%)}
 #loading .lscene{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
 #loading .lsky{position:absolute;inset:0;background:
   radial-gradient(ellipse 80% 50% at 50% 8%,rgba(220,140,70,.22),transparent 55%),
@@ -941,7 +946,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.31.50</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.47.1</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1052,6 +1057,7 @@
   </div>
   <div class="grp" id="tourLocGrp">
     <label>Fly to district</label>
+    <input type="search" id="locSearch" placeholder="Search districts and places…" autocomplete="off" aria-label="Search districts" style="width:100%;box-sizing:border-box;margin:0 0 8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(224,122,46,.28);background:#1a1410;color:#f3ebe0;font:inherit">
     <select id="locSelect">
       <option value="city" selected>Full metro view</option>
       <optgroup label="Inner loop">
@@ -1199,12 +1205,31 @@
     <label>Tour Houston</label>
     <div class="btnrow" id="tourVeh"><button type="button" class="btn on" data-veh="car">By car</button><button type="button" class="btn" data-veh="plane">By plane</button></div>
     <select id="tourDest" style="margin-top:6px"><option value="">Loading places…</option></select>
+    <div id="tourAptRow" style="display:none;margin-top:6px">
+      <label class="mini" for="tourDep" style="letter-spacing:.08em">Take off from</label>
+      <select id="tourDep"><option value="">Nearest to me</option></select>
+      <label class="mini" for="tourArr" style="margin-top:6px;letter-spacing:.08em">Land at</label>
+      <select id="tourArr"><option value="">Nearest to destination</option></select>
+    </div>
     <div class="btnrow" style="margin-top:6px">
       <button type="button" class="btn" id="tourGo">Start tour</button>
       <button type="button" class="btn" id="tourSurprise" title="Random Houston landmark">Surprise me</button>
       <button type="button" class="btn" id="tourFree">Free drive</button>
     </div>
-    <div class="sublabel" id="tourNote" style="margin-top:6px">Car: real OSM roads to your pick. Plane: takeoff → cruise → orbit → land near the destination. Tap Music in the tour HUD for 60+ YouTube hits. Keys 1–5 camera · H hide panel · Esc exit.</div>
+    <div class="sublabel" id="tourNote" style="margin-top:6px">Car: real OSM roads to your pick. Plane: takeoff → cruise → orbit → land near the destination. Pick a genre in the tour Music panel (Pop, Hip-hop/R&amp;B, Rock, Electronic, Latin, Afrobeat, Gospel, Classics). Keys 1–5 camera · H hide panel · Esc exit.</div>
+  </div>
+  <div class="grp" id="houFacts">
+    <label>Houston fun facts</label>
+    <div class="sublabel" style="line-height:1.5">
+      &bull; <b>Area:</b> about 671 sq mi (1,740 km&sup2;) in total, roughly 640 sq mi of it land &mdash; you could fit New York, Boston, Washington DC, San Francisco, Seattle and Minneapolis inside it.<br>
+      &bull; <b>Population:</b> 2,304,580 at the 2020 Census (4th-largest US city); metro area about 7.1 million (2020), over 7.5 million today.<br>
+      &bull; <b>Founded</b> 1836 by brothers Augustus and John Allen, named after Sam Houston; it was briefly capital of the Republic of Texas.<br>
+      &bull; <b>Largest US city without zoning laws.</b><br>
+      &bull; <b>Texas Medical Center</b> is the largest medical complex in the world.<br>
+      &bull; <b>Port Houston</b> is the busiest US port by foreign waterborne tonnage; the 52-mile Houston Ship Channel reaches the Gulf.<br>
+      &bull; <b>NASA Johnson Space Center</b> is home of Mission Control &mdash; &ldquo;Houston, Tranquility Base here&rdquo; (1969) made the city&rsquo;s name famous worldwide.<br>
+      &bull; <b>Harris County</b> is the 3rd most populous county in the US, and more than 145 languages are spoken in the city.
+    </div>
   </div>
   <div class="grp" id="tourTimeGrp">
     <label>Time of day</label>
@@ -1280,7 +1305,7 @@
     <button type="button" class="btn" id="hazClear" style="width:100%;margin-top:6px">Clear prediction</button>
     <div id="hazStatus">No active hazard prediction. Pick a scenario to preview impacts on traffic &amp; the map.</div>
   </div>
-  <div class="grp" id="tourCityGrp">
+  <div class="grp" id="tourCityGrp" hidden>
     <label>Metro</label>
     <div class="sublabel">Switch city — reloads the simulator for that pack</div>
     <select id="citySelect" aria-label="Choose metro">
@@ -1338,7 +1363,7 @@
   </div>
 </div>
 
-<button id="locBtn" title="Go to my location"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-1.07A8 8 0 0 0 13 4.07V3a1 1 0 1 0-2 0v1.07A8 8 0 0 0 4.07 11H3a1 1 0 1 0 0 2h1.07A8 8 0 0 0 11 19.93V21a1 1 0 1 0 2 0v-1.07A8 8 0 0 0 19.93 13H21a1 1 0 1 0 0-2zm-9 7a6 6 0 1 1 0-12 6 6 0 0 1 0 12z" fill="#cfd8e0"/></svg></button>
+<button id="locBtn" title="Go to my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><circle cx="12" cy="12" r="7" stroke="#e8edf2" stroke-width="2"/><circle class="dot" cx="12" cy="12" r="3.2" fill="#e8edf2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"/></svg></button>
 <button type="button" id="tourReplayMobile">Replay tour</button>
 <button type="button" id="mSheetScrim" aria-label="Close panel"></button>
 
@@ -1472,11 +1497,11 @@
   </div>
   <div class="lstage">
     <div class="lcopy">
-      <div class="lsign">Traffic Simulation</div>
+      <div class="lsign">Houston Traffic Simulation</div>
       <div class="lbar" aria-hidden="true"><i></i></div>
     </div>
     <div class="lcity">
-      <img src="/img/houston-skyline-sil.png" alt="" width="639" height="175" decoding="async">
+      <img src="/img/houston-skyline-dusk-light.png" alt="" width="1600" height="640" decoding="async">
     </div>
   </div>
 </div>
@@ -1585,6 +1610,37 @@
   }
   try{apply(localStorage.getItem(key)==='1');}catch(e){apply(false);}
   toggle.addEventListener('click',()=>apply(!document.body.classList.contains('dock-collapsed')));
+})();
+</script>
+<script>
+/* Fly to district search: live suggestion list as you type; click or Enter flies there, arrows move */
+(function(){const q=document.getElementById('locSearch'),sel=document.getElementById('locSelect');if(!q||!sel)return;
+  q.parentNode.style.position='relative';
+  const box=document.createElement('div');box.id='locSug';box.setAttribute('role','listbox');
+  box.style.cssText='position:absolute;left:0;right:0;z-index:60;margin-top:-4px;max-height:280px;overflow:auto;display:none;background:#16110d;border:1px solid rgba(224,122,46,.35);border-radius:10px;box-shadow:0 12px 28px rgba(0,0,0,.55)';
+  q.insertAdjacentElement('afterend',box);
+  let items=[],act=0;
+  const pick=(v)=>{sel.value=v;sel.dispatchEvent(new Event('change',{bubbles:true}));const o=sel.querySelector('option[value="'+CSS.escape(v)+'"]');q.value=o?o.textContent:'';box.style.display='none';q.blur();};
+  const paint=()=>{[...box.children].forEach((el,k)=>{el.style.background=k===act?'rgba(224,122,46,.22)':'transparent';});};
+  q.addEventListener('input',()=>{const t=q.value.trim().toLowerCase();box.innerHTML='';items=[];act=0;
+    if(!t){box.style.display='none';return;}
+    for(const o of sel.querySelectorAll('option')){if(o.value==='city')continue;const nm=o.textContent.trim();const k=nm.toLowerCase().indexOf(t);if(k<0)continue;
+      items.push({v:o.value,nm,grp:o.parentElement.tagName==='OPTGROUP'?o.parentElement.label:'',k});}
+    items.sort((a,b)=>(a.k===0?0:1)-(b.k===0?0:1)||a.nm.localeCompare(b.nm));items=items.slice(0,10);
+    if(!items.length){box.innerHTML='<div style="padding:10px 12px;color:#8a7e70;font-size:14px">No place matches “'+q.value.replace(/</g,'&lt;')+'”</div>';box.style.display='block';return;}
+    for(const it of items){const d=document.createElement('div');d.setAttribute('role','option');
+      d.style.cssText='padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;font-size:15px;color:#f3ebe0';
+      const a=it.nm.slice(0,it.k),m=it.nm.slice(it.k,it.k+t.length),z=it.nm.slice(it.k+t.length);
+      d.innerHTML='<span>'+a.replace(/</g,'&lt;')+'<b style="color:#e8a838">'+m.replace(/</g,'&lt;')+'</b>'+z.replace(/</g,'&lt;')+'</span><span style="color:#8a7e70;font-size:12px;white-space:nowrap">'+it.grp.replace(/</g,'&lt;')+'</span>';
+      d.addEventListener('mousedown',(e)=>{e.preventDefault();pick(it.v);});box.appendChild(d);}
+    box.style.display='block';paint();});
+  q.addEventListener('keydown',(e)=>{if(box.style.display==='none'||!items.length)return;
+    if(e.key==='ArrowDown'){e.preventDefault();act=(act+1)%items.length;paint();box.children[act].scrollIntoView({block:'nearest'});}
+    else if(e.key==='ArrowUp'){e.preventDefault();act=(act-1+items.length)%items.length;paint();box.children[act].scrollIntoView({block:'nearest'});}
+    else if(e.key==='Enter'){e.preventDefault();pick(items[act].v);}
+    else if(e.key==='Escape'){box.style.display='none';}});
+  q.addEventListener('blur',()=>setTimeout(()=>{box.style.display='none';},150));
+  q.addEventListener('focus',()=>{if(q.value.trim())q.dispatchEvent(new Event('input'));});
 })();
 </script>
 </body>

@@ -19,7 +19,7 @@ export function createRainSystem(deps) {
     getRainZonesLive,
   } = deps;
 
-  const RAIN_N = 1900;
+  const RAIN_N = 3200;
   const SPLASH_N = 40;
   const PUDDLE_N = 24;
 
@@ -35,7 +35,7 @@ export function createRainSystem(deps) {
   const rain = new THREE.LineSegments(
     rainGeo,
     new THREE.LineBasicMaterial({
-      color: 0xb8d4ea,
+      color: 0x9fadba,
       transparent: true,
       opacity: 0,
       depthWrite: false,

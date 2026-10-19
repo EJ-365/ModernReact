@@ -49,6 +49,7 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
     x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
   })();
   const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0, blending: THREE.NormalBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  /* pools sit just above every road deck (max 0.17) — at +0.08 they z-fought the asphalt and flickered */
   const poolGeo = new THREE.PlaneGeometry(1, 1); poolGeo.rotateX(-Math.PI / 2);
   const KINDS = [
     { h: 12, arm: 1 },
@@ -82,7 +83,7 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
       g.add(pm, hm);
     });
     const lp = new THREE.InstancedMesh(poolGeo, poolMat, pools.length);
-    pools.forEach(([x, y, z, r], i) => { d.position.set(x, y + 0.08, z); d.rotation.set(0, 0, 0); d.scale.set(r, 1, r); d.updateMatrix(); lp.setMatrixAt(i, d.matrix); });
+    pools.forEach(([x, y, z, r], i) => { d.position.set(x, y + 0.24, z); d.rotation.set(0, 0, 0); d.scale.set(r, 1, r); d.updateMatrix(); lp.setMatrixAt(i, d.matrix); });
     lp.computeBoundingSphere(); lp.renderOrder = 2; g.add(lp);
     g.userData.pool = lp;
     c.g = g; root.add(g);
@@ -90,7 +91,7 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
   const ready = fetch(url).then((r) => r.json()).then((d) => {
     const lit = new Set(d.lit);
     for (const w of net || []) {
-      const r = w.r; if (!lit.has(r.id)) continue;
+      const r = w.r; if (!lit.has(r.id) && !/^(trunk|primary|secondary|tertiary)/.test(r.h)) continue;
       const f = w.f, sp = SPACING[r.h] || 45, hw = r.w / 2;
       const median = /^(motorway|trunk)$/.test(r.h) && !r.o;
       let next = sp * 0.5, side = 1;
@@ -162,5 +163,32 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
       stats.visibleCells = v;
     }
   }
-  return { root, ready, update, stats };
+  /* suburbs: residential / collector streets streamed in later tiles get lamps too (OSM rarely tags lit=yes there) */
+  const RES = /^(residential|unclassified|living_street|tertiary|tertiary_link|secondary|secondary_link)$/;
+  function addWays(ways) {
+    const touched = new Set();
+    for (const w of ways || []) {
+      const r = w.r; if (!r || !RES.test(r.h) || !w.f) continue;
+      const f = w.f, hw = (r.w || 7) / 2, sp = r.h.startsWith('secondary') ? 45 : 58;
+      let next = sp * 0.5, side = 1;
+      for (let i = 1; i < f.n; i++) {
+        while (f.cum[i] >= next) {
+          const t = (next - f.cum[i - 1]) / Math.max(1e-3, f.cum[i] - f.cum[i - 1]);
+          const x = f.pts[2 * i - 2] + (f.pts[2 * i] - f.pts[2 * i - 2]) * t, z = f.pts[2 * i - 1] + (f.pts[2 * i + 1] - f.pts[2 * i - 1]) * t;
+          const yv = baseY + (((w.ys ? w.ys[i - 1] + (w.ys[i] - w.ys[i - 1]) * t : 0)) + (w.cy || 0)) * kv;
+          const nx = f.nx[i], nz = f.nz[i], yaw = Math.atan2(nx, nz);
+          const px = x + nx * (hw + 1.2) * side, pz = z + nz * (hw + 1.2) * side;
+          add(2, px, yv, pz, side > 0 ? yaw + Math.PI : yaw, 8);
+          touched.add(Math.floor(px / CELL) + ',' + Math.floor(pz / CELL));
+          side = -side; next += sp;
+        }
+      }
+    }
+    for (const ck of touched) {
+      const cc = cells.get(ck);
+      if (cc && cc.g) { root.remove(cc.g); cc.g.traverse((o) => { if (o.isInstancedMesh) o.dispose(); }); cc.g = null; }
+    }
+    if (touched.size) root.userData._built = false;
+  }
+  return { root, ready, update, stats, addWays };
 }
