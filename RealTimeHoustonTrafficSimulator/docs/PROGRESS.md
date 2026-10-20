@@ -1,10 +1,24 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.53.0** — C-130 tail rebuilt; airliner parts share materials and gear is batched (default view 1,002 → 838 draw calls).
+**Current build:** **v10.55.0** — tour planes no longer circle forever on approach; 69 more songs across every genre.
 **SW cache:** `hts-shell-v155`
 
 This log captures the work from the late **v10.8.x / v10.9** baseline through the current **v10.18.0** real-3D-city release.
+
+## v10.55.0
+
+- **Approach fix:** the final-approach steering had the cross-track sign reversed, so the plane turned *away* from the centreline, hit the 0.55 rad clamp and orbited ~1.3 km from the threshold forever (reproduced in 6 of 8 Surprise-me tours with a headless `HTS_TOUR.update` loop). Now `rw.hd - xt*k`.
+- **No orbiting the fix:** `toFaf` uses a fixed final-approach fix (5.5 km jet / 3.8 km prop after a landmark orbit) and joins final inside 1.3 turn radii of it, or anywhere on the extended centreline heading in. The old `distToRw < 2800` shortcut that bounced back into final is gone.
+- **Lining up:** if final starts within 1.8 km of the runway and not lined up, the plane flies back out to the fix instead of circling. If final still is not lined up after 360 s, a watchdog falls back to the existing go-around / plant path.
+- **Music:** 69 more official, oEmbed-verified uploads: 33 Afrobeats, plus pop, hip-hop (incl. Houston: Don Toliver, Paul Wall, Megan Thee Stallion), country, gospel, Latin (incl. Selena), electronic and rock.
+- SW cache `hts-shell-v204`.
+
+## v10.54.0
+
+- **Taxi to park:** `createHoustonAirports` now builds a routing graph from the OSM taxiway centrelines (`taxiRoute`, multi-source Dijkstra; vertices behind the aircraft are penalised so it never U-turns on the runway). `taxiToPark` tries the five closest apron spots and keeps the shortest route. The route is drawn as a dashed green "follow-the-greens" lane (one unlit mesh, visible at night) and the aircraft follows it with look-ahead steering, slowing for corners and the stop. The lane clears on parking, a new departure or leaving the tour. Routing takes ~0–14 ms once per landing; 19 of 20 runway-end tests at Houston airports found a route (the other falls back to taxiing straight to the spot).
+- **Landing:** the glide path aims at the touchdown zone (200 m past the threshold for jets, 120 m for props). The flare starts around 30 ft (jets) / 20 ft (props) and is flown on sink rate, so the wheels touch at ~100 fpm about 170–270 m past the threshold. Touchdown is only when the wheels reach the runway — no more snapping down from up to 30 m or sideways onto the centreline. Rollout keeps the nose up for ~2 s, then brakes progressively (and harder only if the runway end is close).
+- **Music:** 38 more Afrobeats songs (official uploads checked with YouTube oEmbed); removed "Unavailable"; fixed "Last Last" (was a Taylor Swift video) and a "Rush" that was actually Nickelback.
 
 ## v10.53.0
 

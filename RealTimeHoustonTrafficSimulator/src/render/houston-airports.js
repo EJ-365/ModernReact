@@ -349,6 +349,13 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
       spots.push({ x: X(cx), z: X(cz) });
     }
     for (const t of d.taxiways) { ribbon(t.p, t.w, 0.23 * k, ...L.taxi); ribbon(t.p, 0.35, 0.25 * k, ...L.yellow); }
+    for (const t of d.taxiways) {
+      const q = t.p.map(X); let cx = 0, cz = 0, r = 0;
+      for (let i = 0; i < q.length; i += 2) { cx += q[i]; cz += q[i + 1]; }
+      cx /= q.length / 2; cz /= q.length / 2;
+      for (let i = 0; i < q.length; i += 2) r = Math.max(r, Math.hypot(q[i] - cx, q[i + 1] - cz));
+      twy.push({ p: q, cx, cz, r });
+    }
     for (const r of d.runways) {
       ribbon(r.p, r.w, 0.26 * k, ...L.runway);
       ribbon(r.p, 0.9, 0.28 * k, ...L.white, [36, 24]);
@@ -385,5 +392,128 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
     for (const f of fields) if (x >= f.x0 && x <= f.x1 && z >= f.z0 && z <= f.z1 && inRing(f.r, x, z)) return true;
     return false;
   }
-  return { root, ready, inAerodrome, nearestSpot };
+  /* Taxi routing for the tour aircraft over the real OSM taxiway centrelines (world coords).
+     Multi-source Dijkstra: every taxiway vertex near the aircraft is an entry (vertices behind it
+     cost extra so it doesn't U-turn on the runway); the route ends at the vertex closest to the spot. */
+  const twy = [];
+  function taxiRoute(x, z, hd, spot, maxR = 5000, wide = false) {
+    const nodes = [], adj = [], key = new Map(), ends = [];
+    const node = (px, pz) => {
+      const kk = Math.round(px / 3) * 100003 + Math.round(pz / 3);
+      let i = key.get(kk);
+      if (i === undefined) { i = nodes.length / 2; key.set(kk, i); nodes.push(px, pz); adj.push([]); }
+      return i;
+    };
+    const link = (a, b) => {
+      if (a === b) return;
+      const d = Math.hypot(nodes[2 * a] - nodes[2 * b], nodes[2 * a + 1] - nodes[2 * b + 1]);
+      adj[a].push(b, d); adj[b].push(a, d);
+    };
+    for (const t of twy) {
+      if (Math.hypot(t.cx - x, t.cz - z) > maxR + t.r) continue;
+      let prev = -1;
+      for (let i = 0; i < t.p.length; i += 2) {
+        const n = node(t.p[i], t.p[i + 1]);
+        if (prev >= 0) link(prev, n);
+        if (i === 0 || i === t.p.length - 2) ends.push(n);
+        prev = n;
+      }
+    }
+    const N = nodes.length / 2;
+    if (N < 2) return null;
+    /* loose ends OSM didn't join at a shared node: snap to the nearest other vertex */
+    const G = 25, grid = new Map(), gk = (gx, gz) => gx * 100003 + gz;
+    for (let i = 0; i < N; i++) {
+      const c2 = gk(Math.floor(nodes[2 * i] / G), Math.floor(nodes[2 * i + 1] / G));
+      let c = grid.get(c2); if (!c) grid.set(c2, (c = [])); c.push(i);
+    }
+    for (const e of ends) {
+      if (adj[e].length > 2) continue;
+      const ex = nodes[2 * e], ez = nodes[2 * e + 1], gx = Math.floor(ex / G), gz = Math.floor(ez / G);
+      let best = -1, bd = 18;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (const j of grid.get(gk(gx + a, gz + b)) || []) {
+        if (j === e || adj[e][0] === j) continue;
+        const d = Math.hypot(nodes[2 * j] - ex, nodes[2 * j + 1] - ez);
+        if (d < bd) { bd = d; best = j; }
+      }
+      if (best >= 0) link(e, best);
+    }
+    const sx = Math.sin(hd), sz = Math.cos(hd);
+    const g = new Float64Array(N).fill(Infinity), prev = new Int32Array(N).fill(-1), done = new Uint8Array(N);
+    const heap = [];
+    const push = (i, c) => { heap.push([c, i]); let j = heap.length - 1; while (j > 0) { const pj = (j - 1) >> 1; if (heap[pj][0] <= heap[j][0]) break; [heap[pj], heap[j]] = [heap[j], heap[pj]]; j = pj; } };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let j = 0; for (;;) { const l = 2 * j + 1, r = l + 1; let m = j; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === j) break; [heap[m], heap[j]] = [heap[j], heap[m]]; j = m; } } return top; };
+    /* entries: taxiway vertices on/next to the runway ahead (roll along the runway, then turn off at the exit);
+       only if none exist fall back to anything within 700 m */
+    const entry = new Float64Array(N);
+    const seed = (wide) => {
+      let any = false;
+      for (let i = 0; i < N; i++) {
+        const dx = nodes[2 * i] - x, dz = nodes[2 * i + 1] - z, along = dx * sx + dz * sz, lat = Math.abs(dx * sz - dz * sx);
+        if (wide ? Math.hypot(dx, dz) > 700 : along < -40 || along > 2500 || lat > 110) continue;
+        const c = wide ? Math.hypot(dx, dz) * 1.5 + (along < 0 ? -along * 4 : 0) : Math.max(0, along) + lat * 6;
+        if (c < g[i]) { g[i] = c; entry[i] = wide ? 0 : Math.max(0, along); push(i, c); any = true; }
+      }
+      return any;
+    };
+    if (!seed(wide) && !wide) seed(true);
+    let goal = -1, bestT = Infinity;
+    while (heap.length) {
+      const [c, i] = pop();
+      if (done[i] || c > g[i]) continue;
+      if (c >= bestT) break;
+      done[i] = 1;
+      const fd = Math.hypot(nodes[2 * i] - spot.x, nodes[2 * i + 1] - spot.z);
+      if (fd < 400 && c + fd * 1.3 < bestT) { bestT = c + fd * 1.3; goal = i; }
+      const a = adj[i];
+      for (let k2 = 0; k2 < a.length; k2 += 2) {
+        const j = a[k2], cj = c + a[k2 + 1];
+        if (cj < g[j]) { g[j] = cj; prev[j] = i; push(j, cj); }
+      }
+    }
+    if (goal < 0) return wide ? null : taxiRoute(x, z, hd, spot, maxR, true);
+    const chain = [];
+    for (let i = goal; i >= 0; i = prev[i]) chain.push(i);
+    chain.reverse();
+    const out = [{ x, z }], ea = entry[chain[0]];
+    if (ea > 15) out.push({ x: x + sx * ea, z: z + sz * ea });
+    for (const i of chain) {
+      const q = { x: nodes[2 * i], z: nodes[2 * i + 1] }, l = out[out.length - 1];
+      if (Math.hypot(q.x - l.x, q.z - l.z) > 2) out.push(q);
+    }
+    out.push({ x: spot.x, z: spot.z });
+    return out;
+  }
+  /* try the closest few parking spots and keep the shortest real taxi route */
+  function taxiToPark(x, z, hd, maxD = 3500) {
+    const cand = spots.filter((q) => q.x !== undefined).map((q) => [Math.hypot(q.x - x, q.z - z), q]).filter((c) => c[0] < maxD).sort((a, b) => a[0] - b[0]).slice(0, 5);
+    let best = null;
+    for (const [, q] of cand) {
+      const r = taxiRoute(x, z, hd, q); if (!r) continue;
+      let len = 0; for (let i = 1; i < r.length; i++) len += Math.hypot(r[i].x - r[i - 1].x, r[i].z - r[i - 1].z);
+      if (!best || len < best.len) best = { spot: q, route: r, len };
+    }
+    return best || (cand.length ? { spot: cand[0][1], route: null, len: cand[0][0] } : null);
+  }
+  /* follow-the-greens lane drawn over the taxiways for the route in use (one unlit mesh, glows at night) */
+  let lane = null;
+  const laneMat = new THREE.MeshBasicMaterial({ color: 0x4dff74, transparent: true, opacity: 0.92, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -14 });
+  function clearTaxiLane() {
+    if (!lane) return;
+    root.remove(lane); lane.geometry.dispose(); lane = null;
+  }
+  function showTaxiLane(path) {
+    clearTaxiLane();
+    if (!path || path.length < 2) return;
+    const inv = (v) => (v - offset) / k + offset, flat = [];
+    for (const q of path) flat.push(inv(q.x), inv(q.z));
+    const P = [], I = [];
+    ribbon(flat, 1.6, 0.3 * k, P, I, [9, 5]);
+    if (!I.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setIndex(I);
+    lane = new THREE.Mesh(geo, laneMat); lane.name = 'taxi-lane'; lane.renderOrder = 2;
+    root.add(lane);
+  }
+  return { root, ready, inAerodrome, nearestSpot, taxiRoute, taxiToPark, showTaxiLane, clearTaxiLane };
 }

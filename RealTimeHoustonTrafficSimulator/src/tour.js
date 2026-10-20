@@ -1329,6 +1329,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         S.apt = ap.q.code; S.homeApt = ap.q.code;
         S.landApt = (apLand && apLand.q.code) || ap.q.code;
         S.phase = 'roll'; S.rollS = 0;
+        { const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane(); }
         S.trip0 = Math.hypot(dest.x - S.p.x, dest.z - S.p.z);
         S.flightT0 = performance.now();
         const cruiseKt = S.planeStyle === 'jet' ? 220 : 110;
@@ -1356,6 +1357,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   }
   function stop() {
     S.mode = null; S.hudHid = false; clearObj();
+    { const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane(); }
     audio.stop();
     try { music.clearDriverPin(); } catch (e) { /* ignore */ }
     music.stop();
@@ -1506,7 +1508,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     { const lsel = document.querySelector('#tourHud [data-land]'); if (lsel && code && lsel.value !== code) lsel.value = code; }
     const rw = pickRunway(code, S.p.x, S.p.z);
     if (!rw) { note('No runway data for ' + code + ' — pick another airport.'); return false; }
-    S.rw = rw;
+    S.rw = rw; S.appT = 0;
     const distRw = Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z);
     /* After landmark orbit (or Land now) we're already near the field — join short final.
        The old always-toFaf path flew a 9 km intercept and looked like a respawn. */
@@ -1581,17 +1583,26 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         S.v += (jet ? 4.5 : 2.2) * dt; S.rollS += S.v * dt; S.p.y = 1.4; S.vy = 0;
         if (S.v >= rotateKt * KT) S.phase = 'climb';
       } else if (S.phase === 'taxi') {
-        /* taxi at ~15 kt to the apron spot picked at touchdown, slowing for turns and the final stop */
-        const T2 = S.taxi, tdx = T2.x - S.p.x, tdz = T2.z - S.p.z, td = Math.hypot(tdx, tdz);
-        let dH = Math.atan2(tdx, tdz) - S.hd; while (dH > Math.PI) dH -= 2 * Math.PI; while (dH < -Math.PI) dH += 2 * Math.PI;
-        S.hd += Math.max(-0.4 * dt, Math.min(0.4 * dt, dH));
-        const wantT = td < 40 ? Math.max(1.2, td * 0.12) : Math.abs(dH) > 0.6 ? 3 : 8;
-        S.v += Math.max(-2 * dt, Math.min(1.2 * dt, wantT - S.v));
+        /* taxi at ~15–20 kt along the OSM taxiway route (green lane) to the apron spot, slowing for turns and the stop */
+        const T2 = S.taxi, P = T2.path;
+        let tgt = P[T2.i];
+        while (T2.i < P.length - 1 && Math.hypot(tgt.x - S.p.x, tgt.z - S.p.z) < Math.max(9, S.v * 2.2)) tgt = P[++T2.i];
+        const tdx = tgt.x - S.p.x, tdz = tgt.z - S.p.z, td = Math.hypot(tdx, tdz);
+        let rem = td;
+        for (let j = T2.i; j < P.length - 1; j++) rem += Math.hypot(P[j + 1].x - P[j].x, P[j + 1].z - P[j].z);
+        const wrapA = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+        const dH = wrapA(Math.atan2(tdx, tdz) - S.hd);
+        let turn = 0;
+        if (T2.i < P.length - 1 && td < 60) { const b = P[T2.i + 1]; turn = Math.abs(wrapA(Math.atan2(b.x - tgt.x, b.z - tgt.z) - Math.atan2(tdx, tdz))); }
+        S.hd += Math.max(-0.45 * dt, Math.min(0.45 * dt, dH * 1.6));
+        const wantT = rem < 40 ? Math.max(1.2, rem * 0.12) : Math.abs(dH) > 0.6 || turn > 0.9 ? 3.5 : turn > 0.4 ? 5.5 : rem > 300 && turn < 0.2 ? 11 : 8.5;
+        S.v += Math.max(-1.8 * dt, Math.min(1.0 * dt, wantT - S.v));
         S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4); S.vy = 0;
         S.pitch += (0 - S.pitch) * Math.min(1, dt * 3); S.roll += (0 - S.roll) * Math.min(1, dt * 3);
-        S.remain = td;
-        if (td < 5 || (T2.t = (T2.t || 0) + dt) > 300) {
+        S.remain = rem;
+        if ((T2.i >= P.length - 1 && td < 5) || (T2.t = (T2.t || 0) + dt) > 600) {
           S.phase = 'parked'; S.v = 0; S.remain = 0;
+          const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane();
           note('Parked on the ' + (S.rw ? S.rw.code : S.landApt) + ' apron (near ' + (S.dest ? S.dest.n : 'destination') + '). Pick another place to fly.');
         }
       } else if (S.phase === 'rollout' || S.phase === 'parked') {
@@ -1608,16 +1619,23 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           /* Forward motion comes from shared hv step below — avoid double-speed jump */
           S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4);
           S.vy *= Math.max(0, 1 - dt * 6);
-          S.pitch += (0.02 - S.pitch) * Math.min(1, dt * 3);
+          S.rollT = (S.rollT || 0) + dt;
+          S.pitch += ((S.phase === 'rollout' && S.rollT < 2.5 ? 0.055 : 0.0) - S.pitch) * Math.min(1, dt * 1.6);
           S.roll += (0 - S.roll) * Math.min(1, dt * 3);
-          if (along > rw.len * 0.92) S.v = Math.min(S.v, 8);
+          S._needDecel = S.v * S.v / (2 * Math.max(30, rw.len * 0.95 - along));
         } else {
           S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4);
         }
-        S.v = Math.max(0, S.v - (jet ? 3.2 : 2.2) * dt);
+        {
+          /* nose-wheel down first, then brakes/reversers, easing off as we slow to taxi speed */
+          const rt = S.rollT || 0, base = rt < 2 ? 0.8 : jet ? (S.v > 20 ? 2.1 : 1.5) : 1.3;
+          S.v = Math.max(0, S.v - Math.max(base, S.rw && S.phase === 'rollout' ? (S._needDecel || 0) * 1.15 : 0) * dt);
+        }
         const AP2 = window.HTS_AIRPORTS2, spot = S.phase === 'rollout' && S.v < 9 && S.taxiPark !== false && S.planeStyle !== 'heli' && AP2 && AP2.nearestSpot ? AP2.nearestSpot(S.p.x, S.p.z, 3500) : null;
         if (spot) {
-          S.phase = 'taxi'; S.taxi = { x: spot.x, z: spot.z, t: 0 };
+          const tp = AP2.taxiToPark ? AP2.taxiToPark(S.p.x, S.p.z, S.hd, 3500) : null, pk = (tp && tp.spot) || spot, route = tp && tp.route;
+          S.phase = 'taxi'; S.taxi = { x: pk.x, z: pk.z, t: 0, i: route ? 1 : 0, path: route || [{ x: pk.x, z: pk.z }] };
+          if (route && AP2.showTaxiLane) AP2.showTaxiLane(route);
           note('Landed ' + (S.rw ? S.rw.code + ' runway ' + S.rw.name : S.landApt) + ' — vacating the runway, taxiing to parking.');
         } else if (S.phase === 'rollout' && S.v < 0.45) {
           S.phase = 'parked'; S.v = 0; S.vy = 0; S.pitch = 0; S.roll = 0;
@@ -1646,56 +1664,58 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         }
         if (S.phase === 'toFaf' || S.phase === 'final') {
           const rw = S.rw, ux = Math.sin(rw.hd), uz = Math.cos(rw.hd);
-          const ax = rw.tx + ux * 220, az = rw.tz + uz * 220;
+          const aim = jet ? 200 : 120, ax = rw.tx + ux * aim, az = rw.tz + uz * aim;
           const along = (S.p.x - ax) * ux + (S.p.z - az) * uz, xt = (S.p.x - ax) * uz - (S.p.z - az) * ux;
+          let hErr = S.hd - rw.hd; while (hErr > Math.PI) hErr -= 2 * Math.PI; while (hErr < -Math.PI) hErr += 2 * Math.PI;
+          if (S.phase === 'final') S.appT = (S.appT || 0) + dt;
           if (S.phase === 'toFaf') {
             const distToRw = Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z);
-            const fafDist = Math.min(S.landNow ? 7000 : 9000, Math.max(2200, distToRw * 0.68));
+            const fafDist = S.landNow ? (jet ? 5500 : 3800) : (jet ? 7500 : 5000);
             const fx = rw.tx - ux * fafDist, fz = rw.tz - uz * fafDist;
             wantHd = Math.atan2(fx - S.p.x, fz - S.p.z);
             wantV = (jet ? 140 : 100) * KT; wantY = Math.max(800, Math.min(cruiseAlt, 1500)) * FT;
             const dFaf = Math.hypot(fx - S.p.x, fz - S.p.z);
-            if (dFaf < (S.landNow ? 700 : 900) || (along < -800 && along > -fafDist - 500 && Math.abs(xt) < (S.landNow ? 900 : 600)) || distToRw < 2800) {
+            /* join at the fix (inside one turn radius, so it can't orbit it), or anywhere on the extended centreline heading in */
+            if (dFaf < Math.max(700, S.v / 0.1 * 1.3) || (along < -1500 && Math.abs(xt) < -along * 0.3 && Math.abs(hErr) < 0.9)) {
               S.phase = 'final';
               S.flare = 0;
             }
             S.remain = distToRw;
           } else {
             /* Smooth final: glide path + flare, no teleport on touchdown */
-            const kXt = S.landNow ? 0.006 : 0.0035;
-            wantHd = Math.atan2(ax - S.p.x, az - S.p.z);
-            if (along > -5000 && Math.abs(xt) < 1600) wantHd = rw.hd + Math.max(-0.55, Math.min(0.55, xt * kXt));
+            const kXt = S.landNow ? 0.0035 : 0.0025;
+            /* steer back toward the centreline (+xt is right of it, so turn left) */
+            wantHd = along < -6500 || Math.abs(xt) > 2500 ? Math.atan2(ax - S.p.x, az - S.p.z) : rw.hd - Math.max(-0.6, Math.min(0.6, xt * kXt));
+            const lined = Math.abs(xt) < Math.max(120, -along * 0.35) && Math.abs(hErr) < 0.9;
+            if (!lined && along > -1800 && S.p.y > 12 && !(S.flare > 0.05)) {
+              /* too close to line up: fly back out to the fix instead of circling the runway */
+              S.phase = 'toFaf'; S.landNow = true; S.flare = 0;
+              note('Lining up · flying out to final for ' + rw.code + ' runway ' + rw.name + '.');
+            }
             /* Soft lateral nudge toward centerline while still airborne */
             if (Math.abs(xt) < 220 && along > -4500) {
               S.p.x -= xt * Math.min(0.45, dt * 0.7) * uz;
               S.p.z += xt * Math.min(0.45, dt * 0.7) * ux;
             }
             const gsY = Math.max(1.4, (-along) * Math.tan(3 * Math.PI / 180) + 1.4);
-            const flareH = jet ? 28 : 18;
-            if (S.p.y < flareH || gsY < flareH) {
-              S.flare = Math.min(1, (S.flare || 0) + dt * 0.6);
-              wantV = (jet ? 78 : 58) * KT * (1 - 0.12 * S.flare);
-              wantY = 1.4 + (gsY - 1.4) * (1 - 0.72 * S.flare);
+            const flareH = jet ? 10 : 6;
+            if ((S.p.y < flareH && along > -700) || along > -aim + 30) {
+              S.flare = Math.min(1, (S.flare || 0) + dt * 0.9);
+              wantV = (jet ? 84 : 58) * KT * (1 - 0.08 * S.flare);
+              wantY = 1.4;
             } else {
               S.flare = Math.max(0, (S.flare || 0) - dt * 0.4);
-              wantV = (jet ? 90 : 65) * KT;
+              wantV = (jet ? 92 : 65) * KT;
               wantY = gsY;
             }
             S.remain = Math.max(0, Math.hypot(rw.tx - S.p.x, rw.tz - S.p.z));
-            const nearDeck = S.p.y <= 4.8 && along > -380 && Math.abs(xt) < 150;
-            const pastThresh = along > -90 && S.p.y < 14 && Math.abs(xt) < 200;
-            const overDeck = along > 40 && along < rw.len * 0.95 && S.p.y < 32;
-            if (nearDeck || pastThresh || overDeck) {
+            /* touchdown = wheels on the deck past the threshold; rollout eases any residual offset onto the centreline */
+            if (S.p.y <= 1.5 && along > -aim - 200 && along < rw.len - aim && Math.abs(xt) < 120) {
               S.phase = 'rollout';
               S.landNow = false;
-              S.flare = 0;
-              S.vy = Math.min(S.vy, -0.35);
-              if (Math.abs(xt) > 35) {
-                S.p.x -= xt * 0.55 * uz;
-                S.p.z += xt * 0.55 * ux;
-              }
-              S.p.y = Math.max(1.4, Math.min(S.p.y, 3.2));
-            } else if (along > rw.len + 350 && S.p.y > 10) {
+              S.flare = 0; S.rollT = 0;
+              S.p.y = 1.4; S.vy = 0;
+            } else if ((along > rw.len + 350 && S.p.y > 10) || (S.appT > 360 && !lined)) {
               /* Missed — one short go-around, then plant on second try */
               if (!S._ga) {
                 S._ga = 1;
@@ -1722,12 +1742,16 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           let climbRate = (wantY - S.p.y) * (S.phase === 'final' ? 0.35 : S.phase === 'climb' ? 0.12 : 0.1);
           if (S.phase === 'final') {
             /* Cap sink so we don't slam into the deck */
-            const maxSink = (S.flare || 0) > 0.2 ? 2.2 : 3.6;
-            climbRate = Math.max(-maxSink, Math.min(2.4, climbRate));
+            if ((S.flare || 0) > 0) {
+              /* flare: sink decays with height down to a ~90 fpm touchdown, blended in as the flare builds */
+              const flareRate = -Math.max(0.45, (S.p.y - 1.4) * 0.5);
+              climbRate = climbRate + (flareRate - climbRate) * S.flare;
+            }
+            climbRate = Math.max(-3.6, Math.min(2.4, climbRate));
             S.vy += (climbRate - (S.vy || 0)) * Math.min(1, dt * 1.4);
             S.p.y = Math.max(1.4, S.p.y + S.vy * dt);
-            /* Ease onto glide path — never hard-clamp mid-air */
-            S.p.y += (wantY - S.p.y) * Math.min(1, dt * 1.1);
+            /* hold the glide path while stabilised; the flare is flown on sink rate alone */
+            if (!(S.flare > 0.05)) S.p.y += (wantY - S.p.y) * Math.min(1, dt * 0.6);
             if (S.p.y < 1.45) { S.p.y = 1.4; S.vy = Math.min(0, S.vy); }
           } else {
             climbRate = Math.max(-5, Math.min(S.phase === 'climb' ? 3.6 : 3.2, climbRate));
