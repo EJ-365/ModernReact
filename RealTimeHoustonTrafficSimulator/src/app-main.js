@@ -1,10 +1,13 @@
 /* Extracted from app.html — loaded via src/boot.js after Three Vite bridge */
 import { loadOsmCity } from './render/osm-city.js';
 import { createHoustonRoads } from './render/houston-roads.js';
+import { createCelebrations } from './fx/celebrate.js';
 import { createHoustonLand } from './render/houston-land.js';
 import { createHoustonSigns } from './render/houston-signs.js';
 import { createHoustonTolls } from './render/houston-tolls.js';
+import { createHoustonTollRoads } from './render/houston-toll-roads.js';
 import { createTour } from './tour.js';
+import { createAmbient, AMBIENT_SCENES } from './ambient.js';
 import { createRoutePlanner } from './route/route-planner.js';
 import { attachPlaceSearch } from './ui/place-search.js';
 import { createHoustonTraffic } from './render/houston-traffic.js';
@@ -54,7 +57,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.32.0 (tour-airports-sky). If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.67.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -1016,7 +1019,9 @@ const canvas=document.getElementById('scene');
 /* Windows: skip MSAA + DPR 1.0 — biggest free FPS win on this city mesh. */
 const _isWin=/Windows/i.test(navigator.userAgent||'');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:!_isWin&&!HTS_PEEK,powerPreference:'high-performance',
-  stencil:false,depth:true,alpha:false,preserveDrawingBuffer:false});
+  stencil:false,depth:true,alpha:false,preserveDrawingBuffer:false,
+  /* reversed-Z depth (where the GPU supports it): the 1 m - 300 km view range no longer z-fights far-off land, roofs and lanes into blinking glitter */
+  reverseDepthBuffer:true});
 renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=(THREE.SRGBColorSpace||THREE.sRGBEncoding);
@@ -1090,8 +1095,8 @@ const sunDisc=(function(){
   const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
   const g=x.createRadialGradient(128,128,4,128,128,128);
   g.addColorStop(0,'rgba(255,255,255,1)');
-  g.addColorStop(0.13,'rgba(255,250,235,1)');
-  g.addColorStop(0.2,'rgba(255,238,190,.92)');
+  g.addColorStop(0.16,'rgba(255,252,240,1)');
+  g.addColorStop(0.21,'rgba(255,240,200,.95)');
   g.addColorStop(0.34,'rgba(255,214,140,.4)');
   g.addColorStop(0.6,'rgba(255,190,110,.12)');
   g.addColorStop(1,'rgba(255,180,100,0)');
@@ -1123,25 +1128,31 @@ const sunGlare=(function(){const c=document.createElement('canvas');c.width=c.he
 
 /* ---------------- cumulus clouds (multi-puff billboards) ---------------- */
 function cloudTexture(){
-  const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');
-  const base=92;
-  const puffs=8+Math.floor(rand()*5);
-  for(let p=0;p<puffs;p++){
-    const px=34+rand()*188, pr=20+rand()*30;
-    const py=base-pr*(0.45+rand()*0.5);
-    const g=x.createRadialGradient(px,py,pr*0.1,px,py,pr);
-    g.addColorStop(0,'rgba(255,255,255,.95)');
-    g.addColorStop(0.55,'rgba(250,252,255,.55)');
-    g.addColorStop(1,'rgba(245,248,255,0)');
+  /* cumulus built from hundreds of small soft puffs inside a wide, lumpy dome (2-3 towers) — irregular fluffy edges, flat shaded base */
+  const W=512,H=256,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const base=H*0.8,cx0=W*0.5,half=W*(0.34+rand()*0.11),top=H*(0.42+rand()*0.2);
+  const towers=[];for(let k=0,n=2+Math.floor(rand()*2);k<n;k++)towers.push([rand()*1.4-0.7,0.18+rand()*0.2,0.35+rand()*0.45]);
+  const prof=(u)=>{let h=Math.pow(Math.max(0,1-u*u),0.65)*0.55;for(const [tu,tw,th] of towers)h+=th*Math.exp(-((u-tu)*(u-tu))/(2*tw*tw));return Math.min(1,h)*top;};
+  for(let k=0;k<420;k++){
+    const u=(rand()*2-1)*Math.pow(rand(),0.35),hh=prof(u);if(hh<6)continue;
+    const v=Math.pow(rand(),0.8),px=cx0+u*half,py=base-v*hh,pr=(7+rand()*16)*(0.6+0.6*(1-v*0.5));
+    const lit=0.82+0.18*v,a=0.16+rand()*0.16;
+    const g=x.createRadialGradient(px-pr*0.2,py-pr*0.3,pr*0.1,px,py,pr);
+    const cc=Math.round(255*lit),cb=Math.round(cc*0.985+4);
+    g.addColorStop(0,'rgba('+cc+','+cc+','+Math.min(255,cb)+','+a+')');g.addColorStop(0.6,'rgba('+cc+','+cc+','+Math.min(255,cb)+','+(a*0.55)+')');g.addColorStop(1,'rgba('+cc+','+cc+','+Math.min(255,cb)+',0)');
     x.fillStyle=g;x.beginPath();x.arc(px,py,pr,0,TAU);x.fill();
   }
-  const sg=x.createLinearGradient(0,base-26,0,base+6);
-  sg.addColorStop(0,'rgba(0,0,0,0)');sg.addColorStop(1,'rgba(150,165,190,.28)');
+  /* sun-lit crowns, blue-grey shading toward the base, then a soft flat bottom */
   x.globalCompositeOperation='source-atop';
-  x.fillStyle=sg;x.fillRect(0,0,256,128);
+  const sg=x.createLinearGradient(0,base-top,0,base);
+  sg.addColorStop(0,'rgba(255,255,255,.25)');sg.addColorStop(0.5,'rgba(150,162,184,.10)');sg.addColorStop(1,'rgba(98,112,138,.5)');
+  x.fillStyle=sg;x.fillRect(0,0,W,H);
+  x.globalCompositeOperation='destination-out';
+  const cut=x.createLinearGradient(0,base-8,0,base+6);cut.addColorStop(0,'rgba(0,0,0,0)');cut.addColorStop(1,'rgba(0,0,0,1)');
+  x.fillStyle=cut;x.fillRect(0,base-8,W,H-base+8);
   x.globalCompositeOperation='source-over';
-  fadeCloudEdges(x,256,128);
-  const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+  fadeCloudEdges(x,W,H);
+const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
 }
 /* altocumulus / "mackerel sky": rows of small cells — the dotted clouds that light up pink/orange at sunset */
 function dottedCloudTexture(){
@@ -6224,7 +6235,7 @@ window.updateCrowds=(function(){
     const g=mergeGeoms([body,head]);
     g.computeVertexNormals();return g;
   })();
-  const peds=new THREE.InstancedMesh(pedGeom,new THREE.MeshLambertMaterial({}),NP);
+  const peds=new THREE.InstancedMesh(pedGeom,new THREE.MeshLambertMaterial({}),NP);peds.frustumCulled=false;
   scene.add(peds);
   /* clothing / skin tones — Houston mix */
   const PCOLS=[0xc7cbd1,0x8c4a3a,0x2b4a7a,0x3a6b3f,0xd9a91f,0x6a4a8a,0xe8e8ea,0x1f2530,
@@ -6277,7 +6288,7 @@ window.updateCrowds=(function(){
     const rider=new THREE.BoxGeometry(0.42,0.85,0.3);rider.translate(0,1.2,-0.1);
     const g=mergeGeoms([frame,rider]);g.computeVertexNormals();return g;
   })();
-  const bikes=new THREE.InstancedMesh(bikeGeom,new THREE.MeshLambertMaterial({}),NB);
+  const bikes=new THREE.InstancedMesh(bikeGeom,new THREE.MeshLambertMaterial({}),NB);bikes.frustumCulled=false;
   scene.add(bikes);
   const bikeTrails=(HTS_IS_AUS?[LADYBIRD,SHOAL,BARTON_CK]:(HTS_HAS_PACK?(LADYBIRD.length>=2?[LADYBIRD]:[]):[BAYOU,WHITEOAK,BRAYS]))
     .filter(pts=>pts&&pts.length>=2)
@@ -6347,7 +6358,7 @@ window.updateCrowds=(function(){
   };
 })();
 
-/* pulsing congestion hotspot rings — color/opacity from live traffic */
+/* steady congestion hotspot rings — color from live traffic (red = jam, orange = heavy) */
 window.HOTRINGS=[];
 (function(){
   function ringTex(hex){
@@ -6585,6 +6596,7 @@ const poolMat=new THREE.MeshBasicMaterial({map:poolTex,transparent:true,opacity:
 const pools=new THREE.InstancedMesh(poolGeo,poolMat,MAX_INST);
 pools.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 for(let i=0;i<MAX_INST;i++)pools.setColorAt(i,_white);
+for(const m of [bodies,cabs,extras,wheels,heads2,tails,pools])m.frustumCulled=false;
 scene.add(pools);
 let totalVeh=0,speedSum=0;
 if(window.HTS_DEBUG)Object.defineProperties(window.HTS_DEBUG,{veh:{get:()=>totalVeh},flights:{get:()=>window.LIVE_FLIGHTS?window.LIVE_FLIGHTS.size:-1}});
@@ -8734,8 +8746,8 @@ function flyToMyLocation(){
       if(window.HTS_TOUR&&HTS_TOUR.active)try{HTS_TOUR.stop();}catch(e){}
       camGoal.target.set(userWorld.x,0,userWorld.z);
       /* Close enough to read the pin / house, not buried under the camera */
-      camGoal.radius=clamp(320*WS,260,900);
-      camGoal.phi=1.05;
+      camGoal.radius=170;
+      camGoal.phi=0.9;
       userPin.visible=!userHome; /* one icon: the home pin replaces the generic pin */
       userHalo.visible=false;
       if(userHome)userHome.visible=true;
@@ -8810,13 +8822,14 @@ function applyGeoPosition(pos,forceWx){
   return true;
 }
 function requestGeo(cb){
-  if(userGeo&&userGeo.acc!=null&&userGeo.acc<=80){
+  /* any fix from the last 10 min answers instantly; the watch keeps refining it in the background */
+  if(userGeo&&((userGeo.acc!=null&&userGeo.acc<=80)||(geoWatchId!=null&&Date.now()-(userGeo.at||0)<600000))){
     fetchLocalWeather(userGeo.lat,userGeo.lng,false);
     return cb&&cb();
   }
   if(!navigator.geolocation)return cb&&cb();
   geoAsked=true;
-  const opts={enableHighAccuracy:true,timeout:18000,maximumAge:0};
+  const opts={enableHighAccuracy:false,timeout:8000,maximumAge:120000};
   navigator.geolocation.getCurrentPosition(
     pos=>{
       applyGeoPosition(pos,true);
@@ -8844,6 +8857,22 @@ function maybePromptGeo(){
 }
 /* locate-me: fly to house / blue dot */
 document.getElementById('locBtn').addEventListener('click',()=>flyToMyLocation());
+/* ambient soundscapes: pick one (or Off) while exploring; muted automatically in car/aircraft tours */
+const AMB=createAmbient();window.HTS_AMBIENT=AMB;
+(function(){const btn=$('ambBtn'),menu=$('ambMenu'),list=$('ambList'),vol=$('ambVol');if(!btn)return;
+  let sel=null;try{sel=localStorage.getItem('hts-amb')||null;}catch(_e){}
+  try{const v=+localStorage.getItem('hts-amb-vol');if(v>=0&&localStorage.getItem('hts-amb-vol')!=null)vol.value=v;}catch(_e){}
+  AMB.setVolume(vol.value/100);
+  const render=()=>{list.innerHTML='';for(const o of [{id:'',name:'Off'}].concat(AMBIENT_SCENES)){const b=document.createElement('button');b.type='button';b.textContent=o.name;b.className=(AMB.scene||'')===o.id?'on':'';
+    b.addEventListener('click',e=>{e.stopPropagation();AMB.play(o.id||null);try{localStorage.setItem('hts-amb',o.id);}catch(_e){}render();});list.appendChild(b);}
+    btn.classList.toggle('on',!!AMB.scene);};
+  btn.addEventListener('click',e=>{e.stopPropagation();menu.hidden=!menu.hidden;btn.setAttribute('aria-expanded',String(!menu.hidden));render();});
+  menu.addEventListener('click',e=>e.stopPropagation());
+  document.addEventListener('click',()=>{if(!menu.hidden){menu.hidden=true;btn.setAttribute('aria-expanded','false');}});
+  vol.addEventListener('input',()=>{AMB.setVolume(vol.value/100);try{localStorage.setItem('hts-amb-vol',vol.value);}catch(_e){}});
+  /* browsers need a gesture before audio: resume the saved scene on the first tap */
+  if(sel){const go=()=>{window.removeEventListener('pointerdown',go);if(!AMB.scene)AMB.play(sel);render();};window.addEventListener('pointerdown',go);}
+  render();})();
 /* geoToWorld / worldToGeo defined near UNITS_PER_MILE */
 
 /* ---------------- LIVE traffic: TranStar primary + TomTom fallback ----------------
@@ -9655,7 +9684,11 @@ function updateLiveFlights(dt){
       f._yawRate=rd/Math.max(dt,0.001);
     }
     f._yawPrev=f._yaw;
-    if(f.m.userData&&f.m.userData.gear)f.m.userData.gear.visible=(cls!=='heli'&&altFt!=null&&altFt<2800);
+    if(f.m.userData&&f.m.userData.gear){
+      /* gear up in cruise; down only on the ground / initial climb (<400 ft) or on a descending final approach */
+      const arr=corr&&corr.mode==='arr';
+      f.m.userData.gear.visible=cls!=='heli'&&altFt!=null&&(altFt<400||(altFt<2200&&(arr||vsFpm<-300))||(arr&&altFt<3000&&vsFpm<-200));
+    }
     f._placed=true;
   }
 }
@@ -12703,7 +12736,7 @@ function envUpdate(dt,h){
   /* low sun: bigger, redder; overcast/rain: dimmer, hazier — sun disc nearly gone when socked in */
   const lowSun=clamp(1-sy*1.7,0,1);
   /* the real sun is ~0.5° wide; atmospheric haze makes it look only slightly larger at sunrise/sunset */
-  const sscl=430*(1+lowSun*0.22)*(1-cl*0.35);
+  const sscl=560*WS*(1+lowSun*0.3)*(1-cl*0.35);
   sunDisc.scale.set(sscl,sscl,1);
   sunDisc.material.color.copy(_sc2Sun(_sc,h));
   sunDisc.material.opacity=clamp(sy*3,0,1)*(1-cl)*(1-rainF*0.5);
@@ -12805,14 +12838,12 @@ function envUpdate(dt,h){
         const m=RM[key]; if(!m||!m.color)continue;
         if(!m.userData._dayCol)m.userData._dayCol=m.color.clone();
         if(key==='surface'){
-          m.color.copy(m.userData._dayCol).multiplyScalar(lerp(1,0.22,nightF));
-          m.color.r=lerp(m.color.r,0.22,nightF*0.55);
-          m.color.g=lerp(m.color.g,0.16,nightF*0.45);
-          m.color.b=lerp(m.color.b,0.1,nightF*0.35);
+          /* night asphalt stays neutral grey (only the streetlight pools are warm) so the grain and lane paint read like a real road */
+          m.color.copy(m.userData._dayCol).multiplyScalar(lerp(1,0.34,nightF));
           if(m.emissive&&m.emissive.isColor){
             if(!m.userData._baseEm)m.userData._baseEm=m.emissive.clone();
-            m.emissive.setRGB(0.18*nightF,0.12*nightF,0.05*nightF);
-            m.emissiveIntensity=nightF*(cam.radius>900?0.35:0.18);
+            m.emissive.setRGB(0.05*nightF,0.05*nightF,0.055*nightF);
+            m.emissiveIntensity=nightF*(cam.radius>900?0.5:0.35);
           }
         }else{
           const mul=key==='deck'||key==='pier'||key==='under'?lerp(1,0.2,nightF):lerp(1,0.38,nightF);
@@ -12823,7 +12854,8 @@ function envUpdate(dt,h){
       for(const key of ['lineW','lineY','dashW']){
         const m=RM[key]; if(!m||!m.color)continue;
         if(!m.userData._dayCol)m.userData._dayCol=m.color.clone();
-        const nightMul=key==='lineY'?0.12:0.08;
+        /* retroreflective paint: still clearly brighter than the asphalt at night up close */
+        const nightMul=key==='lineY'?0.42:0.4;
         m.color.copy(m.userData._dayCol).multiplyScalar(lerp(1,nightMul,nightF)*lerp(1,Math.max(0.05,paintZoom),nightF));
         m.visible=!(nightF>0.4&&cam.radius>1000);
       }
@@ -13797,6 +13829,7 @@ function frame(now){
   }
   /* Day/night + sun/moon follow simH (same as early builds) so 5/30 min/s is a real time-lapse */
   const nightF=envUpdate(dt,simH);window._nightF=nightF;
+  try{if(!window.HTS_CELEB){window.HTS_CELEB=createCelebrations({scene,camera,u:UNITS_PER_MILE/1609.344});HTS_CELEB.bindUI();}HTS_CELEB.update(dt,nightF);}catch(e){if(!window._celebErr){window._celebErr=1;console.warn('[HTS] celebrations',e);}}
   {
     const tTarget=inOSM?0:clamp((cam.radius-4200*WS)/(3200*WS),0,1);
     mapT+=(tTarget-mapT)*0.07;
@@ -13852,7 +13885,7 @@ function frame(now){
     }
     {
       /* Hotspot rings: only when traffic is actually heavy — not a rush-hour decoration */
-      const pulse=0.9+0.1*Math.sin(simClock*0.004);
+      /* steady markers: no pulse, and hysteresis so a ring near a threshold doesn't blink on/off or flip red/orange */
       let worst=null,worstC=-1;
       /* Stagger: recompute a few rings/frame; others keep last cong + pulse opacity */
       const hrN=HOTRINGS.length,_hrOff=((simClock/90)|0)%Math.max(1,hrN);
@@ -13861,17 +13894,17 @@ function frame(now){
         if(hi<5){
           const info=hotspotLiveCong(hr.hs);
           const cong=(typeof info==='object'&&info)?info.cong:0;
-          hr.cong=lerp(hr.cong||0,cong,0.22);
+          hr.cong=lerp(hr.cong||0,cong,0.12);
         }
-        const show=hr.cong>=0.52; /* heavy+ only */
-        const tier=hr.cong>=0.72?'jam':'heavy';
+        const show=hr.shown?hr.cong>=0.46:hr.cong>=0.54; hr.shown=show; /* heavy+ only */
+        const tier=hr.tier==='jam'?(hr.cong>=0.66?'jam':'heavy'):(hr.cong>=0.74?'jam':'heavy');
         if(show&&tier!==hr.tier){
           hr.tier=tier;
           hr.mat.map=hr.TEX[tier];
           hr.mat.needsUpdate=true;
         }
         const op=show
-          ? clamp((hr.cong-0.52)/0.4,0.14,0.46)*pulse*clamp(1-mapT*0.85,0.2,1)*(inOSM?0:1)
+          ? (tier==='jam'?0.5:0.36)*clamp(1-mapT*0.85,0.2,1)*(inOSM?0:1)
           : 0;
         hr.mat.opacity=op;
         hr.mesh.visible=op>0.08&&!inOSM;
@@ -13934,6 +13967,7 @@ function frame(now){
   }
   /* Tour update first so Free look (orbit) gets a fresh target before applyCam */
   if(!HTS_PEEK&&window.HTS_TOUR)HTS_TOUR.update(dt);
+  {const _tb=!!(window.HTS_TOUR&&HTS_TOUR.active);AMB.setBlocked(_tb);if(document.body.classList.contains('tour-on')!==_tb)document.body.classList.toggle('tour-on',_tb);}
   const _tourOn=window.HTS_TOUR&&HTS_TOUR.active;
   const _tourOrbit=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.view==='orbit';
   if(!_tourOn||_tourOrbit)applyCam();
@@ -14099,6 +14133,7 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
     if(!HTS_PEEK){
       hr.ready.then(()=>{
         const tl=createHoustonTolls({parent:scene,heightAt:hr.heightAt});window.HTS_TOLLS=tl;
+        window.HTS_TOLLROADS=createHoustonTollRoads({parent:scene,heightAt:hr.heightAt});
         tl.ready.then((st)=>console.log('%cHouston toll gantries: '+JSON.stringify(st),'color:#b9a3e3')).catch((e)=>console.warn('[HTS] tolls',e&&e.message));
       }).catch(()=>{});
       fetch('/data/houston/airports.json').then((r)=>r.json()).then((d)=>{
@@ -14543,6 +14578,7 @@ if('serviceWorker' in navigator){
     const r=p.getBoundingClientRect();
     const open=r.width>40&&getComputedStyle(p).display!=='none'&&!document.body.classList.contains('right-collapsed');
     b.style.right=open?Math.round(innerWidth-r.left+16)+'px':'';
+    for(const id of ['ambWrap','tollWrap']){const a=document.getElementById(id);if(a)a.style.right=b.style.right;}
   };
   addEventListener('resize',place);
   new MutationObserver(place).observe(document.body,{attributes:true,attributeFilter:['class']});
@@ -14551,4 +14587,20 @@ if('serviceWorker' in navigator){
   p.addEventListener('transitionend',place);
   new MutationObserver(()=>setTimeout(place,360)).observe(document.body,{attributes:true,attributeFilter:['class']});
   setTimeout(place,500);place();
+})();
+/* toll roads toggle: purple overlay of Houston's tolled freeways (OSM ref/name tags) + legend with miles per corridor */
+(function(){
+  const btn=document.getElementById('tollBtn'),leg=document.getElementById('tollLegend');if(!btn||!leg)return;
+  btn.addEventListener('click',()=>{
+    const T=window.HTS_TOLLROADS;
+    if(!T){leg.hidden=false;leg.innerHTML='<b>Toll roads</b><div>Loading Houston roads…</div>';setTimeout(()=>{leg.hidden=true;},2500);return;}
+    const on=!T.visible;btn.classList.toggle('active',on);btn.setAttribute('aria-pressed',on);
+    if(!on){T.setVisible(false);leg.hidden=true;return;}
+    leg.hidden=false;leg.innerHTML='<b>Toll roads</b><div>Loading…</div>';
+    T.setVisible(true).then((st)=>{
+      if(!T.visible)return;
+      const rows=Object.entries(st.corridors).sort((a,b)=>b[1]-a[1]).map(([n,m])=>'<li><i></i>'+n+' <small>'+Math.round(m/2)+' mi</small></li>').join('');
+      leg.innerHTML='<b>Toll roads</b> <small>EZ TAG / TxTag — no cash lanes</small><ul>'+rows+'</ul>';
+    }).catch(()=>{leg.innerHTML='<b>Toll roads</b><div>Could not load road data</div>';});
+  });
 })();

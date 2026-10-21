@@ -500,20 +500,38 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
   const laneMat = new THREE.MeshBasicMaterial({ color: 0x4dff74, transparent: true, opacity: 0.92, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -14 });
   function clearTaxiLane() {
     if (!lane) return;
-    root.remove(lane); lane.geometry.dispose(); lane = null;
+    root.remove(lane); lane.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); lane = null;
+  }
+  /* taxi route as a lit lane: a tinted strip the width of a taxiway, solid green centreline ("follow the greens") and yellow edge lines */
+  const laneBedMat = new THREE.MeshBasicMaterial({ color: 0x1f6b3a, transparent: true, opacity: 0.34, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  const laneEdgeMat = new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -14 });
+  function offsetLine(flat, d) {
+    const out = [];
+    for (let i = 0; i < flat.length; i += 2) {
+      const a = Math.max(0, i - 2), b = Math.min(flat.length - 2, i + 2);
+      let dx = flat[b] - flat[a], dz = flat[b + 1] - flat[a + 1]; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+      out.push(flat[i] - dz * d, flat[i + 1] + dx * d);
+    }
+    return out;
   }
   function showTaxiLane(path) {
     clearTaxiLane();
     if (!path || path.length < 2) return;
     const inv = (v) => (v - offset) / k + offset, flat = [];
     for (const q of path) flat.push(inv(q.x), inv(q.z));
-    const P = [], I = [];
-    ribbon(flat, 1.6, 0.3 * k, P, I, [9, 5]);
-    if (!I.length) return;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setIndex(I);
-    lane = new THREE.Mesh(geo, laneMat); lane.name = 'taxi-lane'; lane.renderOrder = 2;
-    root.add(lane);
+    const mk = (pts, w, y, mat, dash, ro) => {
+      const P = [], I = []; ribbon(pts, w, y, P, I, dash);
+      if (!I.length) return null;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setIndex(I);
+      const m = new THREE.Mesh(geo, mat); m.renderOrder = ro; return m;
+    };
+    const g = new THREE.Group(); g.name = 'taxi-lane';
+    const bed = mk(flat, 14, 0.26 * k, laneBedMat, null, 1); if (bed) g.add(bed);
+    for (const sd of [-6.6, 6.6]) { const e = mk(offsetLine(flat, sd), 0.45, 0.28 * k, laneEdgeMat, null, 2); if (e) g.add(e); }
+    const c = mk(flat, 0.9, 0.3 * k, laneMat, null, 3); if (c) g.add(c);
+    if (!g.children.length) return;
+    lane = g; root.add(lane);
   }
   return { root, ready, inAerodrome, nearestSpot, taxiRoute, taxiToPark, showTaxiLane, clearTaxiLane };
 }

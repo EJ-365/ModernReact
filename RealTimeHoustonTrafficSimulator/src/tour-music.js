@@ -7,6 +7,13 @@
 const TRACKS = [
   /* Verified embeddable (YouTube oEmbed) — Oct 2026 refresh */
   { g: 'afrobeat', id: 'CQLsdm1ZYAw', title: 'Calm Down' },
+  { g: 'afrobeat', id: 'fX2R7gkQhyg', title: 'Met You', a: 'Carter Efe ft. Taylor Jasmine' },
+  { g: 'afrobeat', id: 'Ra1yHDcJygY', title: 'you', a: 'FOLA' },
+  { g: 'afrobeat', id: 'xRiw_5aBEjM', title: "it's over", a: 'FOLA, Bella Shmurda, Zlatan' },
+  { g: 'afrobeat', id: 'JsS7DPlED7g', title: 'treat u right', a: 'FOLA, Ayra Starr' },
+  { g: 'afrobeat', id: 'KJXn2aoRJd8', title: 'who does that?', a: 'FOLA ft. Bella Shmurda' },
+  { g: 'afrobeat', id: '-nCnj-edeTE', title: 'Lost', a: 'FOLA, Kizz Daniel' },
+  { g: 'afrobeat', id: 'bLQXZFdVglQ', title: 'Very Soon', a: 'BNXN, FOLA' },
   { g: 'afrobeat', id: 'jipQpjUA_o8', title: 'Essence' },
   { g: 'afrobeat', id: 'D-YDEyuDxWU', title: 'Love Nwantiti' },
   { g: 'afrobeat', id: 'lPe09eE6Xio', title: 'Ye' },
@@ -45,6 +52,7 @@ const TRACKS = [
   { g: 'pop', id: 'ZbZSe6N_BXs', title: 'Happy' },
   { g: 'hiphop', id: 'H58vbez_m4E', title: 'Not Like Us' },
   { g: 'hiphop', id: '6ONRf7h3Mdk', title: 'SICKO MODE' },
+  { g: 'hiphop', id: 'vBk30V8AukM', title: 'Solar Eclipse', a: 'Drake, Don Toliver' },
   { g: 'hiphop', id: 'tvTRZJ-4EyI', title: 'HUMBLE.' },
   { g: 'hiphop', id: 'xFYQQPAOz7Y', title: 'Lose Yourself' },
   { g: 'hiphop', id: 'xvZqHgFz51I', title: 'Mask Off' },
@@ -53,6 +61,7 @@ const TRACKS = [
   { g: 'hiphop', id: 'UceaB4D0jpo', title: 'Rockstar' },
   { g: 'hiphop', id: '7ZAYzLjQAd4', title: 'Still Tippin\'' },
   { g: 'country', id: 'bUjPPBxbQrQ', title: 'Last Night' },
+  { g: 'country', id: 'hLOheGDwD_0', title: "Choosin' Texas", a: 'Ella Langley' },
   { g: 'country', id: 'Fr7oYjnt3bM', title: 'Fast Car' },
   { g: 'country', id: 'ZVVvJjwzl6c', title: 'I Remember Everything' },
   { g: 'country', id: '4zAThXFOy2c', title: 'Tennessee Whiskey' },
@@ -380,6 +389,63 @@ const TRACKS = [
   { g: 'rock', id: 'eBG7P-K-r1Y', title: 'Everlong' },
   { g: 'rock', id: 'bpOSxM0rNPM', title: 'Do I Wanna Know?' },
   { g: 'rock', id: 'gGdGFtwCNBE', title: 'Mr. Brightside' },
+  /* movie soundtracks + Like A Prayer (choir version) — official uploads, oEmbed-verified */
+  { g: 'movies', id: 'NdzOv1t8Ie4', title: 'Like A Prayer (Choir Version, Deadpool & Wolverine)', artist: 'Madonna' },
+  { g: 'movies', id: 'c56t7upa8Bk', title: 'Time (Inception)', artist: 'Hans Zimmer' },
+  { g: 'movies', id: 'HV1CMDhemt0', title: 'First Step (Interstellar)', artist: 'Hans Zimmer' },
+  { g: 'movies', id: 'siwpn14IE7E', title: 'Danger Zone (Top Gun)', artist: 'Kenny Loggins' },
+  { g: 'movies', id: 'btPJPFnesV4', title: 'Eye Of The Tiger (Rocky III)', artist: 'Survivor' },
+  { g: 'movies', id: 'CUmOFqQRkco', title: 'My Heart Will Go On (Titanic)', artist: 'Celine Dion' },
+  { g: 'movies', id: 'bo_efYhYU2A', title: 'Shallow (A Star Is Born)', artist: 'Lady Gaga & Bradley Cooper' },
+  { g: 'movies', id: 'DeumyOzKqgI', title: 'Skyfall', artist: 'Adele' },
+  { g: 'movies', id: 'Fe93CLbHjxQ', title: 'Ghostbusters', artist: 'Ray Parker Jr.' },
+  { g: 'movies', id: 'CdqoNKCCt7A', title: 'Don\'t You (Forget About Me) (The Breakfast Club)', artist: 'Simple Minds' },
+  { g: 'movies', id: 'cW8VLC9nnTo', title: 'What Was I Made For? (Barbie)', artist: 'Billie Eilish' },
+  { g: 'movies', id: '-NqaupGcCpw', title: 'Theme from Jurassic Park', artist: 'John Williams' },
+  { g: 'movies', id: 'fNFzfwLM72c', title: 'Stayin\' Alive (Saturday Night Fever)', artist: 'Bee Gees' },
+  { g: 'movies', id: '8a-HfNE3EIo', title: 'Chariots Of Fire', artist: 'Vangelis' },
+  /* Houston artists, 80s anthems, synthwave/cyberpunk, EDM, rock and country — oEmbed-verified */
+  { g: 'pop', id: 'djV11Xbc914', title: 'Take On Me', artist: 'a-ha' },
+  { g: 'pop', id: 'bnVUHWCynig', title: 'Halo', artist: 'Beyonce' },
+  { g: 'pop', id: 'ViwtNLUqkMY', title: 'Crazy In Love', artist: 'Beyonce' },
+  { g: 'pop', id: '4m1EFMoRFvY', title: 'Single Ladies', artist: 'Beyonce' },
+  { g: 'pop', id: 'WDZJPJV__bQ', title: 'Formation', artist: 'Beyonce' },
+  { g: 'pop', id: 'sQgd6MccwZc', title: 'Say My Name', artist: 'Destiny\'s Child' },
+  { g: 'pop', id: 'Wmc8bQoL-J0', title: 'Survivor', artist: 'Destiny\'s Child' },
+  { g: 'pop', id: 'P00HMxdsVZI', title: 'Truth Hurts', artist: 'Lizzo' },
+  { g: 'pop', id: 'IXXxciRUMzE', title: 'About Damn Time', artist: 'Lizzo' },
+  { g: 'pop', id: 'lt6PVVr4B04', title: 'So Yesterday', artist: 'Hilary Duff' },
+  { g: 'hiphop', id: 'tfSS1e3kYeo', title: 'HIGHEST IN THE ROOM', artist: 'Travis Scott' },
+  { g: 'hiphop', id: 'KnZ8h3MRuYg', title: 'Antidote', artist: 'Travis Scott' },
+  { g: 'hiphop', id: '7PBYGu4Az8s', title: 'Body', artist: 'Megan Thee Stallion' },
+  { g: 'hiphop', id: 'RXL2RQLP-0k', title: 'Like A Boss', artist: 'Slim Thug' },
+  { g: 'hiphop', id: '-TdfjZrtAvM', title: 'Get Throwed', artist: 'Bun B' },
+  { g: 'hiphop', id: 'WG3qnNkmqvU', title: 'Int\'l Players Anthem', artist: 'UGK' },
+  { g: 'hiphop', id: 'CtwJvgPJ9xw', title: 'Ridin', artist: 'Chamillionaire' },
+  { g: 'hiphop', id: 'WWEs82u37Mw', title: 'Lose My Mind', artist: 'Don Toliver' },
+  { g: 'hiphop', id: 'VpmuI_kyEeQ', title: 'Meet Again', artist: 'Maxo Kream' },
+  { g: 'hiphop', id: '_EyZUTDAH0U', title: 'Butterfly Effect', artist: 'Travis Scott' },
+  { g: 'rock', id: 'fuKDBPw8wQA', title: 'Panama', artist: 'Van Halen' },
+  { g: 'rock', id: 'lDK9QqIzhwk', title: 'Livin\' On A Prayer', artist: 'Bon Jovi' },
+  { g: 'rock', id: 'pAgnJDJN4VA', title: 'Back In Black', artist: 'AC/DC' },
+  { g: 'rock', id: 'x3idGV-7kSQ', title: 'Don\'t Stop Believin\'', artist: 'Journey' },
+  { g: 'rock', id: '7wRHBLwpASw', title: 'Sharp Dressed Man', artist: 'ZZ Top' },
+  { g: 'rock', id: 'FTQbiNvZqaY', title: 'Africa', artist: 'Toto' },
+  { g: 'rock', id: '9jK-NcRmVcw', title: 'The Final Countdown', artist: 'Europe' },
+  { g: 'electronic', id: 'ZVS6Q_lbKQ0', title: 'Nightcall', artist: 'Kavinsky' },
+  { g: 'electronic', id: 'FGBhQbmPwH8', title: 'One More Time', artist: 'Daft Punk' },
+  { g: 'electronic', id: 'ALZHF5UqnU4', title: 'Alone', artist: 'Marshmello' },
+  { g: 'electronic', id: 'dGghkjpNCQ8', title: 'Feel So Close', artist: 'Calvin Harris' },
+  { g: 'electronic', id: 'tKi9Z-f6qX4', title: 'Strobe', artist: 'Deadmau5' },
+  { g: 'electronic', id: '-nC5TBv3sfU', title: 'Tech Noir', artist: 'Gunship' },
+  { g: 'electronic', id: 'RY66fdMt4vc', title: 'Future Club', artist: 'Perturbator' },
+  { g: 'electronic', id: 'YJVmu6yttiw', title: 'Bangarang', artist: 'Skrillex' },
+  { g: 'electronic', id: 'erb4n8PW2qw', title: 'Sandstorm', artist: 'Darude' },
+  { g: 'country', id: '7hx4gdlfamo', title: 'The Gambler', artist: 'Kenny Rogers' },
+  { g: 'country', id: 'BAm4nHFOir0', title: 'Killin\' Time', artist: 'Clint Black' },
+  { g: 'country', id: 'kQ8xqyoZXCc', title: 'Follow Your Arrow', artist: 'Kacey Musgraves' },
+  { g: 'country', id: 'v2LixP7n_hM', title: '\'Til You Can\'t', artist: 'Cody Johnson' },
+  { g: 'rock', id: 'SwYN7mTi6HM', title: 'Jump', artist: 'Van Halen' },
 ];
 
 const ALL = (() => {
@@ -392,7 +458,7 @@ const ALL = (() => {
   return out;
 })();
 
-const GENRES = [['all', 'All'], ['pop', 'Pop'], ['hiphop', 'Hip-hop / Rap'], ['rock', 'Rock'], ['electronic', 'Electronic'], ['latin', 'Latin'], ['afrobeat', 'Afrobeat'], ['gospel', 'Gospel'], ['country', 'Country'], ['classics', 'Classics']];
+const GENRES = [['all', 'All'], ['pop', 'Pop'], ['hiphop', 'Hip-hop / Rap'], ['rock', 'Rock'], ['electronic', 'Electronic'], ['latin', 'Latin'], ['afrobeat', 'Afrobeat'], ['gospel', 'Gospel'], ['country', 'Country'], ['classics', 'Classics'], ['movies', 'Movie soundtracks']];
 const BED = { bpm: 110, root: 110, pattern: [1, 0, 0.5, 0, 1, 0, 0.35, 0.2], wave: 'triangle' };
 
 const POS_KEY = 'hts-tour-yt-pos';
@@ -631,6 +697,7 @@ export function createTourMusic() {
       + '#tourYt.yt-ready .host,#tourYt.dashEmbed .host{display:block}'
       + '#tourYt.dashEmbed .host{aspect-ratio:auto;height:auto;min-height:78px;max-height:48%}'
       + '#tourYt .host iframe{width:100%;height:100%;border:0;display:block}'
+      + '#tourYt.spot{display:flex}#tourYt.spot .host{display:none!important}#tourYt.dashEmbed .spotFrame{height:80px!important;flex:none}#tourYt.spot.dashEmbed .gen{display:none!important}#tourYt .spotFrame iframe{width:100%!important;height:100%!important;border:0}'
       + '#tourYt .body{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}'
       + '#tourYt.min{width:auto;max-width:min(340px,82vw);padding:6px 8px}'
       + '#tourYt.min .body,#tourYt.min .foot{display:none}'
@@ -660,7 +727,8 @@ export function createTourMusic() {
       + '<button type="button" data-yt-prev="1" title="Previous">⏮</button>'
       + '<button type="button" data-yt-next="1" title="Next">⏭</button>'
       + '<button type="button" data-yt-auto="1" title="Autoplay next">Auto ▶</button>'
-      + '<button type="button" data-yt-radio="1" title="Live radio for this genre (Radio Browser)">Radio</button>'
+      + '<button type="button" data-yt-radio="1" title="Houston radio stations">Radio</button>'
+      + '<button type="button" data-yt-spot="1" title="Spotify player (free embed — full songs if you are logged in to Spotify in this browser, 30-second previews otherwise)">Spotify</button>'
       + '<button type="button" data-yt-off="1" title="Stop music">■</button>'
       + '</span></div>'
       + '<div class="body">'
@@ -675,33 +743,102 @@ export function createTourMusic() {
     miniLabel = wrap.querySelector('#tourYtMiniTitle');
     autoBtn = wrap.querySelector('[data-yt-auto]');
     foot = wrap.querySelector('#tourYtFoot');
-    /* live internet radio by genre — free station directory (radio-browser.info), HTTPS MP3/AAC streams only */
+    /* live Houston radio — free public streams of real local stations (no keys, no cost) */
     {
-      const TAG = { all: 'top 40', pop: 'pop', hiphop: 'hip hop', rock: 'rock', electronic: 'electronic', latin: 'latin', afrobeat: 'afrobeat', gospel: 'gospel', classics: 'oldies' };
+      const HOU = [
+        { n: '94.5 The Buzz · Rock', u: 'https://stream.revma.ihrhls.com/zc2281' },
+        { n: 'Sunny 99.1 · Soft hits', u: 'https://stream.revma.ihrhls.com/zc2273' },
+        { n: 'KSBJ 89.3 · Christian', u: 'https://ais-sa8.cdnstream1.com/3327_64.aac' },
+        { n: 'KJIC 90.5 · Christian country', u: 'https://ice42.securenetsystems.net/KJIC' },
+        { n: 'SUC Radio · Houston screw & rap', u: 'https://radio.screwedup.click/listen/suc_radio/radio.mp3' },
+        { n: 'Houston Public Media Mixtape', u: 'https://stream.houstonpublicmedia.org/mixtape-aac' },
+        { n: 'Houston Public Media Classical', u: 'https://stream.houstonpublicmedia.org/classical-aac' },
+        { n: 'News 88.7 KUHF · NPR', u: 'https://stream.houstonpublicmedia.org/news-aac' },
+        { n: 'News Talk 740 KTRH', u: 'https://stream.revma.ihrhls.com/zc2285' },
+        { n: 'KPRC AM 950 · Talk', u: 'https://stream.revma.ihrhls.com/zc2277' },
+        { n: 'Sangeet Radio 95.1 · Hindi', u: 'https://ice8.securenetsystems.net/SGTRADIO' }
+      ];
       const rBtn = wrap.querySelector('[data-yt-radio]'), offBtn = wrap.querySelector('[data-yt-off]');
-      let au = null, list = [], idx = 0, on = false;
-      const stopRadio = () => { on = false; if (au) { au.pause(); au.src = ''; } rBtn.classList.remove('on'); };
+      rBtn.title = 'Houston radio on/off — ⏮ ⏭ change station';
+      let au = null, idx = 0, on = false, fails = 0;
+      const stopRadio = () => { on = false; if (au) { au.pause(); au.removeAttribute('src'); au.load(); } rBtn.classList.remove('on'); };
+      const skip = () => { if (!on) return; if (++fails >= HOU.length) { if (label) label.textContent = 'Radio unavailable right now'; stopRadio(); return; } idx = (idx + 1) % HOU.length; playSt(); };
       const playSt = () => {
-        const st = list[idx % list.length]; if (!st) return;
-        au = au || new Audio(); au.src = st.url_resolved; au.play().catch(() => { idx++; if (on && idx < list.length) playSt(); });
-        au.onerror = () => { idx++; if (on && idx < list.length) playSt(); };
-        if (label) label.textContent = '📻 ' + st.name.trim().slice(0, 60);
-        if (miniLabel) miniLabel.textContent = st.name.trim().slice(0, 40);
-        if (foot) foot.textContent = 'Live radio · ' + (idx % list.length + 1) + ' of ' + list.length + ' stations · radio-browser.info';
+        const st = HOU[idx];
+        au = au || new Audio(); au.preload = 'none'; au.src = st.u;
+        au.onplaying = () => { fails = 0; };
+        au.onerror = skip;
+        au.play().catch(skip);
+        if (label) label.textContent = '📻 ' + st.n;
+        if (miniLabel) miniLabel.textContent = st.n;
+        if (foot) foot.textContent = 'Houston radio · station ' + (idx + 1) + ' of ' + HOU.length + ' · ◀ ▶ change station';
       };
-      rBtn.addEventListener('click', async (e) => {
+      const step = (d) => { fails = 0; idx = (idx + d + HOU.length) % HOU.length; playSt(); };
+      rBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (on) { idx++; playSt(); return; }
-        offBtn.click(); on = true; rBtn.classList.add('on');
-        if (label) label.textContent = 'Finding ' + (TAG[genre] || 'pop') + ' stations…';
-        try {
-          const r = await fetch('https://de1.api.radio-browser.info/json/stations/bytag/' + encodeURIComponent(TAG[genre] || 'pop') + '?limit=60&hidebroken=true&order=clickcount&reverse=true');
-          list = (await r.json()).filter((x) => /^https:/.test(x.url_resolved) && /MP3|AAC/i.test(x.codec)); idx = 0;
-          if (on) playSt();
-        } catch (_) { if (label) label.textContent = 'Radio unavailable'; stopRadio(); }
+        /* Radio is an on/off toggle; ⏮ ⏭ change station while it plays. Only one source at a time: turning radio on stops YouTube */
+        if (on) { stopRadio(); if (label) label.textContent = 'Radio off'; if (foot) foot.textContent = 'Radio off · tap Radio to turn it back on'; return; }
+        offBtn.click(); on = true; fails = 0; rBtn.classList.add('on'); playSt();
       });
       offBtn.addEventListener('click', () => { if (on) stopRadio(); });
-      wrap.querySelector('[data-yt-next]').addEventListener('click', (e) => { if (on) { e.stopImmediatePropagation(); idx++; playSt(); } }, true);
+      wrap.querySelector('[data-yt-next]').addEventListener('click', (e) => { if (on) { e.stopImmediatePropagation(); step(1); } }, true);
+      wrap.querySelector('[data-yt-prev]').addEventListener('click', (e) => { if (on) { e.stopImmediatePropagation(); step(-1); } }, true);
+      window.HTS_RADIO = { stations: HOU, get on() { return on; }, get station() { return on ? HOU[idx].n : null; }, stop: stopRadio };
+    }
+    /* Spotify: the free official embed (no key, no account on our side). Pauses YouTube/radio while open. */
+    {
+      const PL = { all: '37i9dQZF1DXcBWIGoYBM5M', pop: '37i9dQZF1DXcBWIGoYBM5M', hiphop: '37i9dQZF1DX0XUsuxWHRQd', rock: '37i9dQZF1DWXRqgorJj26U', electronic: '37i9dQZF1DX4dyzvuaRJ0n', latin: '37i9dQZF1DX10zKzsJ2jva', afrobeat: '37i9dQZF1DWYkaDif7Ztbp', gospel: '37i9dQZF1DXcb6CQIjdqKy', country: '37i9dQZF1DX1lVhptIYRda', classics: '37i9dQZF1DX4UtSsGT1Sbe' };
+      const sBtn = wrap.querySelector('[data-yt-spot]'), offBtn2 = wrap.querySelector('[data-yt-off]');
+      let box = null;
+      let ctrl = null, spotApi = null, spotWait = null;
+      const close = () => { try { if (ctrl && ctrl.destroy) ctrl.destroy(); } catch (e) { /* ignore */ } ctrl = null; if (box) { box.remove(); box = null; } sBtn.classList.remove('on'); wrap.classList.remove('spot'); };
+      /* official free Spotify iFrame API: lets our button start playback (no key, no account on our side) — plain embed if it can't load */
+      const loadSpotApi = () => spotWait || (spotWait = new Promise((res) => {
+        if (spotApi) { res(spotApi); return; }
+        const prev = window.onSpotifyIframeApiReady;
+        window.onSpotifyIframeApiReady = (api) => { spotApi = api; try { if (prev) prev(api); } catch (e) { /* ignore */ } res(api); };
+        const sc = document.createElement('script'); sc.src = 'https://open.spotify.com/embed/iframe-api/v1'; sc.async = true;
+        sc.onerror = () => { spotWait = null; res(null); };
+        document.head.appendChild(sc);
+        setTimeout(() => res(spotApi), 5000);
+      }));
+      wrap._spotClose = close;
+      sBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (box) { close(); return; }
+        offBtn2.click();
+        const pid = PL[genre] || PL.all, h = wrap.classList.contains('dashEmbed') ? 80 : 152;
+        box = document.createElement('div'); box.className = 'spotFrame';
+        box.style.cssText = 'width:100%;height:' + h + 'px;border-radius:10px;overflow:hidden;flex:none;background:#121212';
+        const slot = document.createElement('div'); box.appendChild(slot);
+        const mine = box;
+        const plain = () => {
+          if (box !== mine || mine.querySelector('iframe')) return;
+          const f = document.createElement('iframe');
+          f.src = 'https://open.spotify.com/embed/playlist/' + pid + '?utm_source=generator&theme=0';
+          f.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+          f.style.cssText = 'width:100%;height:100%;border:0;display:block';
+          mine.replaceChildren(f);
+        };
+        loadSpotApi().then((api) => {
+          if (box !== mine) return;
+          if (!api) { plain(); return; }
+          try {
+            api.createController(slot, { uri: 'spotify:playlist:' + pid, width: '100%', height: h }, (c) => {
+              if (box !== mine) { try { c.destroy(); } catch (e3) { /* ignore */ } return; }
+              ctrl = c;
+              c.addListener('ready', () => { try { c.play(); } catch (e3) { /* ignore */ } });
+              c.addListener('playback_update', (ev) => { const d = ev && ev.data; if (d && !d.isPaused && label) label.textContent = 'Spotify · playing'; });
+            });
+          } catch (e3) { plain(); }
+        });
+        setTimeout(() => { if (box === mine && !mine.querySelector('iframe')) plain(); }, 7000);
+        /* keep the panel visible while YouTube is off (setOn(false) hides #tourYt otherwise — the Spotify player vanished) */
+        try { if (window.HTS_RADIO && window.HTS_RADIO.on) window.HTS_RADIO.stop(); } catch (e2) { /* ignore */ }
+        wrap.insertBefore(box, wrap.querySelector('.body')); sBtn.classList.add('on'); wrap.classList.add('spot');
+        if (label) label.textContent = 'Spotify · press play in the player';
+      });
+      offBtn2.addEventListener('click', close);
     }
     wrap.querySelectorAll('[data-yt-genre]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); setGenre(b.getAttribute('data-yt-genre')); }));
     wrap.querySelector('[data-yt-prev]').addEventListener('click', (e) => { e.stopPropagation(); playPrev(); });
@@ -880,6 +1017,8 @@ export function createTourMusic() {
   }
 
   function loadVideo(id) {
+    if (wrap && wrap._spotClose) wrap._spotClose();
+    try { if (window.HTS_RADIO && window.HTS_RADIO.on) window.HTS_RADIO.stop(); } catch (e) { /* ignore */ }
     wantId = id;
     pendingId = id;
     ytOk = false;
@@ -1029,6 +1168,7 @@ export function createTourMusic() {
       pendingId = null;
       ytOk = false;
       stopBed();
+      try { if (window.HTS_RADIO && window.HTS_RADIO.on) window.HTS_RADIO.stop(); } catch (e) { /* ignore */ }
       syncTitles();
       try {
         if (player && playerReady && player.stopVideo) player.stopVideo();

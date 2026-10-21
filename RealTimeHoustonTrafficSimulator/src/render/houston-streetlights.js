@@ -88,12 +88,44 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
     g.userData.pool = lp;
     c.g = g; root.add(g);
   }
+  /* pavement grid: a pole is never planted on any carriageway (parallel frontage roads, ramps, the other direction) */
+  const PG = 24, pave = new Map();
+  function addPave(w) {
+    const f = w.f, r = w.r; if (!f || !r) return;
+    const hw = (r.w || 7) / 2;
+    for (let i = 1; i < f.n; i++) {
+      const ax = f.pts[2 * i - 2], az = f.pts[2 * i - 1], bx = f.pts[2 * i], bz = f.pts[2 * i + 1];
+      const y = ((w.ys ? (w.ys[i - 1] + w.ys[i]) / 2 : 0) + (w.cy || 0)) * kv;
+      const seg = [ax, az, bx, bz, hw, y, r];
+      const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(L / (PG * 0.5)));
+      const seen = new Set();
+      for (let j = 0; j <= n; j++) {
+        const key = Math.floor((ax + (bx - ax) * j / n) / PG) + ',' + Math.floor((az + (bz - az) * j / n) / PG);
+        if (seen.has(key)) continue; seen.add(key);
+        let a = pave.get(key); if (!a) pave.set(key, (a = [])); a.push(seg);
+      }
+    }
+  }
+  function onPave(x, z, y) {
+    const gx = Math.floor(x / PG), gz = Math.floor(z / PG);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const a = pave.get((gx + dx) + ',' + (gz + dz)); if (!a) continue;
+      for (const [ax, az, bx, bz, hw, sy] of a) {
+        if (Math.abs(sy - (y - baseY)) > 3 * kv) continue;
+        const ex = bx - ax, ez = bz - az, L2 = ex * ex + ez * ez || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2));
+        if (Math.hypot(x - ax - ex * t, z - az - ez * t) < hw + 1.2) return true;
+      }
+    }
+    return false;
+  }
   const ready = fetch(url).then((r) => r.json()).then((d) => {
     const lit = new Set(d.lit);
+    for (const w of net || []) addPave(w);
     for (const w of net || []) {
       const r = w.r; if (!lit.has(r.id) && !/^(trunk|primary|secondary|tertiary)/.test(r.h)) continue;
       const f = w.f, sp = SPACING[r.h] || 45, hw = r.w / 2;
-      const median = /^(motorway|trunk)$/.test(r.h) && !r.o;
+      const median = r.h === 'motorway' && !r.o && hw > 9;
       let next = sp * 0.5, side = 1;
       for (let i = 1; i < f.n; i++) {
         while (f.cum[i] >= next) {
@@ -104,7 +136,8 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
           if (median) add(1, x, yv, z, yaw, 12);
           else {
             const s = r.o ? 1 : side; side = -side;
-            add(0, x + nx * (hw + 0.9) * s, yv, z + nz * (hw + 0.9) * s, s > 0 ? yaw + Math.PI : yaw, 11);
+            const px = x + nx * (hw + 2) * s, pz = z + nz * (hw + 2) * s;
+            if (!onPave(px, pz, yv)) add(0, px, yv, pz, s > 0 ? yaw + Math.PI : yaw, 11);
           }
           next += sp;
         }
@@ -117,13 +150,14 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
         const nx = -dz / L, nz = dx / L, yaw = Math.atan2(nx, nz);
         for (let s = acc; s < L; s += 42) {
           const x = p[i - 2] + dx * s / L, z = p[i - 1] + dz * s / L;
-          add(2, x + nx * 5.2 * side, baseY, z + nz * 5.2 * side, side > 0 ? yaw + Math.PI : yaw, 8); side = -side;
+          const px = x + nx * 6.2 * side, pz = z + nz * 6.2 * side;
+          if (!onPave(px, pz, baseY)) add(2, px, baseY, pz, side > 0 ? yaw + Math.PI : yaw, 8); side = -side;
           acc = s + 42 - L;
         }
         if (acc >= L) acc -= L;
       }
     }
-    for (let i = 0; i < d.lamps.length; i += 2) add(3, d.lamps[i], baseY, d.lamps[i + 1], 0, 6);
+    for (let i = 0; i < d.lamps.length; i += 2) if (!onPave(d.lamps[i], d.lamps[i + 1], baseY)) add(3, d.lamps[i], baseY, d.lamps[i + 1], 0, 6);
     stats.cells = cells.size;
     return stats;
   });
@@ -167,6 +201,7 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
   const RES = /^(residential|unclassified|living_street|tertiary|tertiary_link|secondary|secondary_link)$/;
   function addWays(ways) {
     const touched = new Set();
+    for (const w of ways || []) addPave(w);
     for (const w of ways || []) {
       const r = w.r; if (!r || !RES.test(r.h) || !w.f) continue;
       const f = w.f, hw = (r.w || 7) / 2, sp = r.h.startsWith('secondary') ? 45 : 58;
@@ -177,8 +212,8 @@ export function createHoustonStreetlights({ parent, net, baseY = 0, kv = 1, url 
           const x = f.pts[2 * i - 2] + (f.pts[2 * i] - f.pts[2 * i - 2]) * t, z = f.pts[2 * i - 1] + (f.pts[2 * i + 1] - f.pts[2 * i - 1]) * t;
           const yv = baseY + (((w.ys ? w.ys[i - 1] + (w.ys[i] - w.ys[i - 1]) * t : 0)) + (w.cy || 0)) * kv;
           const nx = f.nx[i], nz = f.nz[i], yaw = Math.atan2(nx, nz);
-          const px = x + nx * (hw + 1.2) * side, pz = z + nz * (hw + 1.2) * side;
-          add(2, px, yv, pz, side > 0 ? yaw + Math.PI : yaw, 8);
+          const px = x + nx * (hw + 2) * side, pz = z + nz * (hw + 2) * side;
+          if (!onPave(px, pz, yv)) add(2, px, yv, pz, side > 0 ? yaw + Math.PI : yaw, 8);
           touched.add(Math.floor(px / CELL) + ',' + Math.floor(pz / CELL));
           side = -side; next += sp;
         }

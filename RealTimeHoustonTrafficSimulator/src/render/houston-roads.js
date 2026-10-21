@@ -13,8 +13,8 @@ const GRADE = 0.045;
 const LAYER_H = 6.8;
 const CHUNK = 3000;
 const CLASS = {
-  motorway: { c: 0xa3a39c, y: 0.16, edge: 1 }, trunk: { c: 0x9c9c96, y: 0.15, edge: 1 },
-  motorway_link: { c: 0xa09f99, y: 0.17, edge: 1 }, trunk_link: { c: 0x9a9a94, y: 0.15, edge: 1 },
+  motorway: { c: 0x8c8d8e, y: 0.16, edge: 1 }, trunk: { c: 0x88898a, y: 0.15, edge: 1 },
+  motorway_link: { c: 0x8a8b8c, y: 0.17, edge: 1 }, trunk_link: { c: 0x868788, y: 0.15, edge: 1 },
   primary: { c: 0x6a6b6c, y: 0.12, edge: 1 }, primary_link: { c: 0x6a6b6c, y: 0.12, edge: 1 },
   secondary: { c: 0x646566, y: 0.09 }, secondary_link: { c: 0x646566, y: 0.09 },
   tertiary: { c: 0x5f6061, y: 0.07 }, tertiary_link: { c: 0x5f6061, y: 0.07 },
@@ -35,8 +35,8 @@ function canvasTex(w, h, draw, repeat) {
 function makeMaterials() {
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const asphalt = canvasTex(256, 256, (g, w, h) => {
-    g.fillStyle = '#c8c8c8'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 9000; i++) { const v = 150 + rnd() * 105 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 1.5, 1 + rnd() * 1.5); }
+    g.fillStyle = '#b8b8b8'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 9000; i++) { const v = 150 + rnd() * 80 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 1.5, 1 + rnd() * 1.5); }
     g.globalAlpha = 0.18; g.strokeStyle = '#555';
     for (let i = 0; i < 14; i++) { g.beginPath(); g.moveTo(rnd() * w, rnd() * h); g.lineTo(rnd() * w, rnd() * h); g.stroke(); }
   });
@@ -235,9 +235,10 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
       }
     };
     strip(buckets('surface'), -hw, hw, 0, 1 / 7, 1 / 7, tmpC);
-    const lanes = r.l, two = !r.o && lanes >= 2 && r.h !== 'residential' && r.h !== 'living_street';
+    /* one-way carriageways of divided roads often lack lanes= in OSM: infer from the paved width */
+    const lanes = r.l >= 2 ? r.l : (r.o && w >= 6.5 ? Math.max(2, Math.round((w - 1.2) / 3.6)) : r.l), two = !r.o && lanes >= 2 && r.h !== 'residential' && r.h !== 'living_street';
     const lw = 0.15;
-    if (cls.edge || elevated) { strip(buckets('lineW'), hw - 0.55 - lw, hw - 0.55, 0.02, 0, 0); strip(buckets(r.o ? 'lineY' : 'lineW'), -hw + 0.55, -hw + 0.55 + lw, 0.02, 0, 0); }
+    if (cls.edge || elevated || r.o || w >= 9) { strip(buckets('lineW'), hw - 0.55 - lw, hw - 0.55, 0.02, 0, 0); strip(buckets(r.o ? 'lineY' : 'lineW'), -hw + 0.55, -hw + 0.55 + lw, 0.02, 0, 0); }
     if (two) {
       strip(buckets('lineY'), -0.22, -0.08, 0.02, 0, 0); strip(buckets('lineY'), 0.08, 0.22, 0.02, 0, 0);
       const per = Math.max(1, Math.floor(lanes / 2)), laneW = (hw - 0.6) / per;
@@ -315,7 +316,50 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
     }
   }
 
+  /* the two one-way carriageways of a divided road are separate OSM ways and often carry different width/lanes tags,
+     so one side drew wider than the other: pair them (same name, opposite direction, side by side) and give both the
+     wider width and the larger lane count. Mutates the records, so traffic, routing and streetlights see the same lanes. */
+  function harmonizeDivided(roads) {
+    const G = 150, grid = new Map(), ow = [];
+    const lanesOf = (r) => (r.l >= 2 ? +r.l : Math.max(2, Math.round(((r.w || 7) - 1.2) / 3.6)));
+    for (const r of roads) {
+      if (!r.o || r.o === '0' || r.o === 'no' || r.t || !r.p || r.p.length < 4 || !(r.n || r.r)) continue;
+      if (!/^(motorway|trunk|primary|secondary|tertiary)$/.test(r.h)) continue;
+      const n = r.p.length / 2, i = Math.max(0, Math.min(n - 2, (n - 1) >> 1)), sg = r.o === '-1' ? -1 : 1;
+      const mx = (r.p[2 * i] + r.p[2 * i + 2]) / 2, mz = (r.p[2 * i + 1] + r.p[2 * i + 3]) / 2;
+      let dx = (r.p[2 * i + 2] - r.p[2 * i]) * sg, dz = (r.p[2 * i + 3] - r.p[2 * i + 1]) * sg; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
+      const e = { r, mx, mz, dx, dz, sg, key: r.h + '|' + (r.n || r.r), w0: r.w || 7, l0: lanesOf(r) };
+      ow.push(e);
+      const k = Math.floor(mx / G) + ',' + Math.floor(mz / G); let a = grid.get(k); if (!a) grid.set(k, (a = [])); a.push(e);
+    }
+    const segDist = (r, sg, x, z, ux, uz) => {
+      let best = 1e9;
+      for (let j = 0; j + 3 < r.p.length; j += 2) {
+        const ax = r.p[j], az = r.p[j + 1], ex = r.p[j + 2] - ax, ez = r.p[j + 3] - az, L2 = ex * ex + ez * ez || 1;
+        if (((ex * ux + ez * uz) * sg) / Math.sqrt(L2) > -0.75) continue; /* must run the opposite way here */
+        const t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2));
+        const d = Math.hypot(x - ax - ex * t, z - az - ez * t); if (d < best) best = d;
+      }
+      return best;
+    };
+    for (const a of ow) {
+      const gx = Math.floor(a.mx / G), gz = Math.floor(a.mz / G); let pick = null, pd = 45;
+      for (let oz = -1; oz <= 1; oz++) for (let ox = -1; ox <= 1; ox++) for (const b of grid.get((gx + ox) + ',' + (gz + oz)) || []) {
+        if (b === a || b.key !== a.key) continue;
+        const d = segDist(b.r, b.sg, a.mx, a.mz, a.dx, a.dz); if (d < pd) { pd = d; pick = b; }
+      }
+      if (!pick) continue;
+      /* only even out genuine mismatches between twin carriageways (≤ one lane apart); a much narrower or wider
+         neighbour is a ramp, frontage or collector road and keeps its own width */
+      const wa = a.w0, wb = pick.w0; /* original widths, so chained pairs never widen more than one lane */
+      if (Math.min(wa, wb) < 5 || Math.abs(wa - wb) > 3.6 || Math.max(wa, wb) / Math.min(wa, wb) > 1.5) continue;
+      const W = Math.max(wa, wb), Ln = Math.max(a.l0, pick.l0);
+      for (const e of [a, pick]) { e.r.w = Math.max(e.r.w || 7, W); e.r.l = Math.max(lanesOf(e.r), Ln); }
+    }
+  }
+
   async function build(roads, heights, group, tileNet) {
+    harmonizeDivided(roads);
     const set = makeBucketSet();
     let t0 = performance.now();
     for (let i = 0; i < roads.length; i++) {

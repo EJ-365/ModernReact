@@ -110,7 +110,9 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
     if (n < 2) continue;
     const L = f.cum[n - 1];
     if (!(L > 2)) continue;
-    const r = w.r, rw = +r.w || 7, rl = +r.l || 2, hw = rw / 2, two = !oneWay(r.o);
+    const r = w.r, rw = +r.w || 7, hw = rw / 2, two = !oneWay(r.o);
+    /* same lane count the road renderer paints (one-way carriageways without lanes= are inferred from width) */
+    const rl = +r.l >= 2 ? +r.l : (!two && rw >= 6.5 ? Math.max(2, Math.round((rw - 1.2) / 3.6)) : (+r.l || 2));
     const nl = two ? Math.max(1, Math.floor(rl / 2)) : Math.max(1, rl);
     const laneW = two ? (hw - 0.6) / nl : (rw - 1.2) / nl;
     const st = STREET[r.h];
@@ -324,6 +326,16 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
     car.u = c.L - 0.01; car.v = 0; stats.waits++;
   }
 
+  /* the player's tour car: traffic in the same lane brakes for it instead of driving through it */
+  let ego = null;
+  function setEgo(x, z, v) { ego = x == null ? null : { x, z, v: v || 0 }; }
+  function egoGap(car) {
+    if (!ego || car._px == null) return 1e4;
+    const dx = ego.x - car._px, dz = ego.z - car._pz;
+    if (dx * dx + dz * dz > 3600) return 1e4;
+    const fwd = dx * car._fx + dz * car._fz, lat = Math.abs(dx * car._fz - dz * car._fx);
+    return fwd > 0 && lat < 2.4 * kv ? Math.max(0.1, fwd - car.len * 0.5 - 2.6 * kv) : 1e4;
+  }
   function simulate(dt) {
     step++;
     for (const c of active) {
@@ -335,7 +347,8 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
           const car = lane[i];
           if (!car || car._st === step) continue;
           car._st = step;
-          const [gap, lv] = leaderAhead(car, lane, i);
+          let [gap, lv] = leaderAhead(car, lane, i);
+          if (ego) { const eg = egoGap(car); if (eg < gap) { gap = eg; lv = ego.v; } }
           const v0 = Math.max(0.5, c.v0 * car.aggr);
           if (gap < 40 && car.v < v0 * 0.8 && !(c.stops && car.v < 3) && tryLaneChange(c, lane, i, car, gap, lv)) continue;
           const ss = IDM.s0 + Math.max(0, car.v * IDM.T + car.v * (car.v - lv) / (2 * Math.sqrt(IDM.a * IDM.b)));
@@ -463,5 +476,5 @@ export function createHoustonTraffic({ net, k = 1, kv = k, offset = 60, baseY = 
     }
   }
   addWays(net);
-  return { tick, forEach, stats, carriageways: C, active, speedNear, addTile, removeTile, setSignals, signalsNear };
+  return { tick, forEach, stats, carriageways: C, active, speedNear, addTile, removeTile, setSignals, signalsNear, setEgo };
 }

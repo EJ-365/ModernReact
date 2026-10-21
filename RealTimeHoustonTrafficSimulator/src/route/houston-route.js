@@ -40,7 +40,7 @@ export function nearestCwList(C, x, z, maxD, n, preferMajor) {
       const d = Math.hypot(f.pts[2 * i] - x, f.pts[2 * i + 1] - z);
       if (d < bd) { bd = d; bi = i; }
     }
-    if (bd <= maxD) hits.push({ c, i: bi, sc: cwScore(c, bd) });
+    if (bd <= maxD) hits.push({ c, i: bi, sc: cwScore(c, bd), d: bd });
   }
   hits.sort((a, b) => a.sc - b.sc);
   const out = [], seen = new Set();
@@ -165,6 +165,8 @@ export function buildPath(seq, a, b) {
         ref: c.ref || '',
         name: c.name || '',
         h: c.h || '',
+        ln: c.nl || 1, lw: c.laneW || 3.5,
+        lx: f.nx[i] * f.m[i] * c.sign, lz: f.nz[i] * f.m[i] * c.sign,
       });
     }
   });
@@ -188,7 +190,11 @@ export function findRouteDetailed(T, ox, oz, dx, dz, opts = {}) {
     const a = nearestCw(C, ox, oz, 32000, false);
     if (a) starts.push(a);
   }
-  const ends = nearestCwList(C, dx, dz, 22000, 16, true);
+  /* opts.local: finish on a street/arterial next to the place (never stop on a freeway mainline or ramp) */
+  let ends = opts.local ? nearestCwList(C, dx, dz, 900, 40, false).filter((e) => !e.c.link && !/^(motorway|trunk)/.test(e.c.h || '')).sort((p, q) => p.d - q.d) : [];
+  /* park on the street closest to the place: only curbs within ~120 m of the nearest one count as the destination */
+  if (ends.length) ends = ends.filter((e) => e.d <= ends[0].d + 120).slice(0, 12);
+  if (!ends.length) ends = nearestCwList(C, dx, dz, 22000, 16, true);
   if (!ends.length) {
     const b = nearestCw(C, dx, dz, 36000, false);
     if (b) ends.push(b);
@@ -245,9 +251,9 @@ export function jammedOnSeq(seq, minCong = 0.48) {
  * @returns {{ primary, alt, jammed, jamRefs:string[] } | null}
  */
 export function planRoutesWithAlt(T, ox, oz, dx, dz) {
-  const primary = findRouteDetailed(T, ox, oz, dx, dz, { trafficAware: true });
+  const primary = findRouteDetailed(T, ox, oz, dx, dz, { trafficAware: true, local: true });
   if (!primary) {
-    const bare = findRouteDetailed(T, ox, oz, dx, dz, {});
+    const bare = findRouteDetailed(T, ox, oz, dx, dz, { local: true });
     if (!bare) return null;
     return { primary: bare, alt: null, jammed: [], jamRefs: [] };
   }
@@ -256,7 +262,7 @@ export function planRoutesWithAlt(T, ox, oz, dx, dz) {
   let alt = null;
   if (jammed.length) {
     alt = findRouteDetailed(T, ox, oz, dx, dz, {
-      trafficAware: true,
+      trafficAware: true, local: true,
       avoid: new Set(jammed),
     });
     /* Reject alt if it's basically the same path or much worse */

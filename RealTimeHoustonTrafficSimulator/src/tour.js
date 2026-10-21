@@ -6,7 +6,7 @@
  * ~700 ft/min to 1,500 ft, cruises at 110 kt, descends to 1,000 ft and circles the destination.
  */
 import * as THREE from 'three';
-import { findRoute, houDriveFactor, nearestCw } from './route/houston-route.js';
+import { findRoute, houDriveFactor, nearestCw, nearestCwList } from './route/houston-route.js';
 import { createTourAudio } from './tour-audio.js';
 import { dashSvg, updateDash } from './cockpit-dash.js';
 import { createTourMusic } from './tour-music.js';
@@ -392,6 +392,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     + '#tourPad button{height:52px;border-radius:12px;background:rgba(28,23,18,.9);border:1px solid rgba(232,168,56,.28);color:#fff6ea;font-size:18px;touch-action:none}'
     + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:max(min(42vh,360px),min(21vw,48vh));z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}'
     + '#tourDash .dashSvg{position:absolute;inset:0;width:100%;height:100%;display:block}'
+    + '#tourDash .jetGlass{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:-1}'
+    + '#tourDash .carGlass{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:-1;display:none}#tourDash.carOn .carGlass{display:block}'
     + '#tourDash.jetCockpit{height:max(min(42vh,360px),min(21vw,48vh))}'
     /* CarPlay — drag eyebrow + explicit resize grip (CSS resize is unreliable on fixed) */
     + '#tourDash .carplay{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(26vw,260px);height:min(18vh,140px);z-index:4;pointer-events:auto;'
@@ -481,60 +483,83 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     let g = '<svg class="dashSvg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMax slice">'
       + '<defs><linearGradient id="dashTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1e24"/><stop offset="1" stop-color="#0c0e12"/></linearGradient>'
       + '<linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2620"/><stop offset="1" stop-color="#1a1612"/></linearGradient></defs>'
-      + '<path d="M0,0 L95,95 L70,340 H0 Z" fill="#12151a"/><path d="M1000,0 L905,95 L930,340 H1000 Z" fill="#12151a"/>'
+      + '<path d="M0,0 L120,96 L92,340 H0 Z" fill="#12151a"/><path d="M1000,0 L930,100 L948,340 H1000 Z" fill="#12151a"/>'
       + '<path d="M95,95 Q500,48 905,95" fill="none" stroke="#2a3138" stroke-width="10"/>'
       + '<path d="M0,118 Q500,60 1000,118 L1000,340 L0,340 Z" fill="url(#dashTop)"/>'
       + '<path d="M80,126 Q500,78 920,126" fill="none" stroke="' + t.ring + '" stroke-opacity=".55" stroke-width="2"/>'
       + '<rect x="170" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/><rect x="730" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/>';
     if (t.lay === 'digital') {
-      g += '<g class="dLeft"><rect x="148" y="184" width="204" height="120" rx="16" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+      g += '<g transform="translate(120,17.4) scale(.72)">' + '<g class="dLeft"><rect x="148" y="184" width="204" height="120" rx="16" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
         + '<text x="250" y="208" fill="' + t.acc + '" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">RPM ×1000</text>'
         + '<text id="dRpmTxt" x="250" y="244" fill="#fff" font-size="30" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0.8</text>'
         + '<rect x="170" y="262" width="160" height="14" rx="7" fill="#1a222c"/><rect id="dRpmBar" x="170" y="262" width="0" height="14" rx="7" fill="' + t.rp + '"/>'
         + '<text x="250" y="294" fill="#7a8a9a" font-size="10" text-anchor="middle">ECO · ' + t.badge + '</text></g>'
+        + '</g>' + '<g transform="translate(-77.2,17.4) scale(.72)">'
         + '<rect x="652" y="174" width="208" height="134" rx="18" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
         + '<path id="dSpdArc" d="' + arcP(760, 250, 58, 0, 1) + '" fill="none" stroke="#1a222c" stroke-width="7" stroke-linecap="round"/>'
         + '<text x="760" y="206" fill="' + t.acc + '" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">DRIVE</text>'
         + '<text id="dSpd" x="760" y="266" fill="#fff" font-size="50" font-weight="800" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
-        + '<text x="760" y="292" fill="#8a96a3" font-size="11" text-anchor="middle">MPH</text>';
+        + '<text x="760" y="292" fill="#8a96a3" font-size="11" text-anchor="middle">MPH</text>' + '</g>';
     } else if (t.lay === 'sport') {
-      g += '<g class="dLeft"><circle cx="250" cy="250" r="66" fill="' + t.face + '" stroke="#3a3f46" stroke-width="4"/>' + ticks(250, 250, 60, 160, 10, 135, 405, (v) => (v % 40 ? '' : v))
+      g += '<g transform="translate(120,17.4) scale(.72)">' + '<g class="dLeft"><circle cx="250" cy="250" r="66" fill="' + t.face + '" stroke="#3a3f46" stroke-width="4"/>' + ticks(250, 250, 60, 160, 10, 135, 405, (v) => (v % 40 ? '' : v))
         + ndl('dNeedle', 250, 250, 52, 160, '#f2f2f2', 3) + '<circle cx="250" cy="250" r="6" fill="#f2f2f2"/>'
         + '<text x="250" y="304" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text></g>'
+        + '</g>' + '<g transform="translate(-77.2,17.4) scale(.72)">'
         + '<circle cx="760" cy="244" r="88" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="5"/>'
         + '<path d="' + arcP(760, 244, 80, 6.5 / 8, 1) + '" fill="none" stroke="#e03a2f" stroke-width="7"/>' + ticks(760, 244, 82, 8, 1, 135, 405, (v) => v)
         + ndl('dRpm', 760, 244, 74, 8, t.nd, 4) + '<circle cx="760" cy="244" r="9" fill="' + t.nd + '"/>'
         + '<text id="dSpd" x="760" y="296" fill="#fff" font-size="28" font-weight="800" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
-        + '<text x="760" y="314" fill="#8a96a3" font-size="9" text-anchor="middle">MPH · RPM ×1000</text>';
+        + '<text x="760" y="314" fill="#8a96a3" font-size="9" text-anchor="middle">MPH · RPM ×1000</text>' + '</g>';
     } else {
-      g += '<g class="dLeft"><circle cx="250" cy="248" r="70" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
+      g += '<g transform="translate(120,17.4) scale(.72)">' + '<g class="dLeft"><circle cx="250" cy="248" r="70" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
         + ndl('dRpm', 250, 248, 52, 8, t.rp, 3.5)
         + '<text x="250" y="308" fill="#8a96a3" font-size="10" text-anchor="middle">RPM ×1000</text></g>'
+        + '</g>' + '<g transform="translate(-77.2,17.4) scale(.72)">'
         + '<circle cx="760" cy="248" r="80" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(760, 248, 74, 140, 10, 135, 405, (v) => v)
         + ndl('dNeedle', 760, 248, 64, 140, t.nd, 4) + '<circle cx="760" cy="248" r="8" fill="' + t.nd + '"/>'
         + '<text id="dSpd" x="760" y="300" fill="#fff" font-size="24" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
-        + '<text x="760" y="318" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text>';
+        + '<text x="760" y="318" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text>' + '</g>';
       if (t.extra) {
-        for (const [cy, lab, f] of [[206, 'FUEL', 0.72], [282, 'TEMP', 0.48]]) {
+        for (const [cy, lab, f] of [[172, 'FUEL', 0.72], [222, 'TEMP', 0.48]]) {
           const A = (135 + f * 270) * Math.PI / 180;
           /* fuel/temp sit between the tach and the wheel rim so the left of the dash stays free for the music player */
-          g += '<g class="dLeft"><circle cx="345" cy="' + cy + '" r="24" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
-            + '<line x1="345" y1="' + cy + '" x2="' + (345 + Math.cos(A) * 17).toFixed(1) + '" y2="' + (cy + Math.sin(A) * 17).toFixed(1) + '" stroke="' + t.nd + '" stroke-width="2.5" stroke-linecap="round"/>'
-            + '<text x="345" y="' + (cy + 16) + '" fill="#9aa3ab" font-size="8" text-anchor="middle">' + lab + '</text></g>';
+          g += '<g class="dLeft"><circle cx="222" cy="' + cy + '" r="22" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+            + '<line x1="222" y1="' + cy + '" x2="' + (222 + Math.cos(A) * 15).toFixed(1) + '" y2="' + (cy + Math.sin(A) * 15).toFixed(1) + '" stroke="' + t.nd + '" stroke-width="2.5" stroke-linecap="round"/>'
+            + '<text x="222" y="' + (cy + 15) + '" fill="#9aa3ab" font-size="8" text-anchor="middle">' + lab + '</text></g>';
         }
-        g += '<rect x="826" y="160" width="40" height="18" rx="4" fill="#1d1a10" stroke="#e8c43a"/><text x="846" y="173" fill="#e8c43a" font-size="10" font-weight="800" text-anchor="middle">4WD</text>';
+        g += '<rect x="530" y="132" width="40" height="18" rx="4" fill="#1d1a10" stroke="#e8c43a"/><text x="550" y="145" fill="#e8c43a" font-size="10" font-weight="800" text-anchor="middle">4WD</text>';
       }
     }
+    /* instrument-cluster hood over the gauges (behind the wheel, driver side) and the centre stack to its right */
+    g = g.replace('<g class="dLeft">', '<path d="M196,138 Q385,96 574,138 L574,150 Q385,112 196,150 Z" fill="#090b0e"/><g class="dLeft">');
+    g += '<rect x="622" y="150" width="200" height="118" rx="12" fill="#07090c" stroke="#2a3138" stroke-width="3"/>'
+      + '<rect x="632" y="160" width="180" height="98" rx="7" fill="#0d1620"/>'
+      + '<path d="M650,236 L700,196 L742,214 L794,176" fill="none" stroke="' + t.acc + '" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>'
+      + '<circle cx="794" cy="176" r="6" fill="' + t.acc + '"/><text x="644" y="176" fill="#8a96a3" font-size="10">NAV</text>'
+      + '<rect x="660" y="282" width="124" height="14" rx="4" fill="#15191e" stroke="#2a3138"/><polygon points="722,284 728,294 716,294" fill="#d2453b"/>';
     return g + '<rect x="868" y="188" width="118" height="112" rx="12" fill="#fff" stroke="#111" stroke-width="4"/>'
       + '<text x="927" y="214" fill="#111" font-size="11" font-weight="700" text-anchor="middle">SPEED</text>'
       + '<text x="927" y="230" fill="#111" font-size="11" text-anchor="middle" font-weight="700">LIMIT</text>'
       + '<text id="dLim" x="927" y="274" fill="#111" font-size="40" font-weight="800" text-anchor="middle">—</text>'
-      + '<g id="dWheel" transform="translate(500,348)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
+      + '<g id="dWheel" transform="translate(385,372)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
       + '<rect x="-122" y="-11" width="244" height="22" rx="10" fill="#1b1f24"/><rect x="-13" y="-11" width="26" height="120" fill="#1b1f24"/>'
       + '<circle r="34" fill="#15191d" stroke="' + t.ring + '" stroke-width="3"/><text y="5" fill="' + t.acc + '" font-size="11" text-anchor="middle" font-weight="700">' + t.badge + '</text></g>'
       + '</svg>';
   }
-  const CAR_DASH_REST = '<div class="dashMusic" id="dashMusic" title="YouTube music"></div>'
+  /* windshield seen from the driver's seat (US left-hand drive): thick driver-side A-pillar, thinner passenger one, roof header, sun visor, mirror, tinted glass */
+  const CAR_GLASS = '<svg class="carGlass" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">'
+    + '<defs><linearGradient id="cgTint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e2a3a" stop-opacity=".34"/><stop offset=".22" stop-color="#0e2a3a" stop-opacity=".08"/><stop offset="1" stop-color="#0e2a3a" stop-opacity="0"/></linearGradient>'
+    + '<linearGradient id="cgSide" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b1a24" stop-opacity=".42"/><stop offset="1" stop-color="#0b1a24" stop-opacity=".12"/></linearGradient></defs>'
+    + '<path d="M180,46 L1450,46 L1520,900 L96,900 Z" fill="url(#cgTint)"/>'
+    + '<path d="M0,40 L150,40 L40,620 L0,640 Z" fill="url(#cgSide)"/>'
+    + '<path d="M520,60 L760,60 L420,900 L330,900 Z" fill="#fff" opacity=".035"/>'
+    + '<path d="M0,0 H1600 V52 Q800,30 0,52 Z" fill="#0d0f12"/>'
+    + '<path d="M150,40 L238,46 L72,700 L0,760 L0,650 L40,620 Z" fill="#111418"/><path d="M238,46 L72,700" stroke="#2a3038" stroke-width="3"/>'
+    + '<path d="M1462,48 L1520,44 L1600,560 L1600,640 L1556,600 Z" fill="#111418"/>'
+    + '<rect x="250" y="34" width="360" height="58" rx="14" fill="#1a1d22" stroke="#272b31" stroke-width="2"/><rect x="300" y="52" width="90" height="20" rx="4" fill="#22262c"/>'
+    + '<rect x="905" y="40" width="12" height="34" fill="#15181c"/><rect x="800" y="70" width="230" height="60" rx="16" fill="#15181c"/><rect x="810" y="78" width="210" height="44" rx="11" fill="#5a6e80" opacity=".55"/>'
+    + '</svg>';
+  const CAR_DASH_REST = CAR_GLASS + '<div class="dashMusic" id="dashMusic" title="YouTube music"></div>'
     + '<div class="carplay" id="dashCarplay">'
     + '<div class="cpEyebrow" title="Drag to move · grip to resize · Reset recenters">'
     + '<span>⠿ Now on</span><button type="button" class="cpReset" data-cp-reset="1" title="Reset position">Reset</button></div>'
@@ -810,7 +835,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         else dEta.textContent = 'ETA ' + Math.round(et / 60) + ' min';
       }
       const steer = Math.abs(S.v) > 0.5 ? Math.atan(2.7 * S.yawRate / S.v) : 0;
-      const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(500,348) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
+      const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(385,372) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
       const now = performance.now();
       if (now - _streetT > 280) {
         _streetT = now;
@@ -1124,6 +1149,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const a = P[i], b = P[i + 1], t = Math.min(1, Math.max(0, (s - a.s) / ((b.s - a.s) || 1)));
     o.x = a.x + (b.x - a.x) * t; o.y = a.y + (b.y - a.y) * t; o.z = a.z + (b.z - a.z) * t;
     o.hd = Math.atan2(b.x - a.x, b.z - a.z); o.ff = a.ff; o.ref = a.ref || ''; o.name = a.name || ''; o.i = i;
+    o.ln = a.ln || 1; o.lw = a.lw || 3.5; o.lx = a.lx || 0; o.lz = a.lz || 0;
+    { const k = Math.hypot(o.lx, o.lz); if (k > 1.15) { o.lx /= k / 1.15; o.lz /= k / 1.15; } } /* no mitre blow-up at sharp bends */
     return o;
   }
   /* sharpest heading change over the next ~60 m → max cornering speed (≈3 m/s² lateral) */
@@ -1270,14 +1297,14 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     stopFollow && stopFollow();
     clearObj();
     window._followOff = { x: 0, z: 0 };
-    S.kind = kind; S.mode = mode; S.dest = dest; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0;
+    S.kind = kind; S.mode = mode; S.dest = dest; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0; S.taxi = null;
     S.th0 = camGoal.theta; S.ph0 = camGoal.phi; camGoal.radius = kind === 'car' ? 14 : 45; camGoal.phi = 1.25; S.ph0 = 1.25;
     const cx = origin.x, cz = origin.z;
     S.origin = { x: cx, z: cz }; S.leg = 'out'; S.waitT = 0; S.orbT = 0;
     if (kind === 'car') {
       /* stream road tiles around the start even when the camera is zoomed out to the metro view */
       try { const R0 = getRoads && getRoads(); if (R0 && R0.update) R0.update(cx, cz, 0); } catch (e) { /* ignore */ }
-      const T = mode === 'tour' ? await waitTraffic(60000) : (getTraffic && getTraffic());
+      const T = mode === 'tour' ? await waitTraffic(180000) : (getTraffic && getTraffic());
       if (!T || !T.carriageways || !T.carriageways.length) {
         note('Houston road network is still loading — wait a few seconds, then tap Start tour again.');
         S.mode = null; clearObj(); return;
@@ -1297,10 +1324,17 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           const R = getRoads && getRoads();
           if (R && R.update) R.update(dest.x, dest.z, 0);
         } catch (e) { /* ignore */ }
-        S.route = (Array.isArray(opts.route) && opts.route.length > 1 ? opts.route.map((p) => ({ ...p })) : null)
-          || findRoute(T, a.c.f.pts[2 * a.i], a.c.f.pts[2 * a.i + 1], dest.x, dest.z)
-          || findRoute(T, cx, cz, dest.x, dest.z)
-          || findRoute(T, 60, 60, dest.x, dest.z);
+        /* streets around the destination stream in as tiles — wait briefly so the route can end at the curb, not on the freeway */
+        for (let k = 0; k < 60 && !localNear(T, dest); k++) { if (!k) note('Loading streets around ' + (dest.n || 'your destination') + '…'); await new Promise((r) => setTimeout(r, 150)); }
+        const tries = [
+          () => (Array.isArray(opts.route) && opts.route.length > 1 ? opts.route.map((p) => ({ ...p })) : null),
+          () => findRoute(T, a.c.f.pts[2 * a.i], a.c.f.pts[2 * a.i + 1], dest.x, dest.z, { local: true }),
+          () => findRoute(T, cx, cz, dest.x, dest.z, { local: true }),
+          () => findRoute(T, a.c.f.pts[2 * a.i], a.c.f.pts[2 * a.i + 1], dest.x, dest.z),
+          () => findRoute(T, 60, 60, dest.x, dest.z),
+        ];
+        S._rdbg = { loc: localNear(T, dest), n: T.carriageways.length, via: -1 };
+        for (let k = 0; k < tries.length && !S.route; k++) { S.route = tries[k](); if (S.route) S._rdbg.via = k; }
         if (!S.route) {
           note('No connected road route to ' + dest.n + ' yet — wait for roads to finish loading, then try again.');
           S.mode = null; clearObj(); return;
@@ -1308,7 +1342,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         const p0 = S.route[0];
         S.p.set(p0.x, p0.y, p0.z);
         if (S.route.length > 1) S.hd = Math.atan2(S.route[1].x - p0.x, S.route[1].z - p0.z);
-        S.phase = 'drive'; S.tripLen = S.route[S.route.length - 1].s;
+        S.phase = 'drive'; S.tripLen = S.route[S.route.length - 1].s; S.lane = null; S.latCur = 0; S._lcw = null; S._ffT = 0; S._ffTry = 0;
       }
       spawnVehicle();
       if (mode === 'tour') spawnEscorts();
@@ -1328,7 +1362,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         } else { S.p.set(ap.q.x, 1.4, ap.q.z); S.hd = Math.atan2(dest.x - ap.q.x, dest.z - ap.q.z); S.rwLen = 1500; }
         S.apt = ap.q.code; S.homeApt = ap.q.code;
         S.landApt = (apLand && apLand.q.code) || ap.q.code;
-        S.phase = 'roll'; S.rollS = 0;
+        S.phase = 'roll'; S.rollS = 0; clearGround();
         { const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane(); }
         S.trip0 = Math.hypot(dest.x - S.p.x, dest.z - S.p.z);
         S.flightT0 = performance.now();
@@ -1355,8 +1389,102 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     if (mode === 'tour' && !S.musicOn) setTimeout(() => { if (S.mode) nudgeMusicHint(); }, 9000);
   }
+  /* airport ground crew: a yellow FOLLOW ME car leads the plane along the taxi route, then a marshaller
+     with lit wands and a tug wait at the stand (like IAH/HOU ramp ops). Low-poly, 1 group, removed when done. */
+  const ground = { g: null, car: null, man: null, tug: null, t: 0 };
+  function groundMat(c, e) { return new THREE.MeshLambertMaterial({ color: c, emissive: e || 0x000000 }); }
+  function buildGround() {
+    const g = new THREE.Group();
+    const car = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.9, 4.4), groundMat(0xf2c200)); body.position.y = 0.75; car.add(body);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 2.2), groundMat(0x22262c)); cab.position.set(0, 1.5, -0.3); car.add(cab);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 0.12), groundMat(0x111111, 0x222200)); sign.position.set(0, 2.1, -0.6); car.add(sign);
+    const c2 = document.createElement('canvas'); c2.width = 128; c2.height = 40; const x = c2.getContext('2d');
+    x.fillStyle = '#111'; x.fillRect(0, 0, 128, 40); x.fillStyle = '#ffd400'; x.font = 'bold 22px sans-serif'; x.textAlign = 'center'; x.fillText('FOLLOW ME', 64, 28);
+    const sTex = new THREE.CanvasTexture(c2);
+    for (const zz of [-0.67, -0.53]) { const f = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.45), new THREE.MeshBasicMaterial({ map: sTex })); f.position.set(0, 2.1, zz); if (zz > -0.6) f.rotation.y = Math.PI; car.add(f); }
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.18, 0.3), new THREE.MeshBasicMaterial({ color: 0xffa000 })); bar.position.set(0, 1.95, 0.5); car.add(bar);
+    car.userData.bar = bar; g.add(car);
+    const man = new THREE.Group();
+    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.8, 0.3), groundMat(0xff7a00)); vest.position.y = 1.2; man.add(vest);
+    const legs = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.8, 0.25), groundMat(0x223040)); legs.position.y = 0.4; man.add(legs);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), groundMat(0x7a5236)); head.position.y = 1.78; man.add(head);
+    const muffs = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.14), groundMat(0x111111)); muffs.position.y = 1.8; man.add(muffs);
+    const wandMat = new THREE.MeshBasicMaterial({ color: 0xff5a1a });
+    man.userData.arms = [];
+    for (const sx of [-1, 1]) {
+      const arm = new THREE.Group(); arm.position.set(sx * 0.33, 1.55, 0);
+      const a = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.12), groundMat(0xff7a00)); a.position.y = 0.3; arm.add(a);
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6), wandMat); w.position.y = 0.82; arm.add(w);
+      man.add(arm); man.userData.arms.push(arm);
+    }
+    man.visible = false; g.add(man);
+    const tug = new THREE.Group();
+    const tb = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 5.2), groundMat(0xe8e8e2)); tb.position.y = 0.7; tug.add(tb);
+    const tc = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 1.1), groundMat(0x1d2228)); tc.position.set(0.5, 1.55, 1.6); tug.add(tc);
+    const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 5), groundMat(0x333333)); bar2.position.set(0, 0.5, -4.6); tug.add(bar2);
+    tug.visible = false; g.add(tug);
+    scene.add(g);
+    Object.assign(ground, { g, car, man, tug, t: 0 });
+  }
+  function clearGround() {
+    if (!ground.g) return;
+    scene.remove(ground.g);
+    ground.g.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+    ground.g = ground.car = ground.man = ground.tug = null;
+  }
+  /* point `ahead` metres further along the taxi path from the plane */
+  function alongPath(P, i, px, pz, ahead) {
+    let ax = px, az = pz, left = ahead;
+    for (let j = i; j < P.length; j++) {
+      const d = Math.hypot(P[j].x - ax, P[j].z - az);
+      if (d >= left) { const f = left / d; return { x: ax + (P[j].x - ax) * f, z: az + (P[j].z - az) * f, h: Math.atan2(P[j].x - ax, P[j].z - az), end: false }; }
+      left -= d; ax = P[j].x; az = P[j].z;
+    }
+    const n = P.length, h = n > 1 ? Math.atan2(P[n - 1].x - P[n - 2].x, P[n - 1].z - P[n - 2].z) : 0;
+    return { x: ax, z: az, h, end: true };
+  }
+  function updateGround(dt) {
+    if (!ground.g) return;
+    ground.t += dt;
+    const car = ground.car;
+    if (car) car.userData.bar.material.color.setHex(Math.sin(ground.t * 9) > 0 ? 0xffb000 : 0x553300);
+    if (S.phase === 'taxi' && S.taxi) {
+      const P = S.taxi.path, jet = S.planeStyle === 'jet' || S.planeStyle === 'c130';
+      const lead = alongPath(P, S.taxi.i, S.p.x, S.p.z, (jet ? 70 : 45));
+      if (lead.end) {
+        /* near the stand: the car pulls aside and the marshaller takes over */
+        const ox = Math.cos(lead.h) * 28, oz = -Math.sin(lead.h) * 28;
+        car.position.x += (lead.x + ox - car.position.x) * Math.min(1, dt * 0.8); car.position.z += (lead.z + oz - car.position.z) * Math.min(1, dt * 0.8);
+      } else {
+        car.position.x += (lead.x - car.position.x) * Math.min(1, dt * 2.5); car.position.z += (lead.z - car.position.z) * Math.min(1, dt * 2.5);
+        let dh = lead.h - car.rotation.y; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
+        car.rotation.y += dh * Math.min(1, dt * 3);
+      }
+      const end = P[P.length - 1], prev = P[Math.max(0, P.length - 2)], hEnd = Math.atan2(end.x - prev.x, end.z - prev.z);
+      const standD = Math.hypot(end.x - S.p.x, end.z - S.p.z);
+      ground.man.visible = standD < 400;
+      ground.man.position.set(end.x + Math.sin(hEnd) * (jet ? 26 : 12), 0.2, end.z + Math.cos(hEnd) * (jet ? 26 : 12));
+      ground.man.rotation.y = hEnd + Math.PI;
+      /* "come ahead" signal: both wands sweep up and back */
+      const sw = 1.2 + Math.sin(ground.t * 4) * 0.9;
+      ground.man.userData.arms[0].rotation.z = sw; ground.man.userData.arms[1].rotation.z = -sw;
+    } else if (S.phase === 'parked') {
+      /* "stop" (wands crossed), then the follow-me car leaves and the tug hooks up at the nose */
+      ground.man.userData.arms[0].rotation.z = 2.6; ground.man.userData.arms[1].rotation.z = -2.6;
+      if (!ground.tug.visible) {
+        ground.tug.visible = true; ground.parkT = ground.t;
+        const jet = S.planeStyle === 'jet' || S.planeStyle === 'c130';
+        ground.tug.position.set(S.p.x + Math.sin(S.hd) * (jet ? 30 : 9), 0.2, S.p.z + Math.cos(S.hd) * (jet ? 30 : 9));
+        ground.tug.rotation.y = S.hd;
+      }
+      car.position.x += Math.sin(car.rotation.y) * 9 * dt; car.position.z += Math.cos(car.rotation.y) * 9 * dt;
+      if (ground.t - ground.parkT > 25) car.visible = false;
+    } else clearGround();
+  }
   function stop() {
-    S.mode = null; S.hudHid = false; clearObj();
+    S.mode = null; S.hudHid = false; clearObj(); clearGround();
+    { const T = getTraffic && getTraffic(); if (T && T.setEgo) T.setEgo(null); }
     { const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane(); }
     audio.stop();
     try { music.clearDriverPin(); } catch (e) { /* ignore */ }
@@ -1416,10 +1544,93 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (limit <= 45) mph = Math.min(mph, limit * Math.max(0.42, houDriveFactor() - 0.05));
     return Math.max(8, Math.min(limit + 2, mph)) * MPH;
   }
+  /* Lanes: 0 = curb (right) lane … ln-1 = median lane. Route points sit in the median lane (buildPath),
+     so the car is shifted right by (ln-1-lane)·lw along the route's right-hand normal (lx, lz). */
+  function laneClear(T, x, z, hd) {
+    if (!T || !T.active) return true;
+    const fx = Math.sin(hd), fz = Math.cos(hd);
+    for (const c of T.active) {
+      if (x < c.x0 - 40 || x > c.x1 + 40 || z < c.z0 - 40 || z > c.z1 + 40 || !c.lanes) continue;
+      for (const lane of c.lanes) for (const car of lane) {
+        if (car._px == null) continue;
+        const dx = car._px - x, dz = car._pz - z, along = dx * fx + dz * fz;
+        if (along < -14 || along > 22) continue;
+        if (Math.abs(dx * fz - dz * fx) < 2 && (car._fx * fx + car._fz * fz) > 0.5) return false;
+      }
+    }
+    return true;
+  }
+  function exitAhead(P, i, dist) {
+    const s0 = P[i].s, h0 = P[i].h || '';
+    for (let j = i + 1; j < P.length && P[j].s - s0 < dist; j++) {
+      const h = P[j].h || '';
+      if (h !== h0 && (/_link$/.test(h) || !/^(motorway|trunk)/.test(h))) return true;
+    }
+    return false;
+  }
+  function laneStep(T, P, o, dt, v0, gap, lv) {
+    const ln = Math.max(1, o.ln || 1), lw = o.lw || 3.5;
+    S._ln = ln;
+    if (S.lane == null) { S.lane = ln >= 3 ? 1 : 0; S.latCur = (ln - 1 - S.lane) * lw; S._lcT = 3; S._laneManT = 0; }
+    if (S.lane > ln - 1) S.lane = ln - 1;
+    S._lcT = (S._lcT || 0) - dt; S._laneManT = Math.max(0, (S._laneManT || 0) - dt);
+    const remain = S.remain != null ? S.remain : 1e9;
+    const at = (k) => [o.x + o.lx * (ln - 1 - k) * lw, o.z + o.lz * (ln - 1 - k) * lw];
+    if (remain < 140) S.lane = 0; /* destination: stop in the kerb-side lane, centred */
+    else if (S.lane < 0) S.lane = 0;
+    else if (S._lcT <= 0 && S.v > 4 && ln > 1) {
+      S._lcT = 1;
+      const mustRight = remain < 900 || exitAhead(P, o.i, 700);
+      if (mustRight && S.lane > 0) { const q = at(S.lane - 1); if (laneClear(T, q[0], q[1], S.hd)) { S.lane--; S._lcT = 4; } }
+      else if (!S._laneManT && !mustRight) {
+        if (gap < 80 && lv < v0 * 0.8 && S.lane < ln - 1) {
+          const q = at(S.lane + 1);
+          if (laneClear(T, q[0], q[1], S.hd) && leaderAhead(T, q[0], q[1], S.hd, 160)[0] > gap + 25) { S.lane++; S._lcT = 6; }
+        } else if (S.lane > 0 && gap > 120) {
+          const q = at(S.lane - 1);
+          if (laneClear(T, q[0], q[1], S.hd) && leaderAhead(T, q[0], q[1], S.hd, 160)[0] > 120) { S.lane--; S._lcT = 8; }
+        }
+      }
+    }
+    /* the offset is measured from the route's lane line, which itself jumps at every road change (freeway -> 1-lane ramp):
+       re-target instantly there and always clamp to the paved lanes, so the car can never slide off the road */
+    const hi = (ln - 1) * lw; /* never past the centre of the kerb-side lane */
+    const tgt = Math.max(0, Math.min(hi, (ln - 1 - S.lane) * lw)), step = Math.max(0.6, lw / 3) * dt; /* ~3 s per lane */
+    const cw = ln + ':' + lw.toFixed(2) + ':' + (o.name || '');
+    let prev = Math.max(0, Math.min(hi, S.latCur || 0));
+    if (S._lcw !== cw) { if (S._lcw != null) prev = tgt; S._lcw = cw; }
+    S.latCur = prev + Math.max(-step, Math.min(step, tgt - prev));
+    S.latYaw = S.v > 1 ? Math.atan2(-(S.latCur - prev) / Math.max(dt, 1e-3), S.v) : 0;
+    S.p.x += o.lx * S.latCur; S.p.z += o.lz * S.latCur;
+  }
+  const isFwy = (h) => /^(motorway|trunk)/.test(h || '');
+  function localNear(T, d) {
+    return nearestCwList(T.carriageways, d.x, d.z, 900, 40, false).some((e) => !e.c.link && !isFwy(e.c.h));
+  }
+  /* the route was planned before the destination's streets had loaded and ends on a freeway: once close, re-plan the last
+     stretch so the car takes the exit and parks at the curb on a street next to the place */
+  function fixFinalLeg(T) {
+    const P = S.route, e = P[P.length - 1];
+    if (S.leg !== 'out' || !S.dest || !isFwy(e.h) || S._ffTry > 8) return;
+    if ((S._ffT = (S._ffT || 0) - 1) > 0) return;
+    S._ffT = 90; S._ffTry = (S._ffTry || 0) + 1;
+    const P2 = findRoute(T, S.p.x, S.p.z, S.dest.x, S.dest.z, { local: true });
+    if (!P2 || P2.length < 2 || isFwy(P2[P2.length - 1].h)) { S._ffWhy = P2 ? 'fwy-end' : 'no-route'; return; }
+    const q0 = P2[0], q1 = P2[Math.min(P2.length - 1, 3)];
+    if (Math.hypot(q0.x - S.p.x, q0.z - S.p.z) > 40) { S._ffWhy = 'far-start'; return; }
+    if (Math.sin(S.hd) * (q1.x - q0.x) + Math.cos(S.hd) * (q1.z - q0.z) < 0.3 * Math.hypot(q1.x - q0.x, q1.z - q0.z)) { S._ffWhy = 'wrong-way'; return; }
+    const end2 = P2[P2.length - 1];
+    if (end2.s > S.remain * 2 + 2500) { S._ffWhy = 'too-long ' + Math.round(end2.s); return; }
+    S._ffWhy = 'ok';
+    S.route = P2; S.s = 0; S._si = 0; S.tripLen = end2.s; S._eta = null; S._etaF = 0;
+    note('Taking the exit for ' + (S.dest.n || 'your destination') + ' · parking on ' + (end2.name || 'a side street') + '.');
+  }
   function stepCar(dt) {
     const T = getTraffic && getTraffic();
+    if (T && T.setEgo) T.setEgo(S.p.x, S.p.z, Math.abs(S.v));
     const h0 = S.hd;
     if (S.mode === 'tour') {
+      if (T && S.phase === 'drive' && S.remain != null && S.remain < 3000) fixFinalLeg(T);
       const P = S.route, end = P[P.length - 1].s;
       sampleAt(P, S.s, o);
       S.limit = o.ff;
@@ -1433,16 +1644,17 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const ds = S.v * dt; S.s = Math.min(end, S.s + ds); S.odo += ds;
       sampleAt(P, S.s, o);
       S.p.set(o.x, o.y, o.z);
+      laneStep(T, P, o, dt, v0, gap, lv);
       let d = o.hd - S.hd; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; S.hd += d * Math.min(1, dt * 8);
       S.info = o.ref || o.name || '';
       S.roadName = o.name || '';
       S.remain = end - S.s;
       if (S.remain < 3 && S.v < 0.5 && S.phase === 'drive') {
-        if (S.leg === 'out') { S.phase = 'arrived'; S.waitT = 0; note('Arrived · ' + S.dest.n + ' — ' + destBlurb(S.dest) + ' Heading back in a few seconds.'); }
+        if (S.leg === 'out') { S.phase = 'arrived'; S.waitT = 0; const dm = S.dest && S.dest.x != null ? Math.round(Math.hypot(S.dest.x - S.p.x, S.dest.z - S.p.z)) : null; note('Arrived · parked at the curb' + (S.roadName ? ' on ' + S.roadName : '') + (dm != null ? ', about ' + dm + ' m from ' : ' by ') + S.dest.n + ' — ' + destBlurb(S.dest) + ' Heading back in a few seconds.'); }
         else { S.phase = 'home'; note('Back where you started. Surprise me for another Houston run — or tap Music.'); }
       }
       if (S.phase === 'arrived' && (S.waitT += dt) > 6) {
-        const P2 = T && findRoute(T, S.p.x, S.p.z, S.origin.x, S.origin.z);
+        const P2 = T && findRoute(T, S.p.x, S.p.z, S.origin.x, S.origin.z, { local: true });
         if (P2) { S.route = P2; S.s = 0; S._si = 0; S._eta = null; S._etaF = 0; S.leg = 'back'; S.phase = 'drive'; S.tripLen = P2[P2.length - 1].s; note('Driving back to where you started.'); }
         else { S.phase = 'home'; note('No road route back from here — tour ended.'); }
       }
@@ -1461,7 +1673,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     let dh = S.hd - h0; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
     S.yawRate += ((dt > 0 ? dh / dt : 0) - S.yawRate) * Math.min(1, dt * 6);
-    S.obj.position.copy(S.p); S.obj.rotation.set(0, S.hd, 0);
+    S.obj.position.copy(S.p); S.obj.rotation.set(0, S.hd + (S.mode === 'tour' ? S.latYaw || 0 : 0), 0);
   }
   /* time to go along the rest of the route at the speed you would actually hold (cruise, limit, curves) */
   /* landing runway at an airport: longest OSM runway, landing in the direction we arrive from */
@@ -1603,8 +1815,12 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         if ((T2.i >= P.length - 1 && td < 5) || (T2.t = (T2.t || 0) + dt) > 600) {
           S.phase = 'parked'; S.v = 0; S.remain = 0;
           const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane();
-          note('Parked on the ' + (S.rw ? S.rw.code : S.landApt) + ' apron (near ' + (S.dest ? S.dest.n : 'destination') + '). Pick another place to fly.');
+          note('Parked at the gate on the ' + (S.rw ? S.rw.code : S.landApt) + ' apron (near ' + (S.dest ? S.dest.n : 'destination') + ') — engines off, tug connected. Pick another place to fly.');
         }
+      } else if (S.phase === 'parked' && S.taxi) {
+        /* parked at the stand after taxiing — hold there (the runway roll-out logic would drag it back to the centreline) */
+        S.v = 0; S.vy = 0; S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4);
+        S.pitch += (0 - S.pitch) * Math.min(1, dt * 3); S.roll += (0 - S.roll) * Math.min(1, dt * 3);
       } else if (S.phase === 'rollout' || S.phase === 'parked') {
         const rw = S.rw;
         if (rw) {
@@ -1631,11 +1847,12 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           const rt = S.rollT || 0, base = rt < 2 ? 0.8 : jet ? (S.v > 20 ? 2.1 : 1.5) : 1.3;
           S.v = Math.max(0, S.v - Math.max(base, S.rw && S.phase === 'rollout' ? (S._needDecel || 0) * 1.15 : 0) * dt);
         }
-        const AP2 = window.HTS_AIRPORTS2, spot = S.phase === 'rollout' && S.v < 9 && S.taxiPark !== false && S.planeStyle !== 'heli' && AP2 && AP2.nearestSpot ? AP2.nearestSpot(S.p.x, S.p.z, 3500) : null;
+        const AP2 = window.HTS_AIRPORTS2, spot = S.phase === 'rollout' && S.v < 9 && S.taxiPark !== false && (S.planeStyle === 'jet' || S.planeStyle === 'c130') && AP2 && AP2.nearestSpot ? AP2.nearestSpot(S.p.x, S.p.z, 3500) : null;
         if (spot) {
           const tp = AP2.taxiToPark ? AP2.taxiToPark(S.p.x, S.p.z, S.hd, 3500) : null, pk = (tp && tp.spot) || spot, route = tp && tp.route;
           S.phase = 'taxi'; S.taxi = { x: pk.x, z: pk.z, t: 0, i: route ? 1 : 0, path: route || [{ x: pk.x, z: pk.z }] };
           if (route && AP2.showTaxiLane) AP2.showTaxiLane(route);
+          clearGround(); if (route && route.length > 2) { buildGround(); const st = alongPath(route, 1, S.p.x, S.p.z, 90); ground.car.position.set(st.x, 0.2, st.z); ground.car.rotation.y = st.h; }
           note('Landed ' + (S.rw ? S.rw.code + ' runway ' + S.rw.name : S.landApt) + ' — vacating the runway, taxiing to parking.');
         } else if (S.phase === 'rollout' && S.v < 0.45) {
           S.phase = 'parked'; S.v = 0; S.vy = 0; S.pitch = 0; S.roll = 0;
@@ -1914,6 +2131,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const n = Math.max(1, Math.min(/Windows/i.test(navigator.userAgent || '') ? 3 : 6, Math.ceil(sdt / 0.05)));
     for (let i = 0; i < n; i++) (S.kind === 'car' ? stepCar : stepPlane)(sdt / n);
     placeCamera(sdt / Math.max(0.001, S.speedX));
+    if (ground.g) updateGround(sdt);
     updateEscorts(sdt / Math.max(0.001, S.speedX));
     updateLights();
     S._pwr = enginePwr(sdt);
@@ -1972,5 +2190,5 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     return 0;
   }
-  return { start, stop, update, setView, land: startLanding, get active() { return !!S.mode; }, state: S };
+  return { start, stop, update, setView, land: startLanding, get active() { return !!S.mode; }, state: S, get ground() { return ground; } };
 }

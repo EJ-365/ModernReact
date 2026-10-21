@@ -1,8 +1,35 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.55.0** — tour planes no longer circle forever on approach; 69 more songs across every genre.
-**SW cache:** `hts-shell-v155`
+**Current build:** **v10.57.0** — toll roads toggle; taxiway-style taxi lane (jet and C-130 only); steady jam rings; no z-fight glitter; traffic brakes for your car; left-hand-drive dashboard + windshield; jet MCP + flight-deck frame; movie soundtracks.
+
+### v10.57.0
+- Go to my location: flies in to ~170 m (was up to 900 m) at a steeper angle so the pin/house is clearly visible.
+- Ambient and new toll-road buttons line up in one column with the locate button when the right panel is open (same computed offset).
+- Radio: the music ■ button and ending a tour now stop the radio stream too.
+- Traffic: cars in the same lane brake for the player's tour car (IDM gap to the ego car) instead of driving through it.
+- Zoomed-out glitter: renderer uses a reversed-Z depth buffer where supported, so distant land, roofs and lane paint no longer z-fight and blink.
+- Jam hotspot rings: no pulse; hysteresis on show/hide (0.54/0.46) and red/orange (0.74/0.66) so rings don't blink or flip colour; steady opacity per tier.
+- Taxi to park: drawn as a 14 m taxiway strip with yellow edge lines and a solid green centreline; only the jet and C-130 taxi (Cessna, F-16 and helicopter stop on the runway); message says "Parked at the gate".
+- Toll roads (new button above ambient): purple overlay of every tolled freeway in OSM (Sam Houston Tollway, Hardy, Westpark, Fort Bend, Grand Parkway, Katy Managed Lanes, Tomball, SH 249, SH 288) with a legend of miles per corridor.
+- Car driver view: US left-hand drive — wheel and instrument cluster on the left, centre stack with nav screen, asymmetric A-pillars, windshield tint, sun visor and rear-view mirror.
+- Jet / C-130 cockpit: glareshield autopilot panel (live SPD/HDG/ALT/V/S), master caution/warning, overhead panel edge, centre post and side-window frames.
+- Music: new Movie soundtracks genre — Like A Prayer (Choir Version, Deadpool & Wolverine, Madonna), Time, First Step, Danger Zone, Eye Of The Tiger, My Heart Will Go On, Shallow, Skyfall, Ghostbusters, Don't You (Forget About Me), What Was I Made For?, Jurassic Park, Stayin' Alive, Chariots Of Fire.
+**SW cache:** `hts-shell-v206`
+
+### v10.56.0
+- Traffic, pedestrians and bikes: instanced meshes had a bounding sphere cached from where the cars first spawned, so whole fleets were frustum-culled when that spot left the view. Culling is now off for moving instanced meshes.
+- Go to my location: uses the last fix immediately (low-accuracy, 2 min cache) instead of waiting up to 18 s for a new high-accuracy GPS fix.
+- Radio button now plays 11 real Houston stations (94.5 The Buzz, Sunny 99.1, KSBJ, KJIC, SUC Radio, Houston Public Media x3, KTRH, KPRC, Sangeet). Tap Radio again or ◀ ▶ to change station; ✕ turns it off.
+- Ambient sound button (above locate): Downtown city, Gulf rain, Park birds, Bayou night, Galveston shore, Prairie wind, with volume. Generated with Web Audio; hidden and muted during car/aircraft tours.
+- Taxi to park: a FOLLOW ME car leads the plane along the green lane, a marshaller waves it in at the stand, then a pushback tug hooks up at the nose.
+- Sun disc scales with the world (about 3x larger on screen) with a wider bright core.
+- Spotify button in the music panel: free official playlist embed per genre.
+- Taxi to park fix: after reaching the stand the plane was dragged back onto the runway centreline by the roll-out logic; it now holds at the stand (checked headless at IAH: plane, marshaller and tug all within ~30 m of the stand).
+- Cumulus clouds: higher-resolution sprites (512x256) with 18-28 puffs, bright sun-lit crowns, blue-grey shaded undersides and a flat base.
+- Console build banner now reports the real version.
+- Music: Take On Me, Jump (Van Halen), Beyonce, Destiny's Child, Travis Scott, Megan Thee Stallion, UGK, Slim Thug, Bun B, Chamillionaire, Maxo Kream, Lizzo, synthwave (Kavinsky, Gunship, Perturbator), EDM, rock and country.
+**SW cache:** `hts-shell-v205`
 
 This log captures the work from the late **v10.8.x / v10.9** baseline through the current **v10.18.0** real-3D-city release.
 
@@ -315,3 +342,50 @@ literals authored at 210 units/mile are mapped with `W()` / `WS` in `src/app-mai
 - Airports: OSM control towers (`aeroway=tower` / `tower:type=aircraft_control`, 4 after de-dup incl. IAH 102 m) plus a placed tower at HOU/EFD; detailed tower model; glazed terminal facades and ribbed hangars; 134 OSM jet bridges; airliners at ~60 % of OSM stands next to terminals (United at IAH, Southwest at HOU); light aircraft tied down on GA aprons; runway edge lights at night. Old procedural airport props are off for metre-scale Houston.
 - Place-name labels (`scripts/extract-houston-places.py` → `places.json`, 740 OSM places) appear when zoomed out, decluttered, and fade out as you zoom in (`houston-places.js`).
 
+
+## v10.58.0
+
+- **Clouds:** `cloudTexture()` rebuilt. Each cumulus is now ~400 small, low-alpha soft puffs scattered inside a wide, lumpy dome profile with 2–3 random towers, so there are no readable round bubbles or chevron silhouettes. Sun-lit crowns, blue-grey shading toward a soft flat base. Still generated once at startup (no per-frame cost).
+- **Radio / music UX:** the orange **Radio** button is now an on/off toggle (it used to skip to the next station). While the radio is on, the same ⏮ ⏭ buttons as YouTube change the station. Only one source plays at a time: turning the radio on stops YouTube, and starting any YouTube song (Auto ▶, ⏮ ⏭, picking a song) turns the radio off. ■ stops both.
+
+## v10.59.0
+
+- **Live flights — landing gear:** gear is retracted in cruise; it is shown only on the ground / initial climb (< 400 ft) or on a descending final approach (arrival corridor or sinking > 300 fpm below 2,200 ft). Was: any aircraft under 2,800 ft.
+- **Spotify:** opening the Spotify embed called Music-off, which hid the whole music panel (`#tourYt` without `.on` is `display:none`), so the player was invisible. The panel now stays open in `.spot` mode, the YouTube video area is hidden, the radio stops, and in the car dashboard the embed uses Spotify's compact 80 px player. Starting a YouTube song closes Spotify. Full songs need a Spotify login in the browser; otherwise Spotify serves 30-second previews.
+- **Tour car lanes:** route points now carry lane count, lane width and the right-hand normal. The car starts in a middle/right lane, passes slower traffic when the next lane is clear, moves back right afterwards, and moves right in time for exits and the destination. Manual lane change: **◀ Lane / Lane ▶** buttons in the tour HUD, or ← / → (A / D) keys.
+- **Arrival parking:** tour and route-planner routes now end on the nearest street/arterial within ~900 m of the place (never a freeway mainline or ramp), and the car pulls over to the curb before stopping. The arrival note gives the street and distance to the place.
+- **Freeway rendering:** larger height separation between road classes (motorway 0.30 m, trunk 0.26, ramps 0.19–0.22, primary 0.14) so mainlanes, ramps and frontage roads no longer z-fight where OSM carriageways overlap; mitre stretch at sharp vertices capped at 1.4× (was 2×) to stop spiky, non-straight edges.
+- **Arrival parking (root cause):** a tour that starts before the streets around the destination have streamed in could only find freeway carriageways there, so the route ended on the freeway (Daikin Park → Eastex Freeway). The tour now waits up to ~9 s for local streets near the destination before routing, and, as a backup, re-plans the last stretch once within 3 km (`fixFinalLeg`): the car takes the exit and parks on the nearby street.
+- **Spotify playback:** the player now uses Spotify's free official iFrame API (`open.spotify.com/embed/iframe-api/v1`, no key/account on our side) and calls `play()` once ready, falling back to the plain embed if the API can't load. It sits above the song title; in the car dashboard the genre row hides so the 80 px player fits. Full tracks need the user to be logged in to Spotify in the browser; otherwise Spotify plays 30-second previews.
+- **Road shimmer:** each OSM way gets a tiny stable height lift (6–54 mm) so overlapping parallel carriageways no longer z-fight.
+
+## v10.60.0
+- **Freeways restored:** `src/render/houston-roads.js` is back to its v10.58.0 version exactly (no per-class height changes, mitre cap or per-way lift). The v10.59.0 tweaks also changed the carriageway frames the traffic and tour cars drive on, which made freeways look bent and overlapping.
+- **Lane changes stay on the road:** the tour car's lateral offset is measured from the route's lane line, which jumps whenever the road changes (e.g. a 5-lane freeway onto a 1-lane ramp). The old offset slid back over several seconds, leaving the car up to ~15 m off the ramp. It now re-targets instantly at each road change and is always clamped to the paved lanes (curb parking may shift at most 1.4 m). Sharp-bend mitre factors are capped so the offset can't grow at corners.
+
+## v10.61.0
+- **Night roads look like asphalt again:** the night lighting no longer tints every road surface brown/orange (the old "warm corridor wash"). Asphalt now darkens to a neutral grey, so the grain stays visible, and only the streetlight pools are warm. Lane paint at night was darkened to 8–12 % of its day brightness, which made it vanish on the asphalt; it now stays at ~40 %, like retroreflective paint.
+- **Daytime freeways:** motorway/trunk asphalt is a slightly darker neutral grey (it read as pale concrete), so white lane dashes stand out like the reference photos. Geometry is unchanged from v10.58.0.
+- **Streetlights off the pavement:** poles are tested against a 24 m grid of every carriageway (major net + streamed local tiles) and skipped if they would stand on any road surface (frontage roads, ramps, the other direction, cross streets). Twin-arm median poles only on wide two-way motorways; trunk roads get verge poles.
+- **Celebrations (`src/fx/celebrate.js`):** Auto/On/Off (right panel → Celebrations). Auto lights the night sky on Jan 1 ("Happy New Year from Ejay Gabriel", also from 22:00 on Dec 31), Dec 9 ("Happy Birthday Ejay Gabriel") and Dec 25 ("Merry Christmas"): coloured light strands across the sky, a glowing greeting and fireworks (rockets, bursts, rings). Optional custom greeting replaces the default text. Firework sound is synthesized with Web Audio (whistle, boom delayed by distance, crackle), toggleable.
+- **Songs:** Choosin' Texas (Ella Langley), Solar Eclipse (Drake, Don Toliver), Met You (Carter Efe ft. Taylor Jasmine), FOLA: you, it's over, treat u right, who does that?, Lost, Very Soon. All checked playable/embeddable on YouTube.
+
+## v10.62.0
+- **Lane paint on every divided road:** one-way carriageways (divided roads) and any road ≥ 9 m wide now get white/yellow edge lines; when OSM has no `lanes=` tag the lane count is inferred from the paved width, so dashed lane lines appear too.
+- **Asphalt a touch darker** with finer, lower-contrast grain.
+- **Streetlights** stand 2 m off the pavement edge and are skipped within 1.2 m of any carriageway.
+
+## v10.63.0
+- **No manual lane controls in car tours:** removed the ◀ Lane / Lane ▶ buttons and the ←/→, A/D lane keys. The tour car changes lanes only by itself (slow car ahead, exit coming up), stays centred in its lane, and at the destination pulls at most 1 m toward the curb (was 1.4 m) so it stays clear of the streetlights.
+
+## v10.64.0
+- **Tour car centred in its lane:** traffic/route lanes now use the same lane count the renderer paints (one-way carriageways without `lanes=` are inferred from width in both), so the car follows the painted lane centre. The destination curb pull-over (up to 1 m past the kerb-side lane centre, which put the car on the edge line next to the poles) is removed: the car stops centred in the kerb-side lane.
+
+## v10.65.0
+- **Both sides of a divided road are the same width:** OSM maps each direction as its own one-way way, often with different `width`/`lanes` tags, so one side drew wider. `harmonizeDivided()` (houston-roads.js) pairs the two carriageways (same name/ref and class, opposite direction, ≤ 45 m apart) per load batch and gives both the wider width and the larger lane count. The records are shared, so traffic lanes, the tour route and streetlights match the painted road.
+
+## v10.66.0
+- **Celebration greeting no longer under the compass:** the sky message was fixed ~20° above the horizon, so with the camera tilted down it landed behind the compass and location pill at the top of the screen. It is now kept between 10% and 34% above screen centre (projected each frame), always clear of the top HUD.
+
+## v10.67.0
+- **Realistic fireworks:** rockets climb with a sparking gold tail and burst at 320–700 m (1.1–2.6 km away, 200–300 m across) into real shell types (peony with optional pistil, chrysanthemum, gold willow, tilted ring, crackle, glitter strobe, crossette, palm), with an occasional salvo. Stars break as an even sphere, start white-hot and cool to their colour, slow under air drag, sag under gravity and fade out smoothly (no random per-frame flicker). Trails and glitter are separate short-lived sparks; each burst has a brief flash. Sparks are drawn by a small shader (hot core + soft halo, sized in metres), the update is capped at 50 ms steps and only walks live slots. Crackle shells crackle in sync with their sound.

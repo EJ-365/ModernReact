@@ -147,7 +147,25 @@ function jetDash(c130) {
     + '<rect x="720" y="108" width="180" height="186" rx="8" fill="#05080c" stroke="#2a3340"/>' + tx(810, 124, 10, '#7fb3d9', 'ND · TRK')
     + '<clipPath id="ndClip"><rect x="724" y="130" width="172" height="160"/></clipPath><g clip-path="url(#ndClip)">' + hdgCard(810, 250, 92, 'gHdg', '#dbe6f0').replace(/fill="#2b2e33" stroke="#0b0c0e"/, 'fill="none" stroke="none"').replace(/fill="#0a0b0d"/, 'fill="#05080c"') + '</g>'
     + '<line x1="810" y1="250" x2="810" y2="150" stroke="#e05cff" stroke-width="2" stroke-dasharray="6 4"/>'
+    /* glareshield autopilot panel (MCP): SPD / HDG / ALT / V/S windows and A/P engage lights */
+    + '<rect x="300" y="62" width="400" height="34" rx="5" fill="#2b3038" stroke="#11151b" stroke-width="2"/>'
+    + [['SPD', 338, 'dMcpS'], ['HDG', 428, 'dMcpH'], ['ALT', 528, 'dMcpA'], ['V/S', 626, 'dMcpV']].map(([l, x, id]) => tx(x, 72, 7, '#c9d1d9', l, '', 700)
+      + '<rect x="' + (x - 30) + '" y="75" width="60" height="16" rx="2" fill="#0a0c0f"/>' + tx(x, 87, 11, '#ffb347', '---', id, 700)).join('')
+    + '<rect x="670" y="68" width="22" height="10" rx="2" fill="#1a5c34"/><rect x="670" y="81" width="22" height="10" rx="2" fill="#1a5c34"/>' + tx(681, 76, 6, '#d6ffe4', 'A/P', '', 700) + tx(681, 89, 6, '#d6ffe4', 'A/T', '', 700)
+    + '<circle cx="60" cy="200" r="16" fill="#1b1f25" stroke="#3a4552"/>' + tx(60, 204, 8, '#e8a838', 'MSTR', '', 700) + '<circle cx="940" cy="200" r="16" fill="#1b1f25" stroke="#3a4552"/>' + tx(940, 204, 8, '#e8a838', 'WARN', '', 700)
     + '<rect x="368" y="286" width="264" height="24" rx="6" fill="#0c1118" stroke="#2a3340"/>' + tx(500, 303, 12, '#ffcf3a', 'HDG 000°', 'dHdg', 700)
+    + '</svg>'
+    /* flight-deck windows: centre post, side-window frames and the overhead panel edge, drawn over the view */
+    + '<svg class="jetGlass" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">'
+    + '<defs><linearGradient id="jgT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1824" stop-opacity=".3"/><stop offset=".35" stop-color="#0b1824" stop-opacity="0"/></linearGradient></defs>'
+    + '<rect width="1600" height="900" fill="url(#jgT)"/>'
+    + '<path d="M0,0 H1600 V70 Q800,40 0,70 Z" fill="#1c2128"/>'
+    + [120, 260, 400, 1200, 1340, 1480].map((x) => '<circle cx="' + x + '" cy="24" r="5" fill="#3a4250"/><rect x="' + (x + 14) + '" y="18" width="40" height="12" rx="3" fill="#262c35"/>').join('')
+    + '<path d="M786,52 L814,52 L826,900 L774,900 Z" fill="#15191f"/><path d="M800,52 V900" stroke="#2a313b" stroke-width="2"/>'
+    + '<path d="M0,96 L250,64 L170,900 L0,900 Z" fill="#15191f" opacity=".96"/><path d="M250,64 L170,900" stroke="#2a313b" stroke-width="3"/>'
+    + '<path d="M1600,96 L1350,64 L1430,900 L1600,900 Z" fill="#15191f" opacity=".96"/><path d="M1350,64 L1430,900" stroke="#2a313b" stroke-width="3"/>'
+    + '<path d="M40,260 L150,250 L120,620 L30,640 Z" fill="#0b1824" opacity=".35"/><path d="M1560,260 L1450,250 L1480,620 L1570,640 Z" fill="#0b1824" opacity=".35"/>'
+    + '<path d="M330,120 L520,90 L300,880 L240,880 Z" fill="#fff" opacity=".03"/><path d="M1080,90 L1250,120 L1290,880 L1240,880 Z" fill="#fff" opacity=".025"/>'
     + '</svg>';
 }
 
@@ -227,6 +245,10 @@ export function updateDash(root, st) {
       set('dEgt' + s, String(Math.round((st.type === 'c130' ? 520 + p * 450 : 410 + p * 490) + j * 6)));
       set('dFf' + s, String(Math.round((st.type === 'c130' ? 260 + p * 720 : 320 + p * 2680) + j * 20)));
     }
+    set('dMcpS', String(Math.max(100, Math.round(st.kt / 5) * 5)));
+    set('dMcpH', hdg);
+    set('dMcpA', String(Math.round(st.ft / 100) * 100).padStart(5, '0'));
+    set('dMcpV', (st.vs >= 0 ? '+' : '') + Math.round(st.vs / 100) * 100);
   } else if (st.type === 'fighter') {
     const rpm = 70 + p * 30; set('dN1a', rpm.toFixed(0) + '%'); needle('nN1a', rpm);
     set('dEgta', String(Math.round(560 + p * 380))); set('dFfa', String(Math.round(900 + p * 8600)));

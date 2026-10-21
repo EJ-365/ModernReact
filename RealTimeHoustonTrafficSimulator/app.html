@@ -505,6 +505,24 @@
   #locBtn{background:rgba(20,24,30,.88)!important;border:1px solid rgba(255,255,255,.14)!important;backdrop-filter:blur(6px);transition:transform .15s,background .15s}
   #locBtn:hover{background:rgba(36,42,52,.95)!important;transform:scale(1.06)}
   #locBtn{box-shadow:0 3px 14px rgba(0,0,0,.6),0 0 0 2px rgba(232,168,56,.35);transition:transform .15s,background .15s,right .32s cubic-bezier(.22,1,.36,1)}
+  #ambWrap{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 62px);right:calc(var(--ui-pad) + var(--rail-w) + 6px);z-index:11;transition:right .32s cubic-bezier(.22,1,.36,1)}
+  body.left-collapsed #ambWrap{right:calc(var(--ui-pad) + var(--rail-w) + 10px)}body.right-collapsed #ambWrap{right:calc(var(--ui-pad) + 10px)}
+  #ambBtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:rgba(20,24,30,.88);border:1px solid rgba(255,255,255,.14);box-shadow:0 3px 14px rgba(0,0,0,.6),0 0 0 2px rgba(232,168,56,.35);backdrop-filter:blur(6px)}
+  #ambBtn.on svg{stroke:#e8a838}#ambBtn.blocked{opacity:.55}
+  #ambMenu{position:absolute;right:0;bottom:50px;width:210px;padding:10px;border-radius:12px;background:rgba(22,17,13,.96);border:1px solid rgba(224,122,46,.3);box-shadow:0 8px 28px rgba(0,0,0,.6);color:#f3ebe0;font-size:13px}
+  #ambMenu .ambHead{font-weight:600;margin-bottom:6px}#ambMenu small{opacity:.6;font-weight:400;margin-left:4px}
+  #ambList button{display:block;width:100%;text-align:left;padding:7px 9px;margin:2px 0;border-radius:8px;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer}
+  #ambList button:hover{background:rgba(255,255,255,.07)}#ambList button.on{background:rgba(232,168,56,.2);color:#ffd08a}
+  #ambMenu .ambVol{display:flex;gap:8px;align-items:center;margin-top:6px}#ambMenu .ambVol input{flex:1}
+  html.hts-peek #ambWrap,body.tour-on #ambWrap{display:none}
+  #tollWrap{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 114px);right:calc(var(--ui-pad) + var(--rail-w) + 6px);z-index:11;transition:right .32s cubic-bezier(.22,1,.36,1)}
+  body.left-collapsed #tollWrap{right:calc(var(--ui-pad) + var(--rail-w) + 10px)}body.right-collapsed #tollWrap{right:calc(var(--ui-pad) + 10px)}
+  html.hts-peek #tollWrap,body.tour-on #tollWrap{display:none}
+  #tollBtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:rgba(20,24,30,.88);border:1px solid rgba(255,255,255,.14);box-shadow:0 3px 14px rgba(0,0,0,.6);backdrop-filter:blur(6px)}
+  #tollBtn:hover{background:rgba(36,42,52,.95)}#tollBtn.active{box-shadow:0 3px 14px rgba(0,0,0,.6),0 0 0 2px #b06cff}
+  #tollLegend{position:absolute;right:52px;bottom:0;width:250px;padding:10px 12px;border-radius:12px;background:rgba(14,17,22,.94);border:1px solid rgba(255,255,255,.12);color:#e8edf2;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  #tollLegend small{color:#8a96a3}#tollLegend ul{list-style:none;margin:6px 0 0;padding:0}#tollLegend li{display:flex;gap:6px;align-items:center;padding:2px 0}#tollLegend li small{margin-left:auto}
+  #tollLegend i{width:14px;height:4px;border-radius:2px;background:#b06cff;flex:none}
   #locBtn.active svg circle,#locBtn.active svg path{stroke:#4aa3ff}#locBtn.active svg .dot{fill:#4aa3ff;stroke:none}
   #geoToast{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 14px);left:50%;transform:translateX(-50%);z-index:12;
     display:none;align-items:center;gap:9px;background:#0d1319f4;border:1px solid #2c4258;
@@ -947,7 +965,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.55.0</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.67.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1273,6 +1291,18 @@
       <option value="storm">Thunderstorm</option>
     </select>
   </div>
+  <div class="grp" id="celebGrp">
+    <label>Celebrations</label>
+    <div class="sublabel">Christmas lights, a greeting and fireworks (with sound) across the night sky on Jan 1 (New Year), Dec 9 (Ejay's birthday) and Dec 25 (Christmas).</div>
+    <select id="celebMode">
+      <option value="auto" selected>Auto: on those dates after dark</option>
+      <option value="on">On: show it now</option>
+      <option value="off">Off</option>
+    </select>
+    <input type="text" id="celebMsg" maxlength="60" placeholder="Your greeting, e.g. Happy New Year from the City of Houston" style="width:100%;margin-top:6px;box-sizing:border-box">
+    <label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-weight:400"><input type="checkbox" id="celebSound" checked> Firework sound</label>
+    <div class="hint" id="celebStatus"></div>
+  </div>
   <div class="grp" id="tourHazGrp">
     <label>Hazard predictions</label>
     <div class="sublabel">Educational what-if overlays — nuclear uses strategic targeting model + live wind. Not NWS/emergency alerts.</div>
@@ -1364,6 +1394,8 @@
   </div>
 </div>
 
+<div id="tollWrap"><button id="tollBtn" type="button" title="Show toll roads" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M4 20 L9 4 M20 20 L15 4" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"/><path d="M12 6v2M12 11v2M12 16v2" stroke="#b06cff" stroke-width="2" stroke-linecap="round"/></svg></button><div id="tollLegend" hidden></div></div>
+<div id="ambWrap"><button id="ambBtn" type="button" title="Ambient sound (while exploring)" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button><div id="ambMenu" role="menu" hidden><div class="ambHead">Ambient sound <small>map view only</small></div><div id="ambList"></div><label class="ambVol">Volume <input id="ambVol" type="range" min="0" max="100" value="50"></label></div></div>
 <button id="locBtn" title="Go to my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><circle cx="12" cy="12" r="7" stroke="#e8edf2" stroke-width="2"/><circle class="dot" cx="12" cy="12" r="3.2" fill="#e8edf2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"/></svg></button>
 <button type="button" id="tourReplayMobile">Replay tour</button>
 <button type="button" id="mSheetScrim" aria-label="Close panel"></button>
