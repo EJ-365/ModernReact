@@ -252,6 +252,13 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
   }
 
   /** Detail layer (trees, bushes, houses): built lazily only for tiles near the camera. */
+  /* small LRU of local street tiles (shared by neighbouring tiles' house checks) */
+  const _lt = new Map();
+  function localTile(k) {
+    let pr = _lt.get(k);
+    if (!pr) { pr = fetch(base + 'tiles/local/' + k + '.json').then((r) => r.json()).catch(() => null); _lt.set(k, pr); if (_lt.size > 48) _lt.delete(_lt.keys().next().value); }
+    return pr;
+  }
   async function buildDetail(key, t) {
     const seed = key.split('_').reduce((a, v) => a * 131 + (+v + 997), 7), rnd = rng(seed), st = { t: performance.now() };
     const trees = [], bushes = [], houses = [], roofs = [], flats = [], garages = [];
@@ -268,12 +275,16 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     }
     /* houses: both sides of real residential streets, inside residential land use, facing the street */
     if (index.local.has(key)) {
-      const lr = await fetch(base + 'tiles/local/' + key + '.json').then((r) => r.json()).catch(() => null);
+      const lr = await localTile(key);
+      /* streets of the 8 neighbouring tiles too, so houses near a tile edge don't land on a street from the next tile */
+      const [kx, kz] = key.split('_').map(Number), nbr = [];
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const nk = (kx + dx) + '_' + (kz + dz); if ((dx || dz) && index.local.has(nk)) nbr.push(localTile(nk)); }
+      const nbRoads = (await Promise.all(nbr)).flatMap((d) => (d && d.roads) || []);
       const mr = index.minor && index.minor.has(key) ? await fetch(base + 'tiles/minor/' + key + '.json').then((r) => r.json()).catch(() => null) : null;
       /* 4 m occupancy grid of every carriageway so houses never sit on a street */
       const occ = new Set(), cell = 4, ck = (gx, gz) => gx * 1000003 + gz;
       const maj = (await majorRoads()).get(key) || [];
-      for (const r of ((lr && lr.roads) || []).concat((mr && mr.roads) || [], maj)) {
+      for (const r of ((lr && lr.roads) || []).concat((mr && mr.roads) || [], maj, nbRoads)) {
         const p = r.p, R = Math.ceil((r.w / 2 + 3) / cell);
         for (let i = 2; i < p.length; i += 2) {
           const ax = p[i - 2], az = p[i - 1], L = Math.hypot(p[i] - ax, p[i + 1] - az), n = Math.max(1, Math.ceil(L / cell));

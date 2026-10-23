@@ -25,6 +25,67 @@ const TRACKS = [
   { g: 'afrobeat', id: 'bbVZo4Yw7pI', title: 'Lonely At The Top' },
   { g: 'afrobeat', id: 'Q7QiLceJSLQ', title: 'Ojuelegba' },
   { g: 'afrobeat', id: 'fXl5dPuiJa0', title: 'Joha' },
+  { g: 'pop', id: 'fHI8X4OXluQ', title: 'The Weeknd - Blinding Lights' },
+  { g: 'pop', id: 'mRD0-GxqHVo', title: 'Glass Animals - Heat Waves' },
+  { g: 'pop', id: 'JRfuAukYTKg', title: 'David Guetta - Titanium ft. Sia' },
+  { g: 'pop', id: 'QYh6mYIJG2Y', title: 'Ariana Grande - 7 rings' },
+  { g: 'pop', id: 'SlPhMPnQ58k', title: 'Maroon 5 - Memories' },
+  { g: 'pop', id: 'k2qgadSvNyU', title: 'Dua Lipa - New Rules' },
+  { g: 'hiphop', id: 'U9BwWKXjVaI', title: 'Drake - Nice For What' },
+  { g: 'hiphop', id: '_Yhyp-_hX2s', title: 'Eminem - Lose Yourself' },
+  { g: 'hiphop', id: 'rywUS-ohqeE', title: 'Alicia Keys - No One' },
+  { g: 'hiphop', id: '8UFIYGkROII', title: 'Soulja Boy Tell’em - Crank That (Soulja Boy)' },
+  { g: 'hiphop', id: 'eJO5HU_7_1w', title: 'Eminem - The Real Slim Shady' },
+  { g: 'rock', id: 'YlUKcNNmywk', title: 'Red Hot Chili Peppers - Californication [HD UPG' },
+  { g: 'rock', id: 'v2AC41dglnM', title: 'AC/DC - Thunderstruck' },
+  { g: 'rock', id: '6Ejga4kJUts', title: 'The Cranberries - Zombie' },
+  { g: 'latin', id: 'DiItGE3eAyQ', title: 'Daddy Yankee & Snow - Con Calma' },
+  { g: 'electronic', id: '5dbEhBKGOtY', title: 'David Guetta - Play Hard ft. Ne-Yo, Akon' },
+  { g: 'country', id: 'lydBPm2KRaU', title: 'Carrie Underwood - Jesus, Take The Wheel' },
+  { g: 'gospel', id: 'fd24fpsF1Qw', title: 'CeCe Winans - Believe For It' },
+  { g: 'gospel', id: 'OP-00EwLdiU', title: 'Oceans (Where Feet May Fail) - Hillsong UNITED - Live in Israel' },
+  { g: 'gospel', id: 'sIaT8Jl2zpI', title: 'Lauren Daigle - You Say' },
+  { g: 'gospel', id: 'qtvQNzPHn-w', title: 'Phil Wickham - Battle Belongs' },
+  { g: 'gospel', id: 'CqybaIesbuA', title: 'Chris Tomlin - Good Good Father' },
+  { g: 'gospel', id: 'TWrGjzBheno', title: 'Marvin Sapp - Never Would Have Made It' },
+  { g: 'gospel', id: 'p4rRCjrAyCs', title: 'Tauren Wells - Hills and Valleys' },
+  { g: 'gospel', id: 'JGYjKR69M6U', title: 'Zach Williams - Chain Breaker' },
+  { g: 'gospel', id: '1yBzIt_z8oY', title: 'Casting Crowns - Nobody ft. Matthew West' },
+  { g: 'gospel', id: 'Q5cPQg3oq-o', title: 'for KING + COUNTRY - God Only Knows' },
+  { g: 'gospel', id: 'YA2Lxfw4SSw', title: 'MOSES BLISS - TOO FAITHFUL' },
+  { g: 'gospel', id: 'gqIwEbCyxBo', title: 'Fragrance To Fire - Dunsin Oyekan' },
+  { g: 'gospel', id: 'FYMjO9mL0Tw', title: 'Housefires - Build My Life (feat. Pat Barrett)' },
+  { g: 'pop', id: 'Oa_RSwwpPaA', title: 'Benson Boone - Beautiful Things' },
+  { g: 'pop', id: '9gWIIIr2Asw', title: 'Teddy Swims - Lose Control' },
+  { g: 'pop', id: 'U_Lz_MG35hM', title: 'Chappell Roan - Good Luck, Babe!' },
+  { g: 'pop', id: 'adLGHcj_fmA', title: 'Bruno Mars, Anderson .Paak, Silk Sonic - Leave the Door Open' },
+  { g: 'pop', id: 'tQ0yjYUFKAE', title: 'Justin Bieber - Peaches ft. Daniel Caesar, Giveon' },
+  { g: 'hiphop', id: 'EOxj2ROIxok', title: 'Megan Thee Stallion - Savage' },
+  { g: 'hiphop', id: 'DmWWqogr_r8', title: '21 Savage - a lot ft. J. Cole' },
+  { g: 'afrobeat', id: 'OSBan_sH_b8', title: 'Davido - UNAVAILABLE ft. Musa Keys' },
+  { g: 'country', id: 'IBLruNfUqUs', title: 'Chris Stapleton - Tennessee Whiskey' },
+  { g: 'latin', id: 'CocEMWdc7Ck', title: 'SHAKIRA // BZRP Music Sessions #53/66' },
+  { g: 'electronic', id: 'DkeiKbqa02g', title: 'Calvin Harris, Dua Lipa - One Kiss' },
+  { g: 'rock', id: 'dvgZkm1xWPE', title: 'Coldplay - Viva La Vida' },
+  { g: 'gospel', id: 'VH3f0ellNv8', title: 'Travis Greene - Intentional' },
+  { g: 'gospel', id: 'SiycqP-kCKE', title: 'Jonathan McReynolds - Make Room' },
+  { g: 'gospel', id: '80Dpek7qK08', title: 'Tye Tribbett - If He Did It Before....Same God' },
+  { g: 'gospel', id: 'qD--wxM5HZY', title: 'Fred Hammond & RFC - No Weapon' },
+  { g: 'gospel', id: 'l65oEJOXx9Y', title: 'I Give Myself Away - William McDowell' },
+  { g: 'gospel', id: 'OwrE0YjfNGg', title: 'Koryn Hawthorne - Won’t He Do It' },
+  { g: 'gospel', id: 'i58IH2D8sWQ', title: 'Lecrae - Blessings ft. Ty Dolla $ign' },
+  { g: 'gospel', id: 'qtnwI127xXQ', title: 'ADA EHI - THE FAITHFUL GOD' },
+  { g: 'gospel', id: '_2xKfhSI_IQ', title: 'Frank Edwards - Under The Canopy' },
+  { g: 'gospel', id: 'bhZKHBIPYPA', title: 'Tim Godfrey ft Travis Greene - Nara' },
+  { g: 'gospel', id: 'V7eZD3TKn_M', title: 'Mary Mary - Shackles (Praise You)' },
+  { g: 'pop', id: 'pok8H_KF1FA', title: 'Doja Cat - Say So' },
+  { g: 'pop', id: 'QGJuMBdaqIw', title: 'Katy Perry - Firework' },
+  { g: 'afrobeat', id: 'WcIcVapfqXw', title: 'Rema, Selena Gomez - Calm Down' },
+  { g: 'electronic', id: 'm7Bc3pLyij0', title: 'Marshmello ft. Bastille - Happier' },
+  { g: 'electronic', id: '0zGcUoRlhmw', title: 'The Chainsmokers - Closer ft. Halsey' },
+  { g: 'rock', id: 'VcjzHMhBtf0', title: 'Journey - Don’t Stop Believin’' },
+  { g: 'classics', id: 'eH3giaIzONA', title: 'Whitney Houston - I Wanna Dance With Somebody (Who Loves Me)' },
+  { g: 'classics', id: 'Gs069dndIYk', title: 'Earth, Wind & Fire - September' },
   { g: 'gospel', id: 'QM8jQHE5AAk', title: 'Way Maker' },
   { g: 'gospel', id: '6xx0d3R2LoU', title: 'Reckless Love' },
   { g: 'gospel', id: 'n0FBb6hnwTo', title: 'Goodness of God' },
@@ -695,9 +756,9 @@ export function createTourMusic() {
       + '#tourYt .hd .acts{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}'
       + '#tourYt .host{display:none;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;flex:1;min-height:72px}'
       + '#tourYt.yt-ready .host,#tourYt.dashEmbed .host{display:block}'
-      + '#tourYt.dashEmbed .host{aspect-ratio:auto;height:auto;min-height:78px;max-height:48%}'
+      + '#tourYt.dashEmbed{flex-direction:column;overflow:hidden}#tourYt.dashEmbed .host{aspect-ratio:auto;flex:1 1 0;height:auto;min-height:60px;max-height:none;width:100%;align-self:stretch}'
       + '#tourYt .host iframe{width:100%;height:100%;border:0;display:block}'
-      + '#tourYt.spot{display:flex}#tourYt.spot .host{display:none!important}#tourYt.dashEmbed .spotFrame{height:80px!important;flex:none}#tourYt.spot.dashEmbed .gen{display:none!important}#tourYt .spotFrame iframe{width:100%!important;height:100%!important;border:0}'
+      + '#tourYt.spot,#tourYt.radio{display:flex}#tourYt.radio .host{display:none!important}#tourYt.spot .host{display:none!important}#tourYt.dashEmbed .spotFrame{height:80px!important;flex:none}#tourYt.spot.dashEmbed .gen{display:none!important}#tourYt .spotFrame iframe{width:100%!important;height:100%!important;border:0}'
       + '#tourYt .body{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}'
       + '#tourYt.min{width:auto;max-width:min(340px,82vw);padding:6px 8px}'
       + '#tourYt.min .body,#tourYt.min .foot{display:none}'
@@ -760,27 +821,32 @@ export function createTourMusic() {
       ];
       const rBtn = wrap.querySelector('[data-yt-radio]'), offBtn = wrap.querySelector('[data-yt-off]');
       rBtn.title = 'Houston radio on/off — ⏮ ⏭ change station';
-      let au = null, idx = 0, on = false, fails = 0;
-      const stopRadio = () => { on = false; if (au) { au.pause(); au.removeAttribute('src'); au.load(); } rBtn.classList.remove('on'); };
+      let au = null, idx = 0, on = false, fails = 0, tok = 0;
+      /* keep: Radio toggled off leaves the player open; ■ or starting YouTube closes radio mode */
+      const stopRadio = (keep) => { on = false; tok++; if (au) { au.pause(); au.removeAttribute('src'); au.load(); } rBtn.classList.remove('on'); if (keep !== true) wrap.classList.remove('radio'); };
       const skip = () => { if (!on) return; if (++fails >= HOU.length) { if (label) label.textContent = 'Radio unavailable right now'; stopRadio(); return; } idx = (idx + 1) % HOU.length; playSt(); };
       const playSt = () => {
         const st = HOU[idx];
         au = au || new Audio(); au.preload = 'none'; au.src = st.u;
-        au.onplaying = () => { fails = 0; };
-        au.onerror = skip;
-        au.play().catch(skip);
+        const my = ++tok;
+        au.onplaying = () => { if (my === tok) fails = 0; };
+        au.onerror = () => { if (my === tok) skip(); };
+        /* changing station aborts the previous play(); only a real failure of the current station skips ahead */
+        au.play().catch((err) => { if (my === tok && !(err && err.name === 'AbortError')) skip(); });
         if (label) label.textContent = '📻 ' + st.n;
         if (miniLabel) miniLabel.textContent = st.n;
-        if (foot) foot.textContent = 'Houston radio · station ' + (idx + 1) + ' of ' + HOU.length + ' · ◀ ▶ change station';
+        if (foot) foot.textContent = 'Houston radio · station ' + (idx + 1) + ' of ' + HOU.length + ' · ⏮ ⏭ change station';
       };
       const step = (d) => { fails = 0; idx = (idx + d + HOU.length) % HOU.length; playSt(); };
       rBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         /* Radio is an on/off toggle; ⏮ ⏭ change station while it plays. Only one source at a time: turning radio on stops YouTube */
-        if (on) { stopRadio(); if (label) label.textContent = 'Radio off'; if (foot) foot.textContent = 'Radio off · tap Radio to turn it back on'; return; }
-        offBtn.click(); on = true; fails = 0; rBtn.classList.add('on'); playSt();
+        if (on) { stopRadio(true); if (label) label.textContent = 'Radio off'; if (foot) foot.textContent = 'Radio off · tap Radio to turn it back on'; return; }
+        if (wrap._spotClose) wrap._spotClose();
+        setOn(false);
+        on = true; fails = 0; rBtn.classList.add('on'); wrap.classList.add('radio'); playSt();
       });
-      offBtn.addEventListener('click', () => { if (on) stopRadio(); });
+      offBtn.addEventListener('click', () => { if (on) stopRadio(); else wrap.classList.remove('radio'); });
       wrap.querySelector('[data-yt-next]').addEventListener('click', (e) => { if (on) { e.stopImmediatePropagation(); step(1); } }, true);
       wrap.querySelector('[data-yt-prev]').addEventListener('click', (e) => { if (on) { e.stopImmediatePropagation(); step(-1); } }, true);
       window.HTS_RADIO = { stations: HOU, get on() { return on; }, get station() { return on ? HOU[idx].n : null; }, stop: stopRadio };
@@ -805,7 +871,8 @@ export function createTourMusic() {
       wrap._spotClose = close;
       sBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (box) { close(); return; }
+        /* already open: a second tap keeps it (only ■ closes) — it used to close Spotify and, with YouTube off, the whole player */
+        if (box) return;
         offBtn2.click();
         const pid = PL[genre] || PL.all, h = wrap.classList.contains('dashEmbed') ? 80 : 152;
         box = document.createElement('div'); box.className = 'spotFrame';
@@ -1084,6 +1151,25 @@ export function createTourMusic() {
     if (!wrap || !dashEl || !dashEl.classList.contains('on')) return;
     const r = dashEl.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) return;
+    const put = (l, t, w2, h2) => {
+      wrap.style.left = Math.round(l) + 'px'; wrap.style.top = Math.round(t) + 'px';
+      wrap.style.width = Math.round(w2) + 'px'; wrap.style.height = Math.round(h2) + 'px';
+      wrap.style.right = 'auto'; wrap.style.bottom = 'auto';
+    };
+    const gen = wrap.querySelector('.row.gen'); if (gen) gen.style.display = 'flex';
+    /* car dashes reserve a free panel on the passenger side (#dMediaSlot): the player fills it when it is on screen,
+       otherwise (narrow phones crop the dash) it sits as a compact bar just above the dash, clear of the gauges */
+    const slot = dashEl.querySelector('#dMediaSlot');
+    if (slot) {
+      const b = slot.getBoundingClientRect(), vw = window.innerWidth;
+      const l = Math.max(6, b.left), rr = Math.min(vw - 6, b.right);
+      if (rr - l >= 180 && b.height >= 100) { put(l, b.top, rr - l, b.height); return; }
+      /* slot cropped (iPad portrait, phones): compact player (no genre chips) docked on the lower passenger dash,
+         so the windshield stays clear */
+      if (gen) gen.style.display = 'none';
+      const w2 = Math.min(300, vw - 16), h2 = Math.min(140, Math.max(104, r.height * 0.4));
+      put(Math.max(4, Math.min(vw - w2 - 8, rr - w2)), Math.max(r.top + 4, r.bottom - h2 - 6), w2, h2); return;
+    }
     let w = Math.min(r.width * 0.24, 268, window.innerWidth * 0.24);
     let h = Math.min(r.height * 0.58, 210, window.innerHeight * 0.28);
     let left = r.left + r.width * 0.016;

@@ -1,14 +1,13 @@
 /**
  * Seasonal night-sky celebrations: Christmas-light strands across the sky, a glowing greeting and
  * fireworks with synthesized sound (Web Audio, no files). Auto mode runs on Jan 1 (New Year),
- * Dec 9 (Ejay's birthday) and Dec 25 (Christmas) after dark; On previews now; Off disables.
+ * and Dec 25 (Christmas) after dark (birthdays etc. via the custom greeting); On previews now; Off disables.
  */
 import * as THREE from 'three';
 
 const KEY = 'hts.celebrate.v1';
 export const EVENTS = [
   { id: 'newyear', name: 'New Year', m: 1, d: 1, msg: 'Happy New Year from Ejay Gabriel', pal: [0xffd25a, 0xff4d6d, 0x4dd2ff, 0x7dff7a, 0xffffff, 0xc77dff] },
-  { id: 'birthday', name: "Ejay's birthday", m: 12, d: 9, msg: 'Happy Birthday Ejay Gabriel', pal: [0xff6ec7, 0xffd25a, 0x9b7dff, 0x5ae0ff, 0xffffff] },
   { id: 'christmas', name: 'Christmas', m: 12, d: 25, msg: 'Merry Christmas', pal: [0xff3030, 0x30ff60, 0xffd700, 0xffffff, 0x40a0ff] },
 ];
 
@@ -197,7 +196,7 @@ export function createCelebrations({ scene, camera, u = 1 }) {
     f.visible = true; f.position.set(x, y, z); f.material.color.copy(c).lerp(WHITE, 0.6); f.userData = { t: 0, s, a };
     f.material.opacity = a; f.scale.setScalar(s * 0.6);
   }
-  function launch(spread = 2.4) {
+  function launch(spread = 3.8) {
     const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, -1); fwd.normalize();
     const yaw = Math.atan2(fwd.x, fwd.z) + (Math.random() - 0.5) * spread, dist = rnd(1100, 2600) * u;
     const x = camera.position.x + Math.sin(yaw) * dist, z = camera.position.z + Math.cos(yaw) * dist;
@@ -321,9 +320,9 @@ export function createCelebrations({ scene, camera, u = 1 }) {
     }
     const d = Math.min(dt, 0.05);
     if (e && (launchT -= d) <= 0) {
-      launchT = rnd(0.5, 1.4);
-      if (Math.random() < 0.06) { const m = 4 + ((Math.random() * 4) | 0); for (let k = 0; k < m; k++) launch(1.4); launchT = 2.6; } /* salvo */
-      else { launch(); if (Math.random() < 0.18) launch(); }
+      launchT = rnd(0.3, 0.9);
+      if (Math.random() < 0.06) { const m = 4 + ((Math.random() * 4) | 0); for (let k = 0; k < m; k++) launch(); launchT = 2.2; } /* salvo */
+      else { launch(); if (Math.random() < 0.4) launch(); } /* bursts fill the whole sky in front of and beside the viewer */
     }
     const P = fwPos.array, C = fwCol.array, Z = fwSize.array, g = 9.8 * u;
     for (let i = 0; i < hwm; i++) {

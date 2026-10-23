@@ -389,3 +389,49 @@ literals authored at 210 units/mile are mapped with `W()` / `WS` in `src/app-mai
 
 ## v10.67.0
 - **Realistic fireworks:** rockets climb with a sparking gold tail and burst at 320–700 m (1.1–2.6 km away, 200–300 m across) into real shell types (peony with optional pistil, chrysanthemum, gold willow, tilted ring, crackle, glitter strobe, crossette, palm), with an occasional salvo. Stars break as an even sphere, start white-hot and cool to their colour, slow under air drag, sag under gravity and fade out smoothly (no random per-frame flicker). Trails and glitter are separate short-lived sparks; each burst has a brief flash. Sparks are drawn by a small shader (hot core + soft halo, sized in metres), the update is capped at 50 ms steps and only walks live slots. Crackle shells crackle in sync with their sound.
+
+## v10.68.0
+- Welcome tour: removed the obsolete "Sixteen metros" step (Houston only).
+- Roads: where two OSM ways of one road meet with different widths, both ends blend to the mean width over a 25 m+ taper, so edge/lane lines no longer jump sideways.
+- Radio: Radio button toggles on/off without closing the player; ⏮ ⏭ change station while radio is on; stale play()/error callbacks no longer skip the new station; ■ closes radio mode. One source at a time (YouTube / radio / Spotify).
+- Car dashboard: wider nav screen in the centre with the speed-limit sign inside it, round air vents, red button LEDs, recessed media dock on the passenger side (player docks there in driver view). At night the nav screen and LEDs glow; headlight road pools/spots stay on in driver view.
+- Jet cockpit: two control yokes, centre pedestal with thrust levers, glareshield annunciators, side-console knobs and push-buttons; HDG readout moved into the PFD.
+- Stadiums: 81 Houston-area stadiums from local OSM (TDECU, Rice, Shell Energy, Constellation Field, ISD stadiums…) as procedural bowls/bleachers with light masts; sports POIs added (TDECU, Fertitta Center, Rice Stadium, Schroeder/Reckling Park, Constellation Field, NRG Arena, TSU H&PE Arena, ISD stadiums).
+
+## v10.69.0
+- Car dashboard: the whole steering wheel is visible (dash viewBox extended to y 440, wheel scaled 0.78), with the driver's hands at ten-and-two turning with it. Dash height scales with width (max(min(38vw,52vh),min(30vh,260px))) so the passenger-side media dock stays on screen on laptops and iPads.
+- Tour start: the car starts on the nearest road to you (any road within 450 m) instead of the nearest major road within 18 km, which sent every trip from some homes onto FM 1464 first.
+- Horn: Horn button in the car HUD and N key; the tour car also honks once when a slower car cuts in close ahead.
+- Celebrations: Ejay's birthday removed from Auto (type any greeting and set On); fireworks launch across a wider arc of the sky, more often, with bigger salvos.
+- Helicopter: rotor blades are see-through with a faint blur disc (stronger in the cockpit view) instead of strobing solid sticks; new heli cockpit eye point under the canopy. Traffic helicopters now use the detailed Bell 407 body instead of the old sphere-and-box model, and their rotors spin flat (they used to spin on the wrong axis).
+- Attraction pins: each badge is a map pin whose tip sits on the place (it used to float 34 m up, so it looked offset when the camera tilted). 20 hard-coded Houston places moved to their OpenStreetMap position (checked by name against the local OSM extract), e.g. Graffiti Park (was 7 km off), Big Rivers Waterpark, George Observatory, Houston Botanic Garden, Armand Bayou, Levy Park. Pin categories use Houston names (Daikin Park = venue, Galleria = shopping).
+- Car HUD "Now on" card moved to the bottom-left so it no longer covers the steering wheel.
+
+## v10.70.0
+- Car dashboard rebuilt for wide screens: SVG now scales with `meet` instead of `slice`, so nothing is cropped. Steering wheel and gauges moved to the left (driver side), driver hands removed, speed-limit sign always inside the frame, and the car's hood is drawn below the windshield.
+- Spotify: tapping the Spotify tab again keeps the player open (only ■ closes it).
+- Helicopters no longer use runways: tour helis lift vertically from the start point, cruise point-to-point at ~300 m, slow down over the destination and descend vertically to land (phases heliLift → heliCruise → heliLand → heliDown → heliParked).
+- Airliner face: slightly drooped nose with a dark wrap-around cockpit windscreen, centre post and grey radome tip (was a plain white egg).
+- Camera can zoom down to street level (min radius 10 m in metre mode, was 55 m).
+- Music: 61 more checked YouTube tracks (popular pop/hip-hop/rock/electronic/Latin/Afrobeat/country and 30+ gospel/worship songs: CeCe Winans, Hillsong UNITED, Lauren Daigle, Marvin Sapp, Moses Bliss, Dunsin Oyekan, Travis Greene, Tim Godfrey, Frank Edwards, Ada Ehi…).
+- Stability: removed a duplicated 2-minute GPS weather poll.
+- Car "Now on" card moved to the top-right of the windshield so it no longer covers the left-hand steering wheel (drag/Reset still work).
+- Faster loading on slow devices: the road-mesh builder now grows its per-slice time budget (18 → up to 90 ms) when frames are long, instead of building in fixed 18 ms slices; on the VM's software GPU the major-road build took ~171 s before this change.
+
+## v10.71.0
+- Car horn moved onto the steering-wheel hub (tap/click the logo; N key still works); Horn button removed from the tour panel.
+- Speed-limit sign moved to the far left of the dash; Now-on card now sits inside the centre-stack nav tablet by default (drag/Reset still work).
+- Dash media player: video fills the player box (no drifting/letterboxed area).
+- Jet cockpit: thinner windshield pillars and no tinted side panes, so more of the forward view shows.
+- Landing: rollout braking now targets the runway end with a 5 m floor (was 30 m) and the plane stops before the last 25 m, so it can't roll off the runway.
+- Houses: the street-occupancy check now includes the 8 neighbouring tiles' streets, so houses near a tile edge no longer land on a street.
+
+## v10.72.0
+- Helicopter exterior rebuilt as a Bell 206 JetRanger-style airframe: egg cabin with big wrap-around glass nose + chin windows, white lower belly band (accent colour if picked), engine fairing + exhaust, slim boom with stabiliser endplates and upper/ventral fin, tall skids with upturned toes, 2-blade main rotor and 2-blade tail rotor (now spinning on the correct axis). Traffic helicopters use the same model.
+- Heli cockpit: removed the pitot tube that showed as a white bar in front of the pilot's view; centre windshield post is thinner.
+
+## v10.73.0
+- Plane tours now ask for the aircraft first (Tour Houston → By plane → Aircraft): Boeing 737-800, 747-8, 777-300ER, 787-9, Airbus A320neo, A350-900, A380, Cessna 172, C-130, F-16, Bell 206 helicopter. Start tour / Free flight refuse until one is chosen.
+- Fixed-wing aircraft depart from an airport runway long enough for the type (widebodies need ~2.7–3 km, so they use IAH-class runways; a too-short pick is replaced and the note says why). The helicopter hides the airport pickers and lifts off from your location.
+- New airliner families built from real length/span/fuselage ratios: engine count and size, 747 upper-deck hump, A380 double deck, winglets/sharklets/raked/curved tips, tandem main gear on widebodies. Tour plane, live/simulated traffic (mapped from ICAO type codes) and IAH gate fleet all use them.
+- In-tour aircraft buttons removed (the aircraft is chosen before the flight); the panel title shows the aircraft name. Jet cockpit and wing cameras follow each model's nose and span.

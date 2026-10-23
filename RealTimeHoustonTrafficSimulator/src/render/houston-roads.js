@@ -209,6 +209,16 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
     if (buckets.major) { noteHeights(pts, ys, cls); net.push({ r, f, ys, cy: cls.y }); }
     else if (buckets.tileNet) buckets.tileNet.push({ r, f, ys, cy: cls.y });
     const w = r.w, hw = w / 2;
+    /* per-vertex width scale: ends blend smoothly to the width of the way they continue into (see taperEnds) */
+    const sc = new Float32Array(f.n).fill(1);
+    if (r.wa || r.wb) {
+      const L = f.cum[f.n - 1] || 1, ease = (t) => t * t * (3 - 2 * t);
+      for (let i = 0; i < f.n; i++) {
+        const c = f.cum[i];
+        if (r.wa) { const T = Math.min(L / 2, 25 + 10 * Math.abs(r.wa - w)); if (c < T) sc[i] = (r.wa + (w - r.wa) * ease(c / T)) / w; }
+        if (r.wb) { const T = Math.min(L / 2, 25 + 10 * Math.abs(r.wb - w)); if (L - c < T) sc[i] = (r.wb + (w - r.wb) * ease((L - c) / T)) / w; }
+      }
+    }
     const elevated = ys && ys.some((y) => y > 0.9);
     /* only real OSM bridges stand on piers; approaches sit on earth fill (Houston TxDOT style) */
     const isBridge = !!(r.b || r.y > 0) && elevated;
@@ -218,7 +228,7 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
     const strip = (bk, lo, hi, dy, uScale, vScale, col) => {
       const b = bk.vc;
       for (let i = 0; i < f.n; i++) {
-        const x = f.pts[2 * i], z = f.pts[2 * i + 1], mm = f.m[i], y = yAt(i) + dy * kv;
+        const x = f.pts[2 * i], z = f.pts[2 * i + 1], mm = f.m[i] * sc[i], y = yAt(i) + dy * kv;
         bk.vert(X(x + f.nx[i] * lo * mm), y, Z(z + f.nz[i] * lo * mm), 0, 1, 0, lo * uScale, f.cum[i] * vScale, col);
         bk.vert(X(x + f.nx[i] * hi * mm), y, Z(z + f.nz[i] * hi * mm), 0, 1, 0, hi * uScale, f.cum[i] * vScale, col);
         if (i) bk.quad(b + 2 * (i - 1));
@@ -227,7 +237,7 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
     const wall = (bk, off, y0, y1) => {
       const b = bk.vc;
       for (let i = 0; i < f.n; i++) {
-        const x = X(f.pts[2 * i] + f.nx[i] * off * f.m[i]), z = Z(f.pts[2 * i + 1] + f.nz[i] * off * f.m[i]), y = yAt(i);
+        const x = X(f.pts[2 * i] + f.nx[i] * off * f.m[i] * sc[i]), z = Z(f.pts[2 * i + 1] + f.nz[i] * off * f.m[i] * sc[i]), y = yAt(i);
         const sn = Math.sign(off);
         bk.vert(x, y + y0 * kv, z, f.nx[i] * sn, 0, f.nz[i] * sn, f.cum[i] / 6, 0);
         bk.vert(x, y + y1 * kv, z, f.nx[i] * sn, 0, f.nz[i] * sn, f.cum[i] / 6, 1);
@@ -253,7 +263,7 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
       for (const sg of [1, -1]) {
         const b = bm.vc, off = (hw + 0.25) * sg;
         for (let i = 0; i < f.n; i++) {
-          const x = X(f.pts[2 * i] + f.nx[i] * off * f.m[i]), z = Z(f.pts[2 * i + 1] + f.nz[i] * off * f.m[i]), y = yAt(i);
+          const x = X(f.pts[2 * i] + f.nx[i] * off * f.m[i] * sc[i]), z = Z(f.pts[2 * i + 1] + f.nz[i] * off * f.m[i] * sc[i]), y = yAt(i);
           bm.vert(x, y, z, f.nx[i] * sg, 0, f.nz[i] * sg, f.cum[i] / 6, 0);
           bm.vert(x, baseY, z, f.nx[i] * sg, 0, f.nz[i] * sg, f.cum[i] / 6, 1);
           if (i) bm.quad(b + 2 * (i - 1));
@@ -266,7 +276,7 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
       strip(dk, hw, hw + 0.25, 0.9, 0, 0); strip(dk, -hw - 0.25, -hw, 0.9, 0, 0);
       const un = buckets('under'), b = un.vc;
       for (let i = 0; i < f.n; i++) {
-        const x = f.pts[2 * i], z = f.pts[2 * i + 1], mm = f.m[i], y = yAt(i) - 1.7 * kv;
+        const x = f.pts[2 * i], z = f.pts[2 * i + 1], mm = f.m[i] * sc[i], y = yAt(i) - 1.7 * kv;
         un.vert(X(x + f.nx[i] * (hw + 0.25) * mm), y, Z(z + f.nz[i] * (hw + 0.25) * mm), 0, -1, 0, 0, 0);
         un.vert(X(x - f.nx[i] * (hw + 0.25) * mm), y, Z(z - f.nz[i] * (hw + 0.25) * mm), 0, -1, 0, 0, 0);
         if (i) un.quad(b + 2 * (i - 1));
@@ -358,8 +368,26 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
     }
   }
 
+  /* consecutive OSM ways of one road often carry different widths (3–7 m apart on 7,000+ joints), so edge and lane lines
+     jumped sideways where two ways meet: both ends at a plain joint take the mean width and blend back over a taper */
+  function taperEnds(roads) {
+    const isOw = (r) => !!r.o && r.o !== '0' && r.o !== 'no', ends = new Map();
+    const ok = (r) => r.p && r.p.length >= 4 && !r.t;
+    const add = (x, z, r) => { const kk = nodeKey(x, z); let a = ends.get(kk); if (!a) ends.set(kk, (a = [])); a.push(r); };
+    for (const r of roads) if (ok(r)) { const n = r.p.length; add(r.p[0], r.p[1], r); add(r.p[n - 2], r.p[n - 1], r); }
+    const endW = (r, x, z) => {
+      const a = ends.get(nodeKey(x, z)); if (!a || a.length !== 2) return 0;
+      const o = a[0] === r ? a[1] : a[0]; if (o === r || isOw(o) !== isOw(r)) return 0;
+      const w0 = r.w || 7, w1 = o.w || 7, d = Math.abs(w0 - w1);
+      return d > 0.3 && d < 12 ? (w0 + w1) / 2 : 0;
+    };
+    for (const r of roads) if (ok(r)) { const n = r.p.length; r.wa = endW(r, r.p[0], r.p[1]); r.wb = endW(r, r.p[n - 2], r.p[n - 1]); }
+  }
+
   async function build(roads, heights, group, tileNet) {
+    let budget = slice;
     harmonizeDivided(roads);
+    taperEnds(roads);
     const set = makeBucketSet();
     let t0 = performance.now();
     for (let i = 0; i < roads.length; i++) {
@@ -370,7 +398,11 @@ export function createHoustonRoads({ parent, k = 1, kv = k, base = '/data/housto
       const cx = Math.floor(r.p[0] / CHUNK), cz = Math.floor(r.p[1] / CHUNK);
       const bk = set.get(cx + ',' + cz); bk.piers = set.piers; bk.major = !!heights; bk.tileNet = tileNet;
       emitWay(r, prof, bk);
-      if (performance.now() - t0 > slice) { await new Promise((res) => setTimeout(res, 0)); t0 = performance.now(); }
+      if (performance.now() - t0 > budget) {
+        const w0 = performance.now(); await new Promise((res) => setTimeout(res, 0)); t0 = performance.now();
+        /* slow device (long frames between slices): build more per slice so loading isn't stretched over minutes */
+        budget = Math.max(slice, Math.min(90, (t0 - w0) * 0.6));
+      }
     }
     flush(set, group);
   }

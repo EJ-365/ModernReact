@@ -965,7 +965,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.67.0</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.73.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1225,17 +1225,22 @@
     <div class="btnrow" id="tourVeh"><button type="button" class="btn on" data-veh="car">By car</button><button type="button" class="btn" data-veh="plane">By plane</button></div>
     <select id="tourDest" style="margin-top:6px"><option value="">Loading places…</option></select>
     <div id="tourAptRow" style="display:none;margin-top:6px">
-      <label class="mini" for="tourDep" style="letter-spacing:.08em">Take off from</label>
-      <select id="tourDep"><option value="">Nearest to me</option></select>
-      <label class="mini" for="tourArr" style="margin-top:6px;letter-spacing:.08em">Land at</label>
-      <select id="tourArr"><option value="">Nearest to destination</option></select>
+      <label class="mini" for="tourAc" style="letter-spacing:.08em">Aircraft</label>
+      <select id="tourAc"><option value="">— choose your aircraft —</option></select>
+      <div class="sublabel" id="tourAcNote" style="margin-top:4px"></div>
+      <div id="tourRwRow">
+        <label class="mini" for="tourDep" style="margin-top:6px;letter-spacing:.08em">Take off from</label>
+        <select id="tourDep"><option value="">Nearest to me</option></select>
+        <label class="mini" for="tourArr" style="margin-top:6px;letter-spacing:.08em">Land at</label>
+        <select id="tourArr"><option value="">Nearest to destination</option></select>
+      </div>
     </div>
     <div class="btnrow" style="margin-top:6px">
       <button type="button" class="btn" id="tourGo">Start tour</button>
       <button type="button" class="btn" id="tourSurprise" title="Random Houston landmark">Surprise me</button>
       <button type="button" class="btn" id="tourFree">Free drive</button>
     </div>
-    <div class="sublabel" id="tourNote" style="margin-top:6px">Car: real OSM roads to your pick. Plane: takeoff → cruise → orbit → land near the destination. Pick a genre in the tour Music panel (Pop, Hip-hop/R&amp;B, Rock, Electronic, Latin, Afrobeat, Gospel, Classics). Keys 1–5 camera · H hide panel · Esc exit.</div>
+    <div class="sublabel" id="tourNote" style="margin-top:6px">Car: real OSM roads to your pick. Plane: choose your aircraft first — airliners (Boeing 737/747/777/787, Airbus A320/A350/A380), Cessna, C-130 and F-16 take off from an airport runway long enough for them; the helicopter lifts straight up from your location. Pick a genre in the tour Music panel (Pop, Hip-hop/R&amp;B, Rock, Electronic, Latin, Afrobeat, Gospel, Classics). Keys 1–5 camera · H hide panel · Esc exit.</div>
   </div>
   <div class="grp" id="houFacts">
     <label>Houston fun facts</label>
@@ -1293,7 +1298,7 @@
   </div>
   <div class="grp" id="celebGrp">
     <label>Celebrations</label>
-    <div class="sublabel">Christmas lights, a greeting and fireworks (with sound) across the night sky on Jan 1 (New Year), Dec 9 (Ejay's birthday) and Dec 25 (Christmas).</div>
+    <div class="sublabel">Christmas lights, a greeting and fireworks (with sound) across the night sky on Jan 1 (New Year) and Dec 25 (Christmas). Type your own greeting (e.g. a birthday) and set On to show it any night.</div>
     <select id="celebMode">
       <option value="auto" selected>Auto: on those dates after dark</option>
       <option value="on">On: show it now</option>

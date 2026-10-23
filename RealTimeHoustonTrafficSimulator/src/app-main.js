@@ -14,6 +14,7 @@ import { createHoustonTraffic } from './render/houston-traffic.js';
 import { createHoustonAirports } from './render/houston-airports.js';
 import { createHoustonStreetlights } from './render/houston-streetlights.js';
 import { createHoustonTanks } from './render/houston-tanks.js';
+import { createHoustonStadiums } from './render/houston-stadiums.js';
 import { createHoustonSignals } from './render/houston-signals.js';
 import { createHoustonPlaces } from './render/houston-places.js';
 import { batchStaticChildren } from './render/static-batch.js';
@@ -57,7 +58,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.67.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.73.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -3914,7 +3915,30 @@ function addNavLights(g,span,tailZ){
   mk(0xfff4dc,0,-1.5,span*0.8,'land',7);
   return out;
 }
-function makeAirliner(finCol,liv){
+/* airliner families, scaled from the 737-800 base model by real length / span / fuselage diameter ratios */
+const AIRLINER_TYPES={
+  b737:{n:'Boeing 737-800',lK:1,sK:1,dK:1,eng:2,eK:1,tip:'winglet',nose:1.7},
+  b747:{n:'Boeing 747-8',lK:1.93,sK:1.91,dK:1.73,eng:4,eK:0.85,tip:'canted',nose:1.7,hump:1},
+  b777:{n:'Boeing 777-300ER',lK:1.87,sK:1.81,dK:1.65,eng:2,eK:1.22,tip:'raked',nose:1.75},
+  b787:{n:'Boeing 787-9 Dreamliner',lK:1.59,sK:1.68,dK:1.53,eng:2,eK:1.1,tip:'raked',nose:1.95},
+  a320:{n:'Airbus A320neo',lK:0.95,sK:1,dK:1.05,eng:2,eK:1.08,tip:'sharklet',nose:1.5},
+  a350:{n:'Airbus A350-900',lK:1.69,sK:1.81,dK:1.59,eng:2,eK:1.1,tip:'curved',nose:1.6},
+  a380:{n:'Airbus A380',lK:1.84,sK:2.23,dK:1.8,eng:4,eK:0.9,tip:'fence',nose:1.45,dbl:1.18},
+};
+function airlinerTypeFor(actype,seed){
+  const t=String(actype||'').toUpperCase();
+  if(/^A38/.test(t))return 'a380';
+  if(/^A3[345]/.test(t))return 'a350';
+  if(/^(A3[12]|A2|BCS)/.test(t))return 'a320';
+  if(/^B74/.test(t))return 'b747';
+  if(/^B77/.test(t))return 'b777';
+  if(/^(B78|B76)/.test(t))return 'b787';
+  if(/^(B7|B3)/.test(t))return 'b737';
+  const r=((seed|0)*2654435761>>>0)%100;
+  return r<35?'b737':r<65?'a320':r<75?'b787':r<85?'b777':r<92?'a350':r<96?'b747':'a380';
+}
+function makeAirliner(finCol,liv,type){
+  const T=AIRLINER_TYPES[type]||AIRLINER_TYPES.b737;
   const g=new THREE.Group();
   const LV=liv||[0xeef0f3,0x9aa2ab,finCol,0x9aa2ab];
   if(!liv)LV[2]=finCol;
@@ -3923,133 +3947,152 @@ function makeAirliner(finCol,liv){
   const grayB=new THREE.MeshLambertMaterial({color:LV[1],emissive:0x1a1a1a});
   const engM=new THREE.MeshPhongMaterial({color:LV[3],specular:0x444444,shininess:40});
   finCol=LV[2];
-  const fus=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,32,20),white);
-  fus.rotation.x=Math.PI/2;g.add(fus);
-  const nose=new THREE.Mesh(new THREE.SphereGeometry(2.35,18,12),white);nose.position.z=16;nose.scale.z=1.7;g.add(nose);
-  const tail=new THREE.Mesh(new THREE.CylinderGeometry(2.35,0.7,9,18),white);
-  tail.rotation.x=Math.PI/2;tail.position.z=-20.4;g.add(tail);
-  const belly=new THREE.Mesh(new THREE.CylinderGeometry(2.36,2.36,30,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB);
-  belly.rotation.x=Math.PI/2;g.add(belly);
-  /* swept wings */
   const finM=new THREE.MeshLambertMaterial({color:finCol}),intakeM=new THREE.MeshBasicMaterial({color:0x15181c});
-  for(const sd of [1,-1]){
-    const w=new THREE.Mesh(new THREE.BoxGeometry(21,0.55,6.4),white);
-    w.position.set(sd*10.5,-1,0.2);w.rotation.y=sd*0.42;w.rotation.z=sd*0.06;g.add(w);
-    const wl=new THREE.Mesh(new THREE.BoxGeometry(0.5,3.2,2.6),finM);
-    wl.position.set(sd*19.6,0.7,-3.4);g.add(wl);
-    const eng=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.35,4.6,10),engM);
-    eng.rotation.x=Math.PI/2;eng.position.set(sd*7.2,-2.5,3.2);g.add(eng);
-    const intake=new THREE.Mesh(new THREE.CircleGeometry(1.3,16),intakeM);intake.position.set(sd*7.2,-2.5,5.52);g.add(intake);
-    const st=new THREE.Mesh(new THREE.BoxGeometry(8.6,0.45,3.6),white);
-    st.position.set(sd*4.6,1.6,-21);st.rotation.y=sd*0.5;g.add(st);
+  const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
+  const dK=T.dK,R=2.35*dK,Y=T.dbl||1,yc=R*(Y-1);         /* double-deck grows upward: belly stays at -R */
+  const Lc=45*T.lK-(T.nose+3.83)*R,zF=Lc/2,zB=-Lc/2;      /* constant-section barrel between nose and tail cone */
+  add(new THREE.CylinderGeometry(R,R,Lc,24),white,0,yc,0,Math.PI/2).scale.z=Y;
+  const nose=add(new THREE.SphereGeometry(R,24,16),white,0,yc-0.12*dK,zF);nose.scale.set(1,0.95*Y,T.nose);
+  /* face: dark wrap-around cockpit windscreen band on the upper nose, split by a centre post, plus a grey radome tip */
+  const wsM=new THREE.MeshPhongMaterial({color:0x0b1118,specular:0x8899aa,shininess:90});
+  const ws=add(new THREE.SphereGeometry(R*1.013,16,3,Math.PI/2-0.62,1.24,Math.PI*0.3,Math.PI*0.085),wsM,0,nose.position.y,zF);ws.scale.copy(nose.scale);
+  const nz=T.nose/1.7;
+  add(new THREE.BoxGeometry(0.12*dK,0.5*dK,0.35*dK),white,0,yc+1.16*dK*Y,zF+3.3*dK*nz,-0.75);
+  add(new THREE.SphereGeometry(0.9*dK,12,8),new THREE.MeshLambertMaterial({color:0x8d939a}),0,yc-0.45*dK,zF+3.75*dK*nz).scale.set(1,0.9,0.7);
+  add(new THREE.CylinderGeometry(R,0.7*dK,3.83*R,18),white,0,yc,zB-1.915*R,Math.PI/2).scale.z=Y;
+  add(new THREE.CylinderGeometry(R*1.004,R*1.004,Lc*0.94,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB,0,yc,0,Math.PI/2).scale.z=Y;
+  if(T.hump){
+    /* 747 upper deck */
+    const hr=0.78*R,h=add(new THREE.SphereGeometry(hr,18,12),white,0,yc+0.42*R,zF-Lc*0.12);h.scale.set(1,1,Lc*0.2/hr);
   }
-  const fin=new THREE.Mesh(new THREE.BoxGeometry(0.7,8.4,5.6),finM);
-  fin.position.set(0,4.6,-21.5);fin.rotation.x=-0.28;g.add(fin);
-  /* Passenger windows — shared mats, modest count (keeps airliner cheap) */
+  /* swept low wings, tip devices per type, engines on pylons */
+  const Lw=21*T.sK,ch=6.4*Math.sqrt(T.lK*T.sK),wy=-0.43*R,wz=0.2*T.lK,tx=0.9565*Lw,tz=wz-0.204*Lw,ty=wy+0.03*Lw;
+  const zc=(x)=>wz-(x-Lw/2)*0.446;
+  for(const sd of [1,-1]){
+    add(new THREE.BoxGeometry(Lw,0.55*Math.sqrt(dK),ch),white,sd*Lw/2,wy,wz,0,sd*0.42,sd*0.06);
+    if(T.tip==='raked')add(new THREE.BoxGeometry(3.4*T.sK,0.3*dK,ch*0.3),white,sd*(tx+1.3*T.sK),ty+0.1*dK,tz-1.3*T.sK,0,sd*0.95,sd*0.06);
+    else if(T.tip==='fence')add(new THREE.BoxGeometry(0.4*dK,2.6*dK,2.2*dK),finM,sd*tx,ty,tz+0.4*dK);
+    else{
+      const P={winglet:[3.2,0,0],sharklet:[2.7,0.22,-0.3],curved:[3.4,0.45,-0.45],canted:[2.4,0.55,-0.2]}[T.tip]||[3.2,0,0];
+      add(new THREE.BoxGeometry(0.5*dK,P[0]*dK,2.6*dK),finM,sd*(tx+P[0]*dK*0.5*Math.sin(P[1])),ty+P[0]*dK*0.5*Math.cos(P[1]),tz+0.7*dK,P[2],0,-sd*P[1]);
+    }
+    const eR=1.5*dK*T.eK,eL=3.1*eR;
+    for(const f of (T.eng===4?[0.3,0.62]:[0.36])){
+      const ex=f*tx,ez=zc(ex)+0.376*eL,ey=wy-eR*0.95;
+      add(new THREE.CylinderGeometry(eR,eR*0.88,eL,16),engM,sd*ex,ey,ez,Math.PI/2);
+      add(new THREE.CircleGeometry(eR*0.87,18),intakeM,sd*ex,ey,ez+eL/2+0.02);
+      add(new THREE.BoxGeometry(0.3*dK,eR*0.9,eL*0.7),white,sd*ex,wy-eR*0.45,ez-eL*0.2);
+    }
+    const ls=8.6*T.sK*0.95;
+    add(new THREE.BoxGeometry(ls,0.45*dK,3.6*dK),white,sd*(ls/2+0.3*dK),yc+1.6*dK,zB-2.13*R,0,sd*0.5);
+  }
+  const fh=8.4*dK;
+  add(new THREE.BoxGeometry(0.7*dK,fh,5.6*dK),finM,0,yc+R*Y-1.95*dK+fh/2,zB-2.34*R,-0.28);
+  /* passenger windows — shared mats (batched below); A380 gets two decks, 747 an upper-deck row on the hump */
   const winGlass=new THREE.MeshLambertMaterial({color:0x5a82a0,transparent:true,opacity:0.55,depthWrite:false});
   const winFrame=new THREE.MeshLambertMaterial({color:0x1a1e24});
+  const wk=1+(dK-1)*0.4,sp=1.7*wk,rows=Y>1?[-0.12,0.5]:[0.32];
+  const win=(x,y,z)=>{add(new THREE.BoxGeometry(0.12,0.58*wk,0.85*wk),winFrame,x,y,z);add(new THREE.BoxGeometry(0.08,0.44*wk,0.6*wk),winGlass,x+Math.sign(x)*0.06,y,z);};
   for(const sd of [1,-1]){
-    for(let wi=0;wi<10;wi++){
-      const wz=-11+wi*2.2;
-      const fr=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.58,0.85),winFrame);
-      fr.position.set(sd*2.34,0.75,wz);g.add(fr);
-      const wg=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.44,0.6),winGlass);
-      wg.position.set(sd*2.4,0.75,wz);g.add(wg);
+    for(const ry of rows){
+      const xr=R*Math.sqrt(1-ry*ry)+0.04*dK;
+      for(let z=zF-4.5*dK;z>zB+1.5*dK;z-=sp)win(sd*xr,yc+ry*R*Y,z);
     }
+    if(T.hump)for(let z=zF-0.8*dK;z>zF-Lc*0.3;z-=sp)win(sd*0.55*R,yc+1.0*R,z);
   }
-  /* cockpit windshield — wraparound glass (reads as a jet flight deck from outside) */
-  const glassM=new THREE.MeshLambertMaterial({color:0x6a9bbb,transparent:true,opacity:0.42,depthWrite:false,side:THREE.DoubleSide});
-  const frameM=new THREE.MeshLambertMaterial({color:0x1a1e24});
-  const cp=new THREE.Mesh(new THREE.BoxGeometry(3.6,1.35,0.18),glassM);
-  cp.position.set(0,1.15,16.55);cp.rotation.x=-0.22;g.add(cp);
-  for(const sd of [1,-1]){
-    const side=new THREE.Mesh(new THREE.BoxGeometry(0.16,1.2,2.2),glassM);
-    side.position.set(sd*1.85,1.05,15.4);side.rotation.y=-sd*0.55;side.rotation.x=-0.08;g.add(side);
-    const pillar=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.45,0.22),frameM);
-    pillar.position.set(sd*1.55,1.15,16.1);g.add(pillar);
-  }
-  const brow=new THREE.Mesh(new THREE.BoxGeometry(3.8,0.22,0.9),frameM);
-  brow.position.set(0,1.85,15.9);brow.rotation.x=-0.35;g.add(brow);
-  /* cockpit seats hint (visible through windshield in chase) */
-  const seatM=new THREE.MeshLambertMaterial({color:0x2a3038});
-  for(const sx of [-0.55,0.55]){
-    const seat=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.85,0.7),seatM);
-    seat.position.set(sx,0.2,14.6);g.add(seat);
-  }
-  /* landing gear (toggled by flight phase) */
+  /* landing gear (toggled by flight phase); widebodies get tandem main wheels, 747/A380 extra body gear */
   const gear=new THREE.Group();
   const strutM=new THREE.MeshLambertMaterial({color:0x8a9098});
   const tireM=new THREE.MeshLambertMaterial({color:0x14161a});
-  function leg(x,z){
-    const s2=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,2.6,6),strutM);
-    s2.position.set(x,-3.2,z);gear.add(s2);
-    const t2=new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,0.9,8),tireM);
-    t2.rotation.z=Math.PI/2;t2.position.set(x,-4.4,z);gear.add(t2);
+  const wide=dK>1.4;
+  function leg(x,z,tandem){
+    const s2=new THREE.Mesh(new THREE.CylinderGeometry(0.28*dK,0.28*dK,2.6*dK,6),strutM);
+    s2.position.set(x,-R-0.85*dK,z);gear.add(s2);
+    for(const dz of (tandem?[0.95*dK,-0.95*dK]:[0])){
+      const t2=new THREE.Mesh(new THREE.CylinderGeometry(0.85*dK,0.85*dK,0.9*dK,10),tireM);
+      t2.rotation.z=Math.PI/2;t2.position.set(x,-R-2.05*dK,z+dz);gear.add(t2);
+    }
   }
-  leg(0,11);leg(-2.6,-1.5);leg(2.6,-1.5);
+  const mz=wz-1.7*dK;
+  leg(0,zF-5*dK,false);leg(-2.6*dK,mz,wide);leg(2.6*dK,mz,wide);
+  if(T.eng===4){leg(-1.1*dK,mz-3*dK,true);leg(1.1*dK,mz-3*dK,true);}
   batchStaticChildren(gear,{cell:1e6}); /* gear animates as one group (scale/visible) */
-  g.add(gear);g.userData.gear=gear;
+  g.add(gear);
   const strobe=new THREE.Sprite(navGlowMat(0xffffff));
-  strobe.scale.set(4,4,1);strobe.position.set(0,-2.4,0);g.add(strobe);
+  strobe.scale.set(4,4,1);strobe.position.set(0,-R-0.05,0);g.add(strobe);
   const beacon=new THREE.Sprite(navGlowMat(0xff3626));
-  beacon.scale.set(4,4,1);beacon.position.set(0,3.4,-2);g.add(beacon);
-  g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,19.8,-25),gear,gearDrop:5.25};
-  /* ~60 static parts → one draw per material (windows, frames, skin…); gear group and light sprites stay separate */
+  beacon.scale.set(4,4,1);beacon.position.set(0,yc+R*Y+1.05*dK,-2);g.add(beacon);
+  g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,tx,zB-3.83*R),gear,gearDrop:R+2.9*dK,
+    acType:type&&AIRLINER_TYPES[type]?type:'b737',ckZ:zF+0.4*T.nose*R,ckY:yc+0.38*R*Y,sideD:Math.max(15,tx*0.95+6),dims:{R,Lc,zF,yc,Y,nose:T.nose}};
+  /* static parts → one draw per material (windows, frames, skin…); gear group and light sprites stay separate */
   batchStaticChildren(g,{cell:1e6});
   return g;
 }
-function tourJet(c,a){
+function tourJet(c,a,type){
   /* tour jet: main colour everywhere; optional accent paints fin, winglets, engines, a cheat-line and a nose crown */
-  if(a==null)return makeAirliner(c,[c,c,c,c]);
-  const g=makeAirliner(c,[c,c,a,a]);
+  if(a==null)return makeAirliner(c,[c,c,c,c],type);
+  const g=makeAirliner(c,[c,c,a,a],type),D=g.userData.dims;
   const m=new THREE.MeshLambertMaterial({color:a});
-  for(const sd of [1,-1]){const st=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.42,33),m);st.position.set(sd*2.36,0.02,0.5);g.add(st);}
-  const crown=new THREE.Mesh(new THREE.SphereGeometry(2.37,18,12,0,Math.PI*2,0,Math.PI*0.32),m);crown.rotation.x=Math.PI/2;crown.position.z=16;crown.scale.set(1,1.7,1);g.add(crown);
+  for(const sd of [1,-1]){const st=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.42*D.R/2.35,D.Lc*1.03),m);st.position.set(sd*(D.R+0.01),D.yc+0.02,0.5);g.add(st);}
+  const crown=new THREE.Mesh(new THREE.SphereGeometry(D.R*1.008,18,12,0,Math.PI*2,0,Math.PI*0.32),m);crown.rotation.x=Math.PI/2;crown.position.set(0,D.yc,D.zF);crown.scale.set(1,D.nose,D.Y);g.add(crown);
   return g;
 }
 function makeTourHeli(col,acc){
-  /* Bell 407-class: lathe-turned cabin, tinted wrap canopy, tapered boom, skids with cross tubes, 4-blade rotor */
+  /* Bell 206 JetRanger-class: egg cabin with a big glass nose, white belly, slim boom with upper/lower fin, tall skids, 2-blade rotor */
   const g=new THREE.Group();
-  const paint=new THREE.MeshPhongMaterial({color:col,specular:0x555555,shininess:60});
+  const paint=new THREE.MeshPhongMaterial({color:col,specular:0x666666,shininess:70});
   const accM=acc!=null?new THREE.MeshPhongMaterial({color:acc,specular:0x555555,shininess:60}):paint;
-  const dark=new THREE.MeshPhongMaterial({color:0x22252a,specular:0x222222,shininess:20});
-  const metal=new THREE.MeshPhongMaterial({color:0x9aa1a8,specular:0x888888,shininess:70});
-  const glass=new THREE.MeshPhongMaterial({color:0x1d3346,specular:0xbfd0e0,shininess:120,transparent:true,opacity:0.82});
+  const belly=acc!=null?accM:new THREE.MeshPhongMaterial({color:0xf2f3f5,specular:0x777777,shininess:70});
+  const dark=new THREE.MeshPhongMaterial({color:0x202328,specular:0x222222,shininess:20});
+  const metal=new THREE.MeshPhongMaterial({color:0xb4bac0,specular:0x999999,shininess:80});
+  const glass=new THREE.MeshPhongMaterial({color:0x14222e,specular:0xcfe0ee,shininess:140,transparent:true,opacity:0.62,depthWrite:false,side:THREE.DoubleSide});
   const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
-  const prof=[[0,-1.9],[0.55,-1.75],[0.95,-1.2],[1.08,-0.3],[1.05,0.6],[0.85,1.4],[0.45,1.9],[0,2.0]].map(([r,y])=>new THREE.Vector2(r,y));
-  const cab=add(new THREE.LatheGeometry(prof,20),paint,0,1.0,0.5,Math.PI/2);cab.scale.set(1,1,0.95);
-  const can=add(new THREE.SphereGeometry(1,20,14,-Math.PI*0.42,Math.PI*0.84,Math.PI*0.18,Math.PI*0.5),glass,0,1.15,1.15,0,0,0);can.scale.set(1.02,0.92,1.25);
-  add(new THREE.BoxGeometry(1.0,0.5,1.7),paint,0,1.95,0.1);                               /* engine cowl */
-  add(new THREE.CylinderGeometry(0.12,0.2,0.4,10),dark,0,2.35,0.15);                       /* mast */
-  add(new THREE.CylinderGeometry(0.14,0.34,4.8,12),paint,0,1.35,-3.1,Math.PI/2);           /* tapered tail boom */
-  add(new THREE.BoxGeometry(0.08,1.25,0.85),accM,0,1.85,-5.35,-0.35,0,0);                 /* vertical fin */
-  add(new THREE.BoxGeometry(1.7,0.06,0.42),accM,0,1.35,-4.5);                             /* stabiliser */
-  for(const sd of [1,-1])add(new THREE.BoxGeometry(0.06,0.4,0.45),accM,sd*0.85,1.45,-4.5);
+  /* cabin: lathe egg along z (blunt rounded nose, tapering into the boom at the back) */
+  const prof=[[0,-2.0],[0.42,-1.85],[0.78,-1.35],[0.95,-0.5],[1.0,0.4],[0.95,1.2],[0.78,1.8],[0.48,2.2],[0,2.35]].map(([r,y])=>new THREE.Vector2(r,y));
+  const cab=add(new THREE.LatheGeometry(prof,24),paint,0,1.05,0.35,Math.PI/2);cab.scale.set(0.92,1,1.05);
+  /* white lower belly band (like the red/white JetRanger livery) */
+  const bel=add(new THREE.LatheGeometry(prof.map((v)=>new THREE.Vector2(v.x*1.012,v.y)),24,Math.PI*1.62,Math.PI*0.76),belly,0,1.05,0.35,Math.PI/2);bel.scale.set(0.92,1,1.05);
+  /* big wrap-around glass nose: upper front of the egg, plus lower chin windows */
+  const can=add(new THREE.SphereGeometry(1,24,16,-Math.PI*0.48,Math.PI*0.96,Math.PI*0.12,Math.PI*0.42),glass,0,1.12,1.45);can.scale.set(0.9,0.95,1.05);
   for(const sd of [1,-1]){
-    add(new THREE.CapsuleGeometry(0.06,3.4,4,8),metal,sd*0.9,-0.2,0.5,Math.PI/2);         /* skid */
-    for(const zz of [1.35,-0.4]){const t=add(new THREE.CylinderGeometry(0.05,0.05,1.0,8),metal,sd*0.72,0.22,zz,0,0,sd*0.45);t.castShadow=true;}
+    const ch=add(new THREE.SphereGeometry(0.34,14,10),glass,sd*0.38,0.62,2.2);ch.scale.set(1,0.7,0.8);           /* chin window */
+    add(new THREE.BoxGeometry(0.03,0.5,0.75),glass,sd*0.86,1.32,0.85);                                         /* front door window */
+    add(new THREE.BoxGeometry(0.03,0.45,0.6),glass,sd*0.86,1.32,0.0);                                          /* rear door window */
+    add(new THREE.BoxGeometry(0.035,0.05,1.7),dark,sd*0.88,1.04,0.45);                                         /* door sill line */
   }
-  const rotor=new THREE.Group();rotor.position.set(0,2.6,0.15);g.add(rotor);
-  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.16,12),dark));
-  for(let i=0;i<4;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.035,5.2),dark);b.position.set(Math.sin(i*Math.PI/2)*2.65,0.06,Math.cos(i*Math.PI/2)*2.65);b.rotation.y=i*Math.PI/2;rotor.add(b);}
-  const tail=new THREE.Group();tail.position.set(0.12,1.85,-5.5);g.add(tail);
-  for(let i=0;i<2;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.1,1.2),dark);b.rotation.x=i*Math.PI/2;tail.add(b);}
-  /* face: framed windshield (centre post + bows), chin bubbles, nose landing light, wipers, pitot and a dark nose cap */
-  const frame=new THREE.MeshPhongMaterial({color:0x15171a,specular:0x333333,shininess:30});
-  add(new THREE.BoxGeometry(0.07,0.95,0.07),frame,0,1.52,2.08,-0.62);                      /* centre windshield post */
+  add(new THREE.BoxGeometry(0.035,0.9,0.035),dark,0,1.5,2.0,-0.7);                                             /* thin centre windshield post */
+  /* engine/transmission fairing behind the mast, exhaust stack, rotor mast */
+  const cowl=add(new THREE.CapsuleGeometry(0.42,1.5,6,12),paint,0,1.98,-0.55,Math.PI/2);cowl.scale.set(1.15,0.85,1);
+  add(new THREE.CylinderGeometry(0.13,0.15,0.3,10),dark,0,2.25,-1.35,-0.6);                                  /* exhaust */
+  add(new THREE.CylinderGeometry(0.09,0.14,0.55,10),dark,0,2.55,0.15);                                       /* mast */
+  /* slim tail boom rising slightly to the fins, horizontal stabiliser with endplates, upper + lower vertical fin */
+  add(new THREE.CylinderGeometry(0.1,0.24,4.6,12),paint,0,1.42,-3.85,Math.PI/2-0.03);
+  add(new THREE.BoxGeometry(1.5,0.05,0.36),paint,0,1.45,-4.6);
+  for(const sd of [1,-1])add(new THREE.BoxGeometry(0.05,0.36,0.34),accM,sd*0.75,1.5,-4.6);
+  add(new THREE.BoxGeometry(0.06,1.15,0.6),accM,0,2.0,-6.1,-0.42);                                           /* upper fin */
+  add(new THREE.BoxGeometry(0.06,0.6,0.42),accM,0,1.08,-6.05,0.45);                                          /* ventral fin */
+  add(new THREE.CylinderGeometry(0.05,0.05,0.5,6),metal,0,0.9,-5.9,0.4);                                     /* tail skid */
+  /* tall skids: curved cross tubes down to long skids with upturned toes */
   for(const sd of [1,-1]){
-    add(new THREE.BoxGeometry(0.06,1.05,0.06),frame,sd*0.78,1.45,1.7,-0.45,0,sd*0.28);     /* A-pillars */
-    const ch=add(new THREE.SphereGeometry(0.3,14,10),glass,sd*0.36,0.66,2.28);ch.scale.set(1,0.72,0.75); /* chin bubble */
-    add(new THREE.BoxGeometry(0.03,0.02,0.5),frame,sd*0.3,1.12,2.3,-0.9,0,sd*0.2);          /* wiper */
-    add(new THREE.BoxGeometry(0.05,0.9,1.25),frame,sd*1.02,1.0,0.25);                        /* door frame */
+    add(new THREE.CapsuleGeometry(0.055,3.5,4,8),metal,sd*0.95,-0.2,0.35,Math.PI/2);
+    add(new THREE.CylinderGeometry(0.055,0.055,0.45,8),metal,sd*0.95,-0.08,2.25,-0.9);                       /* upturned toe */
+    for(const zz of [1.3,-0.55]){const t=add(new THREE.CylinderGeometry(0.05,0.05,1.25,8),metal,sd*0.74,0.3,zz,0,0,sd*0.42);t.castShadow=true;}
   }
-  add(new THREE.SphereGeometry(0.36,14,10,0,Math.PI*2,0,Math.PI/2),accM,0,1.0,2.36,Math.PI/2).scale.set(1.5,1,0.55); /* nose cap */
-  add(new THREE.CircleGeometry(0.13,14),new THREE.MeshBasicMaterial({color:0xfff6dc}),0,0.42,2.42,0,0,0);           /* landing light */
-  add(new THREE.CylinderGeometry(0.018,0.018,0.7,6),metal,0.22,1.62,2.35,Math.PI/2-0.25);                           /* pitot */
-  if(acc!=null){for(const sd of [1,-1]){add(new THREE.BoxGeometry(0.05,0.2,3.0),accM,sd*1.05,0.72,0.35);add(new THREE.BoxGeometry(0.04,0.12,2.2),accM,sd*0.24,1.4,-3.4);}} /* accent cheat-line on cabin + boom */
-  const beacon=add(new THREE.SphereGeometry(0.09,8,6),new THREE.MeshBasicMaterial({color:0xff3030}),0,2.25,-0.75);
+  for(const zz of [1.3,-0.55])add(new THREE.CylinderGeometry(0.05,0.05,1.0,8),metal,0,0.55,zz,0,0,Math.PI/2);  /* cross-tube tops under the belly */
+  /* 2-blade teetering main rotor */
+  const rotor=new THREE.Group();rotor.position.set(0,2.85,0.15);g.add(rotor);
+  rotor.add(new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.16,12),dark));
+  const bladeM=new THREE.MeshPhongMaterial({color:0x22252a,specular:0x222222,shininess:20,transparent:true,opacity:0.6,depthWrite:false});
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(5.3,40),new THREE.MeshBasicMaterial({color:0x2a2e33,transparent:true,opacity:0.12,side:THREE.DoubleSide,depthWrite:false}));
+  disc.rotation.x=-Math.PI/2;disc.position.y=0.06;rotor.add(disc);
+  const blade=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.04,10.4),bladeM);blade.position.y=0.06;rotor.add(blade);
+  /* 2-blade tail rotor on the left of the fin */
+  const tail=new THREE.Group();tail.position.set(-0.14,1.72,-6.05);g.add(tail);
+  {const b=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.12,1.3),dark);tail.add(b);tail.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.12,8),dark).rotateZ(Math.PI/2));}
+  add(new THREE.CircleGeometry(0.12,14),new THREE.MeshBasicMaterial({color:0xfff6dc}),0,0.42,2.3,0.6,0,0);  /* landing light under the nose */
+  const beacon=add(new THREE.SphereGeometry(0.08,8,6),new THREE.MeshBasicMaterial({color:0xff3030}),0,2.38,-1.0);
   g.userData.rotor=rotor;g.userData.prop=tail;g.userData.beacon=beacon;g.userData.gearDrop=0.26;
-  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  g.traverse(o=>{if(o.isMesh)o.castShadow=true;});disc.castShadow=false;g.userData.rotorBlur={blade:bladeM,disc};
   return g;
 }
 function makeMilitary(kind,col,acc){
@@ -4170,32 +4213,12 @@ function makeProp(col,acc){
   return g;
 }
 function makeHeli(col){
-  const g=new THREE.Group();
-  const body=new THREE.MeshLambertMaterial({color:col||0x3a4a5a});
-  const dark=new THREE.MeshLambertMaterial({color:0x1a222c});
-  const fus=new THREE.Mesh(new THREE.SphereGeometry(2.4,10,8),body);
-  fus.scale.set(1.1,0.85,1.6);g.add(fus);
-  const cabin=new THREE.Mesh(new THREE.BoxGeometry(3.2,2.2,3.6),new THREE.MeshLambertMaterial({color:0x6a8aaa,transparent:true,opacity:0.55}));
-  cabin.position.set(0,0.4,1.2);g.add(cabin);
-  const boom=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.55,9,8),body);
-  boom.rotation.x=Math.PI/2;boom.position.set(0,0.6,-6.5);g.add(boom);
-  const tail=new THREE.Mesh(new THREE.BoxGeometry(0.3,2.2,1.4),body);
-  tail.position.set(0,1.4,-11);g.add(tail);
-  const skidM=new THREE.MeshLambertMaterial({color:0x333840});
-  for(const sd of [-1,1]){
-    const sk=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,7,6),skidM);
-    sk.rotation.x=Math.PI/2;sk.position.set(sd*1.6,-2.2,0.4);g.add(sk);
-  }
-  /* main rotor disc (spins in update) */
-  const rotor=new THREE.Mesh(new THREE.CircleGeometry(7.5,24),
-    new THREE.MeshBasicMaterial({color:0x9aa3ad,transparent:true,opacity:0.28,side:THREE.DoubleSide,depthWrite:false}));
-  rotor.rotation.x=-Math.PI/2;rotor.position.y=3.2;g.add(rotor);
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,1.2,8),dark);
-  hub.position.y=2.6;g.add(hub);
-  const tRotor=new THREE.Mesh(new THREE.CircleGeometry(1.4,12),
-    new THREE.MeshBasicMaterial({color:0x9aa3ad,transparent:true,opacity:0.35,side:THREE.DoubleSide,depthWrite:false}));
-  tRotor.position.set(0.7,1.5,-11);g.add(tRotor);
-  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'heli',rotor,tRotor,nav:addNavLights(g,2,-6)};
+  /* traffic helicopters reuse the detailed Bell 206 body (same as the tour heli), scaled to the old footprint */
+  const g=makeTourHeli(col||0x3a4a5a,null);
+  g.scale.setScalar(1.45);
+  g.traverse((o)=>{if(o.isMesh)o.castShadow=false;});
+  const ud=g.userData;
+  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'heli',rotor:ud.rotor,tRotor:ud.prop,rotorBlur:ud.rotorBlur,gearDrop:ud.gearDrop,nav:addNavLights(g,1.1,-4)};
   return g;
 }
 /* Classify ADS-B type → airliner | prop | heli */
@@ -4746,7 +4769,7 @@ window.FLIGHTS=[];
     let m;
     if(cls==='heli')m=makeHeli(HELI_COLS[seed%HELI_COLS.length]);
     else if(cls==='prop')m=makeProp(PROP_COLS[seed%PROP_COLS.length]);
-    else m=makeAirliner(FIN_COLS[seed%FIN_COLS.length],liveryFor(cs,seed));
+    else m=makeAirliner(FIN_COLS[seed%FIN_COLS.length],liveryFor(cs,seed),airlinerTypeFor(actype,seed));
     scene.add(m);
     /* keep real livery colours at range instead of washing out to haze blue */
     m.traverse((o)=>{if(o.isMesh&&o.material&&!o.material.transparent)o.material.fog=false;});
@@ -5629,8 +5652,10 @@ if(HTS_HAS_PACK&&!HTS_IS_AUS)(function placePackAttractions(){
 })();
 /* ---------------- points of interest ---------------- */
 function poiBadge(kind){
-  const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  const c=document.createElement('canvas');c.width=64;c.height=84;const x=c.getContext('2d');
   const COLS={food:'#e0563a',fuel:'#e8a13a',ev:'#38b26a',park:'#3f9a4d',fun:'#b06cf0',sight:'#3f8fd6',shop:'#e06ca8',school:'#e8d24a',transit:'#4ac8e8',health:'#f0625a',worship:'#d98fc4'};
+  /* map-pin tail: its tip (canvas bottom = sprite anchor) sits exactly on the place */
+  x.beginPath();x.moveTo(19,50);x.lineTo(32,83);x.lineTo(45,50);x.closePath();x.fillStyle=COLS[kind]||'#888';x.fill();
   x.beginPath();x.arc(32,34,24,0,TAU);x.fillStyle='rgba(10,13,18,.92)';x.fill();
   x.lineWidth=4;x.strokeStyle=COLS[kind]||'#888';x.stroke();
   x.strokeStyle='#fff';x.fillStyle='#fff';x.lineWidth=4;x.lineCap='round';
@@ -5959,7 +5984,7 @@ const POIS=[
  {n:'Islamic Society of Greater Houston',k:'worship',x:W(-682),z:W(401),addr:'3110 Eastside St — ISGH main center'},
  {n:'Congregation Beth Israel',k:'worship',x:W(-914),z:W(1129),addr:'5600 N Braeswood Blvd'},
  poiAt('Lamar High School','school',29.7428,-95.4265,'3325 Westheimer Rd · est. 1936','Houston ISD · historic Westheimer campus'),
- poiAt('Bellaire High School','school',29.7019,-95.4645,'5100 Maple St — magnet languages','Bellaire · HISD magnet languages'),
+ poiAt('Bellaire High School','school',29.69228,-95.47026,'5100 Maple St — magnet languages','Bellaire · HISD magnet languages'),
  {n:'The Galleria',k:'shop',x:W(-980),z:W(205),addr:'5085 Westheimer Rd — 400 stores, ice rink'},
  {n:'Memorial City Mall',k:'shop',x:W(-1560),z:W(-260),addr:'303 Memorial City Way'},
  {n:'Katy Mills',k:'shop',x:W(-3870),z:W(-260),addr:'5000 Katy Mills Cir'},
@@ -5969,7 +5994,7 @@ const POIS=[
  {n:'Downtown Transit Center',k:'transit',x:W(58.5),z:W(202.2),addr:'1900 Main St — bus bays + METRORail Red Line'},
  {n:'Amtrak Houston Station (HOS)',k:'transit',x:W(88.4),z:W(-39.5),addr:'902 Washington Ave — Sunset Limited'},
  poiAt('Rice University','school',29.7174,-95.4018,'6100 Main St · est. 1912','Private research university · hedge-lined campus'),
- poiAt('University of Houston','school',29.7199,-95.3422,'4800 Calhoun Rd · 46,000 students','UH main campus · Cullen family plaza'),
+ poiAt('University of Houston','school',29.72208,-95.34696,'4800 Calhoun Rd · 46,000 students','UH main campus · Cullen family plaza'),
  poiAt('Texas Southern University','school',29.7220,-95.3578,'3100 Cleburne St','HBCU · Third Ward'),
  poiAt('Houston Community College — Central','school',29.7365,-95.3795,'1300 Holman St','HCC Central College'),
  poiAt('University of St. Thomas','school',29.7378,-95.3935,'3800 Montrose Blvd','Catholic university · Montrose'),
@@ -6010,55 +6035,67 @@ const POIS=[
  poiAt('Rothko Chapel','sight',29.7376,-95.3962,'3900 Yupon St','Mark Rothko sacred space · quiet meditation'),
  poiAt('Bayou Bend Collection & Gardens','sight',29.7575,-95.4215,'6003 Memorial Dr','MFAH American decorative arts · Ima Hogg estate'),
  poiAt('Buffalo Bayou Park Cistern','sight',29.7628,-95.3955,'105 Sabine St','Underground 1926 reservoir tours'),
- poiAt('McGovern Centennial Gardens','park',29.7188,-95.3890,'1500 Hermann Dr','Hermann Park botanical gardens & mount'),
+ poiAt('McGovern Centennial Gardens','park',29.72105,-95.38782,'1500 Hermann Dr','Hermann Park botanical gardens & mount'),
  poiAt('Houston Arboretum & Nature Center','park',29.7655,-95.4520,'4501 Woodway Dr','155-acre urban wilderness in Memorial Park'),
- poiAt('Memorial Park','park',29.7670,-95.4405,'6501 Memorial Dr','1,500-acre urban park · running trails · golf'),
- poiAt('Levy Park','park',29.7408,-95.4188,'3801 Eastside St','Greenway Plaza pocket park · dog park · events'),
+ poiAt('Memorial Park','park',29.76387,-95.44293,'6501 Memorial Dr','1,500-acre urban park · running trails · golf'),
+ poiAt('Levy Park','park',29.73264,-95.42305,'3801 Eastside St','Greenway Plaza pocket park · dog park · events'),
  /* Immersive / amusement */
- poiAt('Meow Wolf Houston — Radio Tave','fun',29.7708,-95.3425,'2103 Lyons Ave','Immersive art experience · Fifth Ward'),
+ poiAt('Meow Wolf Houston — Radio Tave','fun',29.77208,-95.34759,'2103 Lyons Ave','Immersive art experience · Fifth Ward'),
  poiAt('Typhoon Texas Waterpark','fun',29.7705,-95.7440,'555 Katy Fort Bend Rd, Katy','45 acres · 30+ slides · longest lazy river in Texas'),
  poiAt('Six Flags Hurricane Harbor Splashtown','fun',30.0645,-95.4355,'21300 Interstate 45 N, Spring','Houston’s largest water park'),
- poiAt('Big Rivers Waterpark','fun',30.1620,-95.2270,'2301 Poolside Dr, New Caney','Waterpark + adventure park north of Houston'),
+ poiAt('Big Rivers Waterpark','fun',30.19834,-95.20019,'2301 Poolside Dr, New Caney','Waterpark + adventure park north of Houston'),
  poiAt('Great Wolf Lodge Webster','fun',29.5445,-95.1435,'1001 Bay Area Blvd, Webster','Indoor water park resort near NASA'),
  poiAt('Pirates Bay Water Park','fun',29.6905,-95.2015,'2300 N Main St, Baytown','Baytown municipal water park'),
  poiAt('Moody Gardens','fun',29.2735,-94.8505,'1 Hope Blvd, Galveston','Pyramids · Aquarium · Rainforest · Palm Beach'),
  poiAt('Schlitterbahn Galveston','fun',29.2635,-94.8500,'2109 Gene Lucas Blvd, Galveston','Indoor/outdoor waterpark · MASSIV water coaster'),
  poiAt('Galveston Island Historic Pleasure Pier','fun',29.2855,-94.7895,'2501 Seawall Blvd, Galveston','Gulf-front amusement pier · rides & games'),
- poiAt('Lone Star Flight Museum','sight',29.6065,-95.1675,'11551 Aerospace Ave','Aviation museum at Ellington · historic aircraft'),
+ poiAt('Lone Star Flight Museum','sight',29.60465,-95.17454,'11551 Aerospace Ave','Aviation museum at Ellington · historic aircraft'),
  /* Sports & entertainment */
  poiAt('NRG Stadium','fun',29.6847,-95.4107,'1 NRG Pkwy','Houston Texans · rodeo · mega-events'),
  {n:'Astrodome',k:'sight',x:ASTRO.x,z:ASTRO.z,addr:'8400 Kirby Dr — world’s first domed stadium · Eighth Wonder · NRG Park'},
- poiAt('Pennzoil Place','sight',29.7595,-95.3638,'700 Milam St','1975 Philip Johnson twin trapezoid towers'),
+ poiAt('Pennzoil Place','sight',29.76011,-95.36570,'700 Milam St','1975 Philip Johnson twin trapezoid towers'),
  poiAt('Daikin Park','fun',29.7573,-95.3555,'501 Crawford St','Houston Astros · downtown ballpark'),
  poiAt('Toyota Center','fun',29.7508,-95.3621,'1510 Polk St','Houston Rockets · concerts'),
  poiAt('Shell Energy Stadium','fun',29.7522,-95.3520,'2200 Texas Ave','Houston Dynamo FC & Dash'),
  poiAt('Smart Financial Centre','fun',29.6075,-95.6305,'18111 Lexington Blvd, Sugar Land','Concert arena · Sugar Land'),
+ poiAt('TDECU Stadium','fun',29.7221,-95.3495,'3874 Holman St','University of Houston Cougars football'),
+ poiAt('Fertitta Center','fun',29.7247,-95.347,'3875 Holman St','University of Houston Cougars basketball arena'),
+ poiAt('Schroeder Park','fun',29.7268,-95.3458,'University of Houston','Cougars baseball'),
+ poiAt('Rice Stadium','fun',29.7161,-95.4094,'6100 Main St','Rice Owls football · Super Bowl VIII'),
+ poiAt('Reckling Park','fun',29.7136,-95.4042,'Rice University','Rice Owls baseball'),
+ poiAt('Health & Physical Education Arena','fun',29.7228,-95.3655,'Texas Southern University','TSU Tigers basketball'),
+ poiAt('NRG Arena','fun',29.6814,-95.4058,'NRG Park','Arena next to NRG Stadium and the Astrodome'),
+ poiAt('Constellation Field','fun',29.6227,-95.6471,'1 Stadium Dr, Sugar Land','Sugar Land Space Cowboys baseball'),
+ poiAt('Delmar Stadium','fun',29.8036,-95.4562,'Houston ISD','High school football'),
+ poiAt('Darrell Tully Stadium','fun',29.7784,-95.6044,'Spring Branch ISD','High school football'),
+ poiAt('Planet Ford Stadium','fun',30.0585,-95.3525,'Spring ISD','High school football'),
+ poiAt('Legacy Stadium','fun',29.8000,-95.8055,'Katy ISD','High school football'),
  /* Landmarks & more sights */
  poiAt('Williams Tower','sight',29.7372,-95.4614,'2800 Post Oak Blvd','901 ft · tallest outside a CBD · Waterwall neighbor'),
- poiAt('JPMorgan Chase Tower','sight',29.7589,-95.3635,'600 Travis St','Houston’s tallest · 1,002 ft'),
+ poiAt('JPMorgan Chase Tower','sight',29.76043,-95.36401,'600 Travis St','Houston’s tallest · 1,002 ft'),
  poiAt('Houston City Hall','sight',29.7601,-95.3698,'901 Bagby St','1939 Art Deco · reflecting pool'),
  poiAt('Allen’s Landing','park',29.7645,-95.3605,'1001 Commerce St','Birthplace of Houston · Buffalo Bayou'),
  poiAt('Sesquicentennial Park','park',29.7638,-95.3638,'400 Texas Ave','Theater District bayou park'),
- poiAt('Sam Houston Park','park',29.7585,-95.3725,'1100 Bagby St','Historic houses museum · downtown'),
- poiAt('Houston Graffiti Park','sight',29.7485,-95.2855,'4900 Lawndale St','Legal street-art walls · East End'),
- poiAt('Art Car Museum','sight',29.7755,-95.4055,'140 Heights Blvd','Quirky art cars · Heights'),
+ poiAt('Sam Houston Park','park',29.76037,-95.37187,'1100 Bagby St','Historic houses museum · downtown'),
+ poiAt('Houston Graffiti Park','sight',29.74736,-95.35907,'4900 Lawndale St','Legal street-art walls · East End'),
+ poiAt('Art Car Museum','sight',29.77200,-95.39689,'140 Heights Blvd','Quirky art cars · Heights'),
  poiAt('Beer Can House','sight',29.7635,-95.4185,'222 Malone St','Folk-art landmark · 50,000+ cans'),
  poiAt('Orange Show Center for Visionary Art','sight',29.7185,-95.3245,'2402 Munger St','Folk-art compound · East End'),
- poiAt('Houston Botanic Garden','park',29.6705,-95.2785,'8205 N Bayou Dr','132-acre botanic garden · Glenbrook'),
- poiAt('Armand Bayou Nature Center','park',29.5935,-95.0905,'8500 Bay Area Blvd','Urban wilderness · Clear Lake'),
+ poiAt('Houston Botanic Garden','park',29.68567,-95.26835,'8205 N Bayou Dr','132-acre botanic garden · Glenbrook'),
+ poiAt('Armand Bayou Nature Center','park',29.59076,-95.07181,'8500 Bay Area Blvd','Urban wilderness · Clear Lake'),
  poiAt('Mercer Botanic Gardens','park',30.0385,-95.3815,'22306 Aldine Westfield Rd','Harris County botanic gardens · Humble'),
  poiAt('The Woodlands Waterway','park',30.1645,-95.4625,'Waterway Ave, The Woodlands','Pedestrian canal · shops & dining'),
  poiAt('Downtown Tunnel System','sight',29.7580,-95.3630,'Downtown Houston','6+ miles of air-conditioned tunnels'),
- poiAt('Theater District — Wortham Center','sight',29.7635,-95.3665,'501 Texas Ave','Houston Grand Opera & Ballet'),
+ poiAt('Theater District — Wortham Center','sight',29.76113,-95.36645,'501 Texas Ave','Houston Grand Opera & Ballet'),
  poiAt('Jones Hall','sight',29.7615,-95.3655,'615 Louisiana St','Houston Symphony'),
  poiAt('Alley Theatre','sight',29.7628,-95.3650,'615 Texas Ave','Resident professional theatre'),
  /* Food icons */
  poiAt("Goode Co. Barbecue",'food',29.7325,-95.4795,'5109 Kirby Dr','Classic Houston BBQ'),
  poiAt('Torchy\'s Tacos — Midtown','food',29.7465,-95.3775,'2411 Times Blvd','Houston-born taco chain'),
- poiAt('Ninfa\'s on Navigation','food',29.7575,-95.3375,'2704 Navigation Blvd','Birthplace of fajitas legend'),
+ poiAt('Ninfa\'s on Navigation','food',29.75689,-95.34256,'2704 Navigation Blvd','Birthplace of fajitas legend'),
  /* Gulf Coast / new metro districts */
- poiAt('Brazos Bend State Park','park',29.3755,-95.6285,'21901 FM 762','5,000-acre park — alligators, observatory, wetlands'),
- poiAt('George Observatory','sight',29.3735,-95.6245,'Brazos Bend SP','Public telescopes south of Houston'),
+ poiAt('Brazos Bend State Park','park',29.38224,-95.58402,'21901 FM 762','5,000-acre park — alligators, observatory, wetlands'),
+ poiAt('George Observatory','sight',29.37514,-95.59360,'Brazos Bend SP','Public telescopes south of Houston'),
  poiAt('San Luis Pass','sight',29.0835,-95.1315,'San Luis Pass','Where Galveston Island meets Follets Island — surf fishing'),
  poiAt('Battleship Texas','sight',29.7455,-95.0995,'3523 Independence Pkwy','WWI dreadnought at San Jacinto Battleground'),
  poiAt('Wallisville Lake','park',29.8385,-94.7375,'Wallisville Lake Project','Trinity River wetlands & nature center'),
@@ -6066,24 +6103,27 @@ const POIS=[
  poiAt('Blue Bell Creameries','food',30.1645,-96.3975,'1101 S Blue Bell Rd, Brenham','Iconic Texas ice cream factory tours'),
  poiAt('Washington-on-the-Brazos','sight',30.3225,-96.1575,'23400 Park Rd 12','Where Texas declared independence in 1836'),
  poiAt('Buc-ee\'s Katy','fuel',29.7825,-95.8245,'27700 Katy Fwy','World-famous Texas travel stop'),
- poiAt('CityCentre','shop',29.7825,-95.5605,'800 Town & Country Blvd','Mixed-use district in the Energy Corridor'),
+ poiAt('CityCentre','shop',29.78092,-95.56015,'800 Town & Country Blvd','Mixed-use district in the Energy Corridor'),
 ];
 if(HTS_PACK&&HTS_PACK.pois&&HTS_PACK.pois.length){
   POIS.length=0;
   for(const p of HTS_PACK.pois){
     const n=p.n||'';
+    /* Houston categories (venues first so "Daikin Park" is a ballpark, not a park) */
     let k='sight';
-    if(/park|springs|zilker|pease|walnut|emma|mckinney|lady.?bird|mount bonnell/i.test(n))k='park';
-    else if(/stadium|q2|moody center|acl|theater|domain/i.test(n))k='fun';
-    else if(/ut |university|school|college|lbj|library/i.test(n))k='school';
-    else if(/capitol|museum|bullock/i.test(n))k='sight';
-    POIS.push({n,k,x:p.x,z:p.z,addr:p.addr||n,lat:p.lat,lng:p.lng,id:p.id});
+    if(/stadium|daikin park|minute maid|toyota center|nrg|arena|ballpark|fertitta|theat(er|re)|zoo|aquarium|kemah|boardwalk|pavilion|amphithe|music hall|performing arts/i.test(n))k='fun';
+    else if(/galleria|mall\b|market|outlet|city cent|town cent|rice village|highland village|shops\b/i.test(n))k='shop';
+    else if(/universit|college|school|library|\brice\b/i.test(n))k='school';
+    else if(/\bpark\b|bayou|arboretum|garden|green\b|trail|preserve|nature/i.test(n))k='park';
+    /* place the pin from the POI's own lat/lng so it lands on the real spot (pack x/z kept as fallback) */
+    const w=(Number.isFinite(p.lat)&&Number.isFinite(p.lng))?geoToWorld(p.lat,p.lng):{x:p.x,z:p.z};
+    POIS.push({n,k,x:w.x,z:w.z,addr:p.addr||n,lat:p.lat,lng:p.lng,id:p.id});
   }
 }
 const poiSprites=[];
 for(const p of POIS){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:poiBadge(p.k),transparent:true,depthWrite:false,opacity:0}));
-  sp.scale.set(26,26,1);sp.position.set(p.x,34,p.z);
+  sp.center.set(0.5,0);sp.scale.set(26,34.1,1);sp.position.set(p.x,1.5,p.z);
   sp.userData.poi=p;scene.add(sp);poiSprites.push(sp);
 }
 /* NASA Johnson Space Center campus pad (visual landmark near Space Center Houston) */
@@ -8432,7 +8472,7 @@ function applyCam(){
     }else pn.hidden=true;
   }
 }
-const PHI_MIN=0.06,PHI_MAX=1.5,R_MIN=WS===1?55:22,R_MAX=9200*WS;
+const PHI_MIN=0.06,PHI_MAX=1.55,R_MIN=WS===1?10:6,R_MAX=9200*WS;
 let drag=null,ptStart=null,follow=null,followPlane=null;
 let hoverPlace=null; /* {n, road?} from pointer hover — drives whereami pill */
 function camRadiusLimits(){
@@ -8570,7 +8610,6 @@ function tryPickVehicle(e){
 }
 /* ---- POI card, geolocation & Google Maps handoff ---- */
 let userGeo=null,geoAsked=false,userWorld=null,geoWatchId=null;
-setInterval(()=>{if(userGeo)fetchLocalWeather(userGeo.lat,userGeo.lng,false);},2*60*1000);
 /* 'you are here' marker — always-on map pin + Houston house when close-in */
 const HTS_IS_HOU=HTS_CITY_ID==='houston';
 /* Old hard cap (±9000) was for the tiny map scale — metre Houston needs ~50 mi radius */
@@ -9675,7 +9714,7 @@ function updateLiveFlights(dt){
     {const gd=f.m.userData&&f.m.userData.gearDrop;if(gd!=null){const gy=gd*f.m.scale.y+0.15;if(f.m.position.y<gy)f.m.position.y=gy;}}
     /* Spin helicopter rotors */
     if(cls==='heli'&&f.m.userData){
-      if(f.m.userData.rotor)f.m.userData.rotor.rotation.z+=dt*18;
+      if(f.m.userData.rotor)f.m.userData.rotor.rotation.y+=dt*18;
       if(f.m.userData.tRotor)f.m.userData.tRotor.rotation.x+=dt*28;
     }
     if(f._yawPrev!=null){
@@ -13631,7 +13670,7 @@ spawnWorkZone('us59',1,0.24,380,'Sugar Land');
 trafficTick(0.5);
 
 /* ---------------- live flight state machines ---------------- */
-window.LIMITS={pan:5600*WS,rmax:9200*WS,rmin:WS===1?55:22};
+window.LIMITS={pan:5600*WS,rmax:9200*WS,rmin:WS===1?10:6};
 window.simOffsetSec=0;
 function houClock(offsetSec,withDate){
   const d=new Date(Date.now()+(simOffsetSec+offsetSec)*1000);
@@ -14122,12 +14161,14 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
     window.HTS_LAND2=land;
     if(!window.RWEDGE)window.RWEDGE=[];
     const ap=createHoustonAirports({parent:scene,k:1,liveryFor,nightMats:window.RWEDGE,
-      planeTemplate:makeAirliner(0xff00ff,[0x00ff00,0x9aa2ab,0xff00ff,0x9aa2ab]),gaTemplate:makeProp(0x00ff00)});
+      planeTemplate:makeAirliner(0xff00ff,[0x00ff00,0x9aa2ab,0xff00ff,0x9aa2ab]),planeTemplates:Object.fromEntries(Object.keys(AIRLINER_TYPES).map((t)=>[t,makeAirliner(0xff00ff,[0x00ff00,0x9aa2ab,0xff00ff,0x9aa2ab],t)])),gaTemplate:makeProp(0x00ff00)});
     window.HTS_AIRPORTS2=ap;
     if(!HTS_PEEK){
       window.HTS_PLACES2=createHoustonPlaces({camera,dom:renderer.domElement,getView:()=>({x:cam.target.x,z:cam.target.z,r:cam.radius})});
       const tk=createHoustonTanks({parent:scene,baseY:0.05});
       tk.ready.then((st)=>console.log('%cHouston tanks: '+JSON.stringify(st),'color:#cfd6dc')).catch((e)=>console.warn('[HTS] tanks',e&&e.message));
+      const sdm=createHoustonStadiums({parent:scene,geoToWorld,baseY:0.05});window.HTS_STADIUMS=sdm;
+      sdm.ready.then((st)=>console.log('%cHouston stadiums: '+JSON.stringify(st),'color:#cfd6dc')).catch((e)=>console.warn('[HTS] stadiums',e&&e.message));
     }
     ap.ready.then((st)=>console.log('%cHouston airports v2: '+JSON.stringify(st),'color:#7fd6a0')).catch((e)=>console.warn('[HTS] airports v2',e&&e.message));
     if(!HTS_PEEK){
@@ -14146,7 +14187,7 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       }).catch(()=>{});
       window.HTS_TOUR=createTour({scene,camera,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,
-        airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:(c,a)=>tourJet(c,a),makeHeli:makeTourHeli,makeMil:makeMilitary,
+        airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:(c,a,t)=>tourJet(c,a,t),makeHeli:makeTourHeli,makeMil:makeMilitary,
         stopFollow:()=>stopFollow(),isFollowing:()=>!!(followPlane||follow),getUserGeo:()=>userGeo});
       window.HTS_ROUTE=createRoutePlanner({scene,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,getUserGeo:()=>userGeo,
@@ -14403,11 +14444,6 @@ setTimeout(()=>{
       sel:'#tourTimeGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',
       title:'Time & sky',
       body:'Scrub Today / Tomorrow / +2 days, speed up the clock, or force Clear, Rain, or Storm. Traffic and the sky follow the clock you set.',
-    },
-    {
-      sel:'#tourCityGrp',mobileOpen:'more',mobileSel:'#mMoreFab',rail:'right',fallback:'#tourTimeGrp',
-      title:'Sixteen metros',
-      body:'Use Metro under More to jump to another city — Phoenix, Philly, New Orleans, and more. Each pack reloads with its own roads, weather, local news, and airports.',
     },
     {
       sel:'#camhint',mobileSel:'#mMapFab',fallback:'#scene',

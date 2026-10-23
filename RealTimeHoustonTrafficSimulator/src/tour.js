@@ -54,6 +54,12 @@ const VIEWS = { car: [['chase', 'Chase'], ['driver', 'Driver'], ['side', 'Side']
   plane: [['chase', 'Chase'], ['cockpit', 'Cockpit'], ['wing', 'Wing'], ['top', 'Top'], ['orbit', 'Free look']] };
 const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van']];
 const PLANE_STYLES = [['prop', 'Cessna'], ['jet', 'Jet'], ['heli', 'Helicopter'], ['fighter', 'F-16 fighter'], ['c130', 'C-130 Hercules']];
+/* tour aircraft picker: [id, name, family]; family drives physics/cockpit/audio, id picks the airliner model */
+const AIRCRAFT = [['b737', 'Boeing 737-800', 'jet'], ['b747', 'Boeing 747-8', 'jet'], ['b777', 'Boeing 777-300ER', 'jet'], ['b787', 'Boeing 787-9 Dreamliner', 'jet'],
+  ['a320', 'Airbus A320neo', 'jet'], ['a350', 'Airbus A350-900', 'jet'], ['a380', 'Airbus A380', 'jet'],
+  ['prop', 'Cessna 172', 'prop'], ['c130', 'C-130 Hercules', 'c130'], ['fighter', 'F-16 Fighting Falcon', 'fighter'], ['heli', 'Bell 206 helicopter', 'heli']];
+/* minimum runway (m) each type may depart from / land on — widebodies only fit IAH-class runways */
+const RWY_NEED = { b737: 2000, a320: 2000, b787: 2700, a350: 2700, b777: 2900, b747: 3000, a380: 3000, c130: 1200, fighter: 1500, prop: 0, heli: 0 };
 const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a, 0x14a3a3, 0x5bb8ff, 0xd94f8a, 0x8cc63f, 0x9aa3ad, 0x6e1f2b];
 /* accent palette (cheat-line, tail, nose, engines); -1 = none */
 const PLANE_ACCENTS = [0xc23a2c, 0x5bb8ff, 0x2b5ea8, 0x1b2a4a, 0xd9a441, 0xe6c34a, 0xf3f4f6, 0x9aa3ad, 0x1a1c22, 0x1a6b4a, 0xff7a1a, 0xd94f8a, 0x5a2d7a, 0x14a3a3];
@@ -68,6 +74,7 @@ function loadPrefs() {
       planeColor: PLANE_COLORS.includes(+j.planeColor) ? +j.planeColor : PLANE_COLORS[0],
       planeAccent: PLANE_ACCENTS.includes(+j.planeAccent) ? +j.planeAccent : -1,
       planeStyle: PLANE_STYLES.some((s) => s[0] === j.planeStyle) ? j.planeStyle : 'prop',
+      jetModel: AIRCRAFT.some((a) => a[0] === j.jetModel && a[2] === 'jet') ? j.jetModel : 'b737',
       hudX: Number.isFinite(+j.hudX) ? +j.hudX : null,
       hudY: Number.isFinite(+j.hudY) ? +j.hudY : null,
       cpX: Number.isFinite(+j.cpX) ? +j.cpX : null,
@@ -80,7 +87,7 @@ function loadPrefs() {
       musicOn: !!j.musicOn,
     };
   } catch (e) {
-    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeAccent: -1, planeStyle: 'prop', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
+    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeAccent: -1, planeStyle: 'prop', jetModel: 'b737', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
   }
 }
 function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } }
@@ -242,7 +249,7 @@ function makeTourCar(color, style, detail = true) {
       pool.rotation.x = -Math.PI / 2;
       pool.position.set(x * 0.85, 0.08, zNose + beamLen * 0.42);
       pool.renderOrder = 4;
-      g.add(pool);
+      pool.userData.lit = true; g.add(pool);
       poolMats.push(poolMat);
 
       /* SpotLights are expensive on Windows — lenses + road pools are enough */
@@ -251,6 +258,7 @@ function makeTourCar(color, style, detail = true) {
         spot.position.set(x, 0.78, zNose + 0.05);
         spot.target.position.set(x * 1.2, -0.35, zNose + 24);
         spot.castShadow = false;
+        spot.userData.lit = spot.target.userData.lit = true;
         g.add(spot);
         g.add(spot.target);
         spots.push(spot);
@@ -272,7 +280,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const music = createTourMusic();
   const S = { mode: null, kind: 'car', view: 'chase', speedX: 1, obj: null, p: new THREE.Vector3(), hd: 0, v: 0, pitch: 0, roll: 0,
     route: null, s: 0, dest: null, phase: '', keys: {}, info: '', roadName: '', hudT: 0, orbitR: 900, runways: null, cruise: 0, odo: 0, yawRate: 0, th0: 0, ph0: 1, limit: 0, sm: null,
-    carColor: prefs.carColor, carStyle: prefs.carStyle, planeColor: prefs.planeColor, planeAccent: prefs.planeAccent, planeStyle: prefs.planeStyle, acClass: 'prop',
+    carColor: prefs.carColor, carStyle: prefs.carStyle, planeColor: prefs.planeColor, planeAccent: prefs.planeAccent, planeStyle: prefs.planeStyle, jetModel: prefs.jetModel, acClass: 'prop',
     soundOn: prefs.soundOn !== false, soundVol: Number.isFinite(prefs.soundVol) ? prefs.soundVol : 0.45,
     radioOn: prefs.radioOn !== false, musicOn: !!prefs.musicOn };
   const dests = [];
@@ -335,9 +343,34 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const ar = $('tourAptRow'); if (ar) ar.style.display = S.kind === 'plane' ? '' : 'none';
     const fb = $('tourFree'); if (fb) fb.textContent = S.kind === 'car' ? 'Free drive' : 'Free flight';
   }));
+  function acName() { const id = S.planeStyle === 'jet' ? S.jetModel : S.planeStyle; const a = AIRCRAFT.find((q) => q[0] === id); return a ? a[1] : 'Plane'; }
+  function acRows() {
+    const v = ($('tourAc') || {}).value || '', heli = v === 'heli';
+    const rw = $('tourRwRow'); if (rw) rw.style.display = heli ? 'none' : '';
+    const a = AIRCRAFT.find((q) => q[0] === v);
+    const hn = $('tourAcNote');
+    if (hn) hn.textContent = !a ? 'Choose an aircraft — it decides where you take off.'
+      : heli ? 'Lifts straight up from your location and lands at the destination — no runway.'
+        : 'Takes off from an airport runway' + (RWY_NEED[v] >= 2600 ? ' long enough for the ' + a[1] : '') + ', then lands at an airport.';
+  }
+  { const sel = $('tourAc');
+    if (sel) {
+      const grp = { Airliners: AIRCRAFT.filter((a) => a[2] === 'jet'), 'Other aircraft': AIRCRAFT.filter((a) => a[2] !== 'jet') };
+      sel.innerHTML = '<option value="">— choose your aircraft —</option>' + Object.entries(grp).map(([g, l]) => '<optgroup label="' + g + '">' + l.map((a) => '<option value="' + a[0] + '">' + a[1] + '</option>').join('') + '</optgroup>').join('');
+      sel.addEventListener('change', acRows);
+    }
+    acRows(); }
+  /* planes: the aircraft must be chosen before every flight (it decides runway vs. lift-off spot) */
+  function chooseAircraft() {
+    const v = ($('tourAc') || {}).value || '', a = AIRCRAFT.find((q) => q[0] === v);
+    if (!a) { note('Choose your aircraft first — Boeing, Airbus, Cessna, C-130, F-16 or helicopter.'); const sl = $('tourAc'); if (sl) sl.focus(); return false; }
+    S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0];
+    persistVeh(); return true;
+  }
   function beginTour(dest) {
     if (!dest) { note('Pick a place first — or tap Surprise me.'); return; }
     const kind = (document.querySelector('#tourVeh .btn.on') || {}).getAttribute?.('data-veh') || S.kind || 'car';
+    if (kind === 'plane' && !chooseAircraft()) return;
     S.kind = kind;
     start(kind, 'tour', dest);
   }
@@ -357,6 +390,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   });
   const freeBtn = $('tourFree'); if (freeBtn) freeBtn.addEventListener('click', () => {
     const kind = (document.querySelector('#tourVeh .btn.on') || {}).getAttribute?.('data-veh') || S.kind || 'car';
+    if (kind === 'plane' && !chooseAircraft()) return;
     S.kind = kind;
     start(kind, 'free', null);
   });
@@ -390,18 +424,22 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     + '#tourHudPeek.on{display:flex}#tourHudPeek:hover{border-color:rgba(232,168,56,.6)}'
     + '#tourPad{position:fixed;right:18px;bottom:18px;z-index:40;display:none;grid-template-columns:repeat(3,52px);gap:6px}#tourPad.on{display:grid}'
     + '#tourPad button{height:52px;border-radius:12px;background:rgba(28,23,18,.9);border:1px solid rgba(232,168,56,.28);color:#fff6ea;font-size:18px;touch-action:none}'
-    + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:max(min(42vh,360px),min(21vw,48vh));z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}'
+    + '#tourDash{position:fixed;left:0;right:0;bottom:0;height:max(min(38vw,52vh),min(30vh,260px));z-index:35;pointer-events:none;display:none}#tourDash.on{display:block}'
     + '#tourDash .dashSvg{position:absolute;inset:0;width:100%;height:100%;display:block}'
     + '#tourDash .jetGlass{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:-1}'
+    /* night: backlit nav screen and red button LEDs (class toggled in updateLights) */
+    + '#tourDash .dashSvg .led{fill:#6a1c1c}#tourDash.night .dashSvg .led{fill:#ff3b3b;filter:drop-shadow(0 0 3px #ff3030)}'
+    + '#tourDash.night .dashSvg .gl{fill:#0f2c48;filter:drop-shadow(0 0 9px rgba(80,180,255,.8))}'
+    + '#tourDash.night .dashSvg text{fill-opacity:1}#tourDash.night .dashSvg .dLeft circle:first-child{filter:drop-shadow(0 0 5px rgba(255,140,70,.45))}'
     + '#tourDash .carGlass{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:-1;display:none}#tourDash.carOn .carGlass{display:block}'
-    + '#tourDash.jetCockpit{height:max(min(42vh,360px),min(21vw,48vh))}'
+    + '#tourDash.jetCockpit{height:max(min(38vw,52vh),min(30vh,260px))}'
     /* CarPlay — drag eyebrow + explicit resize grip (CSS resize is unreliable on fixed) */
-    + '#tourDash .carplay{position:absolute;left:50%;bottom:16%;transform:translateX(-50%);width:min(26vw,260px);height:min(18vh,140px);z-index:4;pointer-events:auto;'
+    + '#tourDash .carplay{position:absolute;left:auto;right:1.5%;top:11%;bottom:auto;width:min(22vw,240px);height:min(18vh,140px);z-index:4;pointer-events:auto;'
     + 'display:none;flex-direction:column;justify-content:center;gap:3px;padding:10px 12px 18px;border-radius:14px;background:linear-gradient(165deg,#0e1620,#0a1018);'
     + 'border:1px solid rgba(120,160,200,.55);box-shadow:0 8px 22px rgba(0,0,0,.45);font:11px/1.25 Overpass,system-ui,sans-serif;color:#e8f0f8;'
     + 'overflow:hidden;min-width:160px;min-height:96px;max-width:min(480px,78vw);max-height:min(280px,40vh);box-sizing:border-box}'
     + '#tourDash.carOn .carplay{display:flex}'
-    + '#tourDash .carplay.placed{position:fixed;left:0;bottom:auto;transform:none;z-index:37}'
+    + '#tourDash .carplay.placed{position:fixed;left:0;right:auto;top:0;bottom:auto;transform:none;z-index:37}'
     + '#tourDash .carplay .cpEyebrow{font-size:9px;font-weight:700;letter-spacing:.08em;color:#7a92a8;text-transform:uppercase;cursor:grab;user-select:none;touch-action:none;display:flex;justify-content:space-between;gap:6px}'
     + '#tourDash .carplay .cpEyebrow:active{cursor:grabbing}'
     + '#tourDash .carplay .cpReset{appearance:none;background:transparent;border:0;padding:0;margin:0;color:#8ab0c8;font:700 9px Overpass,system-ui,sans-serif;'
@@ -480,41 +518,44 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const arcP = (cx, cy, r, f0, f1) => { const A = (f) => (135 + f * 270) * Math.PI / 180, p0 = [cx + Math.cos(A(f0)) * r, cy + Math.sin(A(f0)) * r], p1 = [cx + Math.cos(A(f1)) * r, cy + Math.sin(A(f1)) * r]; return 'M' + p0[0].toFixed(1) + ',' + p0[1].toFixed(1) + ' A' + r + ',' + r + ' 0 ' + ((f1 - f0) * 270 > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(1) + ',' + p1[1].toFixed(1); };
   function carDashSvg(style) {
     const t = CAR_THEMES[style] || CAR_THEMES.sedan;
-    let g = '<svg class="dashSvg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMax slice">'
+    /* "meet" so nothing is ever cropped (wide laptops lost the gauge tops and the speed-limit sign); the dash
+       surface is drawn past x 0..1000 so side margins on wide screens still show dash */
+    let hood = '#4a525c'; try { hood = '#' + (S.carColor >>> 0).toString(16).padStart(6, '0'); } catch (e) { /* tour state not ready */ }
+    let g = '<svg class="dashSvg" viewBox="0 60 1000 380" preserveAspectRatio="xMidYMax meet">'
       + '<defs><linearGradient id="dashTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1e24"/><stop offset="1" stop-color="#0c0e12"/></linearGradient>'
-      + '<linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2620"/><stop offset="1" stop-color="#1a1612"/></linearGradient></defs>'
-      + '<path d="M0,0 L120,96 L92,340 H0 Z" fill="#12151a"/><path d="M1000,0 L930,100 L948,340 H1000 Z" fill="#12151a"/>'
+      + '<linearGradient id="hoodSh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient><linearGradient id="leather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2620"/><stop offset="1" stop-color="#1a1612"/></linearGradient></defs>'
+      + '<path d="M40,124 Q500,10 960,124 Z" fill="' + hood + '"/><path d="M40,124 Q500,10 960,124 Z" fill="url(#hoodSh)"/><path d="M150,112 Q500,30 850,112" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="3"/><path d="M-900,0 L120,96 L92,440 H-900 Z" fill="#12151a"/><path d="M1900,0 L930,100 L948,440 H1900 Z" fill="#12151a"/>'
       + '<path d="M95,95 Q500,48 905,95" fill="none" stroke="#2a3138" stroke-width="10"/>'
-      + '<path d="M0,118 Q500,60 1000,118 L1000,340 L0,340 Z" fill="url(#dashTop)"/>'
+      + '<path d="M-900,150 L0,118 Q500,60 1000,118 L1900,150 L1900,440 L-900,440 Z" fill="url(#dashTop)"/>'
       + '<path d="M80,126 Q500,78 920,126" fill="none" stroke="' + t.ring + '" stroke-opacity=".55" stroke-width="2"/>'
-      + '<rect x="170" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/><rect x="730" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/>';
+      + '<rect x="40" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/><rect x="730" y="140" width="100" height="12" rx="3" fill="#15191e" stroke="#2a3138"/>';
     if (t.lay === 'digital') {
-      g += '<g transform="translate(120,17.4) scale(.72)">' + '<g class="dLeft"><rect x="148" y="184" width="204" height="120" rx="16" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+      g += '<g transform="translate(-10,17.4) scale(.72)">' + '<g class="dLeft"><rect x="148" y="184" width="204" height="120" rx="16" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
         + '<text x="250" y="208" fill="' + t.acc + '" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">RPM ×1000</text>'
         + '<text id="dRpmTxt" x="250" y="244" fill="#fff" font-size="30" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0.8</text>'
         + '<rect x="170" y="262" width="160" height="14" rx="7" fill="#1a222c"/><rect id="dRpmBar" x="170" y="262" width="0" height="14" rx="7" fill="' + t.rp + '"/>'
         + '<text x="250" y="294" fill="#7a8a9a" font-size="10" text-anchor="middle">ECO · ' + t.badge + '</text></g>'
-        + '</g>' + '<g transform="translate(-77.2,17.4) scale(.72)">'
+        + '</g>' + '<g transform="translate(-207.2,17.4) scale(.72)">'
         + '<rect x="652" y="174" width="208" height="134" rx="18" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
         + '<path id="dSpdArc" d="' + arcP(760, 250, 58, 0, 1) + '" fill="none" stroke="#1a222c" stroke-width="7" stroke-linecap="round"/>'
         + '<text x="760" y="206" fill="' + t.acc + '" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="2">DRIVE</text>'
         + '<text id="dSpd" x="760" y="266" fill="#fff" font-size="50" font-weight="800" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
         + '<text x="760" y="292" fill="#8a96a3" font-size="11" text-anchor="middle">MPH</text>' + '</g>';
     } else if (t.lay === 'sport') {
-      g += '<g transform="translate(120,17.4) scale(.72)">' + '<g class="dLeft"><circle cx="250" cy="250" r="66" fill="' + t.face + '" stroke="#3a3f46" stroke-width="4"/>' + ticks(250, 250, 60, 160, 10, 135, 405, (v) => (v % 40 ? '' : v))
+      g += '<g transform="translate(-10,17.4) scale(.72)">' + '<g class="dLeft"><circle cx="250" cy="250" r="66" fill="' + t.face + '" stroke="#3a3f46" stroke-width="4"/>' + ticks(250, 250, 60, 160, 10, 135, 405, (v) => (v % 40 ? '' : v))
         + ndl('dNeedle', 250, 250, 52, 160, '#f2f2f2', 3) + '<circle cx="250" cy="250" r="6" fill="#f2f2f2"/>'
         + '<text x="250" y="304" fill="#8a96a3" font-size="10" text-anchor="middle">MPH</text></g>'
-        + '</g>' + '<g transform="translate(-77.2,17.4) scale(.72)">'
+        + '</g>' + '<g transform="translate(-207.2,17.4) scale(.72)">'
         + '<circle cx="760" cy="244" r="88" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="5"/>'
         + '<path d="' + arcP(760, 244, 80, 6.5 / 8, 1) + '" fill="none" stroke="#e03a2f" stroke-width="7"/>' + ticks(760, 244, 82, 8, 1, 135, 405, (v) => v)
         + ndl('dRpm', 760, 244, 74, 8, t.nd, 4) + '<circle cx="760" cy="244" r="9" fill="' + t.nd + '"/>'
         + '<text id="dSpd" x="760" y="296" fill="#fff" font-size="28" font-weight="800" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
         + '<text x="760" y="314" fill="#8a96a3" font-size="9" text-anchor="middle">MPH · RPM ×1000</text>' + '</g>';
     } else {
-      g += '<g transform="translate(120,17.4) scale(.72)">' + '<g class="dLeft"><circle cx="250" cy="248" r="70" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
+      g += '<g transform="translate(-10,17.4) scale(.72)">' + '<g class="dLeft"><circle cx="250" cy="248" r="70" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(250, 248, 64, 8, 1, 135, 405, (v) => v)
         + ndl('dRpm', 250, 248, 52, 8, t.rp, 3.5)
         + '<text x="250" y="308" fill="#8a96a3" font-size="10" text-anchor="middle">RPM ×1000</text></g>'
-        + '</g>' + '<g transform="translate(-77.2,17.4) scale(.72)">'
+        + '</g>' + '<g transform="translate(-207.2,17.4) scale(.72)">'
         + '<circle cx="760" cy="248" r="80" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="4"/>' + ticks(760, 248, 74, 140, 10, 135, 405, (v) => v)
         + ndl('dNeedle', 760, 248, 64, 140, t.nd, 4) + '<circle cx="760" cy="248" r="8" fill="' + t.nd + '"/>'
         + '<text id="dSpd" x="760" y="300" fill="#fff" font-size="24" font-weight="700" text-anchor="middle" font-family="Overpass Mono,monospace">0</text>'
@@ -523,27 +564,38 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         for (const [cy, lab, f] of [[172, 'FUEL', 0.72], [222, 'TEMP', 0.48]]) {
           const A = (135 + f * 270) * Math.PI / 180;
           /* fuel/temp sit between the tach and the wheel rim so the left of the dash stays free for the music player */
-          g += '<g class="dLeft"><circle cx="222" cy="' + cy + '" r="22" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
-            + '<line x1="222" y1="' + cy + '" x2="' + (222 + Math.cos(A) * 15).toFixed(1) + '" y2="' + (cy + Math.sin(A) * 15).toFixed(1) + '" stroke="' + t.nd + '" stroke-width="2.5" stroke-linecap="round"/>'
-            + '<text x="222" y="' + (cy + 15) + '" fill="#9aa3ab" font-size="8" text-anchor="middle">' + lab + '</text></g>';
+          g += '<g class="dLeft"><circle cx="92" cy="' + cy + '" r="22" fill="' + t.face + '" stroke="' + t.ring + '" stroke-width="3"/>'
+            + '<line x1="92" y1="' + cy + '" x2="' + (92 + Math.cos(A) * 15).toFixed(1) + '" y2="' + (cy + Math.sin(A) * 15).toFixed(1) + '" stroke="' + t.nd + '" stroke-width="2.5" stroke-linecap="round"/>'
+            + '<text x="92" y="' + (cy + 15) + '" fill="#9aa3ab" font-size="8" text-anchor="middle">' + lab + '</text></g>';
         }
         g += '<rect x="530" y="132" width="40" height="18" rx="4" fill="#1d1a10" stroke="#e8c43a"/><text x="550" y="145" fill="#e8c43a" font-size="10" font-weight="800" text-anchor="middle">4WD</text>';
       }
     }
     /* instrument-cluster hood over the gauges (behind the wheel, driver side) and the centre stack to its right */
-    g = g.replace('<g class="dLeft">', '<path d="M196,138 Q385,96 574,138 L574,150 Q385,112 196,150 Z" fill="#090b0e"/><g class="dLeft">');
-    g += '<rect x="622" y="150" width="200" height="118" rx="12" fill="#07090c" stroke="#2a3138" stroke-width="3"/>'
-      + '<rect x="632" y="160" width="180" height="98" rx="7" fill="#0d1620"/>'
-      + '<path d="M650,236 L700,196 L742,214 L794,176" fill="none" stroke="' + t.acc + '" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>'
-      + '<circle cx="794" cy="176" r="6" fill="' + t.acc + '"/><text x="644" y="176" fill="#8a96a3" font-size="10">NAV</text>'
+    g = g.replace('<g class="dLeft">', '<path d="M66,138 Q255,96 444,138 L444,150 Q255,112 66,150 Z" fill="#090b0e"/><g class="dLeft">');
+    const vent = (cx, cy, r) => '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#0a0c0f" stroke="#2f353d" stroke-width="3"/>'
+      + [-0.5, -0.17, 0.17, 0.5].map((k) => '<line x1="' + (cx - r * 0.78) + '" x2="' + (cx + r * 0.78) + '" y1="' + (cy + k * r) + '" y2="' + (cy + k * r) + '" stroke="#262b32" stroke-width="2.4"/>').join('');
+    /* passenger side: recessed panel the media player docks into (tour-music placeDashOverlay), round vents like a real dash */
+    g += '<path d="M836,146 Q920,138 1000,150 L1000,300 L836,300 Z" fill="#0f1216"/>'
+      + '<rect id="dMediaSlot" x="842" y="152" width="150" height="144" rx="10" fill="#0a0c0f" stroke="#232830" stroke-width="2"/>'
+      + vent(500, 200, 20) + vent(680, 312, 15) + vent(764, 312, 15)
+      + [704, 716, 728, 740].map((x) => '<rect class="led" x="' + x + '" y="318" width="8" height="4" rx="1.5" fill="#7a1f1f"/>').join('')
+      + '<rect id="dNavScr" x="612" y="142" width="220" height="134" rx="14" fill="#050608" stroke="#2a3138" stroke-width="3"/>'
+      + '<rect class="gl" x="632" y="160" width="180" height="98" rx="7" fill="#0d1620"/>'
+      + '<path d="M650,240 L690,204 L728,220 L756,186" fill="none" stroke="' + t.acc + '" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>'
+      + '<circle cx="756" cy="186" r="6" fill="' + t.acc + '"/><text x="644" y="176" fill="#8a96a3" font-size="10">NAV</text>'
       + '<rect x="660" y="282" width="124" height="14" rx="4" fill="#15191e" stroke="#2a3138"/><polygon points="722,284 728,294 716,294" fill="#d2453b"/>';
-    return g + '<rect x="868" y="188" width="118" height="112" rx="12" fill="#fff" stroke="#111" stroke-width="4"/>'
-      + '<text x="927" y="214" fill="#111" font-size="11" font-weight="700" text-anchor="middle">SPEED</text>'
-      + '<text x="927" y="230" fill="#111" font-size="11" text-anchor="middle" font-weight="700">LIMIT</text>'
-      + '<text id="dLim" x="927" y="274" fill="#111" font-size="40" font-weight="800" text-anchor="middle">—</text>'
-      + '<g id="dWheel" transform="translate(385,372)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
+    return g + '<rect x="10" y="156" width="44" height="56" rx="5" fill="#fff" stroke="#111" stroke-width="2"/>'
+      + '<text x="32" y="168" fill="#111" font-size="7" font-weight="700" text-anchor="middle">SPEED</text>'
+      + '<text x="32" y="176" fill="#111" font-size="7" text-anchor="middle" font-weight="700">LIMIT</text>'
+      + '<text id="dLim" x="32" y="203" fill="#111" font-size="18" font-weight="800" text-anchor="middle">—</text>'
+      + '<rect x="-900" y="330" width="2800" height="110" fill="#171a20"/><path d="M70,440 Q255,392 440,440 Z" fill="#08090c"/>'
+      + '<rect x="241" y="372" width="28" height="68" fill="#15181d"/>'
+      + '<g id="dWheel" transform="translate(255,318) scale(.7)"><circle r="122" fill="none" stroke="url(#leather)" stroke-width="26"/><circle r="122" fill="none" stroke="#3a322c" stroke-width="4"/>'
       + '<rect x="-122" y="-11" width="244" height="22" rx="10" fill="#1b1f24"/><rect x="-13" y="-11" width="26" height="120" fill="#1b1f24"/>'
-      + '<circle r="34" fill="#15191d" stroke="' + t.ring + '" stroke-width="3"/><text y="5" fill="' + t.acc + '" font-size="11" text-anchor="middle" font-weight="700">' + t.badge + '</text></g>'
+      + '<rect class="led" x="-80" y="-4" width="12" height="7" rx="2" fill="#7a1f1f"/><rect class="led" x="68" y="-4" width="12" height="7" rx="2" fill="#7a1f1f"/>'
+      + '<circle id="dHorn" r="34" fill="#15191d" stroke="' + t.ring + '" stroke-width="3" style="pointer-events:all;cursor:pointer"><title>Horn (tap the wheel hub, or press N)</title></circle><text y="5" fill="' + t.acc + '" font-size="11" text-anchor="middle" font-weight="700">' + t.badge + '</text>'
+      + '</g>'
       + '</svg>';
   }
   /* windshield seen from the driver's seat (US left-hand drive): thick driver-side A-pillar, thinner passenger one, roof header, sun visor, mirror, tinted glass */
@@ -687,6 +739,13 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     else el.style.width = '';
     if (prefs.cpH) el.style.height = prefs.cpH + 'px';
     else el.style.height = '';
+    /* default home of the Now-on card: inside the nav tablet on the centre stack */
+    const nv = prefs.cpX == null && dash.querySelector('#dNavScr'), nb = nv && nv.getBoundingClientRect();
+    if (nb && nb.width > 120 && nb.height > 70) {
+      el.classList.add('placed'); el.style.transform = 'none'; el.style.bottom = 'auto';
+      el.style.left = Math.round(nb.left + 4) + 'px'; el.style.top = Math.round(nb.top + 4) + 'px';
+      el.style.width = Math.round(nb.width - 8) + 'px'; el.style.height = Math.round(nb.height - 8) + 'px';
+    }
   }
   function bindCarplayChrome() {
     const el = dash.querySelector('#dashCarplay');
@@ -835,7 +894,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         else dEta.textContent = 'ETA ' + Math.round(et / 60) + ' min';
       }
       const steer = Math.abs(S.v) > 0.5 ? Math.atan(2.7 * S.yawRate / S.v) : 0;
-      const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(385,372) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
+      const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(255,318) scale(.7) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
       const now = performance.now();
       if (now - _streetT > 280) {
         _streetT = now;
@@ -873,6 +932,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (e.code === 'KeyH' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setHudHidden(!S.hudHid); e.preventDefault(); return;
     }
+    if (e.code === 'KeyN' && S.kind === 'car' && !e.ctrlKey && !e.metaKey && !e.altKey) { horn(); e.preventDefault(); return; }
     if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       S.soundOn = !S.soundOn; audio.setMuted(!S.soundOn); persistVeh(); renderHud(); e.preventDefault(); return;
     }
@@ -883,7 +943,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const key = (...c) => c.some((k) => S.keys[k]);
 
   function persistVeh() {
-    prefs.carColor = S.carColor; prefs.carStyle = S.carStyle; prefs.planeColor = S.planeColor; prefs.planeAccent = S.planeAccent; prefs.planeStyle = S.planeStyle;
+    prefs.carColor = S.carColor; prefs.carStyle = S.carStyle; prefs.planeColor = S.planeColor; prefs.planeAccent = S.planeAccent; prefs.planeStyle = S.planeStyle; prefs.jetModel = S.jetModel;
     prefs.soundOn = S.soundOn; prefs.soundVol = S.soundVol;
     prefs.radioOn = S.radioOn; prefs.musicOn = S.musicOn;
     savePrefs(prefs);
@@ -944,7 +1004,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const heli = S.planeStyle === 'heli' && typeof makeHeli === 'function';
       const mil = /^(fighter|c130)$/.test(S.planeStyle) && typeof makeMil === 'function';
       const acc = S.planeAccent >= 0 ? S.planeAccent : null;
-      S.obj = jet ? makeJet(S.planeColor, acc) : heli ? makeHeli(S.planeColor, acc) : mil ? makeMil(S.planeStyle, S.planeColor, acc) : makePlane(S.planeColor, acc);
+      S.obj = jet ? makeJet(S.planeColor, acc, S.jetModel) : heli ? makeHeli(S.planeColor, acc) : mil ? makeMil(S.planeStyle, S.planeColor, acc) : makePlane(S.planeColor, acc);
       S.acClass = (jet || mil) ? 'jet' : 'prop';
       S.obj.scale.setScalar(jet ? 0.55 : 1);
       S._gearK = null; S._pwr = null; animGear(gearWanted(), 1e3);
@@ -987,7 +1047,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       + '<div class="row" style="margin-top:6px">' + speeds
       + (S.kind === 'plane' && S.mode === 'tour' ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">Land at</span><select data-land="1" style="background:#1b232c;color:#dbe6f0;border:1px solid #34404c;border-radius:7px;padding:4px">' + aptList().map((a) => '<option value="' + a.code + '"' + (a.code === S.landApt ? ' selected' : '') + '>' + a.code + '</option>').join('') + '</select><button data-landnow="1">Land now</button>' : '')
       + (S.mode === 'free' ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">' + (S.kind === 'car' ? 'W/S throttle · A/D steer' : 'W/S pitch · A/D bank · Q/E yaw · Shift/X throttle') + '</span>' : '') + '</div>'
-      + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span style="color:#8a96a3">' + (S.kind === 'car' ? 'Vehicle' : 'Aircraft') + '</span>' + styles + '<span style="color:#8a96a3;margin-left:4px">' + (S.kind === 'car' ? 'Color' : 'Main') + '</span>' + cols + accs
+      + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span style="color:#8a96a3">' + (S.kind === 'car' ? 'Vehicle</span>' + styles : 'Aircraft</span><b style="align-self:center;margin:0 4px">' + acName() + '</b>') + '<span style="color:#8a96a3;margin-left:4px">' + (S.kind === 'car' ? 'Color' : 'Main') + '</span>' + cols + accs
       + '<span class="snd"><button type="button" class="mute' + (S.soundOn ? '' : ' on') + '" data-mute="1" title="Mute engine sound (M)">' + (S.soundOn ? 'Sound' : 'Muted') + '</button>'
       + (S.kind === 'plane' ? '<button type="button" class="' + (S.radioOn ? 'on' : '') + '" data-radio="1" title="ATC radio chatter">Radio</button>' : '')
       + '<button type="button" class="' + (S.musicOn ? 'on' : '') + '" data-music="1" title="Shuffle music · ' + music.trackCount + ' songs">Music</button>'
@@ -1239,8 +1299,13 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
   }
   function aptByCode(code) { const q = aptList().find((a) => a.code === code); return q ? { q, d: 0 } : null; }
-  function nearestAptTo(x, z) {
-    const list = aptList();
+  function curNeed() { return S.kind !== 'plane' || S.planeStyle === 'heli' ? 0 : (RWY_NEED[S.planeStyle === 'jet' ? S.jetModel : S.planeStyle] || 0) * 0.97; }
+  function rwOk(q, need) {
+    if (!need || !q || !q.rws || !q.rws.length) return true;
+    return Math.max(...q.rws.map((r) => Math.hypot(r.p[r.p.length - 2] - r.p[0], r.p[r.p.length - 1] - r.p[1]))) >= need;
+  }
+  function nearestAptTo(x, z, need = curNeed()) {
+    const list = aptList().filter((q) => rwOk(q, need));
     if (!list.length) return null;
     return list.map((q) => ({ q, d: Math.hypot(q.x - x, q.z - z) })).sort((a, b) => a.d - b.d)[0];
   }
@@ -1309,7 +1374,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         note('Houston road network is still loading — wait a few seconds, then tap Start tour again.');
         S.mode = null; clearObj(); return;
       }
-      let a = nearestCw(T.carriageways, cx, cz, 18000, true)
+      /* start on the street the user is actually on: preferring major roads first snapped every trip within 18 km
+         onto the nearest FM road / freeway (e.g. FM 1464 from a west-side home) */
+      let a = nearestCw(T.carriageways, cx, cz, 450, false)
+        || nearestCw(T.carriageways, cx, cz, 18000, true)
         || nearestCw(T.carriageways, cx, cz, 25000, false)
         || nearestCw(T.carriageways, 60, 60, 30000, true);
       if (!a) {
@@ -1350,19 +1418,27 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (mode === 'tour') {
         const depSel = opts.dep != null ? opts.dep : (($('tourDep') || {}).value || '');
         const arrSel = opts.arr != null ? opts.arr : (($('tourArr') || {}).value || '');
-        const apStart = (depSel && aptByCode(depSel)) || nearestAptTo(cx, cz) || nearestAptTo(dest.x, dest.z);
-        const apLand = arrSel === '=dep' ? apStart : ((arrSel && aptByCode(arrSel)) || nearestAptTo(dest.x, dest.z) || apStart);
+        const need = curNeed(), shortRw = (c) => ' (' + c + "'s runway is too short for the " + acName() + ')';
+        let depPick = depSel ? aptByCode(depSel) : null; S._why = '';
+        if (depPick && !rwOk(depPick.q, need)) { S._why += shortRw(depPick.q.code); depPick = null; }
+        const apStart = depPick || nearestAptTo(cx, cz) || nearestAptTo(dest.x, dest.z) || nearestAptTo(cx, cz, 0);
+        let arrPick = arrSel === '=dep' ? apStart : (arrSel ? aptByCode(arrSel) : null);
+        if (arrPick && arrPick !== apStart && !rwOk(arrPick.q, need)) { S._why += shortRw(arrPick.q.code); arrPick = null; }
+        const apLand = arrPick || nearestAptTo(dest.x, dest.z) || apStart;
         if (!apStart) { note('No airports loaded yet — try again in a moment.'); S.mode = null; clearObj(); return; }
         const ap = apStart;
         /* takeoff from the threshold on the far side from the destination, on a runway inside the real OSM airfield */
         const away = Math.atan2(ap.q.x - dest.x, ap.q.z - dest.z);
         const rwT = pickRunway(ap.q.code, ap.q.x + Math.sin(away) * 2e5, ap.q.z + Math.cos(away) * 2e5);
-        if (rwT) {
+        if (S.planeStyle === 'heli') {
+          /* helicopters don't use runways: lift straight up from where you are and fly point to point */
+          S.p.set(cx, 1.4, cz); S.hd = Math.atan2(dest.x - cx, dest.z - cz); S.rwLen = 0;
+        } else if (rwT) {
           S.p.set(rwT.tx, 1.4, rwT.tz); S.hd = rwT.hd; S.rwLen = rwT.len;
         } else { S.p.set(ap.q.x, 1.4, ap.q.z); S.hd = Math.atan2(dest.x - ap.q.x, dest.z - ap.q.z); S.rwLen = 1500; }
         S.apt = ap.q.code; S.homeApt = ap.q.code;
         S.landApt = (apLand && apLand.q.code) || ap.q.code;
-        S.phase = 'roll'; S.rollS = 0; clearGround();
+        S.phase = S.planeStyle === 'heli' ? 'heliLift' : 'roll'; S.rollS = 0; clearGround();
         { const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane(); }
         S.trip0 = Math.hypot(dest.x - S.p.x, dest.z - S.p.z);
         S.flightT0 = performance.now();
@@ -1381,7 +1457,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     renderHud(); hud.classList.add('on'); hud.classList.remove('hid'); hudPeek.classList.remove('on'); applyHudPos();
     pad.classList.toggle('on', mode === 'free' && matchMedia('(pointer:coarse)').matches);
     if (mode === 'tour' && kind === 'plane') {
-      note('Departing ' + S.apt + ' → ' + dest.n + ' · land at ' + S.landApt + '. ' + destBlurb(dest));
+      note(S.planeStyle === 'heli' ? acName() + ' lifting off from your location → ' + dest.n + '. ' + destBlurb(dest)
+        : acName() + ' departing ' + S.apt + ' → ' + dest.n + ' · land at ' + S.landApt + (S._why || '') + '. ' + destBlurb(dest));
     } else if (mode === 'tour') {
       note('Driving to ' + dest.n + ' · ' + destBlurb(dest));
     } else {
@@ -1568,9 +1645,27 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     return false;
   }
+  /* car horn: two detuned sawtooth tones through a low-pass, like a dual-note car horn (Web Audio, no files) */
+  let hornCtx = null;
+  /* tap the steering-wheel hub to honk (like a real car) */
+  document.addEventListener('pointerdown', (e) => { if (S.kind === 'car' && e.target && e.target.closest && e.target.closest('#dHorn')) { horn(); e.preventDefault(); } });
+  function horn() {
+    if (S.kind !== 'car' || S.soundOn === false) return;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      const ac = hornCtx || (hornCtx = new AC()); if (ac.state === 'suspended') ac.resume();
+      const t = ac.currentTime, g = ac.createGain(), lp = ac.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1800;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.22, t + 0.02); g.gain.setValueAtTime(0.22, t + 0.42); g.gain.linearRampToValueAtTime(0, t + 0.5);
+      for (const f of [415, 523]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(t); o.stop(t + 0.52); }
+      lp.connect(g); g.connect(ac.destination);
+    } catch (e) { /* ignore */ }
+  }
   function laneStep(T, P, o, dt, v0, gap, lv) {
     const ln = Math.max(1, o.ln || 1), lw = o.lw || 3.5;
     S._ln = ln;
+    /* honk once when a slower car cuts in close ahead */
+    if ((S._hornT = (S._hornT || 0) - dt) <= 0 && gap < 9 && S.v > 7 && lv < S.v * 0.6) { horn(); S._hornT = 15; }
     if (S.lane == null) { S.lane = ln >= 3 ? 1 : 0; S.latCur = (ln - 1 - S.lane) * lw; S._lcT = 3; S._laneManT = 0; }
     if (S.lane > ln - 1) S.lane = ln - 1;
     S._lcT = (S._lcT || 0) - dt; S._laneManT = Math.max(0, (S._laneManT || 0) - dt);
@@ -1710,6 +1805,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   }
   function startLanding(opts) {
     if (S.kind !== 'plane' || S.mode !== 'tour' || /toFaf|final|rollout|taxi|parked/.test(S.phase)) return false;
+    if (S.planeStyle === 'heli') { if (/^heli(Lift|Cruise)$/.test(S.phase)) S.phase = 'heliCruise', S.heliLandNow = true; return true; }
     const force = !!(opts && opts.force);
     /* Respect the Land-at dropdown; only auto-pick nearest-to-dest when none chosen */
     if (!S.landApt && S.dest) {
@@ -1838,7 +1934,9 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           S.rollT = (S.rollT || 0) + dt;
           S.pitch += ((S.phase === 'rollout' && S.rollT < 2.5 ? 0.055 : 0.0) - S.pitch) * Math.min(1, dt * 1.6);
           S.roll += (0 - S.roll) * Math.min(1, dt * 3);
-          S._needDecel = S.v * S.v / (2 * Math.max(30, rw.len * 0.95 - along));
+          S._needDecel = S.v * S.v / (2 * Math.max(5, rw.len * 0.92 - along));
+          /* never roll off the end: hard braking near the end, full stop before the last 25 m */
+          if (S.phase === 'rollout' && along > rw.len - 25) S.v = 0;
         } else {
           S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4);
         }
@@ -1859,6 +1957,36 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           note('Landed at ' + (S.rw ? S.rw.code : S.landApt) + ' (near ' + (S.dest ? S.dest.n : 'destination') + ')'
             + (S.rw ? ', runway ' + S.rw.name : '') + '. Pick another place to fly.');
         }
+      } else if (/^heli(Lift|Cruise|Land|Down|Parked)$/.test(S.phase)) {
+        /* helicopter: vertical lift-off, direct ~115 kt cruise at ~1000 ft, slow approach, vertical touchdown next to the destination */
+        const wrapH = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+        const ease = (cur, tgt, r) => cur + Math.max(-r * dt, Math.min(r * dt, tgt - cur));
+        const padD = Math.max(0, dist - 45);
+        let vy = 0, wantVH = 0, turn = 1;
+        if (S.phase === 'heliLift') {
+          vy = 5; wantVH = S.p.y > 25 ? 12 : 0; turn = S.p.y > 25 ? 1 : 0;
+          if (S.p.y > 70) S.phase = 'heliCruise';
+        } else if (S.phase === 'heliCruise') {
+          vy = Math.max(-6, Math.min(6, (300 - S.p.y) * 0.25)); wantVH = 59;
+          if (padD < 1400) S.phase = 'heliLand';
+        } else if (S.phase === 'heliLand') {
+          /* glide down toward ~40 m (never climb on approach) and keep at least walking pace so it actually reaches the pad */
+          const tgtY = Math.min(S.p.y, Math.max(40, padD * 0.18));
+          vy = Math.max(-6, Math.min(0, (tgtY - S.p.y) * 0.3)); wantVH = padD < 8 ? 0 : Math.min(59, 2.5 + padD * 0.08);
+          if (padD < 8 && S.v < 4) S.phase = 'heliDown';
+        } else if (S.phase === 'heliDown') {
+          vy = -Math.max(0.6, Math.min(4, (S.p.y - 1.4) * 0.35)); wantVH = 0; turn = 0;
+          if (S.p.y <= 1.5) {
+            S.phase = 'heliParked'; S.p.y = 1.4;
+            note('Landed next to ' + (S.dest ? S.dest.n : 'the destination') + '. Pick another place to fly.');
+          }
+        } else { wantVH = 0; turn = 0; S.p.y = 1.4; }
+        S.v = ease(S.v, wantVH, S.phase === 'heliLand' ? 2.2 : 3);
+        const dH = wrapH(brg - S.hd), rate = turn ? Math.max(-0.35, Math.min(0.35, dH * 0.9)) : 0;
+        S.hd += rate * dt;
+        S.vy = vy; S.p.y = Math.max(1.4, S.p.y + vy * dt);
+        S.pitch += ((S.v > 1 ? -Math.min(0.12, (wantVH - S.v) * 0.01 + S.v * 0.0012) : 0) - S.pitch) * Math.min(1, dt * 1.5);
+        S.roll += (Math.atan(-rate * S.v / G) * 0.8 - S.roll) * Math.min(1, dt * 1.5);
       } else {
         const agl = S.p.y;
         if (S.phase === 'climb') { wantV = climbKt * KT; wantY = cruiseAlt * FT; if (agl > 150) wantHd = brg; if (agl > (cruiseAlt - 100) * FT) S.phase = 'cruise'; }
@@ -1991,6 +2119,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (!/toFaf|final|rollout|parked/.test(S.phase)) S.remain = dist; else if (S.phase !== 'toFaf' && S.phase !== 'final') S.remain = 0;
       S.info = S.phase === 'roll' ? 'Takeoff roll · ' + S.apt : S.phase === 'climb' ? 'Climbing' : S.phase === 'cruise' ? 'Cruise → ' + D.n : S.phase === 'orbit' ? 'Arriving · ' + D.n
         : S.phase === 'toFaf' ? 'Approach · ' + S.rw.code : S.phase === 'final' ? 'Final · ' + S.rw.code + ' RWY ' + S.rw.name : S.phase === 'rollout' ? 'Landing rollout' : S.phase === 'taxi' ? 'Taxiing to parking · ' + (S.rw ? S.rw.code : S.landApt) : 'Landed · ' + (S.rw ? S.rw.code : S.landApt);
+      if (/^heli/.test(S.phase)) S.info = S.phase === 'heliLift' ? 'Lifting off' : S.phase === 'heliCruise' ? 'Cruise → ' + D.n : S.phase === 'heliParked' ? 'Landed · ' + D.n : 'Landing · ' + D.n;
     } else {
       const rollIn = (key('KeyD', 'ArrowRight') ? 1 : 0) - (key('KeyA', 'ArrowLeft') ? 1 : 0);
       const pitchIn = (key('KeyS', 'ArrowDown') ? 1 : 0) - (key('KeyW', 'ArrowUp') ? 1 : 0);
@@ -2013,9 +2142,11 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       S.obj.position.copy(S.p); S.obj.position.y += groundClear(); S.obj.rotation.set(-S.pitch, S.hd, S.roll, 'YXZ');
       animGear(gearWanted(), dt);
       const prop = S.obj.userData && S.obj.userData.prop;
-      if (prop) prop.rotation.z += S.v * dt * 2.4;
+      if (prop) { if (S.planeStyle === 'heli') prop.rotation.x += dt * 40; else prop.rotation.z += S.v * dt * 2.4; }
       const rotor = S.obj.userData && S.obj.userData.rotor;
       if (rotor) rotor.rotation.y += dt * 32;
+      const rb = S.obj.userData.rotorBlur;
+      if (rb) { const ck = S.view === 'cockpit' || S.view === 'driver'; rb.disc.material.opacity = ck ? 0.2 : 0.12; rb.blade.opacity = ck ? 0.22 : 0.55; }
     }
   }
   /* every view can be dragged to look around and scrolled to zoom (driver/cockpit: zoom = field of view) */
@@ -2051,14 +2182,22 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (car) {
         camera.position.copy(L(0.38, 1.22, 0.22));
         look.copy(L(Math.sin(-ly) * 30 + 0.38, 1.12 + Math.sin(lp) * 30, Math.cos(ly) * 30 + 0.5));
-        /* the dashboard overlay is the cabin; hide the exterior so SUV/pickup/van hoods never block the road ahead */
-        if (ob) ob.visible = false;
+        /* the dashboard overlay is the cabin; hide the exterior so SUV/pickup/van hoods never block the road ahead,
+           but keep the headlight pools/spots so the road ahead is lit at night */
+        if (ob) { ob.visible = true; if (!ob.userData._shellOff) { for (const c of ob.children) c.visible = !!c.userData.lit; ob.userData._shellOff = true; } }
       } else if (S.acClass === 'jet') {
         /* Sit just forward of the nose so the fuselage doesn't clip the view; dash SVG frames the cockpit */
-        camera.position.copy(L(0, 0.9, 17.6));
-        look.copy(L(Math.sin(-ly) * 90, 0.7 + Math.sin(lp) * 90, 17.6 + Math.cos(ly) * 90));
+        const ud = ob.userData || {}, ckZ = ud.ckZ != null ? ud.ckZ : 17.6, ckY = ud.ckY != null ? ud.ckY : 0.9;
+        camera.position.copy(L(0, ckY, ckZ));
+        look.copy(L(Math.sin(-ly) * 90, ckY - 0.2 + Math.sin(lp) * 90, ckZ + Math.cos(ly) * 90));
         camera.up.set(0, 1, 0).applyQuaternion(ob.quaternion);
         if (ob) ob.visible = false;
+      } else if (S.planeStyle === 'heli') {
+        /* Bell 407 cockpit: pilot's eye under the canopy bubble (right seat), rotor overhead as a blur disc */
+        camera.position.copy(L(0.32, 1.5, 1.25));
+        look.copy(L(Math.sin(-ly) * 40 + 0.32, 1.3 + Math.sin(lp) * 40, 1.25 + Math.cos(ly) * 40));
+        camera.up.set(0, 1, 0).applyQuaternion(ob.quaternion);
+        if (ob) ob.visible = true;
       } else {
         /* Cessna cabin — eye height behind the windshield */
         camera.position.copy(L(0, 0.95, 2.05));
@@ -2070,7 +2209,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       near = 0.12;
     } else if (S.view === 'side' || S.view === 'wing') {
       if (ob) ob.visible = true;
-      const d = car ? 4.6 : 15;
+      const d = car ? 4.6 : ((ob && ob.userData.sideD) || 15);
       camera.position.copy(L(-d * Math.cos(yaw), car ? 1.4 : 2.4, d * Math.sin(yaw) + (car ? 0.6 : -2)));
       look.copy(L(0, car ? 0.9 : 0.6, car ? 2.5 : 8));
       near = 0.3;
@@ -2093,8 +2232,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   }
   function updateLights() {
     const nf = typeof window !== 'undefined' && window._nightF != null ? window._nightF : 0;
+    if (dash && dash.classList.contains('night') !== nf > 0.35) dash.classList.toggle('night', nf > 0.35);
     const ud = S.obj && S.obj.userData;
     if (!ud) return;
+    if (ud._shellOff && S.view !== 'driver') { for (const c of S.obj.children) c.visible = true; ud._shellOff = false; }
     if (S.kind === 'car' && ud.carLights) {
       const L = ud.carLights;
       const on = nf > 0.08;
@@ -2143,7 +2284,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (now - S.hudT > 250) {
       S.hudT = now;
       const t = hud.querySelector('#tourTitle');
-      if (t) t.textContent = (S.mode === 'tour' ? (S.kind === 'car' ? (S.leg === 'back' ? 'Driving back from ' : 'Car tour → ') : 'Plane tour → ') + S.dest.n : S.kind === 'car' ? 'Free drive' : 'Free flight') + (S.info ? ' · ' + S.info : '');
+      if (t) t.textContent = (S.mode === 'tour' ? (S.kind === 'car' ? (S.leg === 'back' ? 'Driving back from ' : 'Car tour → ') : acName() + ' → ') + S.dest.n : S.kind === 'car' ? 'Free drive' : 'Free flight · ' + acName()) + (S.info ? ' · ' + S.info : '');
     }
   }
   function planeEtaSec() {

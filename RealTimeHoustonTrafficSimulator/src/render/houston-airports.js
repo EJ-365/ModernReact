@@ -37,7 +37,7 @@ function mat(color, off) {
   return new THREE.MeshLambertMaterial({ color, polygonOffset: true, polygonOffsetFactor: -off, polygonOffsetUnits: -off * 2 });
 }
 
-export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data/houston/airports.json', planeTemplate = null, gaTemplate = null, liveryFor = null, nightMats = null }) {
+export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data/houston/airports.json', planeTemplate = null, planeTemplates = null, gaTemplate = null, liveryFor = null, nightMats = null }) {
   const root = new THREE.Group(); root.name = 'houston-airports'; parent.add(root);
   const X = (v) => (v - offset) * k + offset;
   const fields = [];
@@ -131,18 +131,35 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
       spots.push([px, pz, Math.atan2(hx, hz), f ? f.iata || '' : '']);
     }
     if (!spots.length) return 0;
-    const meshes = bakeFleet(planeTemplate, spots.length);
     const o = new THREE.Object3D(), col = new THREE.Color();
     const SC = 1.5;
-    spots.forEach(([x, z, hd, iata], i) => {
-      o.position.set(X(x), 3.1 * SC * k, X(z)); o.rotation.set(0, hd, 0); o.scale.setScalar(SC * k); o.updateMatrix();
-      for (const im of Object.values(meshes)) im.setMatrixAt(i, o.matrix);
+    /* mixed fleet: IAH gates with room get widebodies (777/787/A350/747/A380), the rest 737s and A320s */
+    const groups = {};
+    spots.forEach((sp, i) => {
+      let ty = '';
+      if (planeTemplates) {
+        const r2 = (Math.imul(i + 7, 2246822519) >>> 0) / 4294967296;
+        let room = 1e9; for (const q of spots) if (q !== sp) room = Math.min(room, Math.hypot(q[0] - sp[0], q[1] - sp[1]));
+        ty = sp[3] === 'IAH' && room >= 70 && r2 < 0.4 ? ['b777', 'b787', 'a350', 'b747', 'b787', 'b777', 'a380'][(r2 * 1000 | 0) % 7]
+          : sp[3] === 'HOU' ? (r2 < 0.85 ? 'b737' : 'a320') : (r2 < 0.55 ? 'b737' : 'a320');
+        if (!planeTemplates[ty]) ty = '';
+      }
+      (groups[ty] || (groups[ty] = [])).push(i);
+    });
+    for (const [ty, idx] of Object.entries(groups)) {
+    const tpl = ty ? planeTemplates[ty] : planeTemplate, gd = ((tpl.userData && tpl.userData.gearDrop) || 5.25) / 5.25;
+    const meshes = bakeFleet(tpl, idx.length);
+    idx.forEach((i, li) => {
+      const [x, z, hd, iata] = spots[i];
+      o.position.set(X(x), 3.1 * gd * SC * k, X(z)); o.rotation.set(0, hd, 0); o.scale.setScalar(SC * k); o.updateMatrix();
+      for (const im of Object.values(meshes)) im.setMatrixAt(li, o.matrix);
       const r = (Math.imul(i + 1, 2654435761) >>> 0) / 4294967296;
       const cs = iata === 'HOU' ? (r < 0.8 ? 'SWA' : r < 0.9 ? 'DAL' : 'AAL') : iata === 'IAH' ? (r < 0.62 ? 'UAL' : ['AAL', 'DAL', 'SWA', 'SKW', 'UAE', 'BAW', 'DLH', 'AFR', 'KLM', 'QTR', 'AMX', 'VIV', 'FDX', 'ACA'][(r * 1000 | 0) % 14]) : 'SKW';
       const lv = liveryFor ? liveryFor(cs, i) : [0xf4f5f7, 0x9aa2ab, 0x2b5ea8, 0x9aa2ab];
-      if (meshes.body) meshes.body.setColorAt(i, col.setHex(lv[0]));
-      if (meshes.fin) meshes.fin.setColorAt(i, col.setHex(lv[2]));
+      if (meshes.body) meshes.body.setColorAt(li, col.setHex(lv[0]));
+      if (meshes.fin) meshes.fin.setColorAt(li, col.setHex(lv[2]));
     });
+    }
     return spots.length + parkGA(d);
   }
   /** template group -> instanced meshes: 0x00ff00 parts = livery body, 0xff00ff = tail, the rest keep their own colours */

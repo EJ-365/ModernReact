@@ -153,7 +153,21 @@ function jetDash(c130) {
       + '<rect x="' + (x - 30) + '" y="75" width="60" height="16" rx="2" fill="#0a0c0f"/>' + tx(x, 87, 11, '#ffb347', '---', id, 700)).join('')
     + '<rect x="670" y="68" width="22" height="10" rx="2" fill="#1a5c34"/><rect x="670" y="81" width="22" height="10" rx="2" fill="#1a5c34"/>' + tx(681, 76, 6, '#d6ffe4', 'A/P', '', 700) + tx(681, 89, 6, '#d6ffe4', 'A/T', '', 700)
     + '<circle cx="60" cy="200" r="16" fill="#1b1f25" stroke="#3a4552"/>' + tx(60, 204, 8, '#e8a838', 'MSTR', '', 700) + '<circle cx="940" cy="200" r="16" fill="#1b1f25" stroke="#3a4552"/>' + tx(940, 204, 8, '#e8a838', 'WARN', '', 700)
-    + '<rect x="368" y="286" width="264" height="24" rx="6" fill="#0c1118" stroke="#2a3340"/>' + tx(500, 303, 12, '#ffcf3a', 'HDG 000°', 'dHdg', 700)
+    + '<rect x="452" y="250" width="96" height="22" rx="4" fill="#0c1118" stroke="#2a3340"/>' + tx(500, 266, 12, '#ffcf3a', 'HDG 000°', 'dHdg', 700)
+    /* glareshield annunciators either side of the MCP */
+    + [110, 710].map((x0) => [0, 1, 2, 3, 4, 5, 6, 7].map((i) => '<rect x="' + (x0 + 8 + i * 22) + '" y="' + (i % 2 ? 80 : 68) + '" width="16" height="9" rx="2" fill="' + ['#c0392b', '#e8a838', '#1f7a4d', '#2a3340'][(i + (x0 > 500 ? 1 : 0)) % 4] + '"/>').join('')).join('')
+    /* side consoles: knobs (captain) and backlit push-buttons (first officer) */
+    + [[34, 128], [70, 128], [34, 254], [70, 254]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="12" fill="#d9dde1" stroke="#6a727c" stroke-width="2"/><line x1="' + x + '" y1="' + y + '" x2="' + (x + 6) + '" y2="' + (y - 9) + '" stroke="#2a2f36" stroke-width="2"/>').join('')
+    + [0, 1, 2, 3].map((r) => [0, 1, 2, 3].map((c) => '<rect x="' + (912 + c * 19) + '" y="' + (116 + r * 16) + '" width="14" height="10" rx="2" fill="' + (r === 2 ? '#e8a838' : r === 3 ? '#1f9a6a' : '#4a525c') + '"/>').join('')).join('')
+    + [[930, 254], [966, 254]].map(([x, y]) => '<circle cx="' + x + '" cy="' + y + '" r="12" fill="#d9dde1" stroke="#6a727c" stroke-width="2"/>').join('')
+    /* centre pedestal with the two thrust levers between the seats */
+    + '<path d="M404,320 L428,280 H572 L596,320 Z" fill="#262b33" stroke="#11151b" stroke-width="2"/>'
+    + '<rect x="474" y="286" width="10" height="34" fill="#0b0e12"/><rect x="516" y="286" width="10" height="34" fill="#0b0e12"/>'
+    + '<rect x="464" y="290" width="30" height="11" rx="3" fill="#9aa2ab" stroke="#3a4048"/><rect x="506" y="290" width="30" height="11" rx="3" fill="#9aa2ab" stroke="#3a4048"/>'
+    + [436, 448, 552, 564].map((x) => '<rect x="' + x + '" y="306" width="8" height="5" rx="1" fill="#c0392b"/>').join('')
+    /* control yokes in front of each pilot */
+    + [190, 810].map((x) => '<path d="M' + (x - 48) + ',320 L' + (x - 48) + ',296 Q' + (x - 48) + ',284 ' + (x - 38) + ',284 L' + (x - 30) + ',284 L' + (x - 30) + ',302 L' + (x + 30) + ',302 L' + (x + 30) + ',284 L' + (x + 38) + ',284 Q' + (x + 48) + ',284 ' + (x + 48) + ',296 L' + (x + 48) + ',320 Z" fill="#2d3239" stroke="#4a525c" stroke-width="2"/>'
+      + '<rect x="' + (x - 16) + '" y="300" width="32" height="20" rx="4" fill="#3a4048" stroke="#555d66"/>').join('')
     + '</svg>'
     /* flight-deck windows: centre post, side-window frames and the overhead panel edge, drawn over the view */
     + '<svg class="jetGlass" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true">'
@@ -162,9 +176,9 @@ function jetDash(c130) {
     + '<path d="M0,0 H1600 V70 Q800,40 0,70 Z" fill="#1c2128"/>'
     + [120, 260, 400, 1200, 1340, 1480].map((x) => '<circle cx="' + x + '" cy="24" r="5" fill="#3a4250"/><rect x="' + (x + 14) + '" y="18" width="40" height="12" rx="3" fill="#262c35"/>').join('')
     + '<path d="M786,52 L814,52 L826,900 L774,900 Z" fill="#15191f"/><path d="M800,52 V900" stroke="#2a313b" stroke-width="2"/>'
-    + '<path d="M0,96 L250,64 L170,900 L0,900 Z" fill="#15191f" opacity=".96"/><path d="M250,64 L170,900" stroke="#2a313b" stroke-width="3"/>'
-    + '<path d="M1600,96 L1350,64 L1430,900 L1600,900 Z" fill="#15191f" opacity=".96"/><path d="M1350,64 L1430,900" stroke="#2a313b" stroke-width="3"/>'
-    + '<path d="M40,260 L150,250 L120,620 L30,640 Z" fill="#0b1824" opacity=".35"/><path d="M1560,260 L1450,250 L1480,620 L1570,640 Z" fill="#0b1824" opacity=".35"/>'
+    + '<path d="M0,96 L190,70 L110,900 L0,900 Z" fill="#15191f" opacity=".96"/><path d="M190,70 L110,900" stroke="#2a313b" stroke-width="3"/>'
+    + '<path d="M1600,96 L1410,70 L1490,900 L1600,900 Z" fill="#15191f" opacity=".96"/><path d="M1410,70 L1490,900" stroke="#2a313b" stroke-width="3"/>'
+    + ''
     + '<path d="M330,120 L520,90 L300,880 L240,880 Z" fill="#fff" opacity=".03"/><path d="M1080,90 L1250,120 L1290,880 L1240,880 Z" fill="#fff" opacity=".025"/>'
     + '</svg>';
 }
