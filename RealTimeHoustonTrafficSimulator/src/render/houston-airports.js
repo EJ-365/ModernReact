@@ -42,7 +42,7 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
   const X = (v) => (v - offset) * k + offset;
   const fields = [];
   const mats = {
-    grass: mat(0x8aa25e, 1), apron: mat(0xa9abad, 2), taxi: mat(0x44474b, 3), runway: mat(0x34373b, 4),
+    grass: mat(0x7d8c5a, 1), apron: mat(0xa9abad, 2), taxi: mat(0x44474b, 3), runway: mat(0x34373b, 4),
     yellow: mat(0xe2b52a, 5), white: mat(0xf2f2ee, 5), wall: new THREE.MeshLambertMaterial({ color: 0xc9ccd0 }),
     hangar: new THREE.MeshLambertMaterial({ color: 0x9aa0a6 }), glass: new THREE.MeshLambertMaterial({ color: 0x40556a }),
     roof: new THREE.MeshLambertMaterial({ color: 0xc4c7ca }), concrete: new THREE.MeshLambertMaterial({ color: 0xd9d5cc }),
@@ -514,13 +514,13 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
   }
   /* follow-the-greens lane drawn over the taxiways for the route in use (one unlit mesh, glows at night) */
   let lane = null;
-  const laneMat = new THREE.MeshBasicMaterial({ color: 0x4dff74, transparent: true, opacity: 0.92, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -14 });
+  const laneMat = new THREE.MeshBasicMaterial({ color: 0xf2c230, transparent: true, opacity: 0.95, /* real taxiway paint: yellow centreline, no green wash */ depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -14 });
   function clearTaxiLane() {
     if (!lane) return;
     root.remove(lane); lane.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); lane = null;
   }
   /* taxi route as a lit lane: a tinted strip the width of a taxiway, solid green centreline ("follow the greens") and yellow edge lines */
-  const laneBedMat = new THREE.MeshBasicMaterial({ color: 0x1f6b3a, transparent: true, opacity: 0.34, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
+  const laneBedMat = new THREE.MeshBasicMaterial({ color: 0x3a3d42, transparent: true, opacity: 0.0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -12 });
   const laneEdgeMat = new THREE.MeshBasicMaterial({ color: 0xffd23a, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -14 });
   function offsetLine(flat, d) {
     const out = [];

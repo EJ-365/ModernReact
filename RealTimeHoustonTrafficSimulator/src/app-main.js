@@ -3965,10 +3965,7 @@ function makeAirliner(finCol,liv,type){
   wsM.polygonOffset=true;wsM.polygonOffsetFactor=-3;wsM.polygonOffsetUnits=-6;
   const ws=add(noseShape(new THREE.SphereGeometry(R*1.02,24,4,Math.PI/2-0.95,1.9,Math.PI*0.29,Math.PI*0.1),R*1.02,boeing),wsM,0,nose.position.y,zF);ws.scale.copy(nose.scale);ws.renderOrder=2;
   /* window frame posts across the windscreen */
-  for(const a of [-0.62,-0.3,0,0.3,0.62]){const pst=add(new THREE.BoxGeometry(0.06*dK,0.42*dK,0.05*dK),white,Math.sin(a)*R*0.82,yc+0.62*R*Y,zF+Math.cos(a)*R*0.82*T.nose*0.72,-0.9,a,0);pst.renderOrder=3;}
-  const nz=T.nose/1.7;
-  add(new THREE.BoxGeometry(0.12*dK,0.5*dK,0.35*dK),white,0,yc+1.16*dK*Y,zF+3.3*dK*nz,-0.75);
-  add(new THREE.SphereGeometry(0.9*dK,12,8),new THREE.MeshLambertMaterial({color:0x8d939a}),0,yc-0.45*dK-droop*R*0.95*Y,zF+3.75*dK*nz).scale.set(boeing?0.75:1,boeing?0.7:0.9,0.7);
+  /* nose is one smooth shell: no separate radome ball or frame posts sticking out (they read as bumps) */
   add(new THREE.CylinderGeometry(R,0.7*dK,3.83*R,18),white,0,yc,zB-1.915*R,Math.PI/2).scale.z=Y;
   add(new THREE.CylinderGeometry(R*1.004,R*1.004,Lc*0.94,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB,0,yc,0,Math.PI/2).scale.z=Y;
   if(T.hump){
@@ -4008,7 +4005,11 @@ function makeAirliner(finCol,liv,type){
       const xr=R*Math.sqrt(1-ry*ry)+0.04*dK;
       for(let z=zF-4.5*dK;z>zB+1.5*dK;z-=sp)win(sd*xr,yc+ry*R*Y,z);
     }
-    if(T.hump)for(let z=zF-0.8*dK;z>zF-Lc*0.3;z-=sp)win(sd*0.55*R,yc+1.0*R,z);
+    /* 747 upper deck: each window sits on the hump's own surface (it tapers at both ends) and tilts with it */
+    if(T.hump){const hr=0.78*R,hz=zF-Lc*0.12,ha=Lc*0.2,th=1.15;
+      for(let z=zF-2.2*dK;z>zF-Lc*0.3;z-=sp){const u=(z-hz)/ha,f=Math.sqrt(Math.max(0,1-u*u));if(f<0.82)continue;
+        const x=sd*(hr*f*Math.sin(th)+0.03*dK),y=yc+0.42*R+hr*f*Math.cos(th),rz=sd*(Math.PI/2-th);
+        add(new THREE.BoxGeometry(0.12,0.5*wk,0.75*wk),winFrame,x,y,z,0,0,rz);add(new THREE.BoxGeometry(0.08,0.38*wk,0.52*wk),winGlass,x+Math.sign(x)*0.05,y+0.02,z,0,0,rz);}}
   }
   /* landing gear (toggled by flight phase); widebodies get tandem main wheels, 747/A380 extra body gear */
   const gear=new THREE.Group();

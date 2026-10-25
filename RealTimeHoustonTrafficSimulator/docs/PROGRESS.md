@@ -38,6 +38,13 @@ This log captures the work from the late **v10.8.x / v10.9** baseline through th
 
 
 
+## v10.92.0 — airliner nose, 747 upper-deck windows, fly-on pick, softer farmland
+- Airliner nose: removed the separate grey radome ball, windscreen frame posts and centre box that stuck out of the nose shell (read as bumps); the nose is one smooth shape with the dark windscreen band.
+- 747 upper deck: windows sit on the hump surface (skipped where it tapers) and tilt with it, so the row lines up instead of floating above the fuselage.
+- Fly on after landing: the destination list keeps your pick while the panel refreshes (it fell back to the first city, Accra) and the take-off uses it.
+- Houston airports: the taxi-to-park guide is no longer a bright green painted lane — it is a real-style yellow taxiway centreline with yellow edge lines on the asphalt; infield grass is a duller mown-grass tone.
+- Other-city farmland texture: no dark crack lines or big dark blotches; soft field edges and faint tree clumps.
+
 ## v10.91.0 — compass, trip titles, window seat fix, car always on asphalt
 - Tour panel title: a new trip never inherits the previous one ("Car tour: Atlanta → Houston" no longer shows on a flight).
 - Window view: fixed a per-frame error (look-around offsets were scoped to the cockpit view) that froze the camera.

@@ -98,9 +98,10 @@ function groundTex(dry) {
   const F = dry ? ['#6f7d4c', '#7d8a55', '#8a8a5c', '#5f7444', '#9a8f66', '#6b7f4a'] : ['#4f7a3a', '#5d8a40', '#46703a', '#6a9147', '#3f6a34', '#7a9a52', '#8e8a5e'];
   g.fillStyle = F[0]; g.fillRect(0, 0, 512, 512);
   for (let y = 0; y < 512;) { const h = 40 + Math.random() * 70 | 0; for (let x = 0; x < 512;) { const w = 40 + Math.random() * 90 | 0; g.fillStyle = F[Math.random() * F.length | 0]; g.fillRect(x, y, w, h); x += w; } y += h; }
-  g.strokeStyle = 'rgba(30,48,22,.55)'; g.lineWidth = 2;
-  for (let i = 0; i < 26; i++) { g.beginPath(); const x = Math.random() * 512, y = Math.random() * 512; g.moveTo(x, y); g.lineTo(x + (Math.random() - 0.5) * 300, y + (Math.random() - 0.5) * 300); g.stroke(); }
-  for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(36,62,28,${0.35 + Math.random() * 0.3})`; g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 3 + Math.random() * 14, 0, 7); g.fill(); }
+  /* soft field edges (no dark crack lines) and small, faint tree clumps */
+  g.strokeStyle = 'rgba(60,80,44,.18)'; g.lineWidth = 1;
+  for (let y = 0; y < 512; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(512, y); g.stroke(); }
+  for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(52,78,40,${0.12 + Math.random() * 0.12})`; g.beginPath(); g.arc(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 5, 0, 7); g.fill(); }
   for (let i = 0; i < 3000; i++) { const l = Math.random(); g.fillStyle = `rgba(${l > 0.5 ? '240,250,220' : '20,34,14'},${0.03 + Math.random() * 0.05})`; g.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 4, 1 + Math.random() * 4); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(60, 60); t.colorSpace = THREE.SRGBColorSpace;
   return t;

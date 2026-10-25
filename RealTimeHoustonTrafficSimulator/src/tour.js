@@ -1035,7 +1035,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const C = window.HTS_WORLD_CAT, at = S.wx && S.wx.to;
       if (S.kind !== 'plane' || !at || !S._flyOn || !C || !window.HTS_INTERCITY_FLY) return '';
       const here = C.cities.find((q) => q.id === at); if (!here || !here.apt) return '';
-      const opts = C.cities.filter((q) => q.apt && q.id !== at).sort((a, b) => a.name.localeCompare(b.name)).map((q) => '<option value="' + q.id + '">' + q.name + ' (' + q.apt.code + ')</option>').join('');
+      const opts = C.cities.filter((q) => q.apt && q.id !== at).sort((a, b) => a.name.localeCompare(b.name)).map((q) => '<option value="' + q.id + '"' + (q.id === S.flyTo ? ' selected' : '') + '>' + q.name + ' (' + q.apt.code + ')</option>').join('');
       return '<span style="flex-basis:100%;height:0"></span><select data-flyto style="max-width:170px">' + opts + '</select><button data-flyon="1" class="on" title="Take off again from ' + here.apt.code + ' with the same aircraft">Take off from ' + here.apt.code + '</button>';
     }
     const styles = (S.kind === 'car' ? CAR_STYLES : PLANE_STYLES).map(([id, n]) => '<button data-style="' + id + '" class="' + ((S.kind === 'car' ? S.carStyle : S.planeStyle) === id ? 'on' : '') + '">' + n + '</button>').join('');
@@ -1078,10 +1078,13 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.querySelectorAll('[data-sx]').forEach((b) => b.addEventListener('click', () => { S.speedX = +b.getAttribute('data-sx'); renderHud(); }));
     hud.querySelectorAll('[data-cruise]').forEach((b) => b.addEventListener('click', () => { S.cruise = +b.getAttribute('data-cruise'); renderHud(); }));
     hud.querySelectorAll('[data-park]').forEach((b) => b.addEventListener('click', () => { S.taxiPark = S.taxiPark === false; renderHud(); }));
+    /* the panel re-renders while you choose: keep your pick (it fell back to the first city, Accra) */
+    hud.querySelectorAll('[data-flyto]').forEach((e) => { if (!S.flyTo) S.flyTo = e.value; e.addEventListener('change', () => { S.flyTo = e.value; }); });
     hud.querySelectorAll('[data-flyon]').forEach((b) => b.addEventListener('click', () => {
       const sel = hud.querySelector('[data-flyto]'), from = S.wx && S.wx.to, ac = S.planeStyle === 'jet' ? S.jetModel : S.planeStyle;
       if (!sel || !from) return;
-      Promise.resolve(window.HTS_INTERCITY_FLY(from, sel.value, ac)).catch((e) => note(e.message || String(e)));
+      const to = S.flyTo || sel.value; S.flyTo = null;
+      Promise.resolve(window.HTS_INTERCITY_FLY(from, to, ac)).catch((e) => note(e.message || String(e)));
     }));
     const hb = hud.querySelector('[data-hide]'); if (hb) hb.addEventListener('click', () => setHudHidden(true));
     hud.querySelector('[data-exit]').addEventListener('click', stop);
@@ -1491,7 +1494,7 @@ function icRealLeft(x, z, t) {
         /* intercity: the trip's real airports join the list so Land at / runways work exactly like Houston's */
         { const base = (S.apts && S.apts.length ? S.apts : (airports() || [])).filter((a) => !a.world);
           S.apts = opts.world ? base.concat(opts.world.apts || []) : base; }
-        S.wx = opts.world || null; S._flyOn = false;
+        S.wx = opts.world || null; S._flyOn = false; S.flyTo = null;
         /* helicopters can't fly between cities; small props stay under ~1,200 km, longer trips get an airliner */
         /* your pick is kept: F-16, B-2 and C-130 fly any distance; a helicopter is limited to ~700 km and a Cessna to ~1,200 km */
         if (S.wx && ((S.planeStyle === 'heli' && (S.wx.km || 0) > 700) || (S.planeStyle === 'prop' && (S.wx.km || 0) > 1200))) { note('The ' + acName() + " can't fly that far — taking a Boeing 787 instead."); S.planeStyle = 'jet'; S.jetModel = 'b787'; }
