@@ -11,6 +11,7 @@ import { createTourAudio } from './tour-audio.js';
 import { dashSvg, updateDash } from './cockpit-dash.js';
 import { createTourMusic } from './tour-music.js';
 import { attachPlaceSearch } from './ui/place-search.js';
+import { clockTz } from './world/tz.js';
 
 const MPH = 0.44704, KT = 0.514444, FT = 0.3048, G = 9.81;
 const _isWin = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
@@ -51,13 +52,13 @@ const DEST_BLURB = {
   'Bush Intercontinental (IAH)': 'United hub — five terminals of traffic.',
 };
 const VIEWS = { car: [['chase', 'Chase'], ['driver', 'Driver'], ['side', 'Side'], ['top', 'Top'], ['orbit', 'Free look']],
-  plane: [['chase', 'Chase'], ['cockpit', 'Cockpit'], ['wing', 'Wing'], ['top', 'Top'], ['orbit', 'Free look']] };
+  plane: [['chase', 'Chase'], ['cockpit', 'Cockpit'], ['window', 'Window'], ['wing', 'Wing'], ['top', 'Top'], ['orbit', 'Free look']] };
 const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van']];
-const PLANE_STYLES = [['prop', 'Cessna'], ['jet', 'Jet'], ['heli', 'Helicopter'], ['fighter', 'F-16 fighter'], ['c130', 'C-130 Hercules']];
+const PLANE_STYLES = [['prop', 'Cessna'], ['jet', 'Jet'], ['heli', 'Helicopter'], ['fighter', 'F-16 fighter'], ['b2', 'B-2 Spirit'], ['c130', 'C-130 Hercules']];
 /* tour aircraft picker: [id, name, family]; family drives physics/cockpit/audio, id picks the airliner model */
 const AIRCRAFT = [['b737', 'Boeing 737-800', 'jet'], ['b747', 'Boeing 747-8', 'jet'], ['b777', 'Boeing 777-300ER', 'jet'], ['b787', 'Boeing 787-9 Dreamliner', 'jet'],
   ['a320', 'Airbus A320neo', 'jet'], ['a350', 'Airbus A350-900', 'jet'], ['a380', 'Airbus A380', 'jet'],
-  ['prop', 'Cessna 172', 'prop'], ['c130', 'C-130 Hercules', 'c130'], ['fighter', 'F-16 Fighting Falcon', 'fighter'], ['heli', 'Bell 206 helicopter', 'heli']];
+  ['prop', 'Cessna 172', 'prop'], ['c130', 'C-130 Hercules', 'c130'], ['fighter', 'F-16 Fighting Falcon', 'fighter'], ['b2', 'B-2 Spirit', 'b2'], ['heli', 'Bell 206 helicopter', 'heli']];
 /* minimum runway (m) each type may depart from / land on — widebodies only fit IAH-class runways */
 const RWY_NEED = { b737: 2000, a320: 2000, b787: 2700, a350: 2700, b777: 2900, b747: 3000, a380: 3000, c130: 1200, fighter: 1500, prop: 0, heli: 0 };
 const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a, 0x14a3a3, 0x5bb8ff, 0xd94f8a, 0x8cc63f, 0x9aa3ad, 0x6e1f2b];
@@ -125,7 +126,7 @@ function makeTourCar(color, style, detail = true) {
   box(bodyW, bodyH, bodyL, paint, 0, bodyH * 0.55 + 0.12, pick ? 0.5 : 0);
   box(bodyW * 0.98, 0.12, bodyL * 0.96, darkPaint, 0, 0.22, pick ? 0.5 : 0);
   const zNose = pick ? 2.08 : van ? 2.45 : coupe ? 2.28 : 2.35;
-  box(bodyW * 0.92, 0.14, pick ? 1.1 : 1.35, paint, 0, bodyH + 0.08, zNose - 0.55, 0.08, 0, 0);
+  box(bodyW * 0.92, 0.14, pick ? 1.1 : 1.35, paint, 0, bodyH + 0.115, zNose - 0.55, 0.08, 0, 0); /* hood sits clear of the body top (no z-fight shimmer) */
   box(bodyW * 0.88, cabinH, cabinL, glass, 0, bodyH + cabinH * 0.55 + 0.1, cabinZ);
   box(bodyW * 0.82, 0.07, cabinL * 0.88, paint, 0, roofY + cabinH * 0.35, cabinZ + (coupe ? 0.08 : 0));
   if (pick) box(bodyW * 0.96, 0.52, 1.95, paint, 0, 0.78, -1.42);
@@ -636,7 +637,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     return Math.round(S.p.y / FT);
   }
   function vsFpm() { return Math.round(((S.vy || 0) / FT) * 60 / 10) * 10; }
-  function dashType() { const s = S.planeStyle; return s === 'heli' || s === 'fighter' || s === 'c130' || s === 'jet' ? s : 'prop'; }
+  function dashType() { const s = S.planeStyle; return s === 'b2' ? 'jet' : s === 'heli' || s === 'fighter' || s === 'c130' || s === 'jet' ? s : 'prop'; }
   function planeDashHtml() { return dashSvg(dashType()); }
   let _cpBound = false, _streetT = 0, _unsubMusic = null;
   /** Normalize a highway tag from OSM ref/name text. */
@@ -957,13 +958,13 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function audioKind() {
     if (S.kind === 'car') return 'car';
     const s = S.planeStyle;
-    return s === 'heli' ? 'heli' : s === 'fighter' ? 'fighter' : s === 'c130' ? 'turboprop' : s === 'jet' ? 'jet' : 'prop';
+    return s === 'heli' ? 'heli' : s === 'fighter' ? 'fighter' : s === 'c130' ? 'turboprop' : s === 'jet' || s === 'b2' ? 'jet' : 'prop';
   }
   /* Model origin → wheel / skid bottom (userData.gearDrop) so tyres sit on the runway deck instead of sinking into it */
   function groundClear() { const ud = S.obj && S.obj.userData; return ud && ud.gearDrop != null ? ud.gearDrop * S.obj.scale.y + 0.15 - 1.4 : 0; }
   /* Retractable gear (jet, F-16, C-130): down on the ground, up once climbing past ~200 ft, down again ~5 nm out. Cessna gear and heli skids are fixed. */
   function gearWanted() {
-    if (S.acClass !== 'jet') return true;
+    if (!/^(jet|fighter|turboprop)$/.test(S.acClass || '')) return true;
     const ph = S.phase || '';
     if (/roll|rollout|taxi|parked|final/.test(ph)) return true;
     if (ph === 'toFaf') return (S.remain || 1e9) < 9300;
@@ -1008,7 +1009,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     } else {
       const jet = S.planeStyle === 'jet' && typeof makeJet === 'function';
       const heli = S.planeStyle === 'heli' && typeof makeHeli === 'function';
-      const mil = /^(fighter|c130)$/.test(S.planeStyle) && typeof makeMil === 'function';
+      const mil = /^(fighter|c130|b2)$/.test(S.planeStyle) && typeof makeMil === 'function';
       const acc = S.planeAccent >= 0 ? S.planeAccent : null;
       S.obj = jet ? makeJet(S.planeColor, acc, S.jetModel) : heli ? makeHeli(S.planeColor, acc) : mil ? makeMil(S.planeStyle, S.planeColor, acc) : makePlane(S.planeColor, acc);
       S.acClass = (jet || mil) ? 'jet' : 'prop';
@@ -1026,7 +1027,17 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const speeds = S.kind === 'car' && S.mode === 'tour'
       ? '<span style="color:#8a96a3;align-self:center">Cruise</span>' + [0, 30, 40, 50, 60, 70, 80, 90, 100].map((x) => '<button data-cruise="' + x + '" class="' + (S.cruise === x ? 'on' : '') + '">' + (x ? x : 'Limit +5') + '</button>').join('')
       : [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '">×' + x + '</button>').join('')
-        + (S.kind === 'plane' && S.planeStyle !== 'heli' ? '<button data-park="1" class="' + (S.taxiPark !== false ? 'on' : '') + '" title="After landing, leave the runway and taxi to an apron parking spot">Taxi to park</button>' : '');
+        + (S.kind === 'plane' && S.wx && /^(jet|fighter)$/.test(S.planeStyle) ? '<button data-ss="1" class="' + (S.supersonic ? 'on' : '') + '" title="Optional: cruise at Mach 2 (about 1,150 kt) once above 30,000 ft. The ETA follows your real speed.">Supersonic</button>' : '')
+        + (S.kind === 'plane' && S.planeStyle !== 'heli' ? '<button data-park="1" class="' + (S.taxiPark !== false ? 'on' : '') + '" title="After landing, leave the runway and taxi to an apron parking spot">Taxi to park</button>' : '')
+        + (flyOnHtml());
+    function flyOnHtml() {
+      /* landed in a world city: fly on from the same airport */
+      const C = window.HTS_WORLD_CAT, at = S.wx && S.wx.to;
+      if (S.kind !== 'plane' || !at || !S._flyOn || !C || !window.HTS_INTERCITY_FLY) return '';
+      const here = C.cities.find((q) => q.id === at); if (!here || !here.apt) return '';
+      const opts = C.cities.filter((q) => q.apt && q.id !== at).sort((a, b) => a.name.localeCompare(b.name)).map((q) => '<option value="' + q.id + '">' + q.name + ' (' + q.apt.code + ')</option>').join('');
+      return '<span style="flex-basis:100%;height:0"></span><select data-flyto style="max-width:170px">' + opts + '</select><button data-flyon="1" class="on" title="Take off again from ' + here.apt.code + ' with the same aircraft">Take off from ' + here.apt.code + '</button>';
+    }
     const styles = (S.kind === 'car' ? CAR_STYLES : PLANE_STYLES).map(([id, n]) => '<button data-style="' + id + '" class="' + ((S.kind === 'car' ? S.carStyle : S.planeStyle) === id ? 'on' : '') + '">' + n + '</button>').join('');
     const cols = (S.kind === 'car' ? CAR_COLORS : PLANE_COLORS).map((c) => {
       const on = (S.kind === 'car' ? S.carColor : S.planeColor) === c;
@@ -1063,9 +1074,15 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.classList.toggle('hid', !!S.hudHid);
     hudPeek.classList.toggle('on', !!(S.mode && S.hudHid));
     hud.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.getAttribute('data-view'))));
+    hud.querySelectorAll('[data-ss]').forEach((b) => b.addEventListener('click', () => { S.supersonic = !S.supersonic; note(S.supersonic ? 'Supersonic: Mach 2 above 30,000 ft' : 'Normal cruise speed'); renderHud(); }));
     hud.querySelectorAll('[data-sx]').forEach((b) => b.addEventListener('click', () => { S.speedX = +b.getAttribute('data-sx'); renderHud(); }));
     hud.querySelectorAll('[data-cruise]').forEach((b) => b.addEventListener('click', () => { S.cruise = +b.getAttribute('data-cruise'); renderHud(); }));
     hud.querySelectorAll('[data-park]').forEach((b) => b.addEventListener('click', () => { S.taxiPark = S.taxiPark === false; renderHud(); }));
+    hud.querySelectorAll('[data-flyon]').forEach((b) => b.addEventListener('click', () => {
+      const sel = hud.querySelector('[data-flyto]'), from = S.wx && S.wx.to, ac = S.planeStyle === 'jet' ? S.jetModel : S.planeStyle;
+      if (!sel || !from) return;
+      Promise.resolve(window.HTS_INTERCITY_FLY(from, sel.value, ac)).catch((e) => note(e.message || String(e)));
+    }));
     const hb = hud.querySelector('[data-hide]'); if (hb) hb.addEventListener('click', () => setHudHidden(true));
     hud.querySelector('[data-exit]').addEventListener('click', stop);
     const mb = hud.querySelector('[data-mute]');
@@ -1155,7 +1172,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         const at = new Date(Date.now() + et * 1000 / Math.max(1, S.speedX));
         const e = hud.querySelector('#mEta');
         if (e) {
-          const clock = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+          const clock = clockTz(S.destTz, at);
           if (et < 25) e.textContent = 'Now · ' + clock;
           else if (et < 105) e.textContent = Math.round(et) + 's · ' + clock;
           else e.textContent = fmtDur(et) + ' · ' + clock;
@@ -1325,22 +1342,23 @@ function icRealLeft(x, z, t) {
     out.hd = Math.atan2(b.x - a.x, b.z - a.z);
     return out;
   }
-  let _escAcc = 0;
   function updateEscorts(dt) {
     if (!S.escorts || !S.escorts.length) return;
     if (S.kind !== 'car' || !S.route) return;
-    /* Throttle escort pose updates — feels fine at ~20 Hz, cheaper on Windows */
-    _escAcc += dt;
-    if (_escAcc < 0.05) return;
-    _escAcc = 0;
+    /* every frame (only 2-4 cars): the old 20 Hz throttle made them jump ~1.5 m per step at highway speed */
     const tmp = o;
     const end = S.route[S.route.length - 1].s;
     for (const e of S.escorts) {
-      const s = Math.max(0, Math.min(end, S.s + e.ds * e.spd));
-      sampleRoute(S.route, s, tmp, e);
-      const nx = Math.cos(tmp.hd), nz = -Math.sin(tmp.hd);
+      const want = S.s + e.ds * e.spd;
+      /* off either end of the route: hide instead of stacking on the start/end point next to your car */
+      if (want < 0 || want > end) { e.mesh.visible = false; e.hd = null; continue; }
+      sampleRoute(S.route, want, tmp, e);
+      /* ease heading through route vertices instead of snapping */
+      if (e.hd == null) e.hd = tmp.hd;
+      else { let d = tmp.hd - e.hd; d = Math.atan2(Math.sin(d), Math.cos(d)); e.hd += d * Math.min(1, dt * 6); }
+      const nx = Math.cos(e.hd), nz = -Math.sin(e.hd);
       e.mesh.position.set(tmp.x + nx * e.lane, tmp.y + 0.02, tmp.z + nz * e.lane);
-      e.mesh.rotation.set(0, tmp.hd, 0);
+      e.mesh.rotation.set(0, e.hd, 0);
       e.mesh.visible = Math.abs(e.ds) < 420 || Math.hypot(e.mesh.position.x - S.p.x, e.mesh.position.z - S.p.z) < 380;
     }
   }
@@ -1380,6 +1398,8 @@ function icRealLeft(x, z, t) {
     return getTraffic && getTraffic();
   }
   async function start(kind, mode, dest, opts = {}) {
+    /* a new trip never inherits the last trip's title ("Car tour: Atlanta → Houston" on a flight) */
+    S.icDrive = false; S.icTitle = null;
     if (S._starting) return;
     S._starting = true;
     try {
@@ -1408,7 +1428,7 @@ function icRealLeft(x, z, t) {
     stopFollow && stopFollow();
     clearObj();
     window._followOff = { x: 0, z: 0 };
-    S.kind = kind; S.mode = mode; S.dest = dest; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0; S.taxi = null;
+    S.kind = kind; S.mode = mode; S.dest = dest; S.destTz = (dest && dest.tz) || null; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0; S.taxi = null;
     S.th0 = camGoal.theta; S.ph0 = camGoal.phi; camGoal.radius = kind === 'car' ? 14 : 45; camGoal.phi = 1.25; S.ph0 = 1.25;
     const cx = origin.x, cz = origin.z;
     S.origin = { x: cx, z: cz }; S.leg = 'out'; S.waitT = 0; S.orbT = 0;
@@ -1457,7 +1477,7 @@ function icRealLeft(x, z, t) {
         const p0 = S.route[0];
         S.p.set(p0.x, p0.y, p0.z);
         if (S.route.length > 1) S.hd = Math.atan2(S.route[1].x - p0.x, S.route[1].z - p0.z);
-        S.icDrive = !!opts.icRoute;
+        S.icDrive = !!opts.icRoute; S.icTitle = (S.icDrive && opts.title) || null;
         if (S.icDrive) { if (opts.onRoute) try { opts.onRoute(S.icTo ? S.route.slice(0, S.icTo + 1) : S.route, S.icFrom || 0); } catch (e) { console.warn('[intercity] highway', e); }
           note('Driving to ' + dest.n + ' · ' + Math.round(S.route[0].rr / 1609.344) + ' mi on real highways · ×2 ×4 ×10 speed it up.'); }
         S.phase = 'drive'; S.tripLen = S.route[S.route.length - 1].s; S.lane = null; S.latCur = 0; S._lcw = null; S._ffT = 0; S._ffTry = 0;
@@ -1471,9 +1491,10 @@ function icRealLeft(x, z, t) {
         /* intercity: the trip's real airports join the list so Land at / runways work exactly like Houston's */
         { const base = (S.apts && S.apts.length ? S.apts : (airports() || [])).filter((a) => !a.world);
           S.apts = opts.world ? base.concat(opts.world.apts || []) : base; }
-        S.wx = opts.world || null;
+        S.wx = opts.world || null; S._flyOn = false;
         /* helicopters can't fly between cities; small props stay under ~1,200 km, longer trips get an airliner */
-        if (S.wx && (S.planeStyle === 'heli' || (S.planeStyle !== 'jet' && (S.wx.km || 0) > 1200))) { S.planeStyle = 'jet'; S.jetModel = 'b787'; }
+        /* your pick is kept: F-16, B-2 and C-130 fly any distance; a helicopter is limited to ~700 km and a Cessna to ~1,200 km */
+        if (S.wx && ((S.planeStyle === 'heli' && (S.wx.km || 0) > 700) || (S.planeStyle === 'prop' && (S.wx.km || 0) > 1200))) { note('The ' + acName() + " can't fly that far — taking a Boeing 787 instead."); S.planeStyle = 'jet'; S.jetModel = 'b787'; }
         const depSel = opts.dep != null ? opts.dep : (($('tourDep') || {}).value || '');
         const arrSel = opts.arr != null ? opts.arr : (($('tourArr') || {}).value || '');
         const need = curNeed(), shortRw = (c) => ' (' + c + "'s runway is too short for the " + acName() + ')';
@@ -1595,7 +1616,7 @@ function icRealLeft(x, z, t) {
     const car = ground.car;
     if (car) car.userData.bar.material.color.setHex(Math.sin(ground.t * 9) > 0 ? 0xffb000 : 0x553300);
     if (S.phase === 'taxi' && S.taxi) {
-      const P = S.taxi.path, jet = S.planeStyle === 'jet' || S.planeStyle === 'c130';
+      const P = S.taxi.path, jet = S.planeStyle === 'jet' || S.planeStyle === 'c130' || S.planeStyle === 'b2';
       const lead = alongPath(P, S.taxi.i, S.p.x, S.p.z, (jet ? 70 : 45));
       if (lead.end) {
         /* near the stand: the car pulls aside and the marshaller takes over */
@@ -1619,7 +1640,7 @@ function icRealLeft(x, z, t) {
       ground.man.userData.arms[0].rotation.z = 2.6; ground.man.userData.arms[1].rotation.z = -2.6;
       if (!ground.tug.visible) {
         ground.tug.visible = true; ground.parkT = ground.t;
-        const jet = S.planeStyle === 'jet' || S.planeStyle === 'c130';
+        const jet = S.planeStyle === 'jet' || S.planeStyle === 'c130' || S.planeStyle === 'b2';
         ground.tug.position.set(S.p.x + Math.sin(S.hd) * (jet ? 30 : 9), 0.2, S.p.z + Math.cos(S.hd) * (jet ? 30 : 9));
         ground.tug.rotation.y = S.hd;
       }
@@ -1673,6 +1694,8 @@ function icRealLeft(x, z, t) {
   function cruiseMps(ff, x, z) {
     if (S.cruise) return S.cruise * MPH;
     const limit = Math.max(20, ff || 45);
+    /* open highway / other cities on an intercity drive: no Houston rush hour or Houston probe data */
+    if (S.icDrive && x != null && Math.hypot(x - 60, z - 60) > 60000) return limit * 0.97 * MPH;
     let mph = limit * houDriveFactor();
     /* Live probe / modelled congestion near this point when traffic is warm */
     try {
@@ -1955,7 +1978,7 @@ function icRealLeft(x, z, t) {
     let wantHd = S.hd, wantY = S.p.y, wantV = S.v;
     const jet = S.acClass === 'jet';
     const icx = !!(S.wx && S.mode === 'tour');
-    const cruiseKt = icx ? (jet ? 480 : 260) : jet ? 220 : 110, climbKt = icx ? (jet ? 250 : 160) : jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = icx ? S.wx.alt : jet ? 3500 : 1500;
+    const cruiseKt = icx ? (S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && S.p.y > 29000 * FT ? 1150 : jet ? 480 : 260) : jet ? 220 : 110, climbKt = icx ? (jet ? 250 : 160) : jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = icx ? S.wx.alt : jet ? 3500 : 1500;
     if (S.mode === 'tour') {
       const D = S.dest, dx = D.x - S.p.x, dz = D.z - S.p.z, dist = Math.hypot(dx, dz), brg = Math.atan2(dx, dz);
       if (icx) {
@@ -1999,6 +2022,7 @@ function icRealLeft(x, z, t) {
         S.v = 0; S.vy = 0; S.p.y += (1.4 - S.p.y) * Math.min(1, dt * 4);
         S.pitch += (0 - S.pitch) * Math.min(1, dt * 3); S.roll += (0 - S.roll) * Math.min(1, dt * 3);
       } else if (S.phase === 'rollout' || S.phase === 'parked') {
+        if (S.wx && !S._flyOn && S.v < 2) { S._flyOn = true; renderHud(); }
         const rw = S.rw;
         if (rw) {
           const ux = Math.sin(rw.hd), uz = Math.cos(rw.hd);
@@ -2026,7 +2050,7 @@ function icRealLeft(x, z, t) {
           const rt = S.rollT || 0, base = rt < 2 ? 0.8 : jet ? (S.v > 20 ? 2.1 : 1.5) : 1.3;
           S.v = Math.max(0, S.v - Math.max(base, S.rw && S.phase === 'rollout' ? (S._needDecel || 0) * 1.15 : 0) * dt);
         }
-        const AP2 = window.HTS_AIRPORTS2, spot = S.phase === 'rollout' && S.v < 9 && S.taxiPark !== false && (S.planeStyle === 'jet' || S.planeStyle === 'c130') && AP2 && AP2.nearestSpot ? AP2.nearestSpot(S.p.x, S.p.z, 3500) : null;
+        const AP2 = window.HTS_AIRPORTS2, spot = S.phase === 'rollout' && S.v < 9 && S.taxiPark !== false && (S.planeStyle === 'jet' || S.planeStyle === 'c130' || S.planeStyle === 'b2') && AP2 && AP2.nearestSpot ? AP2.nearestSpot(S.p.x, S.p.z, 3500) : null;
         if (spot) {
           const tp = AP2.taxiToPark ? AP2.taxiToPark(S.p.x, S.p.z, S.hd, 3500) : null, pk = (tp && tp.spot) || spot, route = tp && tp.route;
           S.phase = 'taxi'; S.taxi = { x: pk.x, z: pk.z, t: 0, i: route ? 1 : 0, path: route || [{ x: pk.x, z: pk.z }] };
@@ -2300,6 +2324,20 @@ function icRealLeft(x, z, t) {
       }
       fov = Math.max(28, Math.min(78, (S.acClass === 'jet' ? 58 : 62) * Math.sqrt(Math.max(4, camGoal.radius) / 14)));
       near = 0.12;
+    } else if (S.view === 'window' && !car) {
+      /* look-around offsets are scoped to the cockpit branch; the window seat needs its own (was a ReferenceError every frame = frozen view) */
+      const lp = Math.max(-0.6, Math.min(0.6, pitchOff)), ly = Math.max(-1.2, Math.min(1.2, yaw));
+      /* passenger window seat: just outside the left cabin wall ahead of the wing, looking out and down past the wing */
+      if (ob) ob.visible = true;
+      /* seat from the model's own size: beside the fuselage ahead of the wing root, looking out, down and back over the wing */
+      if (ob && !ob.userData.winBox) { ob.updateMatrixWorld(true); ob.userData.winBox = new THREE.Box3().setFromObject(ob).applyMatrix4(ob.matrixWorld.clone().invert()); }
+      const bb = ob && ob.userData.winBox, len = bb ? Math.max(4, bb.max.z - bb.min.z) : 40, z0 = bb ? bb.min.z : -20;
+      const fw = len * 0.045, cz = z0 + len * 0.8, cy = len * 0.03; /* ahead of the wing root, so the wing sits low in the window instead of filling it */
+      camera.position.copy(L(-fw - 0.25, cy, cz));
+      look.copy(L(-fw - len * 0.5 + Math.sin(-ly) * len * 0.2, cy - len * 0.2 + Math.sin(lp) * len * 0.2, cz - len * 0.38));
+      camera.up.set(0, 1, 0).applyQuaternion(ob.quaternion);
+      fov = 55;
+      near = 0.1;
     } else if (S.view === 'side' || S.view === 'wing') {
       if (ob) ob.visible = true;
       const d = car ? 4.6 : ((ob && ob.userData.sideD) || 15);
@@ -2322,6 +2360,8 @@ function icRealLeft(x, z, t) {
     if (S.view === 'chase' || S.view === 'orbit') { if (ob) ob.visible = true; }
     camera.lookAt(look);
     camera.userData.tourNearT = performance.now();
+    /* high above the ground a tiny near plane wastes depth precision and the ground layers flicker: push it out with altitude */
+    if (!car) { const agl = Math.max(0, camera.position.y); near = Math.max(near, Math.min(S.view === 'driver' || S.view === 'cockpit' ? 3 : Math.max(0.3, camera.position.distanceTo(S.p) * 0.35), agl * 0.012)); near = Math.round(near * 4) / 4 || near; }
     if (Math.abs(camera.near - near) > 0.01 || camera.fov !== fov) { camera.near = near; camera.fov = fov; camera.updateProjectionMatrix(); }
   }
   function updateLights() {
@@ -2378,7 +2418,7 @@ function icRealLeft(x, z, t) {
     if (now - S.hudT > 250) {
       S.hudT = now;
       const t = hud.querySelector('#tourTitle');
-      if (t) t.textContent = (S.mode === 'tour' ? (S.kind === 'car' ? (S.leg === 'back' ? 'Driving back from ' : 'Car tour → ') : acName() + ' → ') + S.dest.n : S.kind === 'car' ? 'Free drive' : 'Free flight · ' + acName()) + (S.info ? ' · ' + S.info : '');
+      if (t) t.textContent = S.icTitle && S.mode === 'tour' ? S.icTitle + (S.info ? ' · ' + S.info : '') : (S.mode === 'tour' ? (S.kind === 'car' ? (S.leg === 'back' ? 'Driving back from ' : 'Car tour → ') : acName() + ' → ') + S.dest.n : S.kind === 'car' ? 'Free drive' : 'Free flight · ' + acName()) + (S.info ? ' · ' + S.info : '');
     }
   }
   function planeEtaSec() {

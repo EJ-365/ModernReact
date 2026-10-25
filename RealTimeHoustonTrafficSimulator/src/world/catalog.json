@@ -19,7 +19,11 @@
     "hdg": 150,
     "len": 3700
    },
-   "src": "texas"
+   "src": "texas",
+   "info": {
+    "pop": "2.3 million (city) · 7.5 million (metro)",
+    "fact": "NASA's Johnson Space Center and Mission Control, the Texas Medical Center (the world's largest medical complex), and the Port of Houston."
+   }
   },
   {
    "id": "austin",
@@ -50,6 +54,10 @@
     ],
     "w": 46,
     "ref": "18R/36L"
+   },
+   "info": {
+    "pop": "2.5 million (metro)",
+    "fact": "Texas's state capitol, \"Live Music Capital of the World\", SXSW, and 1.5 million bats under the Congress Avenue Bridge."
    }
   },
   {
@@ -81,6 +89,10 @@
     ],
     "w": 46,
     "ref": "17C/35C"
+   },
+   "info": {
+    "pop": "8.1 million (DFW metro)",
+    "fact": "DFW, one of the world's busiest airports, the Reunion Tower ball, and the largest urban arts district in the US."
    }
   },
   {
@@ -112,6 +124,10 @@
     ],
     "w": 46,
     "ref": "04/22"
+   },
+   "info": {
+    "pop": "2.7 million (metro)",
+    "fact": "The Alamo (1836), the River Walk, and four Spanish missions that are a UNESCO World Heritage Site."
    }
   },
   {
@@ -143,6 +159,10 @@
     ],
     "w": 61,
     "ref": "13R/31L"
+   },
+   "info": {
+    "pop": "19.5 million (metro)",
+    "fact": "Five boroughs, Times Square, Central Park (341 ha), the Statue of Liberty, and about 800 languages spoken."
    }
   },
   {
@@ -174,6 +194,10 @@
     ],
     "w": 45,
     "ref": "07L/25R"
+   },
+   "info": {
+    "pop": "12.8 million (metro)",
+    "fact": "Hollywood, the Pacific coast from Malibu to Long Beach, and the busiest container port in the US."
    }
   },
   {
@@ -205,6 +229,10 @@
     ],
     "w": 46,
     "ref": "10L/28R"
+   },
+   "info": {
+    "pop": "9.3 million (metro)",
+    "fact": "The first skyscraper (1885), the Willis Tower, deep-dish pizza, and a river that was reversed to flow away from Lake Michigan."
    }
   },
   {
@@ -236,6 +264,10 @@
     ],
     "w": 46,
     "ref": "09/27"
+   },
+   "info": {
+    "pop": "6.2 million (metro)",
+    "fact": "Art Deco South Beach, Biscayne Bay, and the \"Cruise Capital of the World\"."
    }
   },
   {
@@ -267,6 +299,10 @@
     ],
     "w": 61,
     "ref": "15L/33R"
+   },
+   "info": {
+    "pop": "6.7 million (metro)",
+    "fact": "The CN Tower (553 m), Lake Ontario's shoreline, and one of the world's most multicultural cities."
    }
   },
   {
@@ -298,6 +334,10 @@
     ],
     "w": 60,
     "ref": "08R/26L"
+   },
+   "info": {
+    "pop": "2.6 million (metro)",
+    "fact": "Stanley Park, the North Shore Mountains above downtown, and Canada's busiest port."
    }
   },
   {
@@ -329,6 +369,10 @@
     ],
     "w": 45,
     "ref": "05R/23L"
+   },
+   "info": {
+    "pop": "22 million (metro)",
+    "fact": "Built on the Aztec capital Tenochtitlan, at 2,240 m elevation, and has more museums than almost any city on Earth."
    }
   },
   {
@@ -360,6 +404,10 @@
     ],
     "w": 60,
     "ref": "12R/30L"
+   },
+   "info": {
+    "pop": "0.9 million",
+    "fact": "The Hotel Zone on a 22 km sandbar between the Caribbean and Nichupté Lagoon, and an underwater sculpture museum."
    }
   },
   {
@@ -391,6 +439,10 @@
     ],
     "w": 60,
     "ref": "11R/29L"
+   },
+   "info": {
+    "pop": "5.3 million (metro)",
+    "fact": "The birthplace of mariachi and tequila, and Mexico's \"Silicon Valley\"."
    }
   },
   {
@@ -422,6 +474,10 @@
     ],
     "w": 60,
     "ref": "18R/36L"
+   },
+   "info": {
+    "pop": "15+ million (metro)",
+    "fact": "Africa's largest city, Nollywood, the Third Mainland Bridge (11.8 km), and the home of Afrobeats."
    }
   },
   {
@@ -453,6 +509,10 @@
     ],
     "w": 60,
     "ref": "03/21"
+   },
+   "info": {
+    "pop": "5.4 million (metro)",
+    "fact": "Ghana's capital on the Gulf of Guinea, Independence Arch, and the Kwame Nkrumah Memorial."
    }
   },
   {
@@ -484,6 +544,10 @@
     ],
     "w": 60,
     "ref": "05C/23C"
+   },
+   "info": {
+    "pop": "22 million (metro)",
+    "fact": "On the Nile, minutes from the Pyramids of Giza, the last surviving wonder of the ancient world."
    }
   },
   {
@@ -515,6 +579,10 @@
     ],
     "w": 60,
     "ref": "16R/34L"
+   },
+   "info": {
+    "pop": "4.3 million (metro)",
+    "fact": "The Colosseum, the Pantheon's 1,900-year-old unreinforced concrete dome, and Vatican City inside the city."
    }
   },
   {
@@ -546,6 +614,10 @@
     ],
     "w": 50,
     "ref": "09L/27R"
+   },
+   "info": {
+    "pop": "14.8 million (metro)",
+    "fact": "The Thames, the world's oldest underground railway (1863), and Big Ben."
    }
   },
   {
@@ -577,6 +649,10 @@
     ],
     "w": 45,
     "ref": "08L/26R"
+   },
+   "info": {
+    "pop": "12.3 million (metro)",
+    "fact": "The Eiffel Tower (330 m), the Louvre, the world's most-visited art museum, and the Seine's 37 bridges."
    }
   },
   {
@@ -608,6 +684,10 @@
     ],
     "w": 60,
     "ref": "18R/36L"
+   },
+   "info": {
+    "pop": "6.9 million (metro)",
+    "fact": "At 667 m, the highest capital in the EU. The Prado, Retiro Park, and late-night dinners."
    }
   },
   {
@@ -639,6 +719,10 @@
     ],
     "w": 60,
     "ref": "06R/24L"
+   },
+   "info": {
+    "pop": "6.2 million (metro)",
+    "fact": "The Brandenburg Gate and the remains of the Wall. It has more bridges than Venice."
    }
   },
   {
@@ -670,6 +754,10 @@
     ],
     "w": 60,
     "ref": "12R/30L"
+   },
+   "info": {
+    "pop": "3.8 million",
+    "fact": "The Burj Khalifa (828 m), the world's tallest building, and the Palm Jumeirah island built out into the Gulf."
    }
   },
   {
@@ -701,6 +789,10 @@
     ],
     "w": 60,
     "ref": "16L/34R"
+   },
+   "info": {
+    "pop": "37 million (metro)",
+    "fact": "The world's largest metro area, Shibuya Crossing, and Shinkansen trains on time to the second."
    }
   },
   {
@@ -732,6 +824,10 @@
     ],
     "w": 45,
     "ref": "14L-32R"
+   },
+   "info": {
+    "pop": "26 million (metro)",
+    "fact": "The Han River's 30+ bridges, five Joseon palaces, and K-pop."
    }
   },
   {
@@ -763,6 +859,10 @@
     ],
     "w": 60,
     "ref": "02L/20R"
+   },
+   "info": {
+    "pop": "6.0 million",
+    "fact": "A city-state on an island, Gardens by the Bay, Changi Airport, and one of the world's busiest ports."
    }
   },
   {
@@ -794,6 +894,10 @@
     ],
     "w": 45,
     "ref": "02L/20R"
+   },
+   "info": {
+    "pop": "17 million (metro)",
+    "fact": "Its full ceremonial name is the longest of any city. The Grand Palace, and the Chao Phraya River."
    }
   },
   {
@@ -825,6 +929,10 @@
     ],
     "w": 60,
     "ref": "06/24"
+   },
+   "info": {
+    "pop": "14.9 million (metro)",
+    "fact": "One of the world's most densely populated cities, Intramuros, and sunsets over Manila Bay."
    }
   },
   {
@@ -856,6 +964,10 @@
     ],
     "w": 60,
     "ref": "09/27"
+   },
+   "info": {
+    "pop": "21 million (metro)",
+    "fact": "Bollywood, the Gateway of India, and a city built on seven joined islands."
    }
   },
   {
@@ -887,6 +999,10 @@
     ],
     "w": 45,
     "ref": "10/28"
+   },
+   "info": {
+    "pop": "33 million (metro)",
+    "fact": "India's capital region, the Red Fort, Qutub Minar, and Lutyens' New Delhi."
    }
   },
   {
@@ -918,6 +1034,10 @@
     ],
     "w": 45,
     "ref": "16R/34L"
+   },
+   "info": {
+    "pop": "5.3 million (metro)",
+    "fact": "The Opera House, the Harbour Bridge (\"the Coathanger\"), and Bondi Beach."
    }
   },
   {
@@ -949,6 +1069,10 @@
     ],
     "w": 60,
     "ref": "16/34"
+   },
+   "info": {
+    "pop": "5.2 million (metro)",
+    "fact": "Laneway cafés, Australia's largest tram network, and the Melbourne Cricket Ground."
    }
   },
   {
@@ -980,6 +1104,10 @@
     ],
     "w": 60,
     "ref": "18L/36R"
+   },
+   "info": {
+    "pop": "22 million",
+    "fact": "The Forbidden City, the Great Wall in the hills to the north, and the only city to host both Summer and Winter Olympics."
    }
   },
   {
@@ -1011,6 +1139,10 @@
     ],
     "w": 60,
     "ref": "17L/35R"
+   },
+   "info": {
+    "pop": "25 million",
+    "fact": "The Bund, the Shanghai Tower (632 m, the world's third tallest), and the world's busiest container port."
    }
   },
   {
@@ -1042,6 +1174,10 @@
     ],
     "w": 60,
     "ref": "16L/34R"
+   },
+   "info": {
+    "pop": "17.6 million",
+    "fact": "A fishing town in 1980 that became China's tech hub, with more 200 m+ skyscrapers than any city but Hong Kong."
    }
   },
   {
@@ -1073,6 +1209,10 @@
     ],
     "w": 60,
     "ref": "02R/20L"
+   },
+   "info": {
+    "pop": "18.8 million",
+    "fact": "The Canton Tower, the Pearl River, Cantonese dim sum, and the Canton Fair, held since 1957."
    }
   },
   {
@@ -1104,6 +1244,10 @@
     ],
     "w": 60,
     "ref": "07C/25C"
+   },
+   "info": {
+    "pop": "7.5 million",
+    "fact": "The world's most skyscrapers, Victoria Harbour, and the Peak Tram."
    }
   },
   {
@@ -1135,6 +1279,10 @@
     ],
     "w": 46,
     "ref": "09L/27R"
+   },
+   "info": {
+    "pop": "6.3 million (metro)",
+    "fact": "Hartsfield-Jackson, the world's busiest passenger airport, and the birthplace of Martin Luther King Jr. and Coca-Cola."
    }
   },
   {
@@ -1166,6 +1314,10 @@
     ],
     "w": 46,
     "ref": "16L/34R"
+   },
+   "info": {
+    "pop": "4.0 million (metro)",
+    "fact": "The Space Needle, Mount Rainier on the horizon, Pike Place Market, and the home of Boeing's aircraft factories."
    }
   },
   {
@@ -1197,6 +1349,10 @@
     ],
     "w": 61,
     "ref": "10L/28R"
+   },
+   "info": {
+    "pop": "4.6 million (Bay Area core)",
+    "fact": "The Golden Gate Bridge, cable cars, Alcatraz, and more than 40 hills."
    }
   },
   {
@@ -1228,6 +1384,10 @@
     ],
     "w": 61,
     "ref": "16R/34L"
+   },
+   "info": {
+    "pop": "3.0 million (metro)",
+    "fact": "The \"Mile High City\" (1,609 m), with one step of the Capitol exactly a mile up, and the Rocky Mountains on the western skyline."
    }
   },
   {
@@ -1259,6 +1419,10 @@
     ],
     "w": 46,
     "ref": "15R/33L"
+   },
+   "info": {
+    "pop": "4.9 million (metro)",
+    "fact": "America's first public park and subway, the Freedom Trail, and Harvard and MIT across the river."
    }
   },
   {
@@ -1290,6 +1454,10 @@
     ],
     "w": 46,
     "ref": "08L/26R"
+   },
+   "info": {
+    "pop": "2.3 million (metro)",
+    "fact": "The Strip, Hoover Dam nearby, and the brightest city on Earth seen from space."
    }
   },
   {
@@ -1321,6 +1489,10 @@
     ],
     "w": 45,
     "ref": "08/26"
+   },
+   "info": {
+    "pop": "5.0 million (metro)",
+    "fact": "The \"Valley of the Sun\", Camelback Mountain, and over 300 days of sunshine a year."
    }
   },
   {
@@ -1352,6 +1524,10 @@
     ],
     "w": 46,
     "ref": "01/19"
+   },
+   "info": {
+    "pop": "6.3 million (metro)",
+    "fact": "The White House, the Capitol, the National Mall, and free Smithsonian museums."
    }
   },
   {
@@ -1383,6 +1559,10 @@
     ],
     "w": 45,
     "ref": "17R/35L"
+   },
+   "info": {
+    "pop": "15.7 million",
+    "fact": "The only major city on two continents, split by the Bosphorus. Hagia Sophia and the Grand Bazaar."
    }
   },
   {
@@ -1414,6 +1594,10 @@
     ],
     "w": 45,
     "ref": "10R/28L"
+   },
+   "info": {
+    "pop": "22 million (metro)",
+    "fact": "The largest city in the Southern Hemisphere, Avenida Paulista, and the largest Japanese community outside Japan."
    }
   },
   {
@@ -1445,6 +1629,10 @@
     ],
     "w": 60,
     "ref": "18R/36L"
+   },
+   "info": {
+    "pop": "2.5 million (metro)",
+    "fact": "165 canals, more bicycles than people, and the Rijksmuseum."
    }
   },
   {
@@ -1476,6 +1664,10 @@
     ],
     "w": 45,
     "ref": "11/29"
+   },
+   "info": {
+    "pop": "15.6 million (metro)",
+    "fact": "The birthplace of tango, Avenida 9 de Julio (one of the world's widest avenues), and the Río de la Plata."
    }
   },
   {
@@ -1507,6 +1699,10 @@
     ],
     "w": 45,
     "ref": "14L/32R"
+   },
+   "info": {
+    "pop": "11 million (metro)",
+    "fact": "At 2,640 m in the Andes, the Gold Museum, and Sunday Ciclovía with 120 km of car-free streets."
    }
   },
   {
@@ -1538,6 +1734,10 @@
     ],
     "w": 45,
     "ref": "16L/34R"
+   },
+   "info": {
+    "pop": "11 million (metro)",
+    "fact": "Pacific cliffs above the Costa Verde, a UNESCO-listed colonial centre, and a famous food scene (ceviche)."
    }
   },
   {
@@ -1569,6 +1769,10 @@
     ],
     "w": 45,
     "ref": "10/28"
+   },
+   "info": {
+    "pop": "13.7 million (metro)",
+    "fact": "Christ the Redeemer, Sugarloaf Mountain, Copacabana and Ipanema, and the world's biggest Carnival."
    }
   },
   {
@@ -1600,6 +1804,10 @@
     ],
     "w": 45,
     "ref": "17R/35L"
+   },
+   "info": {
+    "pop": "7.1 million (metro)",
+    "fact": "A valley at the foot of the snow-capped Andes, and Gran Torre Santiago, South America's tallest building."
    }
   },
   {
@@ -1631,6 +1839,10 @@
     ],
     "w": 60,
     "ref": "03L/21R"
+   },
+   "info": {
+    "pop": "10 million (Gauteng core)",
+    "fact": "Built on the 1886 gold rush, one of the world's largest man-made urban forests, and Soweto."
    }
   },
   {
@@ -1662,6 +1874,10 @@
     ],
     "w": 61,
     "ref": "01/19"
+   },
+   "info": {
+    "pop": "4.8 million (metro)",
+    "fact": "Table Mountain over the city, the Cape of Good Hope, and Robben Island."
    }
   },
   {
@@ -1693,6 +1909,10 @@
     ],
     "w": 45,
     "ref": "06/24"
+   },
+   "info": {
+    "pop": "5.3 million",
+    "fact": "Nairobi National Park, where giraffes and lions roam with the skyline behind them."
    }
   },
   {
@@ -1724,6 +1944,10 @@
     ],
     "w": 45,
     "ref": "17R/35L"
+   },
+   "info": {
+    "pop": "4.3 million (metro)",
+    "fact": "Morocco's largest city, and the Hassan II Mosque with its 210 m minaret above the Atlantic."
    }
   },
   {
@@ -1755,6 +1979,10 @@
     ],
     "w": 60,
     "ref": "06R/24L"
+   },
+   "info": {
+    "pop": "13 million (city)",
+    "fact": "Red Square, the Kremlin, St Basil's Cathedral, and a metro famous for its palace-like stations."
    }
   },
   {
@@ -1786,6 +2014,10 @@
     ],
     "w": 60,
     "ref": "10R/28L"
+   },
+   "info": {
+    "pop": "5.6 million",
+    "fact": "The Hermitage (3 million items), about 800 bridges over 342 canals and rivers, and White Nights in June."
    }
   }
  ]

@@ -12,6 +12,8 @@ import { Takeoff, Approach, Cruise, planeCam } from './flight.js';
 import { Drive } from './drive.js';
 import { WORLD_AIRCRAFT, airliner } from './models.js';
 import { dashSvg, updateDash } from '../cockpit-dash.js';
+import { clockTz } from './tz.js';
+import { GEO_LABELS, GEO_SHOW } from './geo-labels.js';
 
 const CITIES = catalog.cities;
 const byId = Object.fromEntries(CITIES.map((c) => [c.id, c]));
@@ -29,12 +31,16 @@ const CSS = `
 #wRoot>*{pointer-events:auto}
 body.hts-world #incidentPanel,body.hts-world #panel,body.hts-world #leftCol,body.hts-world #legend,body.hts-world #stats,body.hts-world #drivetimes,body.hts-world #whereami,body.hts-world #poiCard,body.hts-world #tip,body.hts-world #followChip,body.hts-world #vignette,body.hts-world #mHud,body.hts-world #houPlaces,body.hts-world #worldWrap,body.hts-world #tollWrap,body.hts-world #ambWrap,body.hts-world #locBtn,body.hts-world #camhint,body.hts-world .panelCollapseBtn{display:none!important}
 body.hts-world .railToggle,body.hts-world #bottomDock{display:none!important}
-#wCard .wAcc{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#wFlightTip{position:fixed;z-index:40;pointer-events:none;background:rgba(10,16,26,.92);color:#e8edf2;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font:12px/1.45 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:210px}#wFlightTip small{display:block;opacity:.6;font-size:10px;margin-top:2px}#wCard .wFact{font-size:12px;line-height:1.4;opacity:.85;margin:6px 0 4px;padding:6px 8px;background:rgba(255,255,255,.05);border-radius:8px}#wCard .wFact b{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:2px}#wCard .wSeg{display:flex;gap:4px}#wCard .wSeg .wbtn{padding:3px 9px;font-size:11px}#wCard .wAcc{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}
 #wCard .wChev{font-size:13px;opacity:.7;transition:transform .2s}
 #wCard.wMin .wChev{transform:rotate(-90deg)}
 #wCard.wMin .wBody{display:none}
 .wHide{display:none!important}
 #wLabels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.wgeo{position:absolute;left:0;top:0;white-space:nowrap;pointer-events:none;transform-origin:0 0;text-shadow:0 1px 3px #000,0 0 6px rgba(0,0,0,.7);color:#f2efe6;font:600 11px system-ui,sans-serif;opacity:.85}
+.wgeo.cont{font:700 15px system-ui,sans-serif;letter-spacing:.32em;color:#fff6dc;opacity:.8}.wgeo.ocean,.wgeo.sea{font:italic 500 13px Georgia,serif;letter-spacing:.12em;color:#a9d4ff}.wgeo.sea{font-size:11px}
+.wgeo.town{font:500 10.5px system-ui,sans-serif;color:#eef1f4}.wgeo.town i{display:inline-block;width:4px;height:4px;border-radius:50%;background:#e8eef4;margin-right:4px;vertical-align:middle}.wgeo.state{text-transform:uppercase;letter-spacing:.18em;font-size:9.5px;color:#e9dcb8;opacity:.7}
+.wgeo.country{text-transform:uppercase;letter-spacing:.14em;font-size:10px;color:#f5e9c8}.wgeo.water,.wgeo.river{font:italic 500 10.5px Georgia,serif;color:#9ccbff}
 .wcity{position:absolute;left:0;top:0;pointer-events:auto;display:flex;align-items:center;gap:5px;padding:2px 7px 2px 4px;border-radius:12px;border:0;background:rgba(8,14,24,.62);color:#e8edf2;font:600 12px system-ui,sans-serif;cursor:pointer;white-space:nowrap;transform:translate(-6px,-50%);backdrop-filter:blur(3px)}
 .wcity i{width:8px;height:8px;border-radius:50%;background:#7fd3ff;box-shadow:0 0 0 2px rgba(127,211,255,.3);flex:none}
 .wcity.hou{z-index:2;background:rgba(40,28,8,.78)}
@@ -58,8 +64,8 @@ body.hts-world .railToggle,body.hts-world #bottomDock{display:none!important}
 #wTitle small{display:block;font-weight:400;opacity:.75}
 #wCard{position:absolute;right:10px;bottom:12px;width:min(330px,calc(100vw - 20px));background:rgba(10,16,26,.9);border-radius:14px;padding:12px 14px;display:none;box-shadow:0 6px 24px rgba(0,0,0,.45)}
 #wCard h3{margin:0 0 2px;font-size:17px}#wCard .sub{opacity:.7;font-size:12px;margin-bottom:8px}
-#wCard .row{display:flex;justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px}
-#wCard .row b{font-weight:600}
+#wCard .row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-top:1px solid rgba(255,255,255,.06);font-size:13px}
+#wCard .row b{font-weight:600;text-align:right}
 #wCard .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 #wFly{margin-top:8px;display:none}
 #wFly select{width:100%;margin:4px 0;padding:7px;border-radius:8px;background:#141e2c;color:#e8edf2;border:1px solid #2a3a50;font:13px system-ui,sans-serif}
@@ -76,6 +82,9 @@ body.hts-world .railToggle,body.hts-world #bottomDock{display:none!important}
 `;
 
 let root, canvas, renderer, globe, land, labels = {}, active = false, raf = 0, last = 0;
+const geoEls = [];
+let places = null; /* Natural Earth towns/cities + states/provinces, shown as you zoom in */
+const PLACE_ALT = { c: [3000, 3000, 1800, 1000, 520], s: [0, 0, 2600, 1800] };
 let mode = 'globe', city = null, cs = null, focusCity = byId.houston, flight = null, drive = null, camView = 'chase';
 let weather = {}, wxAt = 0, traffic = [], trafficFor = null, trafficAt = 0, trafficBusy = false;
 const orbit = { tx: 0, tz: 0, r: 4200, theta: 0.6, phi: 0.95, goal: null };
@@ -92,7 +101,9 @@ for (let i = 0; i < CITIES.length; i++) for (let j = i + 1; j < CITIES.length; j
 function el(tag, attrs, html) { const e = document.createElement(tag); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); if (html != null) e.innerHTML = html; return e; }
 function toast(msg, ms = 3200) { ui.toast.textContent = msg; ui.toast.style.display = 'block'; clearTimeout(toast._t); toast._t = setTimeout(() => { ui.toast.style.display = 'none'; }, ms); }
 function localTime(c) {
-  try { return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', weekday: 'short', timeZone: c.tz }).format(new Date()); } catch (e) { return ''; }
+  try {
+    return clockTz(c.tz);
+  } catch (e) { return ''; }
 }
 function tempStr(c, w) { if (!w) return ''; const f = Math.round(w.temp * 9 / 5 + 32), cc = Math.round(w.temp); return usesF(c) ? f + '°F' : cc + '°C'; }
 
@@ -115,8 +126,9 @@ function buildDom() {
   ui.toast = el('div', { id: 'wToast' }); root.appendChild(ui.toast);
   ui.dash = el('div', { id: 'wDash' }, dashSvg('jet')); root.appendChild(ui.dash);
   ui.help = el('div', { id: 'wHelp' }); root.appendChild(ui.help);
-  root.appendChild(el('div', { id: 'wAttr' }, '© OpenStreetMap contributors · Natural Earth · Open-Meteo · airplanes.live / adsb.lol'));
+  root.appendChild(el('div', { id: 'wAttr' }, '© OpenStreetMap contributors · Natural Earth · Sentinel-2 cloudless by EOX (Copernicus 2016) · Open-Meteo · airplanes.live / adsb.lol'));
   document.body.appendChild(root);
+  for (const g of GEO_LABELS) { const d = el('div', { class: 'wgeo ' + g[3] }, g[0]); d.style.display = 'none'; ui.labels.appendChild(d); geoEls.push([d, g]); }
   for (const c of CITIES) {
     const b = el('button', { class: 'wcity' + (c.full ? ' hou' : '') + (c.drive ? '' : ' nodrive'), type: 'button', title: c.name + ', ' + c.country }, `<i></i>${c.name}<small></small>`);
     b.addEventListener('click', (e) => { e.stopPropagation(); selectCity(c, true); });
@@ -167,7 +179,13 @@ function wireInput() {
   const own = (e) => { if (!active) return false; e.stopImmediatePropagation(); return true; };
   const C = { capture: true };
   canvas.addEventListener('pointerdown', (e) => { if (!own(e) || e.pointerType === 'touch') return; canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, pan: e.button !== 0 || e.shiftKey }; }, C);
+  let hovT = 0;
   canvas.addEventListener('pointermove', (e) => {
+    if (active && !drag && e.pointerType !== 'touch' && mode === 'city' && cs && cs.pickTraffic && performance.now() - hovT > 60) {
+      hovT = performance.now();
+      const r = canvas.getBoundingClientRect(), f = cs.pickTraffic(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1, r.width, r.height);
+      showFlightTip(f, e.clientX, e.clientY);
+    }
     if (!own(e) || !drag || e.pointerType === 'touch') return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
     look(dx, dy, drag.pan);
@@ -192,6 +210,15 @@ function wireInput() {
   }, { capture: true, passive: false });
   canvas.addEventListener('touchend', (e) => { if (!own(e)) return; for (const t of e.changedTouches) touches.delete(t.identifier); if (touches.size < 2) pinch = 0; }, C);
   addEventListener('keydown', onKey, true);
+}
+function showFlightTip(f, x, y) {
+  let t = document.getElementById('wFlightTip');
+  if (!f) { if (t) t.style.display = 'none'; canvas.style.cursor = ''; return; }
+  if (!t) { t = el('div', { id: 'wFlightTip' }); document.body.appendChild(t); }
+  const alt = f.onGround ? 'On the ground' : Math.round(f.altFt || 0).toLocaleString() + ' ft';
+  t.innerHTML = `<b>${f.call || 'Unknown flight'}</b>${f.type ? ' · ' + f.type : ''}<br>${alt} · ${Math.round(f.gs || 0)} kt (${Math.round((f.gs || 0) * 1.15078)} mph)<br>Heading ${Math.round(f.hdg || 0)}°${f.reg ? ' · ' + f.reg : ''}<small>Live ADS-B</small>`;
+  t.style.display = 'block'; t.style.left = Math.min(innerWidth - 220, x + 14) + 'px'; t.style.top = Math.max(8, y - 70) + 'px';
+  canvas.style.cursor = 'pointer';
 }
 function onKey(e) {
   if (!active) return;
@@ -289,7 +316,7 @@ async function loadTraffic(c, nm) {
     if (j && Array.isArray(j.ac) && j.ac.length) {
       rows = j.ac.filter((a) => Number.isFinite(a.lat) && Number.isFinite(a.lon)).map((a) => ({
         lat: a.lat, lng: a.lon, onGround: a.alt_baro === 'ground', altFt: typeof a.alt_baro === 'number' ? a.alt_baro : 0,
-        hdg: a.track || a.true_heading || 0, gs: a.gs || 0, call: (a.flight || '').trim(), type: a.t || '',
+        hdg: a.track || a.true_heading || 0, gs: a.gs || 0, call: (a.flight || '').trim(), type: a.t || '', reg: a.r || '',
       }));
       break;
     }
@@ -311,19 +338,31 @@ function selectCity(c, fly) {
   if (c.full) { /* Houston keeps the full simulator */
     globe.flyTo(c.lat, c.lng, 40, fly ? 2.6 : 0.6, () => close({ lat: c.lat, lng: c.lng })); return;
   }
+  prefetchCity(c); /* build the city while the camera is still flying down, so it opens without a loading step */
   globe.flyTo(c.lat, c.lng, 45, fly ? 2.6 : 0.6, () => enterCity(c));
 }
+let pre = null, preK = 0, showLoad = false;
+function prefetchCity(c) {
+  if (pre && pre.id === c.id) return pre.p;
+  if (pre) pre.p.then((s) => { if (s && s !== cs) s.dispose(); }).catch(() => {});
+  preK = 0;
+  const p = createCityScene({ city: c, renderer, mobile, onProgress: (k) => { preK = k; if (showLoad) setLoading(true, null, k); } });
+  pre = { id: c.id, p }; p.catch(() => { if (pre && pre.p === p) pre = null; });
+  return p;
+}
 async function loadCity(c) {
-  setLoading(true, 'Loading ' + c.name + '…', 0.1);
+  const p = prefetchCity(c);
+  /* only show the loading card if the city is still not ready a moment after arrival */
+  const lt = setTimeout(() => { showLoad = true; setLoading(true, 'Loading ' + c.name + '…', Math.max(0.1, preK)); }, 350);
   try {
-    const s = await createCityScene({ city: c, renderer, mobile, onProgress: (k) => setLoading(true, null, k) });
+    const s = await p; pre = null;
     s.resize(canvas.clientWidth, canvas.clientHeight);
     s.setWeather(weather[c.id] || null);
     if (trafficFor === c.id) s.setTraffic(traffic);
     return s;
-  } finally { setLoading(false); }
+  } finally { clearTimeout(lt); showLoad = false; setLoading(false); }
 }
-function disposeCity() { if (drive) { drive.dispose(); drive = null; } if (cs) { cs.dispose(); cs = null; } city = null; }
+function disposeCity() { showFlightTip(null); if (drive) { drive.dispose(); drive = null; } if (cs) { cs.dispose(); cs = null; } city = null; }
 async function enterCity(c, keepPose) {
   if (city && city.id === c.id && cs) { mode = 'city'; renderCard(); return; }
   disposeCity();
@@ -438,6 +477,8 @@ function renderCard() {
     <div class="row"><span>Weather</span><b>${wx}</b></div>
     <div class="row"><span>Wind</span><b>${wind}</b></div>
     <div class="row"><span>Airport</span><b>${c.apt.code} · ${c.apt.name}</b></div>
+    ${c.info ? `<div class="row"><span>Population</span><b>${c.info.pop}</b></div><div class="wFact"><b>Known for</b> ${c.info.fact}</div>` : ''}
+    ${city && cs && cs.setLook && !c.full ? `<div class="row"><span>Sky</span><span class="wSeg">${[['live', 'Live'], ['day', 'Day'], ['night', 'Night']].map(([m, n]) => `<button class="wbtn${cs.look === m ? ' pri' : ''}" data-a="look-${m}" title="${m === 'live' ? 'Real local sun and weather' : 'Preview ' + c.name + ' by ' + n.toLowerCase()}">${n}</button>`).join('')}</span></div>` : ''}
     <div class="row"><span>Live aircraft nearby</span><b>${n == null ? '…' : n}</b></div>
     ${city && cs ? `<div class="row"><span>3D buildings</span><b>${cs.buildings ? cs.buildings.toLocaleString() : (c.full ? 'full simulator' : '—')}</b></div>` : ''}
     <div class="acts">
@@ -449,7 +490,7 @@ function renderCard() {
     </div>
     ${c.drive ? '' : `<div class="sub" style="margin:6px 0 0">${c.region === 'South America' ? 'No road link to Houston (Darién Gap) — fly instead.' : 'Driving is available in the Americas cities.'}</div>`}
     <div id="wFly" style="display:${flyOpen && city ? 'block' : 'none'}"><select id="wDest">${others.map((o) => `<option value="${o.id}"${o.id === flySel.dest ? ' selected' : ''}>${o.name} (${o.apt.code}) · ${Math.round(gcDist(c, o)).toLocaleString()} km</option>`).join('')}</select>
-      <select id="wType">${WORLD_AIRCRAFT.map((a) => `<option value="${a[0]}"${a[0] === flySel.type ? ' selected' : ''}>${a[1]}</option>`).join('')}</select>
+      <select id="wType">${WORLD_AIRCRAFT.concat(window.HTS_INTERCITY_FLY ? [['fighter', 'F-16 Fighting Falcon'], ['b2', 'B-2 Spirit'], ['c130', 'C-130 Hercules']] : []).map((a) => `<option value="${a[0]}"${a[0] === flySel.type ? ' selected' : ''}>${a[1]}</option>`).join('')}</select>
       <button class="wbtn pri" data-a="go" style="width:100%">Take off from ${c.apt.code}</button></div></div>`;
   ui.card.querySelectorAll('[data-a]').forEach((b) => b.addEventListener('click', () => cardAction(b.dataset.a)));
   for (const [id, k] of [['#wDest', 'dest'], ['#wType', 'type']]) { const e = ui.card.querySelector(id); if (e) e.addEventListener('change', () => { flySel[k] = e.value; }); }
@@ -459,6 +500,7 @@ function renderCard() {
 }
 async function cardAction(a) {
   const c = city || focusCity;
+  if (a.startsWith('look-')) { if (cs && cs.setLook) cs.setLook(a.slice(5)); renderCard(); return; }
   if (a === 'min') { cardMin = !cardMin; try { localStorage.setItem('hts-wcard-min', cardMin ? '1' : '0'); } catch { /* private mode */ } renderCard(); return; }
   if (a === 'visit') selectCity(c, true);
   else if (a === 'from') { await enterCity(c); cardAction('fly'); }
@@ -524,6 +566,16 @@ function setNear(cam, n) { if (cam.near !== n) { cam.near = n; cam.updateProject
 let lastW = 0, lastH = 0;
 /* the Houston renderer may run with autoClear off (cinematic pass): always start from a clean frame */
 function draw(scene, cam) { const ac = renderer.autoClear; renderer.setRenderTarget(null); renderer.autoClear = true; renderer.render(scene, cam); renderer.autoClear = ac; }
+function globeRose(cam) {
+  /* north on screen: tangent toward the pole at the point under the camera, projected on the camera's right/up axes */
+  if (!(roseEl || (roseEl = document.getElementById('rose')))) return;
+  _gp.copy(cam.position).normalize(); _gn.set(0, 1, 0).addScaledVector(_gp, -_gp.y);
+  if (_gn.lengthSq() < 1e-8) return;
+  _gr.set(1, 0, 0).applyQuaternion(cam.quaternion); _gu.set(0, 1, 0).applyQuaternion(cam.quaternion);
+  const deg = Math.atan2(_gn.dot(_gr), _gn.dot(_gu)) * 180 / Math.PI;
+  roseEl.style.transform = 'rotate(' + deg.toFixed(1) + 'deg)'; roseEl.style.setProperty('--rr', deg.toFixed(1) + 'deg');
+}
+const _gp = new THREE.Vector3(), _gn = new THREE.Vector3(), _gr = new THREE.Vector3(), _gu = new THREE.Vector3();
 export function frame(now) {
   if (!active) return;
   if (canvas.clientWidth !== lastW || canvas.clientHeight !== lastH) { lastW = canvas.clientWidth; lastH = canvas.clientHeight; resize(); }
@@ -536,7 +588,7 @@ export function frame(now) {
     const f = flight, p = f.cruise.pos;
     globe.update(dt);
     globe.chase(p.lat, p.lng, p.hdg + f.cyaw * 57.3, f.camAlt, f.camAlt * 1.8);
-    draw(globe.scene, globe.camera);
+    draw(globe.scene, globe.camera); globeRose(globe.camera);
     /* the aircraft itself, drawn on top at chase distance — no icon */
     const L = f.heroPlane.userData.len || 40, cam = f.heroCam;
     cam.aspect = canvas.clientWidth / canvas.clientHeight; cam.updateProjectionMatrix();
@@ -558,7 +610,7 @@ export function frame(now) {
       all.push({ lat: p.lat, lng: p.lng, altFt: 35000 * Math.min(1, Math.min(k, 1 - k) * 25), hdg: bearing(p, n), sim: true });
     }
     globe.setFlights(all);
-    draw(globe.scene, globe.camera);
+    draw(globe.scene, globe.camera); globeRose(globe.camera);
     placeLabels();
   } else if (cs) {
     const cam = cs.camera;
@@ -574,7 +626,7 @@ export function frame(now) {
     else if (drive) { drive.update(dt); drive.camera(cam, dt); setNear(cam, 0.2); }
     else cityCam(dt);
     cs.update(dt, cam);
-    if (roseEl || (roseEl = document.getElementById('rose'))) { cam.getWorldDirection(_cd); roseEl.style.transform = 'rotate(' + (Math.atan2(-_cd.x, -_cd.z) * 180 / Math.PI).toFixed(1) + 'deg)'; }
+    if (roseEl || (roseEl = document.getElementById('rose'))) { cam.getWorldDirection(_cd); const rd = (Math.atan2(-_cd.x, -_cd.z) * 180 / Math.PI).toFixed(1) + 'deg'; roseEl.style.transform = 'rotate(' + rd + ')'; roseEl.style.setProperty('--rr', rd); }
     if (city && !flight) loadTraffic(city, 80);
     draw(cs.scene, cam);
   }
@@ -582,7 +634,22 @@ export function frame(now) {
 }
 function placeLabels() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
-  const far = globe.state.alt > 14000;
+  const far = globe.state.alt > 14000, alt = globe.state.alt;
+  for (const [d, g] of geoEls) {
+    const s = GEO_SHOW[g[3]], p = alt >= s[0] && alt <= s[1] && globe.project(g[1], g[2], w, h);
+    if (!p) { if (d.style.display !== 'none') d.style.display = 'none'; continue; }
+    d.style.display = ''; d.style.transform = `translate(${p.x | 0}px,${p.y | 0}px) translate(-50%,-50%)`;
+  }
+  if (places === null) { places = []; fetch('/data/world/places.json?r=1', { cache: 'force-cache' }).then((r) => r.json()).then((L) => { const known = new Set(CITIES.map((c) => c.name)); places = L.filter((q) => !known.has(q[0])).sort((a, b) => a[3] - b[3]); }).catch(() => {}); }
+  const occ = new Set();
+  for (const q of places) {
+    const lim = PLACE_ALT[q[4]][q[3]] || 0, show = alt < lim && !(q[4] === 's' && alt < 160);
+    let p = show && globe.project(q[1], q[2], w, h);
+    if (p) { const cx = (p.x / 110) | 0, cy = (p.y / 20) | 0; if (occ.has(cx + ',' + cy) || occ.has(cx - 1 + ',' + cy) || occ.has(cx + 1 + ',' + cy)) p = null; else occ.add(cx + ',' + cy); }
+    if (!p) { if (q[5] && q[5].style.display !== 'none') q[5].style.display = 'none'; continue; }
+    if (!q[5]) { q[5] = el('div', { class: 'wgeo ' + (q[4] === 's' ? 'state' : 'town') }, (q[4] === 'c' ? '<i></i>' : '') + q[0]); ui.labels.insertBefore(q[5], ui.labels.firstChild); }
+    q[5].style.display = ''; q[5].style.transform = `translate(${p.x | 0}px,${p.y | 0}px) translate(${q[4] === 'c' ? '-3px' : '-50%'},-50%)`;
+  }
   for (const c of CITIES) {
     const b = labels[c.id]; const p = globe.project(c.lat, c.lng, w, h);
     if (!p) { b.style.display = 'none'; continue; }

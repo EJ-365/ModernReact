@@ -213,7 +213,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     const g = new THREE.Group();
     const P = [], C = [], I = [], WP = [], WI = [], RP = [], RI = [];
     const col = new THREE.Color(), st = { t: performance.now() };
-    const resid = new PolyGrid(250), block = new PolyGrid(250), treeAreas = [];
+    const resid = new PolyGrid(250), block = new PolyGrid(250), water = new PolyGrid(250), treeAreas = [];
     for (const cls of ORDER) {
       const multis = d.classes[cls]; if (!multis) continue;
       const spec = LAND[cls];
@@ -221,7 +221,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       for (const poly of multis.flat(1)) {
         if (cls === 'water') {
           if (isSpuriousWater(poly[0])) continue; /* Magnolia Park / East End flood fix */
-          polyTris(poly, spec.y * k, col.setHex(spec.c), WP, [], WI);
+          polyTris(poly, spec.y * k, col.setHex(spec.c), WP, [], WI); water.add(poly);
         } else {
           col.setHex(spec.c).offsetHSL(0, 0, (hash(poly[0].length * 977 + (poly[0][0] | 0)) - 0.5) * 0.06);
           polyTris(poly, spec.y * k, col, P, C, I);
@@ -248,7 +248,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     }
     for (const rl of d.rail || []) ribbon(rl.p, 3.4, 0.13 * k, RP, RI);
     for (const m of [mesh(P, I, mats.land, C), mesh(WP, WI, mats.water), mesh(RP, RI, mats.rail)]) if (m) g.add(m);
-    return { g, resid, block, treeAreas };
+    return { g, resid, block, water, treeAreas };
   }
 
   /** Detail layer (trees, bushes, houses): built lazily only for tiles near the camera. */
@@ -267,11 +267,19 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       const [x0, z0, x1, z1] = bbox(poly[0]);
       for (let i = 0, tries = 0; i < n && tries < n * 3 && trees.length + bushes.length < MAX_TREES; tries++) {
         const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0);
-        if (!inRing(poly[0], x, z) || inField(x, z)) continue; i++;
+        if (!inRing(poly[0], x, z) || inField(x, z) || (t.water && t.water.hit(x, z))) continue; i++;
         const h = cls === 'scrub' ? 1 + rnd() * 1.6 : 7 + rnd() * 9;
         (cls === 'scrub' ? bushes : trees).push({ x, z, sx: h * 0.42, sy: h * 0.5, sz: h * 0.42, r: rnd() * 6.28, c: TREE_COLS[(rnd() * TREE_COLS.length) | 0] });
       }
       await yieldIf(st);
+    }
+    if (!index.local.has(key) && (trees.length || bushes.length)) {
+      const maj = (await majorRoads()).get(key) || [], occ = new Set(), cell = 4, ck = (gx, gz) => gx * 1000003 + gz;
+      for (const r of maj) { const p = r.p, R = Math.ceil((r.w / 2 + 3) / cell);
+        for (let i = 2; i < p.length; i += 2) { const ax = p[i - 2], az = p[i - 1], n = Math.max(1, Math.ceil(Math.hypot(p[i] - ax, p[i + 1] - az) / cell));
+          for (let j = 0; j <= n; j++) { const gx = Math.floor((ax + (p[i] - ax) * j / n) / cell), gz = Math.floor((az + (p[i + 1] - az) * j / n) / cell);
+            for (let dx = -R; dx <= R; dx++) for (let dz = -R; dz <= R; dz++) occ.add(ck(gx + dx, gz + dz)); } } }
+      for (const arr of [trees, bushes]) { let k = 0; for (const o of arr) if (!occ.has(ck(Math.floor(o.x / cell), Math.floor(o.z / cell)))) arr[k++] = o; arr.length = k; }
     }
     /* houses: both sides of real residential streets, inside residential land use, facing the street */
     if (index.local.has(key)) {
@@ -295,6 +303,8 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
         }
         await yieldIf(st);
       }
+      /* park / wood polygons often span the streets through them (downtown): keep their trees off the pavement */
+      for (const arr of [trees, bushes]) { let k = 0; for (const o of arr) if (!occ.has(ck(Math.floor(o.x / cell), Math.floor(o.z / cell)))) arr[k++] = o; arr.length = k; }
       const free = (x, z) => { for (const ox of [-6, 0, 6]) for (const oz of [-6, 0, 6]) if (occ.has(ck(Math.floor((x + ox) / cell), Math.floor((z + oz) / cell)))) return false; return true; };
       outer: for (const r of (lr && lr.roads) || []) {
         if (r.h !== 'residential' && r.h !== 'living_street' && r.h !== 'unclassified') continue;

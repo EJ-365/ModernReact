@@ -699,7 +699,7 @@
   #rose::before{content:'';position:absolute;inset:0;border-radius:50%;
     background:repeating-conic-gradient(from -1.5deg,#3a434e 0 3deg,transparent 3deg 45deg)}
   #rose span{position:absolute;font-size:9.5px;font-weight:900;color:#aeb7c0;
-    width:12px;text-align:center;left:calc(50% - 6px)}
+    width:12px;text-align:center;left:calc(50% - 6px);transform:rotate(calc(-1 * var(--rr,0deg)))} /* letters stay upright while the rose turns */
   #rose .cn{top:4px;color:#ff6b5e;font-size:10.5px}
   #rose .ce{top:calc(50% - 7px);left:auto;right:1px}
   #rose .cs{bottom:1px}
@@ -972,7 +972,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.85.1</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.91.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">

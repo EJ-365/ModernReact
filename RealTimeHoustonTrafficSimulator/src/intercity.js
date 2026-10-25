@@ -31,7 +31,7 @@ export function tourAirport(city) {
   let p;
   if (a.rwy && a.rwy.length === 2) { const p0 = cityPt(city, a.rwy[0][0], a.rwy[0][1]), p1 = cityPt(city, a.rwy[1][0], a.rwy[1][1]); p = [p0.x, p0.z, p1.x, p1.z]; }
   else { const h = (a.hdg || 90) * D2R, L = (a.len || 3000) / 2; p = [c.x - Math.sin(h) * L, c.z + Math.cos(h) * L, c.x + Math.sin(h) * L, c.z - Math.cos(h) * L]; }
-  return { code: a.code, n: a.name, x: (p[0] + p[2]) / 2, z: (p[1] + p[3]) / 2, rws: [{ p, w: a.w || 45, ref: a.ref }], world: city.id, lat: a.lat, lng: a.lng };
+  return { code: a.code, n: a.name, x: (p[0] + p[2]) / 2, z: (p[1] + p[3]) / 2, rws: [{ p, w: a.w || 45, ref: a.ref }], world: city.id, tz: city.tz, lat: a.lat, lng: a.lng };
 }
 export function realKm(a, b) { return gcDist(a, b); }
 
@@ -88,13 +88,10 @@ async function ensureGround(scene) {
   U.map.value = tex; U.nmap.value = ntex;
   const mat = new THREE.ShaderMaterial({
     uniforms: U, fog: true, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 4,
+    /* fog is computed per pixel: this ground is one 1,200 km quad, so per-vertex fog depth painted it all fog-white */
     vertexShader: `varying vec3 vW;
-      #include <fog_pars_vertex>
-      void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vec4 mvPosition=viewMatrix*w; gl_Position=projectionMatrix*mvPosition;
-      #include <fog_vertex>
-      }`,
-    fragmentShader: `uniform sampler2D map; uniform sampler2D nmap; uniform float nightK; uniform vec3 light; uniform vec2 cW[${MAXC}]; uniform vec2 cLL[${MAXC}]; uniform vec2 cK[${MAXC}]; varying vec3 vW;
-      #include <fog_pars_fragment>
+      void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
+    fragmentShader: `uniform sampler2D map; uniform sampler2D nmap; uniform float nightK; uniform vec3 light; uniform vec2 cW[${MAXC}]; uniform vec2 cLL[${MAXC}]; uniform vec2 cK[${MAXC}]; varying vec3 vW; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       void main(){
         float lng=(vW.x-60.0)/${KX.toFixed(3)}+${LNG0.toFixed(4)}, lat=${LAT0.toFixed(4)}-(vW.z-60.0)/${KZ.toFixed(3)};
         for(int i=0;i<${MAXC};i++){ vec2 d=vW.xz-cW[i]; float r=length(d); float k=1.0-smoothstep(60000.0,140000.0,r);
@@ -112,10 +109,11 @@ async function ensureGround(scene) {
         lit+=texture2D(nmap,uv).rgb*nightK*0.9;
         gl_FragColor=vec4(lit,1.0);
         #include <colorspace_fragment>
-        #include <fog_fragment>
+        gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(fogNear,fogFar,length(vW-cameraPosition)));
       }`,
   });
-  ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  /* subdivided: a single 1,200 km quad broke depth testing on some GPUs, so it painted over the city, the road and your car */
+  ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 48, 48), mat);
   ground.rotation.x = -Math.PI / 2; ground.scale.set(1.2e6, 1.2e6, 1); ground.position.y = -12;
   ground.frustumCulled = false; ground.name = 'intercityGround';
   scene.add(ground);
@@ -221,23 +219,25 @@ export async function driveRoute(city) {
     }
   }
   const e = raw[raw.length - 1]; out.push({ x: e.x, z: e.z, k: 1, la: e.la, ln: e.ln, ref: '' });
-  let rr = 0;
+  let rr = 0; const cw = hw(city.lat, city.lng);
   for (let i = out.length - 1; i >= 0; i--) {
     const p = out[i]; if (i < out.length - 1) rr += Math.hypot(out[i + 1].x - p.x, out[i + 1].z - p.z) / p.k;
-    p.rr = rr; p.y = 0.27; p.ln = 2; p.lw = 3.6; p.lx = 0; p.lz = 0; p.h = 'motorway';
+    /* city streets sit at 0.3-0.5 m (embedded scene layers): ride just above them on our own lane strip there so the car isn't swallowed; open highway deck is 0.06 */
+    const gp = hw(p.la, p.ln), dc = Math.hypot(gp.x - cw.x, gp.z - cw.z);
+    p.rr = rr; p.y = city.full ? 0.27 : 0.27 + 0.5 * (1 - sstep(40000, 50000, dc)); p.ln = 2; p.lw = 3.6; p.lx = 0; p.lz = 0; p.h = 'motorway';
     p.ff = rr < 2500 ? 35 : rr < 20000 ? 55 : TX(p.la, p.ln) ? 75 : p.la < 26 ? 68 : 70;
     const ref = String(p.ref || '').replace(/^I\s+(\d+)/, 'I-$1').replace(/^US\s+(\d+)/, 'US-$1').split(';')[0];
-    p.ref = ref; p.name = ref ? ref + ' → ' + city.name : 'Highway to ' + city.name;
+    p.ref = ref; p.name = ref ? ref + ' → ' + city.name : 'Highway';
   }
   return { pts: out, km: D.km };
 }
 function laneTex() {
   if (laneT) return laneT;
   const W = 128, H = 256, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-  const g = cv.getContext('2d'); g.fillStyle = '#404246'; g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 2600; i++) { const v = 52 + Math.random() * 26 | 0; g.fillStyle = `rgba(${v},${v},${v + 3},.5)`; g.fillRect(Math.random() * W, Math.random() * H, 1.5, 1.5); }
+  const g = cv.getContext('2d'); g.fillStyle = '#6a6c70'; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) { const v = 88 + Math.random() * 34 | 0; g.fillStyle = `rgba(${v},${v},${v + 3},.5)`; g.fillRect(Math.random() * W, Math.random() * H, 1.5, 1.5); }
   const u = (m) => (m + 6.4) / 10.6 * W; /* metres across: -6.4 inner shoulder … +4.2 outer shoulder */
-  g.fillStyle = '#56575a'; g.fillRect(u(1.95), 0, W - u(1.95), H); g.fillRect(0, 0, u(-5.5), H);
+  g.fillStyle = '#85868a'; g.fillRect(u(1.95), 0, W - u(1.95), H); g.fillRect(0, 0, u(-5.5), H);
   g.fillStyle = '#e8c547'; g.fillRect(u(-5.55), 0, 2.2, H); /* yellow inner edge */
   g.fillStyle = '#f1f1ec'; g.fillRect(u(1.8), 0, 2.2, H); /* white outer edge */
   g.fillRect(u(-1.85), 0, 2, H * 0.25); /* 3 m dash, 9 m gap */
@@ -253,6 +253,11 @@ export function clearHighway() {
 /** Draw route P[from..] as an interstate: two carriageways, grass median, shoulders, roadside trees. */
 export function buildHighway(scene, P, from = 0) {
   clearHighway();
+  /* 40 m of lane beyond each end: the tour car can sit a few metres off the first/last route point (it started on grass in Dallas) */
+  if (P.length > 1) {
+    const ext = (a, b) => { const dx = a.x - b.x, dz = a.z - b.z, L = Math.hypot(dx, dz) || 1; return { ...a, x: a.x + dx / L * 40, z: a.z + dz / L * 40 }; };
+    P = [ext(P[0], P[1]), ...P.slice(Math.max(0, from)), ext(P[P.length - 1], P[P.length - 2])]; from = 0;
+  }
   hwy = new THREE.Group(); hwy.name = 'intercityHighway';
   const mRoad = new THREE.MeshLambertMaterial({ map: laneTex() });
   const mGrass = new THREE.MeshLambertMaterial({ color: 0x5d6f3e }), mVerge = new THREE.MeshLambertMaterial({ color: 0x6f7a48 });
@@ -271,7 +276,9 @@ export function buildHighway(scene, P, from = 0) {
         let dx = pb.x - pa.x, dz = pb.z - pa.z; const L = Math.hypot(dx, dz) || 1; dx /= L; dz /= L;
         const rx = -dz, rz = dx;
         if (i > c0) sv += Math.hypot(p.x - P[i - 1].x, p.z - P[i - 1].z);
-        pos.push(p.x + rx * a - o.x, y, p.z + rz * a - o.z, p.x + rx * b - o.x, y, p.z + rz * b - o.z);
+        /* your carriageway follows the route height (0.21 m under the car): in cities it rides over the OSM streets, so the car is never on bare grass or sunk into a street */
+        const yy = tx && a === -6.4 ? Math.max(y, (p.y != null ? p.y : 0.27) - 0.21) : y;
+        pos.push(p.x + rx * a - o.x, yy, p.z + rz * a - o.z, p.x + rx * b - o.x, yy, p.z + rz * b - o.z);
         uv.push(0, sv / 12, 1, sv / 12);
         if (i > c0) { const k = (i - c0) * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
       }

@@ -4,6 +4,7 @@
  * Units: kilometres. Free data only (Natural Earth is public domain).
  */
 import * as THREE from 'three';
+import { createTilePatch } from './globe-tiles.js';
 
 export const R_EARTH = 6371;
 const D2R = Math.PI / 180;
@@ -229,6 +230,7 @@ export function createGlobe({ catalog, land, mobile, maxTex }) {
       }`,
   });
   const earth = new THREE.Mesh(new THREE.SphereGeometry(R_EARTH, mobile ? 128 : 192, mobile ? 96 : 128), earthMat);
+  const tiles = createTilePatch({ scene, R: R_EARTH, llToVec, sunDir });
   loadNasaTex(tag, maxTex, (d, n) => { earthMat.uniforms.day.value = d; earthMat.uniforms.night.value = n; dayTex.dispose(); nightTex.dispose(); });
   scene.add(earth);
   const clouds = new THREE.Mesh(new THREE.SphereGeometry(R_EARTH + 9, 96, 64),
@@ -326,6 +328,7 @@ export function createGlobe({ catalog, land, mobile, maxTex }) {
       if (state.lng > 180) state.lng -= 360; if (state.lng < -180) state.lng += 360;
     }
     if (!api.chaseOn) applyCam();
+    tiles.update(state.lat, state.lng, state.alt);
     earthMat.uniforms.lightK.value = THREE.MathUtils.clamp((state.alt - 300) / 3500, 0.12, 1); /* city-light texture is coarse up close */
     if (planeHalo.visible) planeHalo.material.opacity = 0.35 + 0.3 * Math.sin(performance.now() / 300);
   }

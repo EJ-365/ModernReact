@@ -74,6 +74,10 @@ const HTS_CITY_ID=(window.HTS_CITY&&window.HTS_CITY.id)||'houston';
 const HTS_IS_AUS=HTS_CITY_ID==='austin';
 const HTS_HAS_PACK=!!(HTS_PACK&&HTS_PACK.useBuiltinRoads===false);
 const CITY_NAME=(window.HTS_CITY&&window.HTS_CITY.name)||'Houston';
+const _roseDir=new THREE.Vector3();
+function updateRose(roseEl){
+  if(roseEl){camera.getWorldDirection(_roseDir);const hz=Math.hypot(_roseDir.x,_roseDir.z);const deg=hz>0.02?Math.atan2(-_roseDir.x,-_roseDir.z)*180/Math.PI:cam.theta*180/Math.PI;roseEl.style.transform='rotate('+deg.toFixed(1)+'deg)';roseEl.style.setProperty('--rr',deg.toFixed(1)+'deg');}
+}
 const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':(HTS_CITY_ID==='houston'?'Greater Houston':(CITY_NAME+' metro')));
 const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':(HTS_CITY_ID==='houston'?'Houston-area':(CITY_NAME+'-area')));
 const METRO_LAT=(window.HTS_CITY&&window.HTS_CITY.origin&&window.HTS_CITY.origin.lat)||29.7604;
@@ -3953,13 +3957,18 @@ function makeAirliner(finCol,liv,type){
   const dK=T.dK,R=2.35*dK,Y=T.dbl||1,yc=R*(Y-1);         /* double-deck grows upward: belly stays at -R */
   const Lc=45*T.lK-(T.nose+3.83)*R,zF=Lc/2,zB=-Lc/2;      /* constant-section barrel between nose and tail cone */
   add(new THREE.CylinderGeometry(R,R,Lc,24),white,0,yc,0,Math.PI/2).scale.z=Y;
-  const nose=add(new THREE.SphereGeometry(R,24,16),white,0,yc-0.12*dK,zF);nose.scale.set(1,0.95*Y,T.nose);
+  /* Boeing: tapered, pointed nose with the tip dropped low; Airbus: fuller, rounder, blunt nose (see type references) */
+  const boeing=/^b7/.test(type||'b737'),droop=boeing?0.12:0.04;
+  const nose=add(noseShape(new THREE.SphereGeometry(R,32,20),R,boeing),white,0,yc-0.12*dK,zF);nose.scale.set(1,0.95*Y,T.nose);
   /* face: dark wrap-around cockpit windscreen band on the upper nose, split by a centre post, plus a grey radome tip */
   const wsM=new THREE.MeshPhongMaterial({color:0x0b1118,specular:0x8899aa,shininess:90});
-  const ws=add(new THREE.SphereGeometry(R*1.013,16,3,Math.PI/2-0.62,1.24,Math.PI*0.3,Math.PI*0.085),wsM,0,nose.position.y,zF);ws.scale.copy(nose.scale);
+  wsM.polygonOffset=true;wsM.polygonOffsetFactor=-3;wsM.polygonOffsetUnits=-6;
+  const ws=add(noseShape(new THREE.SphereGeometry(R*1.02,24,4,Math.PI/2-0.95,1.9,Math.PI*0.29,Math.PI*0.1),R*1.02,boeing),wsM,0,nose.position.y,zF);ws.scale.copy(nose.scale);ws.renderOrder=2;
+  /* window frame posts across the windscreen */
+  for(const a of [-0.62,-0.3,0,0.3,0.62]){const pst=add(new THREE.BoxGeometry(0.06*dK,0.42*dK,0.05*dK),white,Math.sin(a)*R*0.82,yc+0.62*R*Y,zF+Math.cos(a)*R*0.82*T.nose*0.72,-0.9,a,0);pst.renderOrder=3;}
   const nz=T.nose/1.7;
   add(new THREE.BoxGeometry(0.12*dK,0.5*dK,0.35*dK),white,0,yc+1.16*dK*Y,zF+3.3*dK*nz,-0.75);
-  add(new THREE.SphereGeometry(0.9*dK,12,8),new THREE.MeshLambertMaterial({color:0x8d939a}),0,yc-0.45*dK,zF+3.75*dK*nz).scale.set(1,0.9,0.7);
+  add(new THREE.SphereGeometry(0.9*dK,12,8),new THREE.MeshLambertMaterial({color:0x8d939a}),0,yc-0.45*dK-droop*R*0.95*Y,zF+3.75*dK*nz).scale.set(boeing?0.75:1,boeing?0.7:0.9,0.7);
   add(new THREE.CylinderGeometry(R,0.7*dK,3.83*R,18),white,0,yc,zB-1.915*R,Math.PI/2).scale.z=Y;
   add(new THREE.CylinderGeometry(R*1.004,R*1.004,Lc*0.94,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB,0,yc,0,Math.PI/2).scale.z=Y;
   if(T.hump){
@@ -4029,13 +4038,24 @@ function makeAirliner(finCol,liv,type){
   batchStaticChildren(g,{cell:1e6});
   return g;
 }
+function noseShape(geo,R,boeing,fwdY){
+  /* taper the front half of a nose sphere (local +z forward, or +y when fwdY for caps rotated onto the nose) */
+  const p=geo.attributes.position,d=boeing?0.12:0.04;
+  for(let i=0;i<p.count;i++){
+    const f=fwdY?p.getY(i):p.getZ(i);if(f<=0)continue;
+    const t=f/R,k=boeing?1-0.3*t*t:1-0.06*t*t*t;
+    p.setX(i,p.getX(i)*k);
+    if(fwdY)p.setZ(i,p.getZ(i)*k+d*R*t*t);else p.setY(i,p.getY(i)*k-d*R*t*t);
+  }
+  geo.computeVertexNormals();return geo;
+}
 function tourJet(c,a,type){
   /* tour jet: main colour everywhere; optional accent paints fin, winglets, engines, a cheat-line and a nose crown */
   if(a==null)return makeAirliner(c,[c,c,c,c],type);
   const g=makeAirliner(c,[c,c,a,a],type),D=g.userData.dims;
   const m=new THREE.MeshLambertMaterial({color:a});
   for(const sd of [1,-1]){const st=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.42*D.R/2.35,D.Lc*1.03),m);st.position.set(sd*(D.R+0.01),D.yc+0.02,0.5);g.add(st);}
-  const crown=new THREE.Mesh(new THREE.SphereGeometry(D.R*1.008,18,12,0,Math.PI*2,0,Math.PI*0.32),m);crown.rotation.x=Math.PI/2;crown.position.set(0,D.yc,D.zF);crown.scale.set(1,D.nose,D.Y);g.add(crown);
+  const crown=new THREE.Mesh(noseShape(new THREE.SphereGeometry(D.R*1.008,18,12,0,Math.PI*2,0,Math.PI*0.16),D.R*1.008,/^b7/.test(type||'b737'),true),m);crown.rotation.x=Math.PI/2;crown.position.set(0,D.yc,D.zF);crown.scale.set(1,D.nose,D.Y);g.add(crown);
   return g;
 }
 function makeTourHeli(col,acc){
@@ -4120,7 +4140,8 @@ function makeMilitary(kind,col,acc){
     const cpT=add(new THREE.SphereGeometry(0.505,22,14,0,Math.PI*2,0,Math.PI/2),cTint,0,0.48,2.85);cpT.scale.set(0.92,1.15,2.9);
     const bow=add(new THREE.TorusGeometry(0.47,0.035,6,18,Math.PI),dark,0,0.48,1.85);bow.scale.set(0.98,1.15,1);
     add(new THREE.CylinderGeometry(0.42,0.6,3.6,14),paint,0,0.12,-1.6,Math.PI/2+0.05);          /* dorsal spine */
-    add(new THREE.BoxGeometry(1.1,0.7,2.2),dark,0,-0.7,2.0);                                  /* belly intake */
+    add(new THREE.CylinderGeometry(0.5,0.42,3.0,14),paint,0,-0.6,1.6,Math.PI/2).scale.x=1.25;   /* chin intake fairing */
+    add(new THREE.CircleGeometry(0.42,14),dark,0,-0.6,3.11).scale.x=1.2;                       /* intake mouth */
     flat([[0,2.2],[4.7,-1.6],[4.7,-2.4],[0,-2.2],[-4.7,-2.4],[-4.7,-1.6]],0.12,paint,-0.05);   /* cropped delta wing */
     flat([[0,-4.6],[2.6,-6.4],[2.6,-6.9],[0,-6.6],[-2.6,-6.9],[-2.6,-6.4]],0.08,accM,0);     /* stabilators */
     /* swept vertical tail over the engine: x = aft from root leading edge, y = height; rudder + dielectric tip in dark */
@@ -4134,6 +4155,23 @@ function makeMilitary(kind,col,acc){
     add(new THREE.CylinderGeometry(0.6,0.5,0.9,14,1,true),dark,0,0,-6.4,Math.PI/2);          /* nozzle */
     for(const sd of [1,-1])add(new THREE.CylinderGeometry(0.08,0.08,3.2,6),metal(),sd*4.75,0,-1.4,Math.PI/2); /* wingtip rails */
     wheel(0,-1.3,3.4,0.32);wheel(1.2,-1.3,-1.2,0.4);wheel(-1.2,-1.3,-1.2,0.4);
+  }else if(kind==='b2'){
+    /* B-2 Spirit flying wing: 52.4 m span, 21 m long, 33° swept leading edges, double-W saw-tooth trailing edge, no tail */
+    const wing=[[0,10.5],[26.2,-6.4],[24.6,-8.4],[17.6,-4.3],[11.6,-10.5],[5.6,-6.2],[0,-10.5],[-5.6,-6.2],[-11.6,-10.5],[-17.6,-4.3],[-24.6,-8.4],[-26.2,-6.4]];
+    const ws=new THREE.Shape(wing.map(([x,z])=>new THREE.Vector2(x,z)));
+    const wg=new THREE.ExtrudeGeometry(ws,{depth:0.5,bevelEnabled:true,bevelThickness:0.35,bevelSize:0.6,bevelSegments:2});wg.rotateX(Math.PI/2);
+    const w=new THREE.Mesh(wg,paint);w.position.y=0.25;g.add(w);
+    /* centre body hump with the cockpit, and the two engine humps with their dorsal intakes */
+    const hump=add(new THREE.SphereGeometry(1,24,12,0,Math.PI*2,0,Math.PI/2),paint,0,0.2,1.5);hump.scale.set(3.4,1.05,10.5); /* low blended crew hump, not a bubble on the nose */
+    for(const sd of [1,-1]){
+      const e=add(new THREE.SphereGeometry(1,16,10,0,Math.PI*2,0,Math.PI/2),paint,sd*4.6,0.2,-1.0);e.scale.set(2.0,0.8,7.0);
+      add(new THREE.BoxGeometry(1.7,0.18,0.8),dark,sd*4.6,0.78,1.9,-0.3);                     /* intake */
+      add(new THREE.BoxGeometry(2.3,0.12,1.2),dark,sd*4.6,0.55,-6.6);                          /* buried exhaust trough */
+    }
+    const cw=add(new THREE.BoxGeometry(2.4,0.45,1.3),glass,0,1.55,5.2,0.55);                   /* four-pane windscreen */
+    cw.material=new THREE.MeshPhongMaterial({color:0x1d2630,specular:0xffffff,shininess:140});
+    wheel(0,-2.4,5.5,0.45);for(const sd of [1,-1]){wheel(sd*6.2,-2.4,-0.6,0.62);wheel(sd*6.2,-2.4,-2.2,0.62);}
+    g.userData.wingTip=26.2;
   }else{
     add(new THREE.CylinderGeometry(2.1,2.1,21,16),paint,0,0,0,Math.PI/2);                     /* fuselage */
     const nose=add(new THREE.SphereGeometry(2.1,16,12,0,Math.PI*2,0,Math.PI/2),accM,0,0,10.5,Math.PI/2);nose.scale.set(1,1.15,0.95);
@@ -4163,7 +4201,7 @@ function makeMilitary(kind,col,acc){
     wheel(0,-2.6,8.6,0.5);for(const sd of [1,-1]){wheel(sd*2.4,-2.6,1.2,0.62);wheel(sd*2.4,-2.6,-1.2,0.62);}
   }
   function metal(){return new THREE.MeshPhongMaterial({color:0x9aa1a8,shininess:60});}
-  g.userData.gear=gear;g.userData.gearDrop=kind==='fighter'?1.7:3.22;
+  g.userData.gear=gear;g.userData.gearDrop=kind==='fighter'?1.7:kind==='b2'?2.85:3.22;
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
   return g;
 }
@@ -8478,6 +8516,8 @@ window.HTS_OPEN_WORLD=openWorldMap;
   });
   void go;void JETS;}
 let _icL=null;
+/* a new build replaced the lazy chunks while this page was open: reload once instead of failing (e.g. Fly to…) */
+addEventListener('vite:preloadError',(e)=>{try{if(sessionStorage.getItem('htsChunkReload'))return;sessionStorage.setItem('htsChunkReload','1');setTimeout(()=>sessionStorage.removeItem('htsChunkReload'),30000);}catch(_){}e.preventDefault();location.reload();});
 /* Tour → By car → "Drive to another city": the same tour car on real highways (US, Canada, Mexico) */
 const DRIVE_IDS=WORLD_CAT.cities.filter(c=>c.drive&&!c.full).map(c=>c.id);
 {const dsel=document.getElementById('tourDrive');
@@ -8490,19 +8530,20 @@ async function driveOpts(id){
   if(!R)throw new Error('no route '+id);
   IC.embedCity(c,{scene,renderer});
   const e=R.pts[R.pts.length-1];
-  return {icRoute:R.pts,km:R.km,dest:{x:e.x,z:e.z,n:'Downtown '+c.name},onRoute:(P,from)=>IC.buildHighway(scene,P,from)};
+  return {icRoute:R.pts,km:R.km,title:'Car tour: Houston → '+c.name,dest:{x:e.x,z:e.z,n:'Downtown '+c.name,tz:c.tz},onRoute:(P,from)=>IC.buildHighway(scene,P,from)};
 }
 /* "Drive to Houston" from an Americas city on the world map: the Houston tour car, its panel, dash, music and radio, on the real highway */
 window.HTS_INTERCITY_DRIVE=async function(fromId){
   const IC=window.HTS_IC||(window.HTS_IC=await import('./intercity.js'));
   const c=WORLD_CAT.cities.find(q=>q.id===fromId),R=c&&await IC.driveRoute(c);
   if(!R)throw new Error('No road route from '+(c?c.name:fromId));
-  const P=R.pts.slice().reverse().map(p=>({...p,name:p.ref?p.ref+' → Houston':'Highway to Houston'}));
+  const P=R.pts.slice().reverse().map(p=>({...p,name:p.ref?p.ref+' → Houston':'Highway'}));
+  const e=P[P.length-1],dest={x:e.x,z:e.z,n:'Downtown Houston',tz:'America/Chicago'};
+  const o={icRoute:P,icRev:true,km:R.km,title:'Car tour: '+c.name+' → Houston',onRoute:(Q)=>IC.buildHighway(scene,Q,0)};
+  /* flag the trip before the city loads: otherwise the idle clean-up drops the half-loaded city (car drove on bare ground) */
+  window.HTS_DRIVE_PENDING={to:'houston',dest,opts:o};
   if(window.HTS_WORLD_ACTIVE&&window.HTS_WORLD)HTS_WORLD.close({lat:c.lat,lng:c.lng});
   await IC.embedCity(c,{scene,renderer});
-  const e=P[P.length-1],dest={x:e.x,z:e.z,n:'Downtown Houston'};
-  const o={icRoute:P,icRev:true,km:R.km,onRoute:(Q)=>IC.buildHighway(scene,Q,0)};
-  window.HTS_DRIVE_PENDING={to:'houston',dest,opts:o};
   const go=()=>{if(!window.HTS_TOUR)return setTimeout(go,400);HTS_TOUR.start('car','tour',dest,o);};
   setTimeout(go,300);
 };
@@ -8515,9 +8556,10 @@ async function intercityOpts(fromId,toId){
   const km=IC.realKm(f.apt,t.apt),alt=Math.round(Math.min(37000,Math.max(16000,km*80))/1000)*1000;
   for(const c of [f,t])if(!c.full)IC.embedCity(c,{scene,renderer});
   const tp=t.full?geoToWorld(t.apt.lat,t.apt.lng):ta;
-  return {world:{apts,km,alt,from:f.id,to:t.id,tll:{lat:t.apt.lat,lng:t.apt.lng}},dep:f.apt.code,arr:t.apt.code,dest:{x:tp.x,z:tp.z,n:t.name+' ('+t.apt.code+')'},aptTxt:t.apt.code+' · '+t.apt.name};
+  return {world:{apts,km,alt,from:f.id,to:t.id,tll:{lat:t.apt.lat,lng:t.apt.lng}},dep:f.apt.code,arr:t.apt.code,dest:{x:tp.x,z:tp.z,n:t.name+' ('+t.apt.code+')',tz:t.tz},aptTxt:t.apt.code+' · '+t.apt.name};
 }
 /* "Fly to…" from any city on the world map: back to the flat map and the Houston plane tour from that city's runway */
+window.HTS_WORLD_CAT=WORLD_CAT;
 window.HTS_INTERCITY_FLY=async function(fromId,toId,ac){
   const o=await intercityOpts(fromId,toId);o.ac=ac;
   const f=WORLD_CAT.cities.find(q=>q.id===fromId);
@@ -8570,7 +8612,8 @@ function applyCam(){
     if(Math.abs(nn-camera.near)>camera.near*0.15){camera.near=nn;camera.updateProjectionMatrix();}
   }
   const roseEl=document.getElementById('rose');
-  if(roseEl)roseEl.style.transform='rotate('+(cam.theta*180/Math.PI)+'deg)'; /* view heading = −theta, so N rotates by +theta */
+  /* compass from the real camera direction (tours drive the camera themselves, so cam.theta can be stale) */
+  updateRose(roseEl);
   /* Plane-hover needle: screen-relative bearing from look-at point to the aircraft */
   const pn=document.getElementById('planeNeedle');
   if(pn){
@@ -13197,7 +13240,7 @@ function updateWhereAmI(){
     name=p?p.n:METRO_NAME;
     kind=p?p.kind:null;
     road=nearestRoadLabel(x,z);
-    if(Math.hypot(x-60,z-60)>90000&&window.HTS_IC&&HTS_IC.hw){
+    if((Math.hypot(x-60,z-60)>90000||(!p&&Math.hypot(x-60,z-60)>55000))&&window.HTS_IC&&HTS_IC.hw){
       let best=null,bd=1e18;
       for(const c of WORLD_CAT.cities){if(c.full)continue;const w=HTS_IC.hw(c.lat,c.lng),d=Math.hypot(w.x-x,w.z-z);if(d<bd){bd=d;best=c;}}
       if(best){name=bd<40000?best.name:'Between cities';kind='ic';road=bd<40000?best.country:(best.name+' in '+Math.round(bd/1609.344)+' mi');}
@@ -14241,6 +14284,7 @@ function frame(now){
     if(!_isWin||(cam.radius<2800&&_fpsAvg>=42)||(simClock|0)%2===0)
       HTS_OSM_CITY.update(camera);
   }
+  if(!window.HTS_WORLD_ACTIVE)updateRose(document.getElementById('rose')); /* after tours move the camera */
   /* Always paint the frame first — HUD/API errors must never blank the canvas */
   if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update){
     try{
@@ -14759,7 +14803,7 @@ if('serviceWorker' in navigator){
     const r=p.getBoundingClientRect();
     const open=r.width>40&&getComputedStyle(p).display!=='none'&&!document.body.classList.contains('right-collapsed');
     b.style.right=open?Math.round(innerWidth-r.left+16)+'px':'';
-    for(const id of ['ambWrap','tollWrap']){const a=document.getElementById(id);if(a)a.style.right=b.style.right;}
+    for(const id of ['ambWrap','tollWrap','worldWrap']){const a=document.getElementById(id);if(a)a.style.right=b.style.right;}
   };
   addEventListener('resize',place);
   new MutationObserver(place).observe(document.body,{attributes:true,attributeFilter:['class']});

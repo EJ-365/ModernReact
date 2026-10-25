@@ -38,6 +38,64 @@ This log captures the work from the late **v10.8.x / v10.9** baseline through th
 
 
 
+## v10.91.0 — compass, trip titles, window seat fix, car always on asphalt
+- Tour panel title: a new trip never inherits the previous one ("Car tour: Atlanta → Houston" no longer shows on a flight).
+- Window view: fixed a per-frame error (look-around offsets were scoped to the cockpit view) that froze the camera.
+- Compass: follows the real camera direction in Houston tours, in world cities and on the globe (north = toward the pole at the point under the camera); N/E/S/W letters stay upright.
+- Place pill: more than ~55 km from downtown Houston with no named place, it shows the nearest catalog city / "Between cities" instead of "Greater Houston".
+- Window view: seat placed from the aircraft's own size, ahead of the wing root, looking out/down/back over the wing.
+- Intercity highway strip extends 40 m past both route ends.
+- Other-city ground plane subdivided (96×96): one 90 km quad gave imprecise depth near the camera and covered streets/tyres.
+- World flights: arrival time shows the destination's zone (CDT for Houston, not UTC).
+- Intercity drives: your carriageway strip follows the route height, so inside cities it sits just above the OSM streets — the car is never on grass (Dallas start) or sunk into a street.
+
+## v10.90.0 — green ground in world cities, window seat, fly on after landing
+- Other cities: ground is a farmland/grass patchwork (greens with a few harvested tans, hedge lines, tree clumps) instead of flat tan; dry cities use olive tones.
+- New plane view **Window**: passenger seat on the left side, looking out and down past the wing.
+- Landed in a world city: the tour panel shows a destination list and **Take off from XXX** — fly on from the same airport with the same aircraft.
+- B-2: the bubble-like crew hump and engine humps are flattened into the wing (no bump on the nose); smaller intakes.
+- Driving into other cities: the tour car rides at street height inside the city (streets sit 0.3-0.5 m up), so it is no longer swallowed by the road.
+- City card: label and value no longer run together ("Airport ATL").
+
+## v10.89.0 — intercity driving: real ground, lighter roads
+- White ground on drives between cities: the far ground was one 1,200 km quad, which broke depth testing on some GPUs, so it painted over the embedded city, the highway and the tour car. It is now subdivided (48×48), and its fog is computed per pixel.
+- Drives from another city to Houston: the trip is flagged before the start city loads, so the idle clean-up no longer drops the half-loaded city (the car started on bare ground with no streets).
+- Roads: intercity highway asphalt and shoulders, and other-city street materials, are lighter grey so tyres and lane paint read.
+- The cars ahead of and behind you (tour escorts): moved every frame instead of 20 times a second (they jumped ~1.5 m per step at highway speed), heading eases through bends, and escorts that would fall off the start/end of the route are hidden instead of stacking beside your car.
+- Tour car: the hood panel sat 2 mm from the body top and z-fought (shimmer on the cars ahead/behind in chase); raised clear.
+
+## v10.88.0 — sharp globe close-ups, more place names, aircraft fixes
+
+- Globe: free Sentinel-2 cloudless imagery (EOX, CC BY 4.0, 2016 mosaic) streams in as a curved patch under the camera below ~2,400 km altitude; NASA imagery stays everywhere else.
+- Globe names: ~1,100 Natural Earth towns/cities and ~300 states/provinces appear as you zoom in, with overlap culling; "Gulf of America".
+- Tour aircraft: your pick is kept on intercity flights (F-16, B-2, C-130 any distance; helicopter up to ~700 km; Cessna up to ~1,200 km).
+- F-16/C-130 gear retracts in flight; F-16 chin intake is a rounded fairing instead of a dark box.
+- Airliners: wider windscreen with frame posts; the accent nose crown no longer covers it.
+- Flicker in the air: the camera near plane grows with altitude so ground layers keep depth precision.
+- Other cities: beaches drawn under parks (no striped fighting); airport terminals capped at 22 m with glass curtain-wall facades.
+
+## v10.87.0 — globe labels, intercity drive fixes, Houston trees
+
+- Globe: continent, ocean, sea, country, lake and river names that appear by zoom level (like Earth 3D maps).
+- Drives between cities: panel title reads "Car tour: Chicago → Houston"; the ETA no longer applies Houston rush hour or Houston traffic probes to the open highway or other cities.
+- Drive routes keep full road detail within 25 km of each city end (OSRM, re-fetched), so the car follows real streets instead of cutting through buildings.
+- Other cities: lighter asphalt so roads read as roads.
+- Houston: no trees inside rivers, lakes or ponds; city card shows city and metro population.
+- If a new build replaces the app's lazy files while a page is open (the "Failed to fetch dynamically imported module" error on Fly to…), the page reloads once instead of failing.
+
+## v10.86.0 — time zones, city facts, day/night preview, B-2, supersonic, flight hover
+- City card local time shows the zone after the time (`Sat, 9:51 PM - CDT`, from each city's IANA `tz`); trip clock times show the destination city's zone.
+- Every catalog city has `info.pop` and `info.fact` shown on the card ("Population", "Known for").
+- Non-Houston cities: Sky Live / Day / Night switch (`cityScene.setLook`) previews the city at local solar noon or midnight; Live uses the real sun.
+- Cities are built while the globe flies down to them (`prefetchCity`); the loading card only appears if the city is still not ready 350 ms after arrival.
+- Hover a live aircraft over a city for callsign, type, registration, altitude, speed and heading (`cityScene.pickTraffic`, `#wFlightTip`).
+- Houston: trees from park/wood polygons that overlap streets are removed using the 4 m road occupancy grid (major roads too on tiles without local streets).
+- Globe button follows the same right offset as the toll/ambient/location buttons, so the column lines up.
+- B-2 Spirit flying wing (`makeMilitary('b2')`) in the plane picker for Houston and intercity flights; F-16, B-2 and C-130 in the world card's aircraft list.
+- Optional Supersonic button on intercity jet/fighter flights: Mach 2 (~1,150 kt) above 30,000 ft; ETA follows the real speed.
+- Boeing noses taper to a lower point; Airbus noses stay full and blunt (`noseShape`).
+- 48 new verified songs (Afrobeats, pop, gospel, hip-hop, Interstellar "Cornfield Chase" and "No Time for Caution"); duplicates skipped by ID/title.
+
 ## v10.85.1 — chase-camera glitch fix
 - Chase view now smooths the camera's offset from the vehicle, not its world position. At jet speeds or ×10, the old world-space lerp lagged past its snap distance and switched between snapping and lerping on alternate frames (jitter).
 - `applyCam` no longer changes `camera.near` while a tour is driving the camera. The two near-plane values fought each other every frame, flipping depth precision (flicker), mostly when zoomed out in chase.
