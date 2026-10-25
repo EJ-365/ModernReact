@@ -1,0 +1,1792 @@
+{
+ "attribution": "City and airport positions: OpenStreetMap contributors (ODbL)",
+ "cities": [
+  {
+   "id": "houston",
+   "name": "Houston",
+   "country": "United States",
+   "region": "Texas",
+   "tz": "America/Chicago",
+   "lat": 29.7604,
+   "lng": -95.3698,
+   "drive": true,
+   "full": true,
+   "apt": {
+    "code": "IAH",
+    "name": "George Bush Intercontinental",
+    "lat": 29.9902,
+    "lng": -95.3368,
+    "hdg": 150,
+    "len": 3700
+   },
+   "src": "texas"
+  },
+  {
+   "id": "austin",
+   "name": "Austin",
+   "country": "United States",
+   "region": "Texas",
+   "tz": "America/Chicago",
+   "lat": 30.2672,
+   "lng": -97.7431,
+   "drive": true,
+   "src": "texas",
+   "apt": {
+    "code": "AUS",
+    "name": "Austin-Bergstrom International",
+    "lat": 30.1945,
+    "lng": -97.6699,
+    "hdg": 175,
+    "len": 3730,
+    "rwy": [
+     [
+      30.21358,
+      -97.67938
+     ],
+     [
+      30.17997,
+      -97.67848
+     ]
+    ],
+    "w": 46,
+    "ref": "18R/36L"
+   }
+  },
+  {
+   "id": "dallas",
+   "name": "Dallas",
+   "country": "United States",
+   "region": "Texas",
+   "tz": "America/Chicago",
+   "lat": 32.7767,
+   "lng": -96.797,
+   "drive": true,
+   "src": "texas",
+   "apt": {
+    "code": "DFW",
+    "name": "Dallas/Fort Worth International",
+    "lat": 32.8998,
+    "lng": -97.0403,
+    "hdg": 180,
+    "len": 4080,
+    "rwy": [
+     [
+      32.87888,
+      -97.02618
+     ],
+     [
+      32.9157,
+      -97.02599
+     ]
+    ],
+    "w": 46,
+    "ref": "17C/35C"
+   }
+  },
+  {
+   "id": "sanantonio",
+   "name": "San Antonio",
+   "country": "United States",
+   "region": "Texas",
+   "tz": "America/Chicago",
+   "lat": 29.4241,
+   "lng": -98.4936,
+   "drive": true,
+   "src": "texas",
+   "apt": {
+    "code": "SAT",
+    "name": "San Antonio International",
+    "lat": 29.5337,
+    "lng": -98.4698,
+    "hdg": 130,
+    "len": 2590,
+    "rwy": [
+     [
+      29.54096,
+      -98.45243
+     ],
+     [
+      29.52324,
+      -98.46991
+     ]
+    ],
+    "w": 46,
+    "ref": "04/22"
+   }
+  },
+  {
+   "id": "newyork",
+   "name": "New York",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/New_York",
+   "lat": 40.758,
+   "lng": -73.9855,
+   "drive": true,
+   "src": "NewYork",
+   "apt": {
+    "code": "JFK",
+    "name": "John F. Kennedy International",
+    "lat": 40.6413,
+    "lng": -73.7781,
+    "hdg": 135,
+    "len": 4440,
+    "rwy": [
+     [
+      40.64837,
+      -73.81671
+     ],
+     [
+      40.628,
+      -73.77178
+     ]
+    ],
+    "w": 61,
+    "ref": "13R/31L"
+   }
+  },
+  {
+   "id": "losangeles",
+   "name": "Los Angeles",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Los_Angeles",
+   "lat": 34.0522,
+   "lng": -118.2437,
+   "drive": true,
+   "src": "LosAngeles",
+   "apt": {
+    "code": "LAX",
+    "name": "Los Angeles International",
+    "lat": 33.9416,
+    "lng": -118.4085,
+    "hdg": 250,
+    "len": 3685,
+    "rwy": [
+     [
+      33.93584,
+      -118.41935
+     ],
+     [
+      33.93956,
+      -118.38294
+     ]
+    ],
+    "w": 45,
+    "ref": "07L/25R"
+   }
+  },
+  {
+   "id": "chicago",
+   "name": "Chicago",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Chicago",
+   "lat": 41.8781,
+   "lng": -87.6298,
+   "drive": true,
+   "src": "Chicago",
+   "apt": {
+    "code": "ORD",
+    "name": "O'Hare International",
+    "lat": 41.9742,
+    "lng": -87.9073,
+    "hdg": 270,
+    "len": 3962,
+    "rwy": [
+     [
+      41.969,
+      -87.93154
+     ],
+     [
+      41.96908,
+      -87.88375
+     ]
+    ],
+    "w": 46,
+    "ref": "10L/28R"
+   }
+  },
+  {
+   "id": "miami",
+   "name": "Miami",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/New_York",
+   "lat": 25.7617,
+   "lng": -80.1918,
+   "drive": true,
+   "src": "Miami",
+   "apt": {
+    "code": "MIA",
+    "name": "Miami International",
+    "lat": 25.7959,
+    "lng": -80.287,
+    "hdg": 270,
+    "len": 3962,
+    "rwy": [
+     [
+      25.7877,
+      -80.27614
+     ],
+     [
+      25.78627,
+      -80.31071
+     ]
+    ],
+    "w": 46,
+    "ref": "09/27"
+   }
+  },
+  {
+   "id": "toronto",
+   "name": "Toronto",
+   "country": "Canada",
+   "region": "North America",
+   "tz": "America/Toronto",
+   "lat": 43.6532,
+   "lng": -79.3832,
+   "drive": true,
+   "src": "Toronto",
+   "apt": {
+    "code": "YYZ",
+    "name": "Toronto Pearson International",
+    "lat": 43.6777,
+    "lng": -79.6248,
+    "hdg": 240,
+    "len": 3389,
+    "rwy": [
+     [
+      43.67081,
+      -79.61456
+     ],
+     [
+      43.6928,
+      -79.6433
+     ]
+    ],
+    "w": 61,
+    "ref": "15L/33R"
+   }
+  },
+  {
+   "id": "vancouver",
+   "name": "Vancouver",
+   "country": "Canada",
+   "region": "North America",
+   "tz": "America/Vancouver",
+   "lat": 49.2827,
+   "lng": -123.1207,
+   "drive": true,
+   "src": "Vancouver",
+   "apt": {
+    "code": "YVR",
+    "name": "Vancouver International",
+    "lat": 49.1967,
+    "lng": -123.1815,
+    "hdg": 260,
+    "len": 3505,
+    "rwy": [
+     [
+      49.18469,
+      -123.16042
+     ],
+     [
+      49.18977,
+      -123.20494
+     ]
+    ],
+    "w": 60,
+    "ref": "08R/26L"
+   }
+  },
+  {
+   "id": "mexicocity",
+   "name": "Mexico City",
+   "country": "Mexico",
+   "region": "North America",
+   "tz": "America/Mexico_City",
+   "lat": 19.4326,
+   "lng": -99.1332,
+   "drive": true,
+   "src": "MexicoCity",
+   "apt": {
+    "code": "MEX",
+    "name": "Benito Juárez International",
+    "lat": 19.4361,
+    "lng": -99.0719,
+    "hdg": 50,
+    "len": 3985,
+    "rwy": [
+     [
+      19.44492,
+      -99.05389
+     ],
+     [
+      19.42909,
+      -99.08212
+     ]
+    ],
+    "w": 45,
+    "ref": "05R/23L"
+   }
+  },
+  {
+   "id": "cancun",
+   "name": "Cancún",
+   "country": "Mexico",
+   "region": "North America",
+   "tz": "America/Cancun",
+   "lat": 21.1619,
+   "lng": -86.8515,
+   "drive": true,
+   "src": "mexico",
+   "apt": {
+    "code": "CUN",
+    "name": "Cancún International",
+    "lat": 21.0365,
+    "lng": -86.8771,
+    "hdg": 200,
+    "len": 3500,
+    "rwy": [
+     [
+      21.04535,
+      -86.89102
+     ],
+     [
+      21.0278,
+      -86.86298
+     ]
+    ],
+    "w": 60,
+    "ref": "12R/30L"
+   }
+  },
+  {
+   "id": "guadalajara",
+   "name": "Guadalajara",
+   "country": "Mexico",
+   "region": "North America",
+   "tz": "America/Mexico_City",
+   "lat": 20.6597,
+   "lng": -103.3496,
+   "drive": true,
+   "src": "mexico",
+   "apt": {
+    "code": "GDL",
+    "name": "Guadalajara International",
+    "lat": 20.5218,
+    "lng": -103.3112,
+    "hdg": 110,
+    "len": 4000,
+    "rwy": [
+     [
+      20.529,
+      -103.32821
+     ],
+     [
+      20.51386,
+      -103.29217
+     ]
+    ],
+    "w": 60,
+    "ref": "11R/29L"
+   }
+  },
+  {
+   "id": "lagos",
+   "name": "Lagos",
+   "country": "Nigeria",
+   "region": "Africa",
+   "tz": "Africa/Lagos",
+   "lat": 6.4541,
+   "lng": 3.4084,
+   "drive": false,
+   "src": "nigeria",
+   "apt": {
+    "code": "LOS",
+    "name": "Murtala Muhammed International",
+    "lat": 6.5774,
+    "lng": 3.3211,
+    "hdg": 180,
+    "len": 3900,
+    "rwy": [
+     [
+      6.58776,
+      3.3131
+     ],
+     [
+      6.55257,
+      3.31356
+     ]
+    ],
+    "w": 60,
+    "ref": "18R/36L"
+   }
+  },
+  {
+   "id": "accra",
+   "name": "Accra",
+   "country": "Ghana",
+   "region": "Africa",
+   "tz": "Africa/Accra",
+   "lat": 5.556,
+   "lng": -0.1969,
+   "drive": false,
+   "src": "ghana",
+   "apt": {
+    "code": "ACC",
+    "name": "Kotoka International",
+    "lat": 5.6052,
+    "lng": -0.1668,
+    "hdg": 210,
+    "len": 3400,
+    "rwy": [
+     [
+      5.59069,
+      -0.17319
+     ],
+     [
+      5.61568,
+      -0.16291
+     ]
+    ],
+    "w": 60,
+    "ref": "03/21"
+   }
+  },
+  {
+   "id": "cairo",
+   "name": "Cairo",
+   "country": "Egypt",
+   "region": "Africa",
+   "tz": "Africa/Cairo",
+   "lat": 30.0444,
+   "lng": 31.2357,
+   "drive": false,
+   "src": "Cairo",
+   "apt": {
+    "code": "CAI",
+    "name": "Cairo International",
+    "lat": 30.1219,
+    "lng": 31.4056,
+    "hdg": 230,
+    "len": 4000,
+    "rwy": [
+     [
+      30.09969,
+      31.39824
+     ],
+     [
+      30.12331,
+      31.42962
+     ]
+    ],
+    "w": 60,
+    "ref": "05C/23C"
+   }
+  },
+  {
+   "id": "rome",
+   "name": "Rome",
+   "country": "Italy",
+   "region": "Europe",
+   "tz": "Europe/Rome",
+   "lat": 41.8986,
+   "lng": 12.4769,
+   "drive": false,
+   "src": "centro",
+   "apt": {
+    "code": "FCO",
+    "name": "Rome Fiumicino",
+    "lat": 41.8003,
+    "lng": 12.2389,
+    "hdg": 160,
+    "len": 3900,
+    "rwy": [
+     [
+      41.81552,
+      12.22636
+     ],
+     [
+      41.78201,
+      12.24041
+     ]
+    ],
+    "w": 60,
+    "ref": "16R/34L"
+   }
+  },
+  {
+   "id": "london",
+   "name": "London",
+   "country": "United Kingdom",
+   "region": "Europe",
+   "tz": "Europe/London",
+   "lat": 51.5074,
+   "lng": -0.1278,
+   "drive": false,
+   "src": "London",
+   "apt": {
+    "code": "LHR",
+    "name": "London Heathrow",
+    "lat": 51.47,
+    "lng": -0.4543,
+    "hdg": 270,
+    "len": 3902,
+    "rwy": [
+     [
+      51.4775,
+      -0.48503
+     ],
+     [
+      51.47768,
+      -0.4333
+     ]
+    ],
+    "w": 50,
+    "ref": "09L/27R"
+   }
+  },
+  {
+   "id": "paris",
+   "name": "Paris",
+   "country": "France",
+   "region": "Europe",
+   "tz": "Europe/Paris",
+   "lat": 48.8566,
+   "lng": 2.3522,
+   "drive": false,
+   "src": "Paris",
+   "apt": {
+    "code": "CDG",
+    "name": "Paris Charles de Gaulle",
+    "lat": 49.0097,
+    "lng": 2.5479,
+    "hdg": 270,
+    "len": 4200,
+    "rwy": [
+     [
+      48.99569,
+      2.55275
+     ],
+     [
+      48.99832,
+      2.60201
+     ]
+    ],
+    "w": 45,
+    "ref": "08L/26R"
+   }
+  },
+  {
+   "id": "madrid",
+   "name": "Madrid",
+   "country": "Spain",
+   "region": "Europe",
+   "tz": "Europe/Madrid",
+   "lat": 40.4168,
+   "lng": -3.7038,
+   "drive": false,
+   "src": "Madrid",
+   "apt": {
+    "code": "MAD",
+    "name": "Adolfo Suárez Madrid–Barajas",
+    "lat": 40.4983,
+    "lng": -3.5676,
+    "hdg": 180,
+    "len": 4350,
+    "rwy": [
+     [
+      40.49256,
+      -3.57461
+     ],
+     [
+      40.52291,
+      -3.5748
+     ]
+    ],
+    "w": 60,
+    "ref": "18R/36L"
+   }
+  },
+  {
+   "id": "berlin",
+   "name": "Berlin",
+   "country": "Germany",
+   "region": "Europe",
+   "tz": "Europe/Berlin",
+   "lat": 52.52,
+   "lng": 13.405,
+   "drive": false,
+   "src": "Berlin",
+   "apt": {
+    "code": "BER",
+    "name": "Berlin Brandenburg",
+    "lat": 52.3667,
+    "lng": 13.5033,
+    "hdg": 250,
+    "len": 4000,
+    "rwy": [
+     [
+      52.35843,
+      13.52317
+     ],
+     [
+      52.34543,
+      13.46843
+     ]
+    ],
+    "w": 60,
+    "ref": "06R/24L"
+   }
+  },
+  {
+   "id": "dubai",
+   "name": "Dubai",
+   "country": "United Arab Emirates",
+   "region": "Asia",
+   "tz": "Asia/Dubai",
+   "lat": 25.1972,
+   "lng": 55.2744,
+   "drive": false,
+   "src": "gcc-states",
+   "apt": {
+    "code": "DXB",
+    "name": "Dubai International",
+    "lat": 25.2532,
+    "lng": 55.3657,
+    "hdg": 300,
+    "len": 4447,
+    "rwy": [
+     [
+      25.23592,
+      55.39486
+     ],
+     [
+      25.2562,
+      55.35829
+     ]
+    ],
+    "w": 60,
+    "ref": "12R/30L"
+   }
+  },
+  {
+   "id": "tokyo",
+   "name": "Tokyo",
+   "country": "Japan",
+   "region": "Asia",
+   "tz": "Asia/Tokyo",
+   "lat": 35.6812,
+   "lng": 139.7671,
+   "drive": false,
+   "src": "Tokyo",
+   "apt": {
+    "code": "HND",
+    "name": "Tokyo Haneda",
+    "lat": 35.5494,
+    "lng": 139.7798,
+    "hdg": 340,
+    "len": 3360,
+    "rwy": [
+     [
+      35.56286,
+      139.7887
+     ],
+     [
+      35.54251,
+      139.80314
+     ]
+    ],
+    "w": 60,
+    "ref": "16L/34R"
+   }
+  },
+  {
+   "id": "seoul",
+   "name": "Seoul",
+   "country": "South Korea",
+   "region": "Asia",
+   "tz": "Asia/Seoul",
+   "lat": 37.5665,
+   "lng": 126.978,
+   "drive": false,
+   "src": "Seoul",
+   "apt": {
+    "code": "GMP",
+    "name": "Gimpo International",
+    "lat": 37.5583,
+    "lng": 126.7906,
+    "hdg": 320,
+    "len": 3600,
+    "rwy": [
+     [
+      37.54775,
+      126.80711
+     ],
+     [
+      37.5707,
+      126.77831
+     ]
+    ],
+    "w": 45,
+    "ref": "14L-32R"
+   }
+  },
+  {
+   "id": "singapore",
+   "name": "Singapore",
+   "country": "Singapore",
+   "region": "Southeast Asia",
+   "tz": "Asia/Singapore",
+   "lat": 1.2834,
+   "lng": 103.8607,
+   "drive": false,
+   "src": "Singapore",
+   "apt": {
+    "code": "SIN",
+    "name": "Singapore Changi",
+    "lat": 1.3644,
+    "lng": 103.9915,
+    "hdg": 200,
+    "len": 4000,
+    "rwy": [
+     [
+      1.38224,
+      103.99149
+     ],
+     [
+      1.34895,
+      103.97746
+     ]
+    ],
+    "w": 60,
+    "ref": "02L/20R"
+   }
+  },
+  {
+   "id": "bangkok",
+   "name": "Bangkok",
+   "country": "Thailand",
+   "region": "Southeast Asia",
+   "tz": "Asia/Bangkok",
+   "lat": 13.7563,
+   "lng": 100.5018,
+   "drive": false,
+   "src": "Bangkok",
+   "apt": {
+    "code": "BKK",
+    "name": "Suvarnabhumi",
+    "lat": 13.69,
+    "lng": 100.7501,
+    "hdg": 190,
+    "len": 4000,
+    "rwy": [
+     [
+      13.70128,
+      100.73867
+     ],
+     [
+      13.66416,
+      100.72898
+     ]
+    ],
+    "w": 45,
+    "ref": "02L/20R"
+   }
+  },
+  {
+   "id": "manila",
+   "name": "Manila",
+   "country": "Philippines",
+   "region": "Southeast Asia",
+   "tz": "Asia/Manila",
+   "lat": 14.5547,
+   "lng": 121.0244,
+   "drive": false,
+   "src": "philippines",
+   "apt": {
+    "code": "MNL",
+    "name": "Ninoy Aquino International",
+    "lat": 14.5086,
+    "lng": 121.0198,
+    "hdg": 240,
+    "len": 3737,
+    "rwy": [
+     [
+      14.49859,
+      121.00148
+     ],
+     [
+      14.51186,
+      121.02534
+     ]
+    ],
+    "w": 60,
+    "ref": "06/24"
+   }
+  },
+  {
+   "id": "mumbai",
+   "name": "Mumbai",
+   "country": "India",
+   "region": "South Asia",
+   "tz": "Asia/Kolkata",
+   "lat": 18.9388,
+   "lng": 72.8354,
+   "drive": false,
+   "src": "Bombay",
+   "apt": {
+    "code": "BOM",
+    "name": "Chhatrapati Shivaji Maharaj International",
+    "lat": 19.0896,
+    "lng": 72.8656,
+    "hdg": 270,
+    "len": 3445,
+    "rwy": [
+     [
+      19.0888,
+      72.87607
+     ],
+     [
+      19.08844,
+      72.84924
+     ]
+    ],
+    "w": 60,
+    "ref": "09/27"
+   }
+  },
+  {
+   "id": "delhi",
+   "name": "New Delhi",
+   "country": "India",
+   "region": "South Asia",
+   "tz": "Asia/Kolkata",
+   "lat": 28.6139,
+   "lng": 77.209,
+   "drive": false,
+   "src": "NewDelhi",
+   "apt": {
+    "code": "DEL",
+    "name": "Indira Gandhi International",
+    "lat": 28.5562,
+    "lng": 77.1,
+    "hdg": 290,
+    "len": 4430,
+    "rwy": [
+     [
+      28.55855,
+      77.12256
+     ],
+     [
+      28.56724,
+      77.08485
+     ]
+    ],
+    "w": 45,
+    "ref": "10/28"
+   }
+  },
+  {
+   "id": "sydney",
+   "name": "Sydney",
+   "country": "Australia",
+   "region": "Australia",
+   "tz": "Australia/Sydney",
+   "lat": -33.8688,
+   "lng": 151.2093,
+   "drive": false,
+   "src": "Sydney",
+   "apt": {
+    "code": "SYD",
+    "name": "Sydney Kingsford Smith",
+    "lat": -33.9399,
+    "lng": 151.1753,
+    "hdg": 160,
+    "len": 3962,
+    "rwy": [
+     [
+      -33.93012,
+      151.17177
+     ],
+     [
+      -33.96426,
+      151.18065
+     ]
+    ],
+    "w": 45,
+    "ref": "16R/34L"
+   }
+  },
+  {
+   "id": "melbourne",
+   "name": "Melbourne",
+   "country": "Australia",
+   "region": "Australia",
+   "tz": "Australia/Melbourne",
+   "lat": -37.8136,
+   "lng": 144.9631,
+   "drive": false,
+   "src": "Melbourne",
+   "apt": {
+    "code": "MEL",
+    "name": "Melbourne Tullamarine",
+    "lat": -37.669,
+    "lng": 144.841,
+    "hdg": 160,
+    "len": 3657,
+    "rwy": [
+     [
+      -37.65319,
+      144.83491
+     ],
+     [
+      -37.68574,
+      144.84098
+     ]
+    ],
+    "w": 60,
+    "ref": "16/34"
+   }
+  },
+  {
+   "id": "beijing",
+   "name": "Beijing",
+   "country": "China",
+   "region": "Asia",
+   "tz": "Asia/Shanghai",
+   "lat": 39.9042,
+   "lng": 116.4074,
+   "drive": false,
+   "src": "Beijing",
+   "apt": {
+    "code": "PEK",
+    "name": "Beijing Capital International",
+    "lat": 40.0799,
+    "lng": 116.6031,
+    "hdg": 360,
+    "len": 3800,
+    "rwy": [
+     [
+      40.05546,
+      116.60013
+     ],
+     [
+      40.08947,
+      116.59477
+     ]
+    ],
+    "w": 60,
+    "ref": "18L/36R"
+   }
+  },
+  {
+   "id": "shanghai",
+   "name": "Shanghai",
+   "country": "China",
+   "region": "Asia",
+   "tz": "Asia/Shanghai",
+   "lat": 31.2304,
+   "lng": 121.4737,
+   "drive": false,
+   "src": "china",
+   "apt": {
+    "code": "PVG",
+    "name": "Shanghai Pudong International",
+    "lat": 31.1443,
+    "lng": 121.8083,
+    "hdg": 350,
+    "len": 4000,
+    "rwy": [
+     [
+      31.16124,
+      121.78596
+     ],
+     [
+      31.12692,
+      121.7989
+     ]
+    ],
+    "w": 60,
+    "ref": "17L/35R"
+   }
+  },
+  {
+   "id": "shenzhen",
+   "name": "Shenzhen",
+   "country": "China",
+   "region": "Asia",
+   "tz": "Asia/Shanghai",
+   "lat": 22.5431,
+   "lng": 114.0579,
+   "drive": false,
+   "src": "china",
+   "apt": {
+    "code": "SZX",
+    "name": "Shenzhen Bao'an International",
+    "lat": 22.6393,
+    "lng": 113.8107,
+    "hdg": 330,
+    "len": 3800,
+    "rwy": [
+     [
+      22.65446,
+      113.78487
+     ],
+     [
+      22.62387,
+      113.80163
+     ]
+    ],
+    "w": 60,
+    "ref": "16L/34R"
+   }
+  },
+  {
+   "id": "guangzhou",
+   "name": "Guangzhou",
+   "country": "China",
+   "region": "Asia",
+   "tz": "Asia/Shanghai",
+   "lat": 23.1291,
+   "lng": 113.2644,
+   "drive": false,
+   "src": "china",
+   "apt": {
+    "code": "CAN",
+    "name": "Guangzhou Baiyun International",
+    "lat": 23.3924,
+    "lng": 113.2988,
+    "hdg": 10,
+    "len": 3800,
+    "rwy": [
+     [
+      23.40284,
+      113.31673
+     ],
+     [
+      23.36946,
+      113.30771
+     ]
+    ],
+    "w": 60,
+    "ref": "02R/20L"
+   }
+  },
+  {
+   "id": "hongkong",
+   "name": "Hong Kong",
+   "country": "China",
+   "region": "Asia",
+   "tz": "Asia/Hong_Kong",
+   "lat": 22.2793,
+   "lng": 114.1628,
+   "drive": false,
+   "src": "china",
+   "apt": {
+    "code": "HKG",
+    "name": "Hong Kong International",
+    "lat": 22.308,
+    "lng": 113.9185,
+    "hdg": 250,
+    "len": 3800,
+    "rwy": [
+     [
+      22.31109,
+      113.89851
+     ],
+     [
+      22.32199,
+      113.93235
+     ]
+    ],
+    "w": 60,
+    "ref": "07C/25C"
+   }
+  },
+  {
+   "id": "atlanta",
+   "name": "Atlanta",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/New_York",
+   "lat": 33.749,
+   "lng": -84.388,
+   "drive": true,
+   "src": "georgia",
+   "apt": {
+    "code": "ATL",
+    "name": "Hartsfield-Jackson Atlanta International",
+    "lat": 33.6407,
+    "lng": -84.4277,
+    "hdg": 270,
+    "len": 3776,
+    "rwy": [
+     [
+      33.63471,
+      -84.44798
+     ],
+     [
+      33.63471,
+      -84.40893
+     ]
+    ],
+    "w": 46,
+    "ref": "09L/27R"
+   }
+  },
+  {
+   "id": "seattle",
+   "name": "Seattle",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Los_Angeles",
+   "lat": 47.6062,
+   "lng": -122.3321,
+   "drive": true,
+   "src": "Seattle",
+   "apt": {
+    "code": "SEA",
+    "name": "Seattle-Tacoma International",
+    "lat": 47.4502,
+    "lng": -122.3088,
+    "hdg": 340,
+    "len": 3627,
+    "rwy": [
+     [
+      47.46379,
+      -122.30777
+     ],
+     [
+      47.43119,
+      -122.30807
+     ]
+    ],
+    "w": 46,
+    "ref": "16L/34R"
+   }
+  },
+  {
+   "id": "sanfrancisco",
+   "name": "San Francisco",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Los_Angeles",
+   "lat": 37.7749,
+   "lng": -122.4194,
+   "drive": true,
+   "src": "SanFrancisco",
+   "apt": {
+    "code": "SFO",
+    "name": "San Francisco International",
+    "lat": 37.6213,
+    "lng": -122.379,
+    "hdg": 280,
+    "len": 3618,
+    "rwy": [
+     [
+      37.61393,
+      -122.35809
+     ],
+     [
+      37.62874,
+      -122.3934
+     ]
+    ],
+    "w": 61,
+    "ref": "10L/28R"
+   }
+  },
+  {
+   "id": "denver",
+   "name": "Denver",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Denver",
+   "lat": 39.7392,
+   "lng": -104.9903,
+   "drive": true,
+   "src": "colorado",
+   "apt": {
+    "code": "DEN",
+    "name": "Denver International",
+    "lat": 39.8561,
+    "lng": -104.6737,
+    "hdg": 350,
+    "len": 4877,
+    "rwy": [
+     [
+      39.85189,
+      -104.6966
+     ],
+     [
+      39.89578,
+      -104.6961
+     ]
+    ],
+    "w": 61,
+    "ref": "16R/34L"
+   }
+  },
+  {
+   "id": "boston",
+   "name": "Boston",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/New_York",
+   "lat": 42.3601,
+   "lng": -71.0589,
+   "drive": true,
+   "src": "massachusetts",
+   "apt": {
+    "code": "BOS",
+    "name": "Boston Logan International",
+    "lat": 42.3656,
+    "lng": -71.0096,
+    "hdg": 40,
+    "len": 3073,
+    "rwy": [
+     [
+      42.37255,
+      -71.01558
+     ],
+     [
+      42.35466,
+      -70.99158
+     ]
+    ],
+    "w": 46,
+    "ref": "15R/33L"
+   }
+  },
+  {
+   "id": "lasvegas",
+   "name": "Las Vegas",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Los_Angeles",
+   "lat": 36.1699,
+   "lng": -115.1398,
+   "drive": true,
+   "src": "nevada",
+   "apt": {
+    "code": "LAS",
+    "name": "Harry Reid International",
+    "lat": 36.084,
+    "lng": -115.1537,
+    "hdg": 260,
+    "len": 4423,
+    "rwy": [
+     [
+      36.07642,
+      -115.12112
+     ],
+     [
+      36.07636,
+      -115.17021
+     ]
+    ],
+    "w": 46,
+    "ref": "08L/26R"
+   }
+  },
+  {
+   "id": "phoenix",
+   "name": "Phoenix",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/Phoenix",
+   "lat": 33.4484,
+   "lng": -112.074,
+   "drive": true,
+   "src": "arizona",
+   "apt": {
+    "code": "PHX",
+    "name": "Phoenix Sky Harbor International",
+    "lat": 33.4342,
+    "lng": -112.0116,
+    "hdg": 260,
+    "len": 3502,
+    "rwy": [
+     [
+      33.44083,
+      -111.99217
+     ],
+     [
+      33.44086,
+      -112.02685
+     ]
+    ],
+    "w": 45,
+    "ref": "08/26"
+   }
+  },
+  {
+   "id": "washington",
+   "name": "Washington, D.C.",
+   "country": "United States",
+   "region": "North America",
+   "tz": "America/New_York",
+   "lat": 38.9072,
+   "lng": -77.0369,
+   "drive": true,
+   "src": "WashingtonDC",
+   "apt": {
+    "code": "DCA",
+    "name": "Ronald Reagan Washington National",
+    "lat": 38.8512,
+    "lng": -77.0402,
+    "hdg": 10,
+    "len": 2094,
+    "rwy": [
+     [
+      38.86123,
+      -77.03873
+     ],
+     [
+      38.84158,
+      -77.03675
+     ]
+    ],
+    "w": 46,
+    "ref": "01/19"
+   }
+  },
+  {
+   "id": "istanbul",
+   "name": "Istanbul",
+   "country": "Turkey",
+   "region": "Europe",
+   "tz": "Europe/Istanbul",
+   "lat": 41.0082,
+   "lng": 28.9784,
+   "drive": false,
+   "src": "turkey",
+   "apt": {
+    "code": "IST",
+    "name": "Istanbul Airport",
+    "lat": 41.2753,
+    "lng": 28.7519,
+    "hdg": 350,
+    "len": 4100,
+    "rwy": [
+     [
+      41.2619,
+      28.72522
+     ],
+     [
+      41.29881,
+      28.72451
+     ]
+    ],
+    "w": 45,
+    "ref": "17R/35L"
+   }
+  },
+  {
+   "id": "saopaulo",
+   "name": "São Paulo",
+   "country": "Brazil",
+   "region": "South America",
+   "tz": "America/Sao_Paulo",
+   "lat": -23.5505,
+   "lng": -46.6333,
+   "drive": false,
+   "src": "sudeste",
+   "apt": {
+    "code": "GRU",
+    "name": "São Paulo/Guarulhos International",
+    "lat": -23.4356,
+    "lng": -46.4731,
+    "hdg": 270,
+    "len": 3700,
+    "rwy": [
+     [
+      -23.43749,
+      -46.48222
+     ],
+     [
+      -23.43117,
+      -46.45886
+     ]
+    ],
+    "w": 45,
+    "ref": "10R/28L"
+   }
+  },
+  {
+   "id": "amsterdam",
+   "name": "Amsterdam",
+   "country": "Netherlands",
+   "region": "Europe",
+   "tz": "Europe/Amsterdam",
+   "lat": 52.3676,
+   "lng": 4.9041,
+   "drive": false,
+   "src": "Amsterdam",
+   "apt": {
+    "code": "AMS",
+    "name": "Amsterdam Schiphol",
+    "lat": 52.3105,
+    "lng": 4.7683,
+    "hdg": 360,
+    "len": 3800,
+    "rwy": [
+     [
+      52.32858,
+      4.70884
+     ],
+     [
+      52.36025,
+      4.71172
+     ]
+    ],
+    "w": 60,
+    "ref": "18R/36L"
+   }
+  },
+  {
+   "id": "buenosaires",
+   "name": "Buenos Aires",
+   "country": "Argentina",
+   "region": "South America",
+   "tz": "America/Argentina/Buenos_Aires",
+   "lat": -34.6037,
+   "lng": -58.3816,
+   "drive": false,
+   "src": "BuenosAires",
+   "apt": {
+    "code": "EZE",
+    "name": "Ministro Pistarini (Ezeiza) International",
+    "lat": -34.8222,
+    "lng": -58.5358,
+    "hdg": 110,
+    "len": 3300,
+    "rwy": [
+     [
+      -34.81905,
+      -58.55344
+     ],
+     [
+      -34.82535,
+      -58.51825
+     ]
+    ],
+    "w": 45,
+    "ref": "11/29"
+   }
+  },
+  {
+   "id": "bogota",
+   "name": "Bogotá",
+   "country": "Colombia",
+   "region": "South America",
+   "tz": "America/Bogota",
+   "lat": 4.711,
+   "lng": -74.0721,
+   "drive": false,
+   "src": "Bogota",
+   "apt": {
+    "code": "BOG",
+    "name": "El Dorado International",
+    "lat": 4.7016,
+    "lng": -74.1469,
+    "hdg": 130,
+    "len": 3800,
+    "rwy": [
+     [
+      4.71334,
+      -74.15203
+     ],
+     [
+      4.69274,
+      -74.12479
+     ]
+    ],
+    "w": 45,
+    "ref": "14L/32R"
+   }
+  },
+  {
+   "id": "lima",
+   "name": "Lima",
+   "country": "Peru",
+   "region": "South America",
+   "tz": "America/Lima",
+   "lat": -12.0464,
+   "lng": -77.0428,
+   "drive": false,
+   "src": "Lima",
+   "apt": {
+    "code": "LIM",
+    "name": "Jorge Chávez International",
+    "lat": -12.0219,
+    "lng": -77.1143,
+    "hdg": 160,
+    "len": 3500,
+    "rwy": [
+     [
+      -12.00769,
+      -77.1213
+     ],
+     [
+      -12.03126,
+      -77.1097
+     ]
+    ],
+    "w": 45,
+    "ref": "16L/34R"
+   }
+  },
+  {
+   "id": "riodejaneiro",
+   "name": "Rio de Janeiro",
+   "country": "Brazil",
+   "region": "South America",
+   "tz": "America/Sao_Paulo",
+   "lat": -22.9068,
+   "lng": -43.1729,
+   "drive": false,
+   "src": "RiodeJaneiro",
+   "apt": {
+    "code": "GIG",
+    "name": "Rio de Janeiro/Galeão International",
+    "lat": -22.809,
+    "lng": -43.2506,
+    "hdg": 100,
+    "len": 4000,
+    "rwy": [
+     [
+      -22.80184,
+      -43.25519
+     ],
+     [
+      -22.79218,
+      -43.21765
+     ]
+    ],
+    "w": 45,
+    "ref": "10/28"
+   }
+  },
+  {
+   "id": "santiago",
+   "name": "Santiago",
+   "country": "Chile",
+   "region": "South America",
+   "tz": "America/Santiago",
+   "lat": -33.4489,
+   "lng": -70.6693,
+   "drive": false,
+   "src": "Santiago",
+   "apt": {
+    "code": "SCL",
+    "name": "Arturo Merino Benítez International",
+    "lat": -33.393,
+    "lng": -70.7858,
+    "hdg": 170,
+    "len": 3800,
+    "rwy": [
+     [
+      -33.37196,
+      -70.80373
+     ],
+     [
+      -33.40618,
+      -70.8019
+     ]
+    ],
+    "w": 45,
+    "ref": "17R/35L"
+   }
+  },
+  {
+   "id": "johannesburg",
+   "name": "Johannesburg",
+   "country": "South Africa",
+   "region": "Africa",
+   "tz": "Africa/Johannesburg",
+   "lat": -26.2041,
+   "lng": 28.0473,
+   "drive": false,
+   "src": "Johannesburg",
+   "apt": {
+    "code": "JNB",
+    "name": "O. R. Tambo International",
+    "lat": -26.1337,
+    "lng": 28.242,
+    "hdg": 30,
+    "len": 4400,
+    "rwy": [
+     [
+      -26.14644,
+      28.23433
+     ],
+     [
+      -26.11185,
+      28.24504
+     ]
+    ],
+    "w": 60,
+    "ref": "03L/21R"
+   }
+  },
+  {
+   "id": "capetown",
+   "name": "Cape Town",
+   "country": "South Africa",
+   "region": "Africa",
+   "tz": "Africa/Johannesburg",
+   "lat": -33.9249,
+   "lng": 18.4241,
+   "drive": false,
+   "src": "CapeTown",
+   "apt": {
+    "code": "CPT",
+    "name": "Cape Town International",
+    "lat": -33.9715,
+    "lng": 18.6021,
+    "hdg": 10,
+    "len": 3200,
+    "rwy": [
+     [
+      -33.98775,
+      18.6089
+     ],
+     [
+      -33.95984,
+      18.60005
+     ]
+    ],
+    "w": 61,
+    "ref": "01/19"
+   }
+  },
+  {
+   "id": "nairobi",
+   "name": "Nairobi",
+   "country": "Kenya",
+   "region": "Africa",
+   "tz": "Africa/Nairobi",
+   "lat": -1.2921,
+   "lng": 36.8219,
+   "drive": false,
+   "src": "kenya",
+   "apt": {
+    "code": "NBO",
+    "name": "Jomo Kenyatta International",
+    "lat": -1.3192,
+    "lng": 36.9278,
+    "hdg": 60,
+    "len": 4100,
+    "rwy": [
+     [
+      -1.30573,
+      36.94625
+     ],
+     [
+      -1.32759,
+      36.91634
+     ]
+    ],
+    "w": 45,
+    "ref": "06/24"
+   }
+  },
+  {
+   "id": "casablanca",
+   "name": "Casablanca",
+   "country": "Morocco",
+   "region": "Africa",
+   "tz": "Africa/Casablanca",
+   "lat": 33.5731,
+   "lng": -7.5898,
+   "drive": false,
+   "src": "morocco",
+   "apt": {
+    "code": "CMN",
+    "name": "Mohammed V International",
+    "lat": 33.3675,
+    "lng": -7.5898,
+    "hdg": 170,
+    "len": 3700,
+    "rwy": [
+     [
+      33.38297,
+      -7.59746
+     ],
+     [
+      33.35091,
+      -7.58642
+     ]
+    ],
+    "w": 45,
+    "ref": "17R/35L"
+   }
+  },
+  {
+   "id": "moscow",
+   "name": "Moscow",
+   "country": "Russia",
+   "region": "Europe",
+   "tz": "Europe/Moscow",
+   "lat": 55.7558,
+   "lng": 37.6173,
+   "drive": false,
+   "src": "central-fed-district",
+   "apt": {
+    "code": "SVO",
+    "name": "Sheremetyevo International",
+    "lat": 55.9726,
+    "lng": 37.4146,
+    "hdg": 60,
+    "len": 3700,
+    "rwy": [
+     [
+      55.9757,
+      37.44373
+     ],
+     [
+      55.96716,
+      37.38665
+     ]
+    ],
+    "w": 60,
+    "ref": "06R/24L"
+   }
+  },
+  {
+   "id": "saintpetersburg",
+   "name": "Saint Petersburg",
+   "country": "Russia",
+   "region": "Europe",
+   "tz": "Europe/Moscow",
+   "lat": 59.9311,
+   "lng": 30.3609,
+   "drive": false,
+   "src": "SanktPetersburg",
+   "apt": {
+    "code": "LED",
+    "name": "Pulkovo",
+    "lat": 59.8003,
+    "lng": 30.2625,
+    "hdg": 100,
+    "len": 3800,
+    "rwy": [
+     [
+      59.79991,
+      30.21842
+     ],
+     [
+      59.79034,
+      30.2828
+     ]
+    ],
+    "w": 60,
+    "ref": "10R/28L"
+   }
+  }
+ ]
+}

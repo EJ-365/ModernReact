@@ -19,6 +19,7 @@ import { createHoustonSignals } from './render/houston-signals.js';
 import { createHoustonPlaces } from './render/houston-places.js';
 import { batchStaticChildren } from './render/static-batch.js';
 import { OSM_BUILDING_COVERAGE } from './cities/osm-coverage.js';
+import WORLD_CAT from './world/catalog.json';
 import { createCinematic } from './render/cinematic.js';
 import {
   buildWeatherZones,
@@ -58,7 +59,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.73.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.81.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -4516,9 +4517,17 @@ window.FLIGHTS=[];
     }
     return null;
   }
+  const _routeMiss=new Map();let _openSkyHold=0;
   async function fetchRouteByCallsign(callsign){
     const cs=cleanCS(callsign);
     if(!cs)return null;
+    /* US private tail numbers (N123AB) never have scheduled routes; skip known misses for 30 min */
+    if(/^N\d/.test(cs)||Date.now()-(_routeMiss.get(cs)||-1e12)<18e5)return null;
+    const r0=await fetchRouteByCallsign0(cs);
+    if(!r0)_routeMiss.set(cs,Date.now());
+    return r0;
+  }
+  async function fetchRouteByCallsign0(cs){
     const local=typeof isLocalDevHost==='function'?isLocalDevHost():false;
     /* 1) adsbdb — free route DB (CORS * — call direct on Netlify) */
     try{
@@ -4528,6 +4537,7 @@ window.FLIGHTS=[];
       for(const url of urls){
         try{
           const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
+          if(r.status===404)break;
           if(!r.ok)continue;
           const j=await r.json();
           const fr=(j&&j.response&&j.response.flightroute)||null;
@@ -4549,6 +4559,7 @@ window.FLIGHTS=[];
       for(const url of urls){
         try{
           const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
+          if(r.status===404)break;
           if(!r.ok)continue;
           const j=await r.json();
           const route=String(j&&j.route||'');
@@ -4563,7 +4574,7 @@ window.FLIGHTS=[];
     return null;
   }
   async function fetchOpenSkyRoute(icao24){
-    if(!icao24)return null;
+    if(!icao24||Date.now()<_openSkyHold)return null;
     const end=Math.floor(Date.now()/1000);
     const begin=end-4*3600;
     const qs='icao24='+encodeURIComponent(icao24)+'&begin='+begin+'&end='+end;
@@ -4574,6 +4585,7 @@ window.FLIGHTS=[];
     for(const url of urls){
       try{
         const r=await fetchWithTimeout(url,{cache:'no-store',mode:'cors'},10000);
+        if(r.status===429){_openSkyHold=Date.now()+6e5;return null;}
         if(!r.ok)continue;
         const flights=await r.json();
         if(!Array.isArray(flights)||!flights.length)continue;
@@ -5110,7 +5122,7 @@ let ASTRO={x:0,z:0};
    whenever event traffic kicked in (ReferenceError: NRG is not defined). */
 /* owner's home lot (16623 Red Gully Dr): position + keep-out used by OSM buildings, generated houses and the GPS bungalow */
 window.HTS_HOUSE_POS=geoToWorld(29.640889,-95.671661);
-window.HTS_HOUSE_EXCL=(x,z)=>Math.hypot(x-HTS_HOUSE_POS.x,z-HTS_HOUSE_POS.z)<24;
+window.HTS_HOUSE_EXCL=(x,z)=>Math.hypot(x-HTS_HOUSE_POS.x,z-HTS_HOUSE_POS.z)<24||inOsmCover(x,z); /* real OSM buildings own covered districts */
 const NRG=geoToWorld(29.6847,-95.4107);
 if(!HTS_HAS_PACK){
 /* Real NRG Stadium @ 1 NRG Pkwy — rectangular glass bowl, translucent PTFE roof,
@@ -8433,6 +8445,106 @@ function forecastAt(offsetSec){
 const cam={theta:-0.62,phi:0.86,radius:2300*WS,target:new THREE.Vector3(W(-120),0,60)};
 const camGoal={theta:cam.theta,phi:cam.phi,radius:cam.radius,target:cam.target.clone()};
 if(window.HTS_DEBUG){window.HTS_DEBUG.cam=cam;window.HTS_DEBUG.camGoal=camGoal;}
+/* World map (src/world): loaded on demand; returning drops the camera on the chosen spot */
+window.HTS_WORLD_RETURN=function(lat,lng,zoomIn){
+  const w=geoToWorld(lat,lng),P=window.LIMITS?LIMITS.pan:5600*WS;
+  camGoal.target.set(clamp(w.x,-P,P),0,clamp(w.z,-P,P));
+  if(zoomIn){cam.radius=LIMITS.rmax;camGoal.radius=LIMITS.rmax*0.82;cam.target.copy(camGoal.target);} /* globe → Houston: keep descending */
+  else camGoal.radius=1500*WS;
+  camGoal.phi=Math.min(camGoal.phi,1.0);_worldOutTicks=-4;
+};
+/* Houston's top zoom height in km — the globe starts exactly there so the zoom-out is continuous */
+const HOU_TOP_KM=()=>LIMITS.rmax/UNITS_PER_MILE*1.609*Math.cos(Math.min(1.2,cam.phi))+8;
+function openWorldMap(opts){
+  let g={lat:29.76,lng:-95.37};try{g=worldToGeo(camGoal.target.x,camGoal.target.z);}catch(e){}
+  import('./world/index.js').then(m=>m.openWorld(Object.assign({from:{lat:g.lat,lng:g.lng},alt:HOU_TOP_KM(),canvas,renderer},opts||{}))).catch(e=>console.warn('[world]',e));
+}
+window.HTS_OPEN_WORLD=openWorldMap;
+/* Tour → By plane → "Fly to another city": the same aircraft choice flies airport to airport on the globe */
+{const sel=document.getElementById('tourWorld'),go=document.getElementById('tourGo'),row=document.getElementById('tourAptRow');
+  if(sel)for(const c of WORLD_CAT.cities){if(c.full)continue;const o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.apt.code+') · '+c.country;sel.appendChild(o);}
+  const JETS=['b737','b787','b777','b747','a320','a350','a380'];
+  /* flying to another city: "Land at" becomes that city's airport (Houston airports don't apply) */
+  const arr=document.getElementById('tourArr');let arrHtml=null;
+  if(sel&&arr)sel.addEventListener('change',()=>{
+    const c=WORLD_CAT.cities.find(q=>q.id===sel.value);
+    if(c){if(arrHtml==null)arrHtml=arr.innerHTML;arr.innerHTML='<option value="">'+c.apt.name+' · '+c.apt.code+'</option>';arr.disabled=true;}
+    else if(arrHtml!=null){arr.innerHTML=arrHtml;arrHtml=null;arr.disabled=false;}
+  });
+  /* the normal Houston plane tour flies the whole trip on the flat map: IAH -> that city's airport */
+  if(sel)sel.addEventListener('change',()=>{
+    const v=sel.value;if(!v){window.HTS_WORLD_PENDING=null;return;}
+    intercityOpts('houston',v).then(o=>{if(sel.value===v)window.HTS_WORLD_PENDING={to:v,dest:o.dest,opts:o,apt:o.aptTxt};}).catch(e=>console.warn('[intercity]',e));
+  });
+  void go;void JETS;}
+let _icL=null;
+/* Tour → By car → "Drive to another city": the same tour car on real highways (US, Canada, Mexico) */
+const DRIVE_IDS=WORLD_CAT.cities.filter(c=>c.drive&&!c.full).map(c=>c.id);
+{const dsel=document.getElementById('tourDrive');
+  if(dsel){for(const id of DRIVE_IDS){const c=WORLD_CAT.cities.find(q=>q.id===id);if(!c)continue;const o=document.createElement('option');o.value=c.id;o.textContent=c.name+' · '+c.country;dsel.appendChild(o);}
+    dsel.addEventListener('change',()=>{const v=dsel.value;window.HTS_DRIVE_PENDING=null;if(!v)return;
+      driveOpts(v).then(o=>{if(dsel.value===v)window.HTS_DRIVE_PENDING={to:v,dest:o.dest,opts:o};}).catch(e=>console.warn('[intercity] drive',e));});}}
+async function driveOpts(id){
+  const IC=window.HTS_IC||(window.HTS_IC=await import('./intercity.js'));
+  const c=WORLD_CAT.cities.find(q=>q.id===id),R=await IC.driveRoute(c);
+  if(!R)throw new Error('no route '+id);
+  IC.embedCity(c,{scene,renderer});
+  const e=R.pts[R.pts.length-1];
+  return {icRoute:R.pts,km:R.km,dest:{x:e.x,z:e.z,n:'Downtown '+c.name},onRoute:(P,from)=>IC.buildHighway(scene,P,from)};
+}
+/* "Drive to Houston" from an Americas city on the world map: the Houston tour car, its panel, dash, music and radio, on the real highway */
+window.HTS_INTERCITY_DRIVE=async function(fromId){
+  const IC=window.HTS_IC||(window.HTS_IC=await import('./intercity.js'));
+  const c=WORLD_CAT.cities.find(q=>q.id===fromId),R=c&&await IC.driveRoute(c);
+  if(!R)throw new Error('No road route from '+(c?c.name:fromId));
+  const P=R.pts.slice().reverse().map(p=>({...p,name:p.ref?p.ref+' → Houston':'Highway to Houston'}));
+  if(window.HTS_WORLD_ACTIVE&&window.HTS_WORLD)HTS_WORLD.close({lat:c.lat,lng:c.lng});
+  await IC.embedCity(c,{scene,renderer});
+  const e=P[P.length-1],dest={x:e.x,z:e.z,n:'Downtown Houston'};
+  const o={icRoute:P,icRev:true,km:R.km,onRoute:(Q)=>IC.buildHighway(scene,Q,0)};
+  window.HTS_DRIVE_PENDING={to:'houston',dest,opts:o};
+  const go=()=>{if(!window.HTS_TOUR)return setTimeout(go,400);HTS_TOUR.start('car','tour',dest,o);};
+  setTimeout(go,300);
+};
+/* trip options for HTS_TOUR.start: the two airports, real great-circle km, cruise level; loads the other cities in the background */
+async function intercityOpts(fromId,toId){
+  const IC=window.HTS_IC||(window.HTS_IC=await import('./intercity.js'));
+  const C=WORLD_CAT.cities,f=C.find(q=>q.id===fromId)||C.find(q=>q.full),t=C.find(q=>q.id===toId);
+  const fa=IC.tourAirport(f),ta=IC.tourAirport(t),apts=[];
+  if(!f.full)apts.push(fa);if(!t.full)apts.push(ta);
+  const km=IC.realKm(f.apt,t.apt),alt=Math.round(Math.min(37000,Math.max(16000,km*80))/1000)*1000;
+  for(const c of [f,t])if(!c.full)IC.embedCity(c,{scene,renderer});
+  const tp=t.full?geoToWorld(t.apt.lat,t.apt.lng):ta;
+  return {world:{apts,km,alt,from:f.id,to:t.id,tll:{lat:t.apt.lat,lng:t.apt.lng}},dep:f.apt.code,arr:t.apt.code,dest:{x:tp.x,z:tp.z,n:t.name+' ('+t.apt.code+')'},aptTxt:t.apt.code+' · '+t.apt.name};
+}
+/* "Fly to…" from any city on the world map: back to the flat map and the Houston plane tour from that city's runway */
+window.HTS_INTERCITY_FLY=async function(fromId,toId,ac){
+  const o=await intercityOpts(fromId,toId);o.ac=ac;
+  const f=WORLD_CAT.cities.find(q=>q.id===fromId);
+  if(window.HTS_WORLD_ACTIVE&&window.HTS_WORLD)HTS_WORLD.close({lat:f.apt.lat,lng:f.apt.lng});
+  if(!f.full)await HTS_IC.embedCity(f,{scene,renderer});
+  window.HTS_WORLD_PENDING={to:toId,dest:o.dest,opts:o,apt:o.aptTxt};
+  const go=()=>{if(!window.HTS_TOUR)return setTimeout(go,400);HTS_TOUR.start('plane','tour',o.dest,o);};
+  setTimeout(go,200);
+};
+/* arriving from another city: back on the full Houston map, the Houston plane tour flies the approach into IAH */
+window.HTS_ARRIVE_HOUSTON=function(a){
+  const h=WORLD_CAT.cities.find(q=>q.full),R=Math.PI/180,f=a.from||h.apt;
+  const b=Math.atan2(Math.sin((f.lng-h.apt.lng)*R)*Math.cos(f.lat*R),Math.cos(h.apt.lat*R)*Math.sin(f.lat*R)-Math.sin(h.apt.lat*R)*Math.cos(f.lat*R)*Math.cos((f.lng-h.apt.lng)*R));
+  const o=geoToWorld(h.apt.lat+30/111*Math.cos(b),h.apt.lng+30/(111*Math.cos(h.apt.lat*R))*Math.sin(b)),d=geoToWorld(h.apt.lat,h.apt.lng);
+  const go=()=>{if(!window.HTS_TOUR)return setTimeout(go,500);
+    HTS_TOUR.start('plane','tour',{x:d.x,z:d.z,n:h.apt.name+' ('+h.apt.code+')'},{origin:{x:o.x,z:o.z,n:'inbound from '+(f.code||'the world map')},dep:h.apt.code,arr:h.apt.code,arrive:{x:o.x,z:o.z,type:a.type}});};
+  setTimeout(go,300);
+};
+window.HTS_MAKE_TOUR_JET=(type)=>tourJet(0xf3f5f7,0x1f4e9c,type);
+/* warm the globe only once the user zooms far out, so Houston never stalls building it */
+let _worldWarm=false;
+function warmWorld(){if(_worldWarm||HTS_PEEK)return;_worldWarm=true;
+  const go=()=>import('./world/index.js').then(m=>m.preload({renderer})).catch(()=>{});
+  (window.requestIdleCallback||setTimeout)(go,{timeout:4000});}
+window.HTS_WARM_WORLD=warmWorld;
+{const wb=document.getElementById('worldBtn');if(wb)wb.addEventListener('click',()=>openWorldMap({fly:true}));}
+let _worldOutTicks=0;
 function applyCam(){
   /* Smooth chase — softer on long fly-tos, snappier for small orbit/zoom nudges */
   const dist=cam.target.distanceToSquared(camGoal.target);
@@ -8452,7 +8564,8 @@ function applyCam(){
     cam.target.z+cam.radius*sp*Math.cos(cam.theta));
   camera.lookAt(cam.target);
   /* metre scale: near plane follows zoom so lane paint / land layers keep depth precision (no shimmer) */
-  if(WS!==1){
+  /* the tour sets its own near plane each frame; fighting it flipped the depth range every frame (flicker) */
+  if(WS!==1&&!(performance.now()-(camera.userData.tourNearT||-1e9)<250)){
     const nn=clamp(cam.radius*0.02,1.2,120);
     if(Math.abs(nn-camera.near)>camera.near*0.15){camera.near=nn;camera.updateProjectionMatrix();}
   }
@@ -10171,6 +10284,11 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();
   }else{
     camGoal.radius=clamp(camGoal.radius*Math.pow(1.00135,e.deltaY),lim.rmin,lim.rmax);
   }
+  if(camGoal.radius>lim.rmax*0.6)warmWorld();
+  /* keep scrolling out past the Houston outline → the globe (Google Earth style) */
+  if(e.deltaY>0&&!follow&&!followPlane&&!(window.HTS_TOUR&&HTS_TOUR.active)&&camGoal.radius>=lim.rmax*0.995){
+    if(++_worldOutTicks>=2){_worldOutTicks=0;openWorldMap();}
+  }else if(e.deltaY<0)_worldOutTicks=0;
 },{passive:false});
 function pan(dx,dy){
   const k=cam.radius*0.0013;
@@ -10330,16 +10448,16 @@ const FACILITY_POIS=HTS_IS_AUS?(function(){
 })():(HTS_HAS_PACK?[]:(function(){
   const rows=[
     {n:'Rice University',k:'school',lat:29.7174,lng:-95.4018,addr:'6100 Main St · est. 1912'},
-    {n:'University of Houston',k:'school',lat:29.7199,lng:-95.3422,addr:'4800 Calhoun Rd'},
+    {n:'University of Houston',k:'school',lat:29.72208,lng:-95.34696,addr:'4800 Calhoun Rd'},
     {n:'Texas Southern University',k:'school',lat:29.7220,lng:-95.3578,addr:'3100 Cleburne St'},
     {n:'Lamar High School',k:'school',lat:29.7428,lng:-95.4265,addr:'3325 Westheimer Rd'},
-    {n:'Bellaire High School',k:'school',lat:29.7019,lng:-95.4645,addr:'5100 Maple St'},
+    {n:'Bellaire High School',k:'school',lat:29.69228,lng:-95.47026,addr:'5100 Maple St'},
     {n:'Houston Community College — Central',k:'school',lat:29.7365,lng:-95.3795,addr:'1300 Holman St'},
     {n:'University of St. Thomas',k:'school',lat:29.7378,lng:-95.3935,addr:'3800 Montrose Blvd'},
     {n:'Lakewood Church',k:'worship',lat:29.7270,lng:-95.4345,addr:'3700 Southwest Fwy'},
-    {n:'Co-Cathedral of the Sacred Heart',k:'worship',lat:29.7485,lng:-95.3655,addr:'1111 St Joseph Pkwy'},
-    {n:'Islamic Society of Greater Houston',k:'worship',lat:29.7315,lng:-95.4185,addr:'3110 Eastside St'},
-    {n:'Congregation Beth Israel',k:'worship',lat:29.6905,lng:-95.4555,addr:'5600 N Braeswood Blvd'},
+    {n:'Co-Cathedral of the Sacred Heart',k:'worship',lat:29.74996,lng:-95.36862,addr:'1111 St Joseph Pkwy'},
+    {n:'Islamic Society of Greater Houston',k:'worship',lat:29.73687,lng:-95.425,addr:'3110 Eastside St'},
+    {n:'Congregation Beth Israel',k:'worship',lat:29.67741,lng:-95.48795,addr:'5600 N Braeswood Blvd'},
   ];
   return rows.map(r=>{const w=geoToWorld(r.lat,r.lng);return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr};});
 })());
@@ -10359,11 +10477,14 @@ for(const p of FACILITY_POIS){
     if(Math.hypot(p.x-moody.x,p.z-moody.z)<42)continue;
   }
   const kind=(p.n.includes('Islamic')?'mosque':(p.n.includes('Church')||p.n.includes('Cathedral')||p.n.includes('Congregation')||p.n.includes('Episcopal')?'church':'school'));
-  const b=facilityBuilding(kind,p.x,p.z);
-  b.userData.info={n:p.n,d:p.addr};
-  EXCLUDES.push({x:p.x,z:p.z,r:55});
-  if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
-  PICK_TOWERS.push(b);
+  /* real OSM campus/church footprints already stand here — no placeholder massing, keep the info card */
+  if(!inOsmCover(p.x,p.z)){
+    const b=facilityBuilding(kind,p.x,p.z);
+    b.userData.info={n:p.n,d:p.addr};
+    EXCLUDES.push({x:p.x,z:p.z,r:55});
+    if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
+    PICK_TOWERS.push(b);
+  }
   registerLandmarkHit(p.x,16,p.z,60,30,50,
     {n:p.n,d:p.addr},
     {n:p.n,x:p.x,z:p.z,addr:p.addr});
@@ -13076,6 +13197,11 @@ function updateWhereAmI(){
     name=p?p.n:METRO_NAME;
     kind=p?p.kind:null;
     road=nearestRoadLabel(x,z);
+    if(Math.hypot(x-60,z-60)>90000&&window.HTS_IC&&HTS_IC.hw){
+      let best=null,bd=1e18;
+      for(const c of WORLD_CAT.cities){if(c.full)continue;const w=HTS_IC.hw(c.lat,c.lng),d=Math.hypot(w.x-x,w.z-z);if(d<bd){bd=d;best=c;}}
+      if(best){name=bd<40000?best.name:'Between cities';kind='ic';road=bd<40000?best.country:(best.name+' in '+Math.round(bd/1609.344)+' mi');}
+    }
   }
   $('waDist').textContent=name||METRO_NAME;
   let roadTxt='—';
@@ -13085,6 +13211,7 @@ function updateWhereAmI(){
   }
   else if(kind==='airport')roadTxt='airport';
   else if(kind==='bay'||kind==='lake'||kind==='reservoir'||kind==='bayou'||kind==='river'||kind==='water')roadTxt=kind;
+  else if(kind==='ic')roadTxt=road;
   else if(road)roadTxt='near '+road;
   else roadTxt='open country';
   $('waRoad').textContent=roadTxt;
@@ -13821,6 +13948,21 @@ function frame(now){
   requestAnimationFrame(frame);
   /* Peek / background tab: skip sim work — keeps homepage + laptop cool */
   if(document.hidden)return;
+  if(window.HTS_WORLD_ACTIVE){try{window.HTS_WORLD.frame(now);}catch(e){console.warn('[world]',e);}return;}
+  if(window.HTS_IC&&HTS_IC.active()){ /* other cities on the flat map: far ground + embedded city scenes */
+    const dtI=Math.min(0.1,(now-(window._icT||now))/1000);window._icT=now;
+    try{
+      const L=_icL||(_icL=new THREE.Color());L.copy(hemi.color).multiplyScalar(hemi.intensity*0.55);
+      const sy=Math.max(0,sun.position.y-sun.target.position.y)/Math.max(1,sun.position.distanceTo(sun.target.position));
+      L.r+=sun.color.r*sun.intensity*sy*0.32;L.g+=sun.color.g*sun.intensity*sy*0.32;L.b+=sun.color.b*sun.intensity*sy*0.32;
+      L.r=Math.min(1.25,L.r+0.05);L.g=Math.min(1.25,L.g+0.05);L.b=Math.min(1.25,L.b+0.07);
+      HTS_IC.update(dtI,camera,L);
+      const _st=window.HTS_TOUR&&HTS_TOUR.active&&HTS_TOUR.state;
+      document.body.classList.toggle('ic-away',Math.hypot(camera.position.x-60,camera.position.z-60)>60000);
+      if(Math.hypot(camera.position.x,camera.position.z)<250000&&!(_st&&(_st.wx||_st.icDrive))&&!window.HTS_WORLD_PENDING&&!window.HTS_DRIVE_PENDING)HTS_IC.dropCities();
+    }catch(e){console.warn('[intercity]',e);}
+  } else if(document.body.classList.contains('ic-away'))document.body.classList.remove('ic-away');
+  /* tour never started (or was ended): drop the pending city flight */ /* same canvas: the globe/other cities draw here, Houston sim sleeps */
   if(HTS_PEEK&&window._htsPeek&&window._htsPeek.paused)return;
   const dt=Math.min((now-last)/1000,0.08);last=now;
   const inOSM=!!window.osmMode;
@@ -13867,7 +14009,9 @@ function frame(now){
     }
   }
   /* Day/night + sun/moon follow simH (same as early builds) so 5/30 min/s is a real time-lapse */
-  const nightF=envUpdate(dt,simH);window._nightF=nightF;
+  /* far from Houston on the flat map (intercity trips): sun follows the local solar time under the camera */
+  const _icOff=(window.HTS_IC&&HTS_IC.active())?((cam.target.x-60)/(59.9*UNITS_PER_MILE))/15:0;
+  const nightF=envUpdate(dt,((simH+_icOff)%24+24)%24);window._nightF=nightF;
   try{if(!window.HTS_CELEB){window.HTS_CELEB=createCelebrations({scene,camera,u:UNITS_PER_MILE/1609.344});HTS_CELEB.bindUI();}HTS_CELEB.update(dt,nightF);}catch(e){if(!window._celebErr){window._celebErr=1;console.warn('[HTS] celebrations',e);}}
   {
     const tTarget=inOSM?0:clamp((cam.radius-4200*WS)/(3200*WS),0,1);
@@ -14012,7 +14156,8 @@ function frame(now){
   if(!_tourOn||_tourOrbit)applyCam();
   if(!HTS_PEEK)updatePoiCardVisibility();
   /* Sky / clouds / sun always wrap the viewed area — never leave a black void */
-  if(typeof skyRoot!=='undefined')skyRoot.position.set(cam.target.x,0,cam.target.z);
+  /* on a tour (and every intercity trip) the sky follows the camera, else it's left behind as a pale band on the horizon */
+  if(typeof skyRoot!=='undefined')skyRoot.position.set(_tourOn?camera.position.x:cam.target.x,0,_tourOn?camera.position.z:cam.target.z);
 
   /* map-mode: gentle crossfade — keep 3D city tiny + clouds, avoid white flash */
   const on=mapT>0.04;

@@ -13,6 +13,7 @@ const MAXV = 70;
 
 export function createHoustonPlaces({ camera, dom, getView, url = '/data/houston/places.json' }) {
   const host = document.createElement('div');
+  host.id = 'houPlaces';
   host.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2;font-family:system-ui,-apple-system,Segoe UI,sans-serif';
   (dom.parentElement || document.body).appendChild(host);
   let P = [], els = [], shown = [];

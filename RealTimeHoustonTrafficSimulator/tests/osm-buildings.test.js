@@ -28,7 +28,7 @@ test('every OSM pack is v2 with real footprints and matches the coverage module'
     assert.deepEqual(OSM_BUILDING_COVERAGE[id], pack.tiles, `${id}: osm-coverage.js out of date`);
     for (const b of pack.buildings.slice(0, 50)) {
       const [h, mh, , , name, ring] = b;
-      assert.ok(h > mh && h < 700, `${id}: bad height ${h}`);
+      assert.ok(h > mh && h < 850, `${id}: bad height ${h}`); /* Burj Khalifa is 828 m */
       assert.equal(typeof name, 'string');
       assert.ok(Array.isArray(ring) && ring.length >= 6 && ring.length % 2 === 0);
     }

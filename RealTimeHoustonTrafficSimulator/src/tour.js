@@ -17,8 +17,8 @@ const _isWin = typeof navigator !== 'undefined' && /Windows/i.test(navigator.use
 const LANDMARKS = [
   ['Downtown Houston', 29.7604, -95.3698], ['Galleria / Uptown', 29.739, -95.463], ['Texas Medical Center', 29.707, -95.398],
   ['NRG Stadium', 29.6847, -95.4107], ['Hermann Park', 29.7135, -95.3905], ['Rice University', 29.7174, -95.4018],
-  ['University of Houston', 29.7199, -95.3422], ['Texas Southern University', 29.7220, -95.3578],
-  ['Lamar High School', 29.7428, -95.4265], ['Bellaire High School', 29.7019, -95.4645],
+  ['University of Houston', 29.72208, -95.34696], ['Texas Southern University', 29.7220, -95.3578],
+  ['Lamar High School', 29.7428, -95.4265], ['Bellaire High School', 29.69228, -95.47026],
   ['Museum District', 29.724, -95.39], ['Daikin Park (Minute Maid)', 29.7573, -95.3555], ['Toyota Center', 29.7508, -95.3621],
   ['Buffalo Bayou Park', 29.762, -95.386], ['Memorial Park', 29.765, -95.441], ['Space Center Houston', 29.5519, -95.0981],
   ['NASA Johnson Space Center', 29.5593, -95.0899], ['San Jacinto Monument', 29.7499, -95.0807],
@@ -28,7 +28,7 @@ const LANDMARKS = [
   ['The Heights', 29.7989, -95.3987], ['Montrose', 29.7435, -95.3915], ['EaDo / East Downtown', 29.7520, -95.3455],
   ['Houston Zoo', 29.7161, -95.3900], ['Astrodome', 29.6850, -95.4078], ['Moody Gardens (Galveston)', 29.2736, -94.8519],
   ['Hobby Airport (HOU)', 29.6454, -95.2789], ['Bush Intercontinental (IAH)', 29.9902, -95.3368],
-  ['Energy Corridor', 29.7805, -95.6340], ['Katy Mills', 29.7845, -95.8090], ['Sugar Land Town Square', 29.5990, -95.6210],
+  ['Energy Corridor', 29.7805, -95.6340], ['Katy Mills', 29.77562, -95.80949], ['Sugar Land Town Square', 29.59555, -95.62289],
   ['Bayou Place', 29.7618, -95.3685], ['Market Square Park', 29.7629, -95.3617],
 ];
 const DEST_BLURB = {
@@ -341,6 +341,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   vehBtns.forEach((b) => b.addEventListener('click', () => {
     S.kind = b.getAttribute('data-veh'); vehBtns.forEach((x) => x.classList.toggle('on', x === b));
     const ar = $('tourAptRow'); if (ar) ar.style.display = S.kind === 'plane' ? '' : 'none';
+    const dr = $('tourDriveRow'); if (dr) dr.style.display = S.kind === 'car' ? '' : 'none';
     const fb = $('tourFree'); if (fb) fb.textContent = S.kind === 'car' ? 'Free drive' : 'Free flight';
   }));
   function acName() { const id = S.planeStyle === 'jet' ? S.jetModel : S.planeStyle; const a = AIRCRAFT.find((q) => q[0] === id); return a ? a[1] : 'Plane'; }
@@ -367,14 +368,18 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0];
     persistVeh(); return true;
   }
-  function beginTour(dest) {
+  function beginTour(dest, opts) {
     if (!dest) { note('Pick a place first — or tap Surprise me.'); return; }
     const kind = (document.querySelector('#tourVeh .btn.on') || {}).getAttribute?.('data-veh') || S.kind || 'car';
     if (kind === 'plane' && !chooseAircraft()) return;
     S.kind = kind;
-    start(kind, 'tour', dest);
+    start(kind, 'tour', dest, opts || {});
   }
   const goBtn = $('tourGo'); if (goBtn) goBtn.addEventListener('click', () => {
+    const carNow = ((document.querySelector('#tourVeh .btn.on') || {}).getAttribute?.('data-veh') || S.kind || 'car') === 'car';
+    const wp = carNow ? window.HTS_DRIVE_PENDING : window.HTS_WORLD_PENDING;
+    if (carNow && ($('tourDrive') || {}).value && !(wp && wp.dest)) { note('Loading the highway route…'); return; }
+    if (wp && wp.dest) { beginTour(wp.dest, wp.opts); return; } /* another city: the same tour, all the way there on the flat map */
     const v = $('tourDest') && $('tourDest').value;
     if (v === '' || v == null) { note('Pick a place first — or tap Surprise me.'); return; }
     const dest = findDest(v);
@@ -397,6 +402,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function note(t) { const n = $('tourNote'); if (n) n.textContent = t; }
   function destBlurb(d) {
     if (!d) return '';
+    if (S.icDrive && d === S.dest && S.route && S.route[0].rr) return Math.round(S.route[0].rr / 1609.344) + ' mi on real highways · ×2 ×4 ×10 to speed it up.';
     return DEST_BLURB[d.n] || ('Houston highlight — enjoy the ride to ' + d.n + '.');
   }
 
@@ -432,7 +438,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     + '#tourDash.night .dashSvg .gl{fill:#0f2c48;filter:drop-shadow(0 0 9px rgba(80,180,255,.8))}'
     + '#tourDash.night .dashSvg text{fill-opacity:1}#tourDash.night .dashSvg .dLeft circle:first-child{filter:drop-shadow(0 0 5px rgba(255,140,70,.45))}'
     + '#tourDash .carGlass{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:-1;display:none}#tourDash.carOn .carGlass{display:block}'
-    + '#tourDash.jetCockpit{height:max(min(38vw,52vh),min(30vh,260px))}'
+    + '#tourDash.jetCockpit{height:max(min(27vw,34vh),min(22vh,190px))}'
     /* CarPlay — drag eyebrow + explicit resize grip (CSS resize is unreliable on fixed) */
     + '#tourDash .carplay{position:absolute;left:auto;right:1.5%;top:11%;bottom:auto;width:min(22vw,240px);height:min(18vh,140px);z-index:4;pointer-events:auto;'
     + 'display:none;flex-direction:column;justify-content:center;gap:3px;padding:10px 12px 18px;border-radius:14px;background:linear-gradient(165deg,#0e1620,#0a1018);'
@@ -891,7 +897,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         if (et == null) dEta.textContent = 'ETA —';
         else if (et < 25) dEta.textContent = 'ETA Now';
         else if (et < 105) dEta.textContent = 'ETA ' + Math.round(et) + 's';
-        else dEta.textContent = 'ETA ' + Math.round(et / 60) + ' min';
+        else dEta.textContent = 'ETA ' + fmtDur(et);
       }
       const steer = Math.abs(S.v) > 0.5 ? Math.atan(2.7 * S.yawRate / S.v) : 0;
       const wh = q('dWheel'); if (wh) wh.setAttribute('transform', 'translate(255,318) scale(.7) rotate(' + Math.max(-540, Math.min(540, -steer * 15 * 180 / Math.PI)).toFixed(1) + ')');
@@ -1045,7 +1051,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       + '</div>'
       + '<div class="row">' + views + '</div>'
       + '<div class="row" style="margin-top:6px">' + speeds
-      + (S.kind === 'plane' && S.mode === 'tour' ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">Land at</span><select data-land="1" style="background:#1b232c;color:#dbe6f0;border:1px solid #34404c;border-radius:7px;padding:4px">' + aptList().map((a) => '<option value="' + a.code + '"' + (a.code === S.landApt ? ' selected' : '') + '>' + a.code + '</option>').join('') + '</select><button data-landnow="1">Land now</button>' : '')
+      + (S.kind === 'plane' && S.mode === 'tour' && window.HTS_WORLD_PENDING && window.HTS_WORLD_PENDING.dest === S.dest ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">Land at</span><b style="align-self:center;margin-left:4px">' + window.HTS_WORLD_PENDING.apt + '</b>' : '')
+      + (S.kind === 'plane' && S.mode === 'tour' && !(window.HTS_WORLD_PENDING && window.HTS_WORLD_PENDING.dest === S.dest) ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">Land at</span><select data-land="1" style="background:#1b232c;color:#dbe6f0;border:1px solid #34404c;border-radius:7px;padding:4px">' + aptList().map((a) => '<option value="' + a.code + '"' + (a.code === S.landApt ? ' selected' : '') + '>' + a.code + '</option>').join('') + '</select><button data-landnow="1">Land now</button>' : '')
       + (S.mode === 'free' ? '<span style="color:#8a96a3;align-self:center;margin-left:6px">' + (S.kind === 'car' ? 'W/S throttle · A/D steer' : 'W/S pitch · A/D bank · Q/E yaw · Shift/X throttle') + '</span>' : '') + '</div>'
       + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span style="color:#8a96a3">' + (S.kind === 'car' ? 'Vehicle</span>' + styles : 'Aircraft</span><b style="align-self:center;margin:0 4px">' + acName() + '</b>') + '<span style="color:#8a96a3;margin-left:4px">' + (S.kind === 'car' ? 'Color' : 'Main') + '</span>' + cols + accs
       + '<span class="snd"><button type="button" class="mute' + (S.soundOn ? '' : ' on') + '" data-mute="1" title="Mute engine sound (M)">' + (S.soundOn ? 'Sound' : 'Muted') + '</button>'
@@ -1151,7 +1158,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           const clock = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
           if (et < 25) e.textContent = 'Now · ' + clock;
           else if (et < 105) e.textContent = Math.round(et) + 's · ' + clock;
-          else e.textContent = Math.round(et / 60) + ' min · ' + clock;
+          else e.textContent = fmtDur(et) + ' · ' + clock;
         }
       } else if (ew) ew.style.display = 'none';
     } else {
@@ -1201,6 +1208,44 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   }
 
   /* ---------- car routing over the live carriageway graph ---------- */
+  /* intercity flight: real great-circle metres from a Houston-map point to the destination airport */
+/* 45 min, 1 h 05 min, 12 h 40 min */
+function fmtDur(sec) { const m = Math.round(sec / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; }
+function icRealLeft(x, z, t) {
+  const R = Math.PI / 180, lat = 29.7604 - (z - 60) / (69 * 1609.344), lng = -95.3698 + (x - 60) / (59.9 * 1609.344);
+  const h = Math.sin((t.lat - lat) * R / 2) ** 2 + Math.cos(lat * R) * Math.cos(t.lat * R) * Math.sin((t.lng - lng) * R / 2) ** 2;
+  return 2 * 6371008.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+/* intercity drive: Houston streets from where you are to the edge of Houston's road map, then the highway route */
+  /* another city -> Houston: the real highway the whole way; the highway mesh stops where Houston's own roads take over */
+  function icJoinRev(T, ic) {
+    let x0 = 1e12, x1 = -1e12, z0 = 1e12, z1 = -1e12;
+    for (const c of T.carriageways) { const p = c.f.pts; for (let i = 0; i < p.length; i += 8) { const x = p[i], z = p[i + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; } }
+    x0 += 6000; x1 -= 6000; z0 += 6000; z1 -= 6000;
+    const P = ic.map((p) => ({ ...p })); let en = P.findIndex((p) => p.x > x0 && p.x < x1 && p.z > z0 && p.z < z1); if (en < 0) en = P.length - 1;
+    S.icFrom = 0; S.icTo = en;
+    let s = 0; P.forEach((p, i) => { if (i) s += Math.hypot(p.x - P[i - 1].x, p.z - P[i - 1].z); p.s = s; });
+    let rr = 0; for (let i = P.length - 1; i >= 0; i--) { if (i < P.length - 1) rr += (P[i + 1].s - P[i].s) / (P[i].k || 1); P[i].rr = rr; if (rr < 2500) P[i].ff = 35; else if (rr < 20000) P[i].ff = Math.min(P[i].ff || 55, 55); }
+    return P;
+  }
+  function icJoin(T, ic, a) {
+    S.icTo = 0;
+    let x0 = 1e12, x1 = -1e12, z0 = 1e12, z1 = -1e12;
+    for (const c of T.carriageways) { const p = c.f.pts; for (let i = 0; i < p.length; i += 8) { const x = p[i], z = p[i + 1]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; } }
+    x0 += 6000; x1 -= 6000; z0 += 6000; z1 -= 6000;
+    let ex = ic.findIndex((p) => p.x < x0 || p.x > x1 || p.z < z0 || p.z > z1); if (ex < 0) ex = ic.length - 1;
+    const H = a ? findRoute(T, a.c.f.pts[2 * a.i], a.c.f.pts[2 * a.i + 1], ic[ex].x, ic[ex].z) : null;
+    let P;
+    if (H && H.length > 1) {
+      const L = H[H.length - 1]; let k = ex, bd = 1e12;
+      for (let j = ex; j < Math.min(ic.length, ex + 80); j++) { const d = Math.hypot(ic[j].x - L.x, ic[j].z - L.z); if (d < bd) { bd = d; k = j; } }
+      P = H.map((p) => ({ ...p, k: 1 })).concat(ic.slice(Math.min(ic.length - 1, k + 2)).map((p) => ({ ...p })));
+      S.icFrom = H.length;
+    } else { P = ic.map((p) => ({ ...p })); S.icFrom = 0; }
+    let s = 0; P.forEach((p, i) => { if (i) s += Math.hypot(p.x - P[i - 1].x, p.z - P[i - 1].z); p.s = s; });
+    let rr = 0; for (let i = P.length - 1; i >= 0; i--) { if (i < P.length - 1) rr += (P[i + 1].s - P[i].s) / (P[i].k || 1); P[i].rr = rr; }
+    return P;
+  }
   function sampleAt(P, s, o) {
     let i = S._si || 0;
     while (i < P.length - 2 && P[i + 1].s < s) i++;
@@ -1208,7 +1253,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     S._si = i;
     const a = P[i], b = P[i + 1], t = Math.min(1, Math.max(0, (s - a.s) / ((b.s - a.s) || 1)));
     o.x = a.x + (b.x - a.x) * t; o.y = a.y + (b.y - a.y) * t; o.z = a.z + (b.z - a.z) * t;
-    o.hd = Math.atan2(b.x - a.x, b.z - a.z); o.ff = a.ff; o.ref = a.ref || ''; o.name = a.name || ''; o.i = i;
+    o.hd = Math.atan2(b.x - a.x, b.z - a.z); o.ff = a.ff; o.ref = a.ref || ''; o.name = a.name || ''; o.i = i; o.k = a.k || 1;
+    o.rr = a.rr != null ? a.rr - (s - a.s) / o.k : null;
     o.ln = a.ln || 1; o.lw = a.lw || 3.5; o.lx = a.lx || 0; o.lz = a.lz || 0;
     { const k = Math.hypot(o.lx, o.lz); if (k > 1.15) { o.lx /= k / 1.15; o.lz /= k / 1.15; } } /* no mitre blow-up at sharp bends */
     return o;
@@ -1390,11 +1436,12 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (mode === 'tour') {
         try {
           const R = getRoads && getRoads();
-          if (R && R.update) R.update(dest.x, dest.z, 0);
+          if (R && R.update && !opts.icRoute) R.update(dest.x, dest.z, 0);
         } catch (e) { /* ignore */ }
         /* streets around the destination stream in as tiles — wait briefly so the route can end at the curb, not on the freeway */
-        for (let k = 0; k < 60 && !localNear(T, dest); k++) { if (!k) note('Loading streets around ' + (dest.n || 'your destination') + '…'); await new Promise((r) => setTimeout(r, 150)); }
+        for (let k = 0; !opts.icRoute && k < 60 && !localNear(T, dest); k++) { if (!k) note('Loading streets around ' + (dest.n || 'your destination') + '…'); await new Promise((r) => setTimeout(r, 150)); }
         const tries = [
+          () => (opts.icRoute ? (opts.icRev ? icJoinRev(T, opts.icRoute) : icJoin(T, opts.icRoute, a)) : null),
           () => (Array.isArray(opts.route) && opts.route.length > 1 ? opts.route.map((p) => ({ ...p })) : null),
           () => findRoute(T, a.c.f.pts[2 * a.i], a.c.f.pts[2 * a.i + 1], dest.x, dest.z, { local: true }),
           () => findRoute(T, cx, cz, dest.x, dest.z, { local: true }),
@@ -1410,12 +1457,23 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         const p0 = S.route[0];
         S.p.set(p0.x, p0.y, p0.z);
         if (S.route.length > 1) S.hd = Math.atan2(S.route[1].x - p0.x, S.route[1].z - p0.z);
+        S.icDrive = !!opts.icRoute;
+        if (S.icDrive) { if (opts.onRoute) try { opts.onRoute(S.icTo ? S.route.slice(0, S.icTo + 1) : S.route, S.icFrom || 0); } catch (e) { console.warn('[intercity] highway', e); }
+          note('Driving to ' + dest.n + ' · ' + Math.round(S.route[0].rr / 1609.344) + ' mi on real highways · ×2 ×4 ×10 speed it up.'); }
         S.phase = 'drive'; S.tripLen = S.route[S.route.length - 1].s; S.lane = null; S.latCur = 0; S._lcw = null; S._ffT = 0; S._ffTry = 0;
       }
       spawnVehicle();
       if (mode === 'tour') spawnEscorts();
     } else {
       if (mode === 'tour') {
+        if (opts.arrive) { S.planeStyle = 'jet'; S.jetModel = opts.arrive.type || 'b787'; }
+        if (opts.ac) { const a = AIRCRAFT.find((q) => q[0] === opts.ac); if (a) { S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0]; } }
+        /* intercity: the trip's real airports join the list so Land at / runways work exactly like Houston's */
+        { const base = (S.apts && S.apts.length ? S.apts : (airports() || [])).filter((a) => !a.world);
+          S.apts = opts.world ? base.concat(opts.world.apts || []) : base; }
+        S.wx = opts.world || null;
+        /* helicopters can't fly between cities; small props stay under ~1,200 km, longer trips get an airliner */
+        if (S.wx && (S.planeStyle === 'heli' || (S.planeStyle !== 'jet' && (S.wx.km || 0) > 1200))) { S.planeStyle = 'jet'; S.jetModel = 'b787'; }
         const depSel = opts.dep != null ? opts.dep : (($('tourDep') || {}).value || '');
         const arrSel = opts.arr != null ? opts.arr : (($('tourArr') || {}).value || '');
         const need = curNeed(), shortRw = (c) => ' (' + c + "'s runway is too short for the " + acName() + ')';
@@ -1437,26 +1495,36 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           S.p.set(rwT.tx, 1.4, rwT.tz); S.hd = rwT.hd; S.rwLen = rwT.len;
         } else { S.p.set(ap.q.x, 1.4, ap.q.z); S.hd = Math.atan2(dest.x - ap.q.x, dest.z - ap.q.z); S.rwLen = 1500; }
         S.apt = ap.q.code; S.homeApt = ap.q.code;
+        if (S.wx) { S.wx.ox = S.p.x; S.wx.oz = S.p.z; }
         S.landApt = (apLand && apLand.q.code) || ap.q.code;
         S.phase = S.planeStyle === 'heli' ? 'heliLift' : 'roll'; S.rollS = 0; clearGround();
         { const AP3 = window.HTS_AIRPORTS2; if (AP3 && AP3.clearTaxiLane) AP3.clearTaxiLane(); }
         S.trip0 = Math.hypot(dest.x - S.p.x, dest.z - S.p.z);
+        /* flat map metres per real metre along this route, so speed / ETA match the real great-circle trip */
+        S._todNote = 0; S.icK = S.wx && S.wx.km ? Math.max(0.3, S.trip0 / (S.wx.km * 1000)) : 1; S.icKNow = 1;
         S.flightT0 = performance.now();
         const cruiseKt = S.planeStyle === 'jet' ? 220 : 110;
         /* Cruise + takeoff + short orbit + short-final approach (matches planeEtaSec) */
         S.flightEta0 = S.trip0 / (cruiseKt * KT) + 28 + 22 + (S.planeStyle === 'jet' ? 55 : 85);
         S._ga = 0;
+        if (opts.arrive) { /* arriving from another city on the world map: already airborne, inbound to the landing airport */
+          S.p.set(opts.arrive.x, 3500 * FT, opts.arrive.z); S.hd = Math.atan2(dest.x - S.p.x, dest.z - S.p.z);
+          S.v = 220 * KT; S.phase = 'cruise'; S.rwLen = 0;
+        }
       } else {
         S.p.set(cx, 600, cz); S.hd = cam.theta + Math.PI; S.v = 55; S.phase = 'free';
       }
       spawnVehicle();
       if (mode === 'tour') spawnEscorts();
+      if (opts.arrive) startLanding();
     }
     S.hudHid = false;
     startTourAudio();
     renderHud(); hud.classList.add('on'); hud.classList.remove('hid'); hudPeek.classList.remove('on'); applyHudPos();
     pad.classList.toggle('on', mode === 'free' && matchMedia('(pointer:coarse)').matches);
-    if (mode === 'tour' && kind === 'plane') {
+    if (mode === 'tour' && kind === 'plane' && opts.arrive) {
+      note(acName() + ' ' + S.fromTxt + ' · approach to ' + S.landApt + '.');
+    } else if (mode === 'tour' && kind === 'plane') {
       note(S.planeStyle === 'heli' ? acName() + ' lifting off from your location → ' + dest.n + '. ' + destBlurb(dest)
         : acName() + ' departing ' + S.apt + ' → ' + dest.n + ' · land at ' + S.landApt + (S._why || '') + '. ' + destBlurb(dest));
     } else if (mode === 'tour') {
@@ -1725,7 +1793,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (T && T.setEgo) T.setEgo(S.p.x, S.p.z, Math.abs(S.v));
     const h0 = S.hd;
     if (S.mode === 'tour') {
-      if (T && S.phase === 'drive' && S.remain != null && S.remain < 3000) fixFinalLeg(T);
+      if (T && !S.icDrive && S.phase === 'drive' && S.remain != null && S.remain < 3000) fixFinalLeg(T);
       const P = S.route, end = P[P.length - 1].s;
       sampleAt(P, S.s, o);
       S.limit = o.ff;
@@ -1736,19 +1804,19 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (end - S.s - 2 < gap) { gap = Math.max(0.1, end - S.s - 2); lv = 0; }
       const acc = Math.max(-7, idm(S.v, v0, gap, lv));
       S.v = Math.max(0, S.v + acc * dt);
-      const ds = S.v * dt; S.s = Math.min(end, S.s + ds); S.odo += ds;
+      const ds = S.v * dt; S.s = Math.min(end, S.s + ds * (o.k || 1)); S.odo += ds; /* intercity: map metres per real metre */
       sampleAt(P, S.s, o);
       S.p.set(o.x, o.y, o.z);
       laneStep(T, P, o, dt, v0, gap, lv);
       let d = o.hd - S.hd; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; S.hd += d * Math.min(1, dt * 8);
       S.info = o.ref || o.name || '';
       S.roadName = o.name || '';
-      S.remain = end - S.s;
+      S.remain = o.rr != null ? Math.max(0, o.rr) : end - S.s;
       if (S.remain < 3 && S.v < 0.5 && S.phase === 'drive') {
         if (S.leg === 'out') { S.phase = 'arrived'; S.waitT = 0; const dm = S.dest && S.dest.x != null ? Math.round(Math.hypot(S.dest.x - S.p.x, S.dest.z - S.p.z)) : null; note('Arrived · parked at the curb' + (S.roadName ? ' on ' + S.roadName : '') + (dm != null ? ', about ' + dm + ' m from ' : ' by ') + S.dest.n + ' — ' + destBlurb(S.dest) + ' Heading back in a few seconds.'); }
         else { S.phase = 'home'; note('Back where you started. Surprise me for another Houston run — or tap Music.'); }
       }
-      if (S.phase === 'arrived' && (S.waitT += dt) > 6) {
+      if (S.phase === 'arrived' && !S.icDrive && (S.waitT += dt) > 6) {
         const P2 = T && findRoute(T, S.p.x, S.p.z, S.origin.x, S.origin.z, { local: true });
         if (P2) { S.route = P2; S.s = 0; S._si = 0; S._eta = null; S._etaF = 0; S.leg = 'back'; S.phase = 'drive'; S.tripLen = P2[P2.length - 1].s; note('Driving back to where you started.'); }
         else { S.phase = 'home'; note('No road route back from here — tour ended.'); }
@@ -1839,10 +1907,12 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const tf = new Float64Array(P.length), hf = houDriveFactor();
     for (let i = 1; i < P.length; i++) {
       const lim = Math.max(20, P[i - 1].ff || 45);
-      let mph = S.cruise ? S.cruise : lim * hf;
+      /* Houston rush-hour factor only applies on Houston's own roads, not the open highway between cities */
+      const hfi = S.icDrive && Math.hypot(P[i - 1].x - 60, P[i - 1].z - 60) > 60000 ? 0.97 : hf;
+      let mph = S.cruise ? S.cruise : lim * hfi;
       if (!S.cruise && lim <= 45) mph = Math.min(mph, lim * Math.max(0.42, hf - 0.05));
       const v = Math.max(4.5, Math.min(Math.max(8, Math.min(lim + 2, mph)) * MPH, curveLimit(P, i - 1)));
-      tf[i] = tf[i - 1] + (P[i].s - P[i - 1].s) / v;
+      tf[i] = tf[i - 1] + (P[i].s - P[i - 1].s) / (P[i - 1].k || 1) / v;
     }
     P._tf = tf; P._tfCr = S.cruise;
     return tf;
@@ -1884,9 +1954,20 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function stepPlane(dt) {
     let wantHd = S.hd, wantY = S.p.y, wantV = S.v;
     const jet = S.acClass === 'jet';
-    const cruiseKt = jet ? 220 : 110, climbKt = jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = jet ? 3500 : 1500;
+    const icx = !!(S.wx && S.mode === 'tour');
+    const cruiseKt = icx ? (jet ? 480 : 260) : jet ? 220 : 110, climbKt = icx ? (jet ? 250 : 160) : jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = icx ? S.wx.alt : jet ? 3500 : 1500;
     if (S.mode === 'tour') {
       const D = S.dest, dx = D.x - S.p.x, dz = D.z - S.p.z, dist = Math.hypot(dx, dz), brg = Math.atan2(dx, dz);
+      if (icx) {
+        /* real-scale near both airports, map-scale en route (the flat map stretches long routes) */
+        /* real great-circle metres left (map position -> lat/lng); map step = real step x (map left / real left),
+           so the HUD distance and ETA are the real trip; true scale within ~60 km of both airports */
+        const fromO = Math.hypot(S.p.x - S.wx.ox, S.p.z - S.wx.oz);
+        S.icReal = S.wx.tll ? icRealLeft(S.p.x, S.p.z, S.wx.tll) : dist / S.icK;
+        const w = Math.min(1, Math.max(0, Math.min(fromO, dist) - 60000) / 150000);
+        S.icKNow = 1 + (dist / Math.max(1, S.icReal) - 1) * w;
+      }
+      const rr = icx ? (dist < 210000 ? dist + (S.icReal - dist) * Math.min(1, Math.max(0, dist - 60000) / 150000) : S.icReal) : dist, tod = Math.max(0, S.p.y / FT - 3000) / 1000 * 3 * 1852 + 30000;
       if (S.phase === 'roll') {
         S.v += (jet ? 4.5 : 2.2) * dt; S.rollS += S.v * dt; S.p.y = 1.4; S.vy = 0;
         if (S.v >= rotateKt * KT) S.phase = 'climb';
@@ -1989,8 +2070,18 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         S.roll += (Math.atan(-rate * S.v / G) * 0.8 - S.roll) * Math.min(1, dt * 1.5);
       } else {
         const agl = S.p.y;
-        if (S.phase === 'climb') { wantV = climbKt * KT; wantY = cruiseAlt * FT; if (agl > 150) wantHd = brg; if (agl > (cruiseAlt - 100) * FT) S.phase = 'cruise'; }
-        if (S.phase === 'cruise') {
+        if (S.phase === 'climb') {
+          wantV = (icx && agl > 3000 ? cruiseKt * 0.8 : climbKt) * KT; wantY = cruiseAlt * FT; if (agl > 150) wantHd = brg;
+          if (agl > (cruiseAlt - 100) * FT || (icx && rr < tod && agl > 600)) S.phase = 'cruise';
+        }
+        if (S.phase === 'cruise' && icx) {
+          /* top of descent on a 3° path, then the normal Houston approach to the destination runway */
+          const desc = rr < tod;
+          wantV = (desc ? Math.max(250, Math.min(cruiseKt, 250 + (rr - 30000) / 400)) : cruiseKt) * KT;
+          wantY = (desc ? Math.min(cruiseAlt, 3000 + Math.max(0, rr - 30000) / 5556 * 1000) : cruiseAlt) * FT; wantHd = brg;
+          if (desc && !S._todNote) { S._todNote = 1; note('Top of descent · ' + Math.round(rr / 1609.344) + ' mi to ' + D.n + ' · approach to ' + S.landApt + '.'); }
+          if (rr < 28000) startLanding();
+        } else if (S.phase === 'cruise') {
           wantV = cruiseKt * KT; wantY = dist < (jet ? 6000 : 3500) ? Math.min(1000, cruiseAlt * 0.65) * FT : cruiseAlt * FT; wantHd = brg;
           if (dist < S.orbitR * 1.35) {
             /* keep the airport the user picked in Land at; only fall back to nearest when none was chosen */
@@ -2099,7 +2190,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
             if (!(S.flare > 0.05)) S.p.y += (wantY - S.p.y) * Math.min(1, dt * 0.6);
             if (S.p.y < 1.45) { S.p.y = 1.4; S.vy = Math.min(0, S.vy); }
           } else {
-            climbRate = Math.max(-5, Math.min(S.phase === 'climb' ? 3.6 : 3.2, climbRate));
+            climbRate = Math.max(icx && S.p.y > 900 ? -11 : -5, Math.min(icx && S.p.y > 300 ? 12.5 : S.phase === 'climb' ? 3.6 : 3.2, climbRate));
             S.vy += (climbRate - (S.vy || 0)) * Math.min(1, dt * 0.9);
             S.p.y = Math.max(1.4, S.p.y + S.vy * dt);
           }
@@ -2116,7 +2207,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
           S.pitch += (wantPitch - S.pitch) * Math.min(1, dt * 1.8);
         }
       }
-      if (!/toFaf|final|rollout|parked/.test(S.phase)) S.remain = dist; else if (S.phase !== 'toFaf' && S.phase !== 'final') S.remain = 0;
+      if (!/toFaf|final|rollout|parked/.test(S.phase)) S.remain = rr; else if (S.phase !== 'toFaf' && S.phase !== 'final') S.remain = 0;
       S.info = S.phase === 'roll' ? 'Takeoff roll · ' + S.apt : S.phase === 'climb' ? 'Climbing' : S.phase === 'cruise' ? 'Cruise → ' + D.n : S.phase === 'orbit' ? 'Arriving · ' + D.n
         : S.phase === 'toFaf' ? 'Approach · ' + S.rw.code : S.phase === 'final' ? 'Final · ' + S.rw.code + ' RWY ' + S.rw.name : S.phase === 'rollout' ? 'Landing rollout' : S.phase === 'taxi' ? 'Taxiing to parking · ' + (S.rw ? S.rw.code : S.landApt) : 'Landed · ' + (S.rw ? S.rw.code : S.landApt);
       if (/^heli/.test(S.phase)) S.info = S.phase === 'heliLift' ? 'Lifting off' : S.phase === 'heliCruise' ? 'Cruise → ' + D.n : S.phase === 'heliParked' ? 'Landed · ' + D.n : 'Landing · ' + D.n;
@@ -2136,8 +2227,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       if (S.p.y > 6000) { S.p.y = 6000; S.pitch = Math.min(S.pitch, 0); }
       S.info = 'Free flight';
     }
-    const hv = S.v * Math.cos(S.pitch);
-    S.p.x += Math.sin(S.hd) * hv * dt; S.p.z += Math.cos(S.hd) * hv * dt; S.odo += hv * dt;
+    const hv = S.v * Math.cos(S.pitch), hk = S.wx && S.mode === 'tour' ? S.icKNow || 1 : 1;
+    S.p.x += Math.sin(S.hd) * hv * hk * dt; S.p.z += Math.cos(S.hd) * hv * hk * dt; S.odo += hv * dt;
     if (S.obj) {
       S.obj.position.copy(S.p); S.obj.position.y += groundClear(); S.obj.rotation.set(-S.pitch, S.hd, S.roll, 'YXZ');
       animGear(gearWanted(), dt);
@@ -2172,9 +2263,11 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (S.view === 'chase') {
       const d = Math.max(car ? 5 : 16, Math.min(car ? 80 : 400, camGoal.radius));
       const el = Math.max(0.03, Math.min(1.3, 0.22 + pitchOff * 0.8));
-      const want = new THREE.Vector3(S.p.x - fx * d * Math.cos(el), S.p.y + (car ? 1.2 : 1.5) + d * Math.sin(el), S.p.z - fz * d * Math.cos(el));
-      if (smooth.lengthSq() === 0 || smooth.distanceTo(want) > d * 3) smooth.copy(want); else smooth.lerp(want, Math.min(1, dt * (car ? 6 : 3)));
-      camera.position.copy(smooth);
+      /* smooth the offset from the vehicle, not the world position: at jet/×10 speeds a world-space lerp lagged
+         past its snap distance and alternated snap/lerp every frame (chase-cam jitter) */
+      const want = v3.set(-fx * d * Math.cos(el), (car ? 1.2 : 1.5) + d * Math.sin(el), -fz * d * Math.cos(el));
+      if (smooth.lengthSq() === 0) smooth.copy(want); else smooth.lerp(want, 1 - Math.exp(-Math.min(dt, 0.1) * (car ? 6 : 3)));
+      camera.position.copy(S.p).add(smooth);
       look.set(S.p.x + fx * (car ? 6 : 14), S.p.y + (car ? 1.1 : 1.2), S.p.z + fz * (car ? 6 : 14));
       near = Math.max(0.3, d * 0.03);
     } else if (S.view === 'driver' || S.view === 'cockpit') {
@@ -2228,6 +2321,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     if (S.view === 'chase' || S.view === 'orbit') { if (ob) ob.visible = true; }
     camera.lookAt(look);
+    camera.userData.tourNearT = performance.now();
     if (Math.abs(camera.near - near) > 0.01 || camera.fov !== fov) { camera.near = near; camera.fov = fov; camera.updateProjectionMatrix(); }
   }
   function updateLights() {
@@ -2293,6 +2387,11 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     if (S.phase === 'taxi') return Math.max(5, (S.remain || 0) / Math.max(2, S.v || 0));
     if (S.phase === 'rollout') return Math.max(2, Math.min(25, (S.v || 0) / 2.4));
     const jet = S.acClass === 'jet';
+    if (S.wx && /^(roll|climb|cruise)$/.test(S.phase)) {
+      /* intercity: cruise at ~460 kt over the ground, slower on the descent, then a few minutes of approach */
+      const rr = S.remain || 0, cr = (S.acClass === 'jet' ? 480 : 260) * KT, gs = S.phase === 'cruise' ? Math.max(S.v || 0, cr * 0.6) : cr;
+      return Math.max(0, rr - 60000) / gs + Math.min(rr, 60000) / (230 * KT) + 240 + (S.phase === 'roll' ? 60 : 0);
+    }
     /* Short-final approach after orbit (matches startLanding joining final when near) */
     const apprSec = jet ? 55 : 85;
     if (S.phase === 'toFaf' || S.phase === 'final') {
@@ -2331,5 +2430,5 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
     return 0;
   }
-  return { start, stop, update, setView, land: startLanding, get active() { return !!S.mode; }, state: S, get ground() { return ground; } };
+  return { start, stop, update, setView, land: startLanding, planeEtaSec, get active() { return !!S.mode; }, state: S, get ground() { return ground; } };
 }
