@@ -41,12 +41,22 @@ Visual language: deep navy, teal, sun, and coral — flexible, cute, and mobile-
 
 ### City roadmap
 
-| City | Status |
-|------|--------|
-| Houston, Austin, San Antonio, Dallas–Fort Worth | Live |
-| Los Angeles, New York, Boston, Chicago | Live |
-| Miami, Seattle, Denver, Atlanta | Live |
-| Phoenix, Philadelphia, Minneapolis–St. Paul, New Orleans | Live |
+Houston is the full simulator. Keep zooming out of Houston (or tap the globe button) and the same map becomes a globe with 30 more cities on one globe,
+each with OSM 3D buildings, roads, water, its main airport, live weather and live aircraft. Fly airport to airport
+between any of them, including from Houston's plane tour ("Fly to another city": take off from IAH on the full Houston map, continue over the globe, land at that city's airport; flights into Houston return to the full Houston map for the IAH approach); Tour Houston → By car → "Drive to another city" takes the same tour car on real highways to Austin, Dallas, San Antonio, New York, Los Angeles, Chicago, Miami, Toronto, Vancouver, Mexico City, Cancún or Guadalajara; driving is available in the Americas cities.
+
+| Region | Cities |
+|--------|--------|
+| Texas | Houston (full), Austin, Dallas, San Antonio |
+| United States / Canada | New York, Los Angeles, Chicago, Miami, Toronto, Vancouver |
+| Mexico | Mexico City, Cancún, Guadalajara |
+| Africa | Lagos, Accra, Cairo |
+| Europe | Rome, London, Paris, Madrid, Berlin |
+| Asia | Dubai, Tokyo, Seoul, Singapore, Bangkok, Manila, Mumbai, New Delhi |
+| Australia | Sydney, Melbourne |
+
+World map keys: `/` search (↑ ↓ Enter), `Esc` back, `C` chase/cockpit in flight, `← →` next turn, `↑ ↓` speed, `V` driver view while driving. While driving in a world city, drag orbits the chase camera and wheel/pinch zooms. In a world city ‹ shows/hides the trip HUD and › the city card; the compass turns with the view.
+Rebuild a city's data: `python3 scripts/build-world-city.py <id>` (needs osmium-tool, shapely, pyshp and a local OSM extract). World-city card **Drive to Houston** (Americas) starts the Houston tour car on the real highway.
 
 ---
 
@@ -126,7 +136,8 @@ Replay the tour anytime from **Replay tour** (desktop cam hint or mobile Control
 | Traffic incidents | Houston TranStar RSS | No |
 | Aircraft | airplanes.live / OpenSky / ADS-B | No (rate limits) |
 | Aircraft tracking links | globe.airplanes.live | No |
-| Airport boards | Reconstructed from live ADS-B flights | No |
+| Airport boards (Houston only) | Reconstructed from live ADS-B flights | No |
+| World map | Natural Earth land, OSM extracts (built offline), Open-Meteo, airplanes.live / adsb.lol | No |
 | Local news | Google News RSS by active metro | No |
 | Flow speeds | Houston TranStar / modeled elsewhere | No |
 

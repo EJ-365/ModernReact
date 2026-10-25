@@ -515,9 +515,14 @@
   #ambList button:hover{background:rgba(255,255,255,.07)}#ambList button.on{background:rgba(232,168,56,.2);color:#ffd08a}
   #ambMenu .ambVol{display:flex;gap:8px;align-items:center;margin-top:6px}#ambMenu .ambVol input{flex:1}
   html.hts-peek #ambWrap,body.tour-on #ambWrap{display:none}
+  #worldWrap{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 166px);right:calc(var(--ui-pad) + var(--rail-w) + 6px);z-index:11;transition:right .32s cubic-bezier(.22,1,.36,1)}
+  body.left-collapsed #worldWrap{right:calc(var(--ui-pad) + var(--rail-w) + 10px)}body.right-collapsed #worldWrap{right:calc(var(--ui-pad) + 10px)}
+  html.hts-peek #worldWrap,body.tour-on #worldWrap{display:none}
   #tollWrap{position:fixed;bottom:calc(var(--ui-pad) + var(--dock-h) + 114px);right:calc(var(--ui-pad) + var(--rail-w) + 6px);z-index:11;transition:right .32s cubic-bezier(.22,1,.36,1)}
   body.left-collapsed #tollWrap{right:calc(var(--ui-pad) + var(--rail-w) + 10px)}body.right-collapsed #tollWrap{right:calc(var(--ui-pad) + 10px)}
   html.hts-peek #tollWrap,body.tour-on #tollWrap{display:none}
+  #worldBtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:rgba(20,24,30,.88);border:1px solid rgba(255,255,255,.14);box-shadow:0 3px 14px rgba(0,0,0,.6);backdrop-filter:blur(6px);padding:0}
+  #worldBtn:hover{background:rgba(40,60,90,.95)}
   #tollBtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;cursor:pointer;background:rgba(20,24,30,.88);border:1px solid rgba(255,255,255,.14);box-shadow:0 3px 14px rgba(0,0,0,.6);backdrop-filter:blur(6px)}
   #tollBtn:hover{background:rgba(36,42,52,.95)}#tollBtn.active{box-shadow:0 3px 14px rgba(0,0,0,.6),0 0 0 2px #b06cff}
   #tollLegend{position:absolute;right:52px;bottom:0;width:250px;padding:10px 12px;border-radius:12px;background:rgba(14,17,22,.94);border:1px solid rgba(255,255,255,.12);color:#e8edf2;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
@@ -948,6 +953,8 @@
   html.hts-peek #mHudLoc,html.hts-peek #mHudChip,html.hts-peek #mSheetScrim,
   html.hts-peek #mTabs,html.hts-peek #tourRoot,html.hts-peek #tourHud,
   html.hts-peek #tourHudPeek,html.hts-peek #ytPop,html.hts-peek #whereami,
+  /* far from Houston on an intercity trip the Houston side panels have nothing to show */
+  body.ic-away #leftRailToggle,body.ic-away #rightRailToggle,body.ic-away #leftCol,body.ic-away #panel,body.ic-away #bottomDock{display:none!important}
   html.hts-peek #rightRailToggle,html.hts-peek #leftRailToggle,
   html.hts-peek .panelCollapseBtn{display:none!important}
   html.hts-peek #loading{background:#120e0c}
@@ -965,7 +972,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.73.0</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.85.1</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1224,10 +1231,16 @@
     <label>Tour Houston</label>
     <div class="btnrow" id="tourVeh"><button type="button" class="btn on" data-veh="car">By car</button><button type="button" class="btn" data-veh="plane">By plane</button></div>
     <select id="tourDest" style="margin-top:6px"><option value="">Loading places…</option></select>
+    <div id="tourDriveRow" style="margin-top:6px">
+      <label class="mini" for="tourDrive" style="letter-spacing:.08em">Drive to another city</label>
+      <select id="tourDrive" title="Same tour car, real highways and real ETA — US, Canada and Mexico"><option value="">Stay in Houston</option></select>
+    </div>
     <div id="tourAptRow" style="display:none;margin-top:6px">
       <label class="mini" for="tourAc" style="letter-spacing:.08em">Aircraft</label>
       <select id="tourAc"><option value="">— choose your aircraft —</option></select>
       <div class="sublabel" id="tourAcNote" style="margin-top:4px"></div>
+      <label class="mini" for="tourWorld" style="margin-top:6px;letter-spacing:.08em">Fly to another city</label>
+      <select id="tourWorld" title="Fly airport to airport to any city on the world map"><option value="">Stay in Houston</option></select>
       <div id="tourRwRow">
         <label class="mini" for="tourDep" style="margin-top:6px;letter-spacing:.08em">Take off from</label>
         <select id="tourDep"><option value="">Nearest to me</option></select>
@@ -1399,6 +1412,7 @@
   </div>
 </div>
 
+<div id="worldWrap"><button id="worldBtn" type="button" title="World map: fly to 58 cities (or keep zooming out)" aria-label="World map"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#e8edf2" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5M12 3.5C9.4 5.9 8.1 8.7 8.1 12s1.3 6.1 3.9 8.5"/></svg></button></div>
 <div id="tollWrap"><button id="tollBtn" type="button" title="Show toll roads" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M4 20 L9 4 M20 20 L15 4" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"/><path d="M12 6v2M12 11v2M12 16v2" stroke="#b06cff" stroke-width="2" stroke-linecap="round"/></svg></button><div id="tollLegend" hidden></div></div>
 <div id="ambWrap"><button id="ambBtn" type="button" title="Ambient sound (while exploring)" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg></button><div id="ambMenu" role="menu" hidden><div class="ambHead">Ambient sound <small>map view only</small></div><div id="ambList"></div><label class="ambVol">Volume <input id="ambVol" type="range" min="0" max="100" value="50"></label></div></div>
 <button id="locBtn" title="Go to my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none"><circle cx="12" cy="12" r="7" stroke="#e8edf2" stroke-width="2"/><circle class="dot" cx="12" cy="12" r="3.2" fill="#e8edf2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3" stroke="#e8edf2" stroke-width="2" stroke-linecap="round"/></svg></button>

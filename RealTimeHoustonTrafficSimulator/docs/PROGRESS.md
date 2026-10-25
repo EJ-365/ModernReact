@@ -1,7 +1,7 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.57.0** — toll roads toggle; taxiway-style taxi lane (jet and C-130 only); steady jam rings; no z-fight glitter; traffic brakes for your car; left-hand-drive dashboard + windshield; jet MCP + flight-deck frame; movie soundtracks.
+**Current build:** **v10.81.0** — Trip times over an hour show as hours (12 h 15 min); "Drive to Houston" from any Americas city uses the Houston tour car, panel, dash, music and radio; all 31 city data packs checked (no 404s).
 
 ### v10.57.0
 - Go to my location: flies in to ~170 m (was up to 900 m) at a steeper angle so the pin/house is clearly visible.
@@ -32,6 +32,42 @@
 **SW cache:** `hts-shell-v205`
 
 This log captures the work from the late **v10.8.x / v10.9** baseline through the current **v10.18.0** real-3D-city release.
+
+
+
+
+
+
+## v10.85.1 — chase-camera glitch fix
+- Chase view now smooths the camera's offset from the vehicle, not its world position. At jet speeds or ×10, the old world-space lerp lagged past its snap distance and switched between snapping and lerping on alternate frames (jitter).
+- `applyCam` no longer changes `camera.near` while a tour is driving the camera. The two near-plane values fought each other every frame, flipping depth precision (flicker), mostly when zoomed out in chase.
+
+## v10.85.0 — 58 cities, 23 more songs, real runways for every city, cleaner world UI
+- 11 new cities (47 → 58): Buenos Aires, Bogotá, Lima, Rio de Janeiro, Santiago, Johannesburg, Cape Town, Nairobi, Casablanca, Moscow and Saint Petersburg. South America has no road link to Houston (Darién Gap), so these cities have no driving.
+- Intercity take-offs and landings now use each city's longest real OSM runway. `scripts/catalog-runways.py` stores it in the catalog as `apt.rwy`, `apt.w` and `apt.ref`. Before this, `tourAirport()` built a fake runway from the catalog's centre point and heading, so planes rolled on the grass (e.g. ACC).
+- World view: the Houston ‹ › rail chevrons and the bottom drive-times dock are hidden (also while away from Houston on a trip). The city card collapses like an accordion: tap its title. The state is remembered in `hts-wcard-min`.
+- The cloud deck between cities is removed; Houston keeps its own sky and clouds.
+- City ground texture uses anisotropic filtering to reduce shimmer at grazing angles.
+- 23 more songs across pop, hip-hop, rock, Latin, country and classics. All are official uploads, checked with oEmbed, and duplicates were skipped.
+
+## v10.84.0 — 47 cities, more songs, airport markings, lighter Houston memory
+- 16 new cities (catalog 31 → 47): Beijing, Shanghai, Shenzhen, Guangzhou, Hong Kong, Atlanta, Seattle, San Francisco, Denver, Boston, Las Vegas, Phoenix, Washington D.C., Istanbul, São Paulo, Amsterdam. Packs built with `scripts/build-world-city.py` from BBBike / Geofabrik OSM extracts.
+- Drive from Houston to the 8 new US cities (Atlanta, Seattle, San Francisco, Denver, Boston, Las Vegas, Phoenix, Washington D.C.). Routes come from the free public OSRM demo router (OSM data), simplified to about 35 m and stored in `public/data/world/drives.json`.
+- Music: 7 Years (Lukas Graham), Seven Years (LG Malique & Lukas Graham), and LG Malique's Vision, Too Easy and Ion Know Why, plus Alan Walker's Faded. All are official YouTube uploads, checked with oEmbed, and part of the shuffle pool.
+- Other-city airports: runway shoulders, threshold piano keys and touchdown bars. Airport buildings are drawn darker so they no longer read as white slabs.
+- Houston OSM buildings (and the other cities' buildings): CPU copies of the vertex buffers are dropped after GPU upload (`onUpload`), freeing most of the retained `HTS_OSM_CITY` memory.
+
+## v10.83.0 — globe and other-city fixes
+- Globe and the flat land between cities use NASA Blue Marble (day) and Black Marble 2016 (night lights) imagery, public domain, bundled as `public/data/world/earth-{4k,2k}.jpg` and `night-{4k,2k}.jpg` (~1.4 MB total). Small painted stand-ins show until they load.
+- Yellow arrowhead aircraft markers removed from the globe.
+- ETAs over an hour read compact, e.g. `3h 49m` (the HUD font is monospaced).
+- Ground flicker in other cities (Lagos, Dallas…): the far ground no longer rises to just under an embedded city's own ground, and the city ground is pushed back with polygon offset.
+- Houston's ‹ › side-panel arrows and panels hide more than 60 km from Houston on intercity trips (`body.ic-away`); they had nothing to show there.
+
+## v10.82.0 — Houston speed
+- The globe is no longer built in the background 25 s after Houston opens on desktop (that froze panning/hover for a moment and used extra memory). It is built the first time you zoom far out, as on phones.
+- Flight route lookups skip US private tail numbers (N123AB, never scheduled), remember misses for 30 min, and don't ask a second mirror after a 404. OpenSky is paused for 10 min after a 429. Houston start-up went from 12 failed requests to 2 in the probe.
+- Probe (VM, software GL): ready in ~11 s, ~1.8k draw calls, 4.1M triangles, JS heap ~310 MB after GC.
 
 ## v10.55.0
 
@@ -435,3 +471,72 @@ literals authored at 210 units/mile are mapped with `W()` / `WS` in `src/app-mai
 - Fixed-wing aircraft depart from an airport runway long enough for the type (widebodies need ~2.7–3 km, so they use IAH-class runways; a too-short pick is replaced and the note says why). The helicopter hides the airport pickers and lifts off from your location.
 - New airliner families built from real length/span/fuselage ratios: engine count and size, 747 upper-deck hump, A380 double deck, winglets/sharklets/raked/curved tips, tandem main gear on widebodies. Tour plane, live/simulated traffic (mapped from ICAO type codes) and IAH gate fleet all use them.
 - In-tour aircraft buttons removed (the aircraft is chosen before the flight); the panel title shows the aircraft name. Jet cockpit and wing cameras follow each model's nose and span.
+
+## v10.81.0 — Hours in ETAs, Drive to Houston in the tour car
+
+- `fmtDur()` in `src/tour.js`: tour ETAs over 59 min read `1 h 05 min`, `12 h 40 min` (car and plane, tour panel and dash).
+- World-city card **Drive to Houston** (US, Canada, Mexico cities): `window.HTS_INTERCITY_DRIVE(cityId)` in `src/app-main.js` closes the world view and starts the Houston car tour on the reversed real-highway route (`opts.icRev`, `icJoinRev()` in `src/tour.js`) to downtown Houston. The highway mesh stops where Houston's own roads begin. The old plain world-city car is no longer used from the card.
+- Intercity car ETA no longer applies Houston's rush-hour factor on the open highway (Austin → Houston ≈ 2 h 45 min at the limit instead of 3 h 16 min).
+- Checked all 31 `public/data/world/<id>.json` packs on dev and preview: all return 200 and have roads, water, parks, buildings and runways.
+
+## v10.80.0 — Intercity cruise: sky follows the plane, night ground and clouds
+
+- `skyRoot` (sky dome, stars, sun, clouds) now centres on the tour camera whenever a tour is on. Before, it stayed at the Houston orbit target, so after leaving Houston airspace the dome was left behind and showed as a pale band on the horizon.
+- Intercity ground shader: moonlight floor (land never goes pure black), ocean swell pattern that slides past, and the globe's city-lights texture (`nightTexture`, now exported from `src/world/globe.js`) added at night (`nightK` from scene light).
+- Cloud deck: a quarter of the puffs form a cirrus layer at 9.2–11.8 km, so jets at cruise pass through it; clouds keep a moonlit minimum brightness at night.
+
+## v10.79.0 — Real intercity distance/ETA, cruise clouds, world compass and arrows
+
+- Tour HUD on intercity flights: miles to go are real great-circle miles from the plane to the destination airport (`icRealLeft` in `src/tour.js`, destination lat/lng passed as `world.tll` from `src/app-main.js`). Houston → Tokyo now starts at ~6,664 mi instead of 778 mi.
+- ETA = remaining real distance ÷ current ground speed (480 kt jets / 260 kt props in cruise) + approach time. No hidden time-lapse; ×2/×4/×10 are the only speed-ups.
+- Cruise: a world-fixed cloud deck (`intercityClouds`, 180 instanced puffs, 1.7–4.3 km up) slides past under the plane between cities; intercity ground uses polygon offset instead of `depthWrite:false`.
+- World cities: compass is shown and turns with the view; ‹ (left) shows/hides the trip HUD, › (right) the city card (Fly / Drive / Airport).
+- World-city driving: drag orbits the chase camera around the car, wheel/pinch zooms (0.3×–8×).
+- Checked with probes: AUS landing lines up on runway 36 (cross-track 0 m from 4,400 m out), touches down ~300 m past the threshold and stops at 740 m of 3,730 m; HND take-off starts on the 16L/34R centreline (cross-track 0 m).
+
+## v10.78.0 — Drive to other cities, sharper globe night lights
+
+- **Tour Houston → By car → Drive to another city:** Austin, Dallas, San Antonio, New York, Los Angeles, Chicago, Miami, Toronto, Vancouver, Mexico City, Cancún, Guadalajara. Same tour car, dashboard, nav tablet, music/radio, cruise buttons and camera views.
+  - Route = Houston streets from your start to the edge of Houston's road map, then the real OSM motorway/trunk route (`public/data/world/drives.json`, built from the Geofabrik Texas extract with `osmium`; beyond Texas the route follows interstate waypoints).
+  - The intercity highway is drawn on the flat map: two carriageways with lane paint, yellow/white edge lines, grass median, shoulders and roadside trees (`src/intercity.js` `buildHighway`). The destination city loads in ahead of you and the car stops downtown.
+  - Distance and ETA use real road miles (`rr` per route point; map metres per real metre `k`).
+  - The location chip shows the nearby world city or "Between cities · <city> in N mi" outside Houston.
+- **Globe night lights:** small bright cores, highway spokes and 1 px street-grid specks replace the wide blurry orange patches.
+- **Jet cockpit:** the glass-cockpit panel (EICAS / PFD / ND) is about a third shorter so it no longer covers the windshield.
+- **Rail ‹ › chevrons:** hidden in the world view, where the Houston panels they open are hidden.
+- **Intercity flights** keep the Houston plane tour (same cockpit, music, radio, views); "Land at" shows the destination airport.
+
+## v10.77.0 — World flights fixed: Houston departures from the real Houston map, chase camera everywhere, planes worldwide
+- Flying to another city from Tour → By plane now uses the normal Houston plane tour (same aircraft, cockpit, music, IAH runway); after climb-out the flight continues over the globe.
+- Tour → By plane → "Fly to another city" no longer needs a Houston destination: Start tour climbs out of IAH on the great-circle heading towards that city, and the tour panel's Land at shows the destination city's airport (e.g. AUS · Austin-Bergstrom), not IAH/HOU.
+- Hand-over to the globe happens once the Houston tour plane is ~420 m up (or in cruise); the previous version only checked a too-narrow climb window.
+- Flights into Houston no longer land on the reduced-detail Houston scene: at the end of the globe cruise the app returns to the full Houston simulator and the Houston plane tour flies the approach into IAH (same aircraft, cockpit, music, ground crew).
+- "Land at" switches to the destination city's airport when a world city is picked.
+- City packs (e.g. Austin): if the first request fails (stale cached 404 or offline miss) the app retries once from the network before showing an error.
+- The Houston airliner model now faces down the runway on world take-offs and landings (it was sideways).
+- Drag swings the chase camera around the aircraft and scroll zooms in/out during take-off, cruise and landing, like the Houston plane tour.
+- The globe keeps every city's live aircraft feed (planes show worldwide), plus scheduled intercity flights between the catalog airports.
+
+## v10.76.0 — One map: Houston zooms straight out into the globe
+- The globe is no longer a separate screen: it draws on the Houston canvas with the same controls. Keep zooming out of Houston and the view continues up into the globe; zoom back down near Houston and you land back in the full simulator. The globe button plays the same zoom-out.
+- Houston-only panels hide while you are over the globe or another city; the bottom dock and music player stay.
+- Tour → By plane → "Fly to another city": the aircraft you picked takes off from IAH and flies to any world city; every city's "Fly to…" lists Houston too.
+- World flights use the Houston tour airliner model and the same glass cockpit (C). Over the globe the camera chases the real aircraft (no icon); drag to look around it, scroll to move closer or further.
+- World cities get suburbs like Houston: houses with roofs along residential streets outside the downtown core, street trees, porch glow at night. No cars or people.
+- Globe textures capped at 4096 px (2048 on phones) and built from a tiled noise pattern, which fixes the black/crashing globe on some GPUs; the globe is prepared in idle time so the zoom-out doesn't pause.
+
+## v10.75.0 — World map: 31 cities on one globe, airport-to-airport flights, driving in the Americas
+- New **World** button (globe icon above the toll-roads button), or keep scrolling out past the Houston outline: a 3D globe with the real sun terminator, night lights, drifting clouds and atmosphere (Natural Earth 1:50m land, public domain).
+- 31 cities: Houston (full simulator), Austin, Dallas, San Antonio, New York, Los Angeles, Chicago, Miami, Toronto, Vancouver, Mexico City, Cancún, Guadalajara, Lagos, Accra, Cairo, Rome, London, Paris, Madrid, Berlin, Dubai, Tokyo, Seoul, Singapore, Bangkok, Manila, Mumbai, New Delhi, Sydney, Melbourne (`src/world/catalog.json`).
+- Each city label shows live temperature; the city card shows local time, weather, wind, main airport and live aircraft count. One batched Open-Meteo request covers every city.
+- Zoom into a city (or pick it / search with `/`, ↑↓ Enter) for a lighter version of the Houston treatment: OSM 3D buildings in the core (up to 16k), motorways to streets with lane paint, rail, rivers, lakes, sea (OSM land polygons), parks, and the main airport's runways, taxiways, aprons and terminals. Sky, sun and night windows follow the city's real local time; clouds, rain and fog follow its live weather.
+- Live aircraft around every city's airport from airplanes.live / adsb.lol (same free feeds as Houston), extrapolated between polls; also drawn on the globe near the focused city.
+- **Fly to…**: pick a destination and airliner (737, 787, 777, 747, A320, A350, A380), take-off roll and climb from the main runway, time-lapsed great-circle cruise on the globe, then an ILS approach, flare and rollout that always stops before the runway end. C toggles chase / cockpit. Landing in Houston hands over to the full Houston simulator at IAH.
+- **Drive** (Americas cities only: US, Canada, Mexico): self-driving car in the right-hand lane on the OSM road graph (junctions kept), ← → choose the next turn, ↑ ↓ speed, V driver view.
+- Houston-only features stay Houston-only (departure boards, news, traffic incidents, tours). The world code loads only when opened and frees its GPU memory when you return.
+- Data packs are built offline with `scripts/build-world-city.py` (osmium + shapely from BBBike/Geofabrik extracts) and `scripts/build-world-land.py`; all © OpenStreetMap contributors (ODbL), Natural Earth (public domain). No paid APIs or keys.
+
+## v10.74.0 — University of Houston, Rice & TSU campuses; landmark positions re-audited
+- Real OpenStreetMap 3D buildings for the University of Houston, Texas Southern University and Rice University campuses (1,918 footprints with OSM heights/levels: Ezekiel W. Cullen, M.D. Anderson Library, Agnes Arnold Hall, Cullen College of Engineering, Cougar Village, Baker College, Brochstein Pavilion…). Campus tiles added to `buildings.json` coverage; procedural houses/towers are suppressed there so nothing doubles up. Stadium buildings are skipped (TDECU/Rice Stadium come from the stadium layer).
+- `buildings.json` is fetched with a revision query so browsers don't keep the old cached pack.
+- Landmark audit against the local Houston OSM extract: moved University of Houston (search/tour pins now match the campus pin), Bellaire High School, Co-Cathedral of the Sacred Heart, Islamic Society of Greater Houston, Congregation Beth Israel, Katy Mills and Sugar Land Town Square to their OSM positions.

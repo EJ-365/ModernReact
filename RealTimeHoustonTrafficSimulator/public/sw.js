@@ -1,4 +1,4 @@
-const CACHE = "hts-shell-v216";
+const CACHE = "hts-shell-v228";
 const PRECACHE = [
   "/",
   "/index.html",
@@ -66,6 +66,7 @@ self.addEventListener("fetch", (event) => {
             (url.pathname.endsWith(".html") ||
               url.pathname.endsWith(".css") ||
               url.pathname.startsWith("/data/cities/") ||
+              url.pathname.startsWith("/data/world/") ||
               url.pathname === "/")
           ) {
             const copy = res.clone();
