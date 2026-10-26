@@ -49,3 +49,15 @@ test('env example does not instruct setting paid keys', () => {
   assert.match(ex, /PAID APIs|DISABLED|billing/i);
   assert.match(ex, /# TOMTOM_API_KEY=/);
 });
+
+test('trafficPrimary does not remap TomTom metros onto Houston TranStar', () => {
+  const main = read('src/app-main.js');
+  /* Regression: v10.16.62 remapped tomtom→transtar, so San Antonio/Dallas/LA
+     pulled Houston RSS and painted shared road ids (i10/i45). */
+  assert.equal(/raw===['"]tomtom['"]\s*\?\s*['"]transtar['"]/.test(main), false);
+  assert.match(main, /if\s*\(\s*raw===['"]tomtom['"]\s*\)\s*return\s*['"]none['"]/);
+  assert.match(
+    main,
+    /raw===['"]transtar['"]\s*&&\s*city\s*&&\s*city\.id\s*&&\s*city\.id\s*!==\s*['"]houston['"]\s*\)\s*return\s*['"]none['"]/,
+  );
+});
