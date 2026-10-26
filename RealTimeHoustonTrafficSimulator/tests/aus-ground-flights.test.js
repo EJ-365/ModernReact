@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const appMainSource = readFileSync(new URL('../src/app-main.js', import.meta.url), 'utf8');
 
 /** Mirrors liveFlightEligible ground-cull rules after the AUS freeze fix. */
 function keepLiveGroundTrack({ onGround, gsNow, estGs, posMoved, altFt }) {
@@ -11,7 +14,7 @@ function keepLiveGroundTrack({ onGround, gsNow, estGs, posMoved, altFt }) {
 
 function flyGsWhileGround({ onGround, gs, estGs, posMoved, lastGoodGs }) {
   if (!onGround) return lastGoodGs || gs || 0;
-  if (gs >= 8 && gs < 90) return gs;
+  if (gs >= 8) return gs;
   if (posMoved && estGs >= 8 && estGs < 90) return estGs;
   return 0; /* never coast on cruise lastGoodGs */
 }
@@ -44,4 +47,12 @@ test('ground update never coasts at last cruise groundspeed', () => {
     flyGsWhileGround({ onGround: true, gs: 28, estGs: 0, posMoved: false, lastGoodGs: 280 }),
     28,
   );
+});
+
+test('fast takeoff and landing rollouts keep their reported groundspeed', () => {
+  assert.equal(
+    flyGsWhileGround({ onGround: true, gs: 135, estGs: 0, posMoved: false, lastGoodGs: 0 }),
+    135,
+  );
+  assert.match(appMainSource, /if\(gs>=minGs\)flyGs=gs;/);
 });
