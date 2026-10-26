@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import useFetch from "../Hooks/useFetch";
 import { countryCodes } from "../data/countryCodes";
+import { getDataArray, getErrorMessage } from "../utils/apiResponse";
 function UpcomingMatches() {
   const { data, loading, error } = useFetch("/api/matches.json");
   const navigate = useNavigate();
@@ -11,9 +12,9 @@ function UpcomingMatches() {
   }
   if (loading) return <p>Loading</p>
 
-  if (error) return <p>Error: {error}</p>;
+  if (error) return <p>Error: {getErrorMessage(error)}</p>;
 
-  const matches = data?.data?.slice(0, 4) ?? [];
+  const matches = getDataArray(data).slice(0, 4);
   // 2026 World Cup teams → ISO codes for flagcdn (keys match API: match.home / match.away)
 
   return (

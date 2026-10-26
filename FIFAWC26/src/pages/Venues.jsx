@@ -2,17 +2,19 @@ import useFetch from "../Hooks/useFetch";
 import { BarLoader } from "react-spinners";
 import { createClient } from "pexels";
 import { useEffect, useState } from "react";
+import { getDataArray, getErrorMessage } from "../utils/apiResponse";
 function Venues() {
   const { data, loading, error } = useFetch("/api/venues.json");
 
   const apikey = import.meta.env.VITE_APIKEY;
   const [photos, setPhotos] = useState({});
   useEffect(() => {
-    if (!apikey || !data?.data) return;
+    const venues = getDataArray(data);
+    if (!apikey || venues.length === 0) return;
 
     const client = createClient(apikey);
 
-    data.data.forEach((venue) => {
+    venues.forEach((venue) => {
       client.photos.search({ query: venue.name, per_page: 1 }).then((res) => {
         if (res.photos?.length > 0) {
           setPhotos((prev) => ({
@@ -40,8 +42,8 @@ function Venues() {
       </div>
     );
   }
-  if (error) return <p>Error: {String(error)}</p>;
-  const venues = data?.data ?? [];
+  if (error) return <p>Error: {getErrorMessage(error)}</p>;
+  const venues = getDataArray(data);
   if (!venues.length) {
     return (
       <main className="container mx-auto mt-20 px-4 text-center text-white">
