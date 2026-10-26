@@ -13492,7 +13492,6 @@ function updateHUD(nightF,skyH){
     const flSrc=$('flSrc');
     if(flSrc){
       if(list.length){
-        const adsb=list.some(x=>x.icao24);
         const src=(window.LIVE_FLIGHT_STATUS&&LIVE_FLIGHT_STATUS.src)?LIVE_FLIGHT_STATUS.src:'ADS-B';
         if(usingBoard){
           flSrc.style.color='#ffb400';
