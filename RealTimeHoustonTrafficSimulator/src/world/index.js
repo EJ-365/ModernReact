@@ -31,6 +31,7 @@ const CSS = `
 #wRoot>*{pointer-events:auto}
 body.hts-world #incidentPanel,body.hts-world #panel,body.hts-world #leftCol,body.hts-world #legend,body.hts-world #stats,body.hts-world #drivetimes,body.hts-world #whereami,body.hts-world #poiCard,body.hts-world #tip,body.hts-world #followChip,body.hts-world #vignette,body.hts-world #mHud,body.hts-world #houPlaces,body.hts-world #worldWrap,body.hts-world #tollWrap,body.hts-world #ambWrap,body.hts-world #locBtn,body.hts-world #camhint,body.hts-world .panelCollapseBtn{display:none!important}
 body.hts-world .railToggle,body.hts-world #bottomDock{display:none!important}
+#wCard .wFol{flex-wrap:wrap;justify-content:flex-end;max-width:72%;gap:4px}
 #wFlightTip{position:fixed;z-index:40;pointer-events:none;background:rgba(10,16,26,.92);color:#e8edf2;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font:12px/1.45 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:210px}#wFlightTip small{display:block;opacity:.6;font-size:10px;margin-top:2px}#wCard .wFact{font-size:12px;line-height:1.4;opacity:.85;margin:6px 0 4px;padding:6px 8px;background:rgba(255,255,255,.05);border-radius:8px}#wCard .wFact b{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:2px}#wCard .wSeg{display:flex;gap:4px}#wCard .wSeg .wbtn{padding:3px 9px;font-size:11px}#wCard .wAcc{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px}
 #wCard .wChev{font-size:13px;opacity:.7;transition:transform .2s}
 #wCard.wMin .wChev{transform:rotate(-90deg)}
@@ -85,6 +86,8 @@ let root, canvas, renderer, globe, land, labels = {}, active = false, raf = 0, l
 const geoEls = [];
 let places = null; /* Natural Earth towns/cities + states/provinces, shown as you zoom in */
 const PLACE_ALT = { c: [3000, 3000, 1800, 1000, 520], s: [0, 0, 2600, 1800] };
+let follow = null, followT = 0, followCands = [];
+const fkey = (f) => f.hex || f.call || f.reg || '';
 let mode = 'globe', city = null, cs = null, focusCity = byId.houston, flight = null, drive = null, camView = 'chase';
 let weather = {}, wxAt = 0, traffic = [], trafficFor = null, trafficAt = 0, trafficBusy = false;
 const orbit = { tx: 0, tz: 0, r: 4200, theta: 0.6, phi: 0.95, goal: null };
@@ -104,6 +107,15 @@ function localTime(c) {
   try {
     return clockTz(c.tz);
   } catch (e) { return ''; }
+}
+/* Open-Meteo local ISO time ("2026-10-26T07:24") → "7:24 AM" */
+function clock(iso) { const m = /T(\d\d):(\d\d)/.exec(iso || ''); if (!m) return '—'; const h = +m[1]; return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; }
+const UVW = (u) => u < 3 ? 'low' : u < 6 ? 'moderate' : u < 8 ? 'high' : u < 11 ? 'very high' : 'extreme';
+function tzGap(c, ref) {
+  try {
+    const off = (tz) => { const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(new Date()).find((x) => x.type === 'timeZoneName').value; const m = /([+-])(\d\d):?(\d\d)?/.exec(p); return m ? (m[1] === '-' ? -1 : 1) * (+m[2] + (+m[3] || 0) / 60) : 0; };
+    const d = off(c.tz) - off(ref.tz); if (!d) return 'same time'; const a = Math.abs(d); return `${Number.isInteger(a) ? a : a.toFixed(1)} h ${d > 0 ? 'ahead' : 'behind'}`;
+  } catch (_e) { return '—'; }
 }
 function tempStr(c, w) { if (!w) return ''; const f = Math.round(w.temp * 9 / 5 + 32), cc = Math.round(w.temp); return usesF(c) ? f + '°F' : cc + '°C'; }
 
@@ -178,7 +190,7 @@ function wireInput() {
   let drag = null; const touches = new Map(); let pinch = 0;
   const own = (e) => { if (!active) return false; e.stopImmediatePropagation(); return true; };
   const C = { capture: true };
-  canvas.addEventListener('pointerdown', (e) => { if (!own(e) || e.pointerType === 'touch') return; canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, pan: e.button !== 0 || e.shiftKey }; }, C);
+  canvas.addEventListener('pointerdown', (e) => { if (!own(e) || e.pointerType === 'touch') return; canvas.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, pan: e.button !== 0 || e.shiftKey }; }, C);
   let hovT = 0;
   canvas.addEventListener('pointermove', (e) => {
     if (active && !drag && e.pointerType !== 'touch' && mode === 'city' && cs && cs.pickTraffic && performance.now() - hovT > 60) {
@@ -190,7 +202,15 @@ function wireInput() {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
     look(dx, dy, drag.pan);
   }, C);
-  addEventListener('pointerup', (e) => { if (active) { e.stopImmediatePropagation(); drag = null; } }, C);
+  addEventListener('pointerup', (e) => {
+    if (!active) return; e.stopImmediatePropagation();
+    /* a click (no drag) on a live aircraft in a city follows it, like the Houston plane cards */
+    if (drag && e.target === canvas && mode === 'city' && !flight && !drive && cs && cs.pickTraffic && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < 5) {
+      const r = canvas.getBoundingClientRect(), f = cs.pickTraffic(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1, r.width, r.height);
+      if (f) startFollow(f);
+    }
+    drag = null;
+  }, C);
   canvas.addEventListener('wheel', (e) => { if (!own(e)) return; e.preventDefault(); zoom(Math.pow(1.0016, THREE.MathUtils.clamp(e.deltaY, -240, 240))); }, { capture: true, passive: false });
   canvas.addEventListener('touchstart', (e) => {
     if (!own(e)) return; e.preventDefault(); for (const t of e.changedTouches) touches.set(t.identifier, { x: t.clientX, y: t.clientY });
@@ -216,7 +236,7 @@ function showFlightTip(f, x, y) {
   if (!f) { if (t) t.style.display = 'none'; canvas.style.cursor = ''; return; }
   if (!t) { t = el('div', { id: 'wFlightTip' }); document.body.appendChild(t); }
   const alt = f.onGround ? 'On the ground' : Math.round(f.altFt || 0).toLocaleString() + ' ft';
-  t.innerHTML = `<b>${f.call || 'Unknown flight'}</b>${f.type ? ' · ' + f.type : ''}<br>${alt} · ${Math.round(f.gs || 0)} kt (${Math.round((f.gs || 0) * 1.15078)} mph)<br>Heading ${Math.round(f.hdg || 0)}°${f.reg ? ' · ' + f.reg : ''}<small>Live ADS-B</small>`;
+  t.innerHTML = `<b>${f.call || 'Unknown flight'}</b>${f.type ? ' · ' + f.type : ''}<br>${alt} · ${Math.round(f.gs || 0)} kt (${Math.round((f.gs || 0) * 1.15078)} mph)<br>Heading ${Math.round(f.hdg || 0)}°${f.reg ? ' · ' + f.reg : ''}<small>Live ADS-B · click to follow</small>`;
   t.style.display = 'block'; t.style.left = Math.min(innerWidth - 220, x + 14) + 'px'; t.style.top = Math.max(8, y - 70) + 'px';
   canvas.style.cursor = 'pointer';
 }
@@ -224,7 +244,7 @@ function onKey(e) {
   if (!active) return;
   const typing = e.target === ui.search || (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName));
   if (typing) return;
-  if (e.key === 'Escape') { back(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (e.key === 'Escape') { if (follow) { follow = null; renderCard(); } else back(); e.preventDefault(); e.stopImmediatePropagation(); return; }
   if (e.key === '/') { ui.search.focus(); e.preventDefault(); e.stopImmediatePropagation(); return; }
   if ((e.key === 'c' || e.key === 'C') && flight) { camView = camView === 'chase' ? 'cockpit' : 'chase'; e.stopImmediatePropagation(); return; }
   if (drive) {
@@ -245,6 +265,7 @@ function look(dx, dy, pan) {
   if (mode === 'globe') { globe.drag(dx, dy, canvas.clientHeight); return; }
   if (mode !== 'city') return;
   if (pan) {
+    if (follow) { follow = null; renderCard(); }
     const k = orbit.r * 0.0016, c = Math.cos(orbit.theta), s = Math.sin(orbit.theta);
     orbit.tx -= (c * dx + s * dy) * k; orbit.tz -= (-s * dx + c * dy) * k;
     const lim = 30000; orbit.tx = THREE.MathUtils.clamp(orbit.tx, -lim, lim); orbit.tz = THREE.MathUtils.clamp(orbit.tz, -lim, lim);
@@ -293,11 +314,11 @@ async function fetchJson(urls, ms = 9000) {
 async function loadWeather() {
   if (Date.now() - wxAt < 10 * 60e3) return; wxAt = Date.now();
   const lat = CITIES.map((c) => c.lat).join(','), lng = CITIES.map((c) => c.lng).join(',');
-  const j = await fetchJson([`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation,is_day&wind_speed_unit=ms`], 12000);
+  const j = await fetchJson([`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,apparent_temperature,relative_humidity_2m,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation,is_day&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto&wind_speed_unit=ms`], 12000);
   const arr = Array.isArray(j) ? j : j ? [j] : [];
   arr.forEach((d, i) => {
     const c = CITIES[i], cu = d && d.current; if (!c || !cu) return;
-    weather[c.id] = { temp: cu.temperature_2m, code: cu.weather_code, cloud: cu.cloud_cover, wind: cu.wind_speed_10m, windDir: cu.wind_direction_10m, precip: cu.precipitation, isDay: cu.is_day };
+    weather[c.id] = { temp: cu.temperature_2m, code: cu.weather_code, cloud: cu.cloud_cover, wind: cu.wind_speed_10m, windDir: cu.wind_direction_10m, precip: cu.precipitation, isDay: cu.is_day, feels: cu.apparent_temperature, hum: cu.relative_humidity_2m, uv: cu.uv_index, elev: d.elevation, rise: d.daily && d.daily.sunrise && d.daily.sunrise[0], set: d.daily && d.daily.sunset && d.daily.sunset[0], hi: d.daily && d.daily.temperature_2m_max && d.daily.temperature_2m_max[0], lo: d.daily && d.daily.temperature_2m_min && d.daily.temperature_2m_min[0] };
   });
   if (!arr.length) wxAt = Date.now() - 9 * 60e3; /* retry in a minute */
   for (const c of CITIES) { const s = labels[c.id] && labels[c.id].querySelector('small'); if (s) s.textContent = tempStr(c, weather[c.id]); }
@@ -316,7 +337,7 @@ async function loadTraffic(c, nm) {
     if (j && Array.isArray(j.ac) && j.ac.length) {
       rows = j.ac.filter((a) => Number.isFinite(a.lat) && Number.isFinite(a.lon)).map((a) => ({
         lat: a.lat, lng: a.lon, onGround: a.alt_baro === 'ground', altFt: typeof a.alt_baro === 'number' ? a.alt_baro : 0,
-        hdg: a.track || a.true_heading || 0, gs: a.gs || 0, call: (a.flight || '').trim(), type: a.t || '', reg: a.r || '',
+        hdg: a.track || a.true_heading || 0, gs: a.gs || 0, hex: a.hex || '', call: (a.flight || '').trim(), type: a.t || '', reg: a.r || '',
       }));
       break;
     }
@@ -334,6 +355,7 @@ function setLoading(on, text, k) {
 }
 function selectCity(c, fly) {
   focusCity = c; renderCard();
+  if (!globe) return; /* city labels exist before the globe has loaded */
   if (mode !== 'globe') { toGlobe(() => selectCity(c, fly)); return; }
   if (c.full) { /* Houston keeps the full simulator */
     globe.flyTo(c.lat, c.lng, 40, fly ? 2.6 : 0.6, () => close({ lat: c.lat, lng: c.lng })); return;
@@ -346,7 +368,7 @@ function prefetchCity(c) {
   if (pre && pre.id === c.id) return pre.p;
   if (pre) pre.p.then((s) => { if (s && s !== cs) s.dispose(); }).catch(() => {});
   preK = 0;
-  const p = createCityScene({ city: c, renderer, mobile, onProgress: (k) => { preK = k; if (showLoad) setLoading(true, null, k); } });
+  const p = createCityScene({ city: c, renderer, mobile, land, onProgress: (k) => { preK = k; if (showLoad) setLoading(true, null, k); } });
   pre = { id: c.id, p }; p.catch(() => { if (pre && pre.p === p) pre = null; });
   return p;
 }
@@ -367,6 +389,7 @@ async function enterCity(c, keepPose) {
   if (city && city.id === c.id && cs) { mode = 'city'; renderCard(); return; }
   disposeCity();
   try { cs = await loadCity(c); } catch (e) { toast('Could not load ' + c.name + ' (' + e.message + ')'); mode = 'globe'; return; }
+  if (/debug/.test(location.search)) { window._wcs = cs; window._worbit = orbit; }
   city = c; mode = 'city';
   if (!keepPose) Object.assign(orbit, { tx: 0, tz: 0, r: 3600, theta: 0.6, phi: 0.92 });
   loadTraffic(c, 80); renderCard();
@@ -410,7 +433,7 @@ async function stepFlight(dt) {
       f.cruise = new Cruise(f.from, f.to); f.phase = 'cruise'; mode = 'globe'; f.cyaw = 0; f.cdist = 1; globe.chaseOn = true;
       globe.jump(f.from.apt.lat, f.from.apt.lng, 60);
       globe.setRoute(f.from.apt, f.to.apt);
-      if (!f.to.full) createCityScene({ city: f.to, renderer, mobile }).then((s) => {
+      if (!f.to.full) createCityScene({ city: f.to, renderer, mobile, land }).then((s) => {
         if (flight !== f) { s.dispose(); return; }
         s.resize(canvas.clientWidth, canvas.clientHeight); s.setWeather(weather[f.to.id] || null); f.destScene = s;
       }).catch(() => { f.destFail = true; });
@@ -476,10 +499,17 @@ function renderCard() {
     <div class="row"><span>Local time</span><b>${localTime(c)}</b></div>
     <div class="row"><span>Weather</span><b>${wx}</b></div>
     <div class="row"><span>Wind</span><b>${wind}</b></div>
+    ${w && w.feels != null ? `<div class="row"><span>Feels like · humidity</span><b>${tempStr(c, { temp: w.feels })} · ${Math.round(w.hum)}%</b></div>` : ''}
+    ${w && w.hi != null ? `<div class="row"><span>Today high / low</span><b>${tempStr(c, { temp: w.hi })} / ${tempStr(c, { temp: w.lo })}</b></div>` : ''}
+    ${w && w.rise ? `<div class="row"><span>Sunrise · sunset</span><b>${clock(w.rise)} · ${clock(w.set)}</b></div>` : ''}
+    ${w && w.uv != null ? `<div class="row"><span>UV index</span><b>${Math.round(w.uv)} (${UVW(w.uv)})</b></div>` : ''}
+    ${w && w.elev != null ? `<div class="row"><span>Elevation</span><b>${usesF(c) ? Math.round(w.elev * 3.281).toLocaleString() + ' ft' : Math.round(w.elev).toLocaleString() + ' m'}</b></div>` : ''}
+    ${(() => { const h = CITIES.find((x) => x.full); return h && h.id !== c.id ? `<div class="row"><span>From Houston</span><b>${Math.round(gcDist(h, c) * (usesF(c) ? 0.6214 : 1)).toLocaleString()} ${usesF(c) ? 'mi' : 'km'} · ${tzGap(c, h)}</b></div>` : ''; })()}
     <div class="row"><span>Airport</span><b>${c.apt.code} · ${c.apt.name}</b></div>
     ${c.info ? `<div class="row"><span>Population</span><b>${c.info.pop}</b></div><div class="wFact"><b>Known for</b> ${c.info.fact}</div>` : ''}
     ${city && cs && cs.setLook && !c.full ? `<div class="row"><span>Sky</span><span class="wSeg">${[['live', 'Live'], ['day', 'Day'], ['night', 'Night']].map(([m, n]) => `<button class="wbtn${cs.look === m ? ' pri' : ''}" data-a="look-${m}" title="${m === 'live' ? 'Real local sun and weather' : 'Preview ' + c.name + ' by ' + n.toLowerCase()}">${n}</button>`).join('')}</span></div>` : ''}
     <div class="row"><span>Live aircraft nearby</span><b>${n == null ? '…' : n}</b></div>
+    ${city && cs && !flight && !drive ? followHtml() : ''}
     ${city && cs ? `<div class="row"><span>3D buildings</span><b>${cs.buildings ? cs.buildings.toLocaleString() : (c.full ? 'full simulator' : '—')}</b></div>` : ''}
     <div class="acts">
       ${mode === 'globe' ? `<button class="wbtn pri" data-a="visit">${c.full ? 'Open Houston' : 'Visit ' + c.name}</button>` : ''}
@@ -498,8 +528,28 @@ function renderCard() {
     : drive ? '← → turn at next junction · ↑ ↓ speed · V driver view · Esc stop'
     : 'Drag to rotate · right-drag or Shift-drag to pan · scroll to zoom (zoom far out for the globe) · Esc back';
 }
+const safe = (t) => String(t || '').replace(/[<>&"']/g, '');
+function followHtml() {
+  const L = cs.traffic || [];
+  if (follow) {
+    const f = L.find((x) => fkey(x) === follow);
+    return `<div class="row"><span>Following</span><b>${f ? safe(f.call || f.reg || f.type || 'aircraft') + ' · ' + (f.onGround ? 'on the ground' : Math.round(f.altFt || 0).toLocaleString() + ' ft') : '…'} <button class="wbtn" data-a="unfollow">Stop</button></b></div>`;
+  }
+  const dd = (f) => (f.wx == null ? 1e9 : Math.hypot(f.wx - orbit.tx, f.wz - orbit.tz)); /* fresh feed rows get world positions on the next frame */
+  followCands = L.filter((f) => !f.onGround).sort((a, b) => dd(a) - dd(b)).slice(0, 5);
+  if (!followCands.length) return '';
+  return `<div class="row"><span>Follow a plane</span><span class="wSeg wFol">${followCands.map((f, i) => `<button class="wbtn" data-a="follow-${i}" title="${safe(f.type)} · ${Math.round(f.altFt || 0).toLocaleString()} ft">${safe(f.call || f.reg || f.type || 'Plane')}</button>`).join('')}</span></div>`;
+}
+function startFollow(f) {
+  follow = fkey(f); followT = performance.now();
+  if (!follow) return;
+  Object.assign(orbit, { r: Math.max(300, Math.min(orbit.r, 700)), phi: Math.min(orbit.phi, 1.15) });
+  toast('Following ' + (f.call || f.reg || f.type || 'aircraft') + ' · drag to look around, Esc to stop', 3500); renderCard();
+}
 async function cardAction(a) {
   const c = city || focusCity;
+  if (a.startsWith('follow-')) { const f = followCands[+a.slice(7)]; if (f) startFollow(f); return; }
+  if (a === 'unfollow') { follow = null; renderCard(); return; }
   if (a.startsWith('look-')) { if (cs && cs.setLook) cs.setLook(a.slice(5)); renderCard(); return; }
   if (a === 'min') { cardMin = !cardMin; try { localStorage.setItem('hts-wcard-min', cardMin ? '1' : '0'); } catch { /* private mode */ } renderCard(); return; }
   if (a === 'visit') selectCity(c, true);
@@ -556,9 +606,15 @@ function resize() {
 const _cd = new THREE.Vector3(); let roseEl = null;
 function cityCam(dt) {
   const cam = cs.camera;
+  let ty = 0;
+  if (follow) {
+    const f = (cs.traffic || []).find((x) => fkey(x) === follow);
+    if (f && f.wx != null) { orbit.tx = f.wx; orbit.tz = f.wz; ty = f.wy; followT = performance.now(); }
+    else if (performance.now() - followT > 20000) { follow = null; toast('The aircraft left live coverage', 3000); renderCard(); }
+  }
   const sp = Math.sin(orbit.phi), cp = Math.cos(orbit.phi);
-  cam.position.set(orbit.tx + orbit.r * sp * Math.sin(orbit.theta), orbit.r * cp + 2, orbit.tz + orbit.r * sp * Math.cos(orbit.theta));
-  cam.up.set(0, 1, 0); cam.lookAt(orbit.tx, 0, orbit.tz);
+  cam.position.set(orbit.tx + orbit.r * sp * Math.sin(orbit.theta), ty + orbit.r * cp + 2, orbit.tz + orbit.r * sp * Math.cos(orbit.theta));
+  cam.up.set(0, 1, 0); cam.lookAt(orbit.tx, ty, orbit.tz);
   cam.near = Math.max(0.5, orbit.r * 0.004); cam.far = 90000; cam.updateProjectionMatrix();
   void dt;
 }

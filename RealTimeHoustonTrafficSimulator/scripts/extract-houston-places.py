@@ -9,7 +9,7 @@ import osmium
 sys.path.insert(0, os.path.dirname(__file__))
 from importlib import import_module
 X = import_module('extract-houston-osm')
-RANK = {'city': 0, 'town': 1, 'borough': 2, 'suburb': 2, 'quarter': 3, 'village': 3, 'neighbourhood': 3, 'hamlet': 4}
+RANK = {'city': 0, 'town': 1, 'borough': 2, 'suburb': 2, 'quarter': 3, 'village': 3, 'neighbourhood': 3, 'hamlet': 4, 'locality': 4}
 
 
 class H(osmium.SimpleHandler):
@@ -24,10 +24,24 @@ class H(osmium.SimpleHandler):
             x, z = X.w(n.location.lon, n.location.lat)
             self.p.append([round(x), round(z), RANK[pl], name])
 
+    def way(self, w):
+        # many Houston neighbourhoods / subdivisions are mapped as areas, not nodes: label them at their centre
+        pl = w.tags.get('place')
+        name = w.tags.get('name')
+        if pl in RANK and name and w.is_closed() and len(w.nodes) > 3:
+            try:
+                pts = [(n.location.lon, n.location.lat) for n in list(w.nodes)[:-1]]
+            except osmium.InvalidLocationError:
+                return
+            lon = sum(p[0] for p in pts) / len(pts)
+            lat = sum(p[1] for p in pts) / len(pts)
+            x, z = X.w(lon, lat)
+            self.p.append([round(x), round(z), RANK[pl], name])
+
 
 def main():
     h = H()
-    h.apply_file(sys.argv[1], locations=False)
+    h.apply_file(sys.argv[1], locations=True)
     seen, out = set(), []
     for p in sorted(h.p, key=lambda q: q[2]):
         key = (p[3], round(p[0] / 2000), round(p[1] / 2000))

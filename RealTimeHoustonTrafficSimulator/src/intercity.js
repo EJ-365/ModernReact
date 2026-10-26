@@ -80,7 +80,7 @@ async function ensureGround(scene) {
   /* real satellite land/sea colour and night lights (NASA, public domain) replace the painted stand-ins */
   loadNasaTex(mobile ? '2k' : '4k', 4096, (d, n) => { U.map.value = d; U.nmap.value = n; tex.dispose(); ntex.dispose(); tex = d; });
   U = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-    map: { value: null }, nmap: { value: null }, nightK: { value: 0 }, light: { value: new THREE.Color(1, 1, 1) },
+    map: { value: null }, nmap: { value: null }, nightK: { value: 0 }, camY: { value: 0 }, light: { value: new THREE.Color(1, 1, 1) },
     cW: { value: Array.from({ length: MAXC }, () => new THREE.Vector2(1e12, 1e12)) },
     cLL: { value: Array.from({ length: MAXC }, () => new THREE.Vector2()) },
     cK: { value: Array.from({ length: MAXC }, () => new THREE.Vector2(1, 1)) },
@@ -91,7 +91,7 @@ async function ensureGround(scene) {
     /* fog is computed per pixel: this ground is one 1,200 km quad, so per-vertex fog depth painted it all fog-white */
     vertexShader: `varying vec3 vW;
       void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
-    fragmentShader: `uniform sampler2D map; uniform sampler2D nmap; uniform float nightK; uniform vec3 light; uniform vec2 cW[${MAXC}]; uniform vec2 cLL[${MAXC}]; uniform vec2 cK[${MAXC}]; varying vec3 vW; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
+    fragmentShader: `uniform sampler2D map; uniform sampler2D nmap; uniform float nightK; uniform float camY; uniform vec3 light; uniform vec2 cW[${MAXC}]; uniform vec2 cLL[${MAXC}]; uniform vec2 cK[${MAXC}]; varying vec3 vW; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       void main(){
         float lng=(vW.x-60.0)/${KX.toFixed(3)}+${LNG0.toFixed(4)}, lat=${LAT0.toFixed(4)}-(vW.z-60.0)/${KZ.toFixed(3)};
         for(int i=0;i<${MAXC};i++){ vec2 d=vW.xz-cW[i]; float r=length(d); float k=1.0-smoothstep(60000.0,140000.0,r);
@@ -102,11 +102,17 @@ async function ensureGround(scene) {
         float h=fract(sin(dot(floor(vW.xz/430.0),vec2(12.9898,78.233)))*43758.5453);
         float h2=fract(sin(dot(floor(vW.xz/61.0),vec2(39.3468,11.1351)))*24634.6345);
         c*=mix(1.0,0.8+0.3*h+0.07*h2,land);
+        /* low down: a patchwork of crop, pasture and fallow fields with darker hedgerow edges, like the view from a window seat */
+        float lowK=land*(1.0-smoothstep(5000.0,20000.0,camY));
+        float h3=fract(sin(dot(floor(vW.xz/430.0)+7.0,vec2(26.651,4.123)))*15731.7);
+        vec3 crop=h3<0.3?vec3(1.13,1.05,0.8):h3<0.6?vec3(0.86,1.07,0.84):h3<0.75?vec3(1.05,0.95,0.86):vec3(1.0);
+        vec2 fe=abs(fract(vW.xz/430.0)-0.5); float edge=smoothstep(0.484,0.5,max(fe.x,fe.y))*(1.0-smoothstep(3000.0,10000.0,camY));
+        c*=mix(vec3(1.0),crop*(1.0-0.3*edge),lowK);
         /* moonlight floor, ocean swell texture (so you can see it slide by) and city lights at night */
         vec3 lit=c*max(light,vec3(0.07,0.085,0.12));
         float wv=fract(sin(dot(floor(vW.xz/700.0),vec2(7.13,3.71)))*9631.7), wv2=fract(sin(dot(floor(vW.xz/2300.0),vec2(1.7,9.2)))*4231.3);
         lit+=(1.0-land)*(0.25+0.75*wv*wv2)*mix(vec3(0.05,0.07,0.09)*light,vec3(0.02,0.03,0.05),nightK);
-        lit+=texture2D(nmap,uv).rgb*nightK*0.9;
+        lit+=texture2D(nmap,uv).rgb*nightK*0.9*smoothstep(1500.0,9000.0,camY); /* city-light glow is for the view from altitude; low down it painted the ground tan */
         gl_FragColor=vec4(lit,1.0);
         #include <colorspace_fragment>
         gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(fogNear,fogFar,length(vW-cameraPosition)));
@@ -132,6 +138,7 @@ export async function embedCity(city, { scene, renderer }) {
     const s = cs.scene; s.fog = null; s.background = null;
     /* the Houston scene supplies sky, sun, clouds and rain: hide the city's own */
     for (const o of s.children) {
+      if (o.userData.embedKeep) continue;
       if (o.isLight || o.frustumCulled === false || (o.isGroup && o.children[0] && o.children[0].isSprite)) o.visible = false;
     }
     s.position.set(rec.w.x, 0, rec.w.z); s.matrixWorldNeedsUpdate = true;
@@ -163,9 +170,9 @@ export function update(dt, camera, sceneLight) {
     /* low over open country (driving): ground right under the road; near Houston keep it below Houston's own ground */
     /* inside an embedded city's own 90 km ground keep the far ground well below it, else the two z-fight (flicker) */
     let inCity = false;
-    for (const r of embeds.values()) if (Math.abs(camera.position.x - r.w.x) < 47000 && Math.abs(camera.position.z - r.w.z) < 47000) { inCity = true; break; }
+    for (const r of embeds.values()) if (Math.abs(camera.position.x - r.w.x) < 70000 && Math.abs(camera.position.z - r.w.z) < 70000) { inCity = true; break; }
     ground.position.y = !inCity && camera.position.y < 450 && Math.hypot(camera.position.x - 60, camera.position.z - 60) > 90000 ? -0.35 : -12;
-    if (sceneLight) { U.light.value.copy(sceneLight); const lum = sceneLight.r * 0.3 + sceneLight.g * 0.55 + sceneLight.b * 0.15; U.nightK.value = 1 - Math.min(1, Math.max(0, (lum - 0.18) / 0.35)); }
+    if (sceneLight) { U.light.value.copy(sceneLight); U.camY.value = camera.position.y; const lum = sceneLight.r * 0.3 + sceneLight.g * 0.55 + sceneLight.b * 0.15; U.nightK.value = 1 - Math.min(1, Math.max(0, (lum - 0.18) / 0.35)); }
     let i = 0;
     for (const r of embeds.values()) {
       if (i >= MAXC) break;

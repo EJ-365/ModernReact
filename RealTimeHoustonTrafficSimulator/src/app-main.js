@@ -467,7 +467,7 @@ function syncLiveFlightVisibility(){
   window._syncedLiveFlights=[...show];
   for(const f of LIVE_FLIGHT_LIST){
     if(!f||!f.m)continue;
-    const on=show.has(f);
+    const on=show.has(f)||f===window._followPlaneRef; /* the plane you clicked stays in the sky even if it isn't in the panel's top 24 */
     f.m.visible=on;
     f._onPanel=on;
     if(on&&Number.isFinite(f._tLat)&&Number.isFinite(f._tLon)){
@@ -1046,6 +1046,8 @@ canvas.addEventListener('webglcontextrestored',()=>{
     renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
   }catch(_e){}
 });
+/* long-run safety net: if the render loop dies (uncaught error / exhausted GPU) while the tab is visible, reload instead of a frozen white screen */
+setInterval(()=>{if(document.visibilityState==='visible'&&window._htsLastFrame&&performance.now()-window._htsLastFrame>20000){try{sessionStorage.setItem('hts-autoreload',String(Date.now()));}catch(_e){}location.reload();}},5000);
 /* Cap anisotropy — high values stall texture uploads on Windows GPUs */
 const MAXAN=Math.min(_isWin?4:8,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
@@ -4133,8 +4135,9 @@ function makeTourHeli(col,acc){
   const tail=new THREE.Group();tail.position.set(-0.14,1.72,-6.05);g.add(tail);
   {const b=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.12,1.3),dark);tail.add(b);tail.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,0.12,8),dark).rotateZ(Math.PI/2));}
   add(new THREE.CircleGeometry(0.12,14),new THREE.MeshBasicMaterial({color:0xfff6dc}),0,0.42,2.3,0.6,0,0);  /* landing light under the nose */
-  const beacon=add(new THREE.SphereGeometry(0.08,8,6),new THREE.MeshBasicMaterial({color:0xff3030}),0,2.38,-1.0);
-  g.userData.rotor=rotor;g.userData.prop=tail;g.userData.beacon=beacon;g.userData.gearDrop=0.26;
+  const beacon=add(new THREE.SphereGeometry(0.11,8,6),new THREE.MeshBasicMaterial({color:0xff3030,transparent:true,opacity:0.4}),0,2.38,-1.0);
+  /* red/green side lights, white tail light and strobes like a real Bell 206; beacon flashes */
+  g.userData.rotor=rotor;g.userData.prop=tail;g.userData.beacon=beacon.material;g.userData.gearDrop=0.26;g.userData.nav=addNavLights(g,1.1,-4);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true;});disc.castShadow=false;g.userData.rotorBlur={blade:bladeM,disc};
   return g;
 }
@@ -4279,7 +4282,7 @@ function makeHeli(col){
   g.scale.setScalar(1.45);
   g.traverse((o)=>{if(o.isMesh)o.castShadow=false;});
   const ud=g.userData;
-  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'heli',rotor:ud.rotor,tRotor:ud.prop,rotorBlur:ud.rotorBlur,gearDrop:ud.gearDrop,nav:addNavLights(g,1.1,-4)};
+  g.userData={strobe:{opacity:0},beacon:{opacity:0},acClass:'heli',rotor:ud.rotor,tRotor:ud.prop,rotorBlur:ud.rotorBlur,gearDrop:ud.gearDrop,nav:ud.nav};
   return g;
 }
 /* Classify ADS-B type → airliner | prop | heli */
@@ -9860,7 +9863,9 @@ function updateLiveFlights(dt){
       }
     }
 
-    const altFt=altFtNow!=null?altFtNow:(f._altM*3.28084);
+    let altFt=altFtNow!=null?altFtNow:(f._altM*3.28084);
+    /* low helicopters away from an airfield/heliport are hovering or in transit, not parked on a street */
+    if(cls==='heli'&&(altFt==null||altFt<350)&&!(window.HTS_AIRPORTS2&&HTS_AIRPORTS2.inAerodrome(f.m.position.x,f.m.position.z)))altFt=350;
     const yTarget=displayAltY(altFt);
     f._y=lerp(f._y!=null?f._y:yTarget,yTarget,clamp(dt*3,0,1));
 
@@ -10150,7 +10155,7 @@ function stopFollow(){
     followPlane.m.userData.halo.visible=false;
     followPlane.m.userData.halo.material.opacity=0;
   }
-  clearRouteLine();follow=null;followPlane=null;document.getElementById('followChip').style.display='none';
+  clearRouteLine();follow=null;followPlane=null;window._followPlaneRef=null;document.getElementById('followChip').style.display='none';
   clearFlightCardHighlight();
 }
 function flightIdKey(f){
@@ -10274,7 +10279,7 @@ function focusAircraftInSky(f){
     followPlane.m.userData.halo.visible=false;
     followPlane.m.userData.halo.material.opacity=0;
   }
-  followPlane=f;follow=null;window._followOff={x:0,z:0};
+  followPlane=f;window._followPlaneRef=f;follow=null;window._followOff={x:0,z:0};
   drawRouteLine(f,wx,wy,wz);
   if(f.m){
     f.m.visible=true;
@@ -13105,6 +13110,8 @@ function envUpdate(dt,h){
       ci:clamp(hiC*1.05,0,1)*(1-clamp((lo-0.8)*4,0,1)),
       st:clamp(Math.max((lo-0.6)*2.5,rn*1.3),0,1)};
     const grey=lerp(1,0.55,clamp(rn*1.2+Math.max(0,cl-0.85)*2,0,1));
+    /* plane tours fly through the real cloud deck: inside a puff the view whites out briefly, like a real window */
+    const flyingT=!!(window.HTS_TOUR&&HTS_TOUR.active&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane');let mist=0;
     for(const c of clouds.children){
       const ty=c.userData.type||'cu';
       const on=c.userData.u<amt[ty];
@@ -13129,7 +13136,10 @@ function envUpdate(dt,h){
       const nearFade=prox<700?0:prox<1600?clamp((prox-700)/900,0,1):1;
       c.material.opacity=base*nearFade;
       c.visible=nearFade>0.04;
+      if(flyingT&&base>0.2&&(ty==='cu'||ty==='st')){const r=c.scale.x*0.3;if(prox<r)mist=Math.max(mist,(1-prox/r)*base);}
     }
+    {const me=window._mistEl||(window._mistEl=document.getElementById('cloudMist'));
+      if(me){const v=Math.min(0.88,mist*1.4);if(Math.abs(v-(me._v||0))>0.02||(v===0&&me._v)){me._v=v;me.style.opacity=v.toFixed(2);me.style.filter='brightness('+(1-0.78*nightF).toFixed(2)+')';}}}
   }
   if(htsRain)htsRain.update(dt,nightF,wxBlend,rainWindX,rainWindZ,liveWx);
   else bootRainSystem();
@@ -14010,7 +14020,7 @@ function updateFlights(dt){
 let last=performance.now(),hudT=0;
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)last=performance.now();});
 function frame(now){
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frame);window._htsLastFrame=performance.now(); /* counts globe/city frames too: the watchdog reloaded every city visit */
   /* Peek / background tab: skip sim work — keeps homepage + laptop cool */
   if(document.hidden)return;
   if(window.HTS_WORLD_ACTIVE){try{window.HTS_WORLD.frame(now);}catch(e){console.warn('[world]',e);}return;}

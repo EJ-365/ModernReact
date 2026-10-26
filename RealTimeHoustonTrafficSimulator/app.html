@@ -689,6 +689,10 @@
   .dtchip .tm{font-family:'Overpass Mono',monospace;font-size:18px;font-weight:700;margin-top:4px;color:#f1f5f7}
   .dtchip .tm small{display:block;font-size:8.5px;color:var(--dim);font-weight:700;margin-top:2px;margin-left:0;line-height:1.35;white-space:normal}
   #flash{position:fixed;inset:0;background:#dfe9ff;opacity:0;pointer-events:none;z-index:20;transition:opacity .08s}
+  /* window seat: rounded cabin window with a plastic surround, the view seen through it */
+  body.hts-winview::after{content:'';position:fixed;left:50%;top:50%;width:min(58vw,64vh);height:min(80vh,86vw);transform:translate(-50%,-52%);border-radius:46%/36%;pointer-events:none;z-index:4;
+    box-shadow:0 0 0 200vmax #d8d5ce,inset 0 0 0 10px #ebe8e1,inset 0 0 0 13px #bdb9b0,inset 0 0 46px 22px rgba(20,24,30,.45)}
+  #cloudMist{position:fixed;inset:0;pointer-events:none;z-index:19;opacity:0;background:radial-gradient(ellipse at center,rgba(244,247,252,.6),rgba(232,238,246,.95));transition:opacity .3s}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,.34) 100%)}
   #topCenter{display:contents}
@@ -972,7 +976,7 @@
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.94.0</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.100.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1491,6 +1495,7 @@
 </div>
 
 <div id="flash"></div>
+<div id="cloudMist"></div>
 
 <div id="tourRoot" aria-hidden="true">
   <div id="tourScrim"></div>

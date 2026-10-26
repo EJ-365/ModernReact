@@ -38,6 +38,45 @@ This log captures the work from the late **v10.8.x / v10.9** baseline through th
 
 
 
+## v10.100.0 — Houston place names, trees off downtown streets, richer city cards, 52 new songs
+- Houston trees: tiles without local residential streets (downtown, Midtown) only kept park/street-tree crowns off the major roads; they now also clear the minor-tile streets (downtown grid), so trees no longer stand in the middle of downtown streets.
+- Houston place names: neighbourhoods and subdivisions mapped in OSM as areas (not just nodes) and place=locality are now labelled (scripts/extract-houston-places.py).
+- City cards (all cities incl. Houston on the globe): feels-like and humidity, today's high/low, sunrise/sunset, UV index, elevation (Open-Meteo), distance and time difference from Houston.
+- Music: 52 new songs (pop, hip-hop/rap, electronic, new Soul / R&B genre, country, 2 Latin, afrobeats, gospel) incl. Way Down We Go (KALEO), Whole Heart (Gryffin & Bipolar Sunshine), Party In The U.S.A. (Miley Cyrus). Songs already in the list were skipped; every video ID was checked as embeddable.
+
+## v10.99.0 — other cities from above: real land cover, ocean, clean interchanges, airport paint, better planes
+- Fixed: stray white lines across motorway interchanges (e.g. LA I-105/I-405): the lane paint of the road under a flyover drew through the deck. Bridge decks now sit 0.9 m above the roads they cross.
+- Other-city ground is a per-city land-cover map instead of a tiled field patchwork: researched base cover (LA chaparral, Phoenix/Las Vegas desert, Denver short-grass prairie and Front Range forest, Atlanta/Seattle forest, Texas prairie/Hill Country, Chicago farmland, Miami Everglades, SF golden hills), urban areas painted from the real OSM street network plus metro extents, US section-line arterial grid where cities have one, mountain ranges (San Gabriel, Santa Monica, South Mountain, Spring Mountains…), Lake Michigan for Chicago.
+- Ocean now continues past the city data box using Natural Earth land (LA's Santa Monica Bay was a small triangle of sea surrounded by fields).
+- Airports: wider runway centre/edge lines, aiming-point blocks, taxiway edge lines.
+- Live aircraft in other cities: swept wings, engines, tapered tail and swept fin instead of a cylinder with a box wing.
+
+## v10.98.0 — no city cars, better city roads, follow planes anywhere, window seat
+- Other cities: the moving cars are removed (user request).
+- Other cities' roads: kerbs and pavements along city streets, three-lane carriageway markings on motorways, double centre line plus lane lines on two-way trunks, and street lights every ~40 m on main roads whose heads glow warm at night.
+- Other cities: click a live aircraft (or a "Follow a plane" button on the city card) to follow it through the city's sky, like the Houston plane cards; Esc or "Stop" ends it, panning cancels it.
+- Window view: a rounded cabin-window frame around the view; low over open country the far ground shows a patchwork of crop/pasture/fallow fields with hedgerow edges so the motion reads.
+- Fixed: other-city roads, runways and markings looked near-black from above: their strips faced downward, so they were lit from below.
+- Fixed: clicking a city label before the globe finished loading threw an error.
+
+## v10.97.0 — no reload loop, helicopters, flying through clouds
+- Fixed: visiting other cities kept reloading the page — the v10.95 long-run watchdog only counted Houston frames; it now counts globe/city frames too.
+- Helicopters: the Bell 206 (tour and live traffic) has red/green side lights, white tail light, strobes and a flashing red beacon.
+- Live helicopters reported low away from any airfield/heliport now hover at ~350 ft instead of sitting in the middle of a street.
+- Plane tours fly through the real (Open-Meteo low/mid/high) cloud deck: inside a cumulus/stratus puff the view whites out briefly, dimmed at night.
+
+## v10.96.0 — living cities: road traffic + drifting clouds
+- Other cities: instanced cars (no people) drive the real OSM major/arterial roads in their lanes, right- or left-hand by country; traffic follows the camera so the roads you look at are busy.
+- Other cities: clouds drift with the live Open-Meteo wind speed/direction instead of standing still.
+
+## v10.95.0 — descent flicker, real land cover per city, long-run safety, EDM
+- Descent flicker in other cities: the far ground no longer flips to just under the city ground while you are within 70 km of an embedded city (it z-fought the 90 km city ground on approach).
+- Low over cities at night the far ground no longer shows the blurred city-lights glow (it painted Singapore's ground tan); the glow fades in above ~1.5-9 km.
+- Other cities: ground palette from each city's real land cover — desert sand (Cairo, Dubai, Las Vegas, Phoenix, Lima), dry scrub/olive (Mexico City, LA, Madrid, Delhi, Denver, Sydney…), lush tropical (Singapore, Bangkok, Manila, Mumbai, Lagos, Miami, Rio…), temperate fields elsewhere.
+- Houston: a live plane you click stays visible in the sky even when it isn't in the panel's top 24.
+- Long sessions: render-loop watchdog reloads the page if no frame is drawn for 20 s while the tab is visible (instead of a frozen white screen).
+- Music: 15 more EDM songs (Avicii, Kygo, Martin Garrix, Swedish House Mafia, Zedd, Calvin Harris, Alan Walker, DJ Snake, Marshmello, Chainsmokers, Clean Bandit, Tiësto).
+
 ## v10.94.0 — Houston landscape by area
 - Houston ground is tinted per real land cover (soft blends, map data layers stay on top): grey-beige concrete in the downtown/Midtown core and the Ship Channel / Pasadena industrial belt, dark pine forest in the north (Kingwood, The Woodlands, Spring, Lake Houston), tan-green farm fields and prairie west (Katy, Brookshire, Fulshear), olive coastal marsh toward Baytown and Galveston Bay (Seabrook, Kemah, La Porte), drier pasture to the southwest (Rosharon); everything else stays suburban lawn green.
 - The 480 km Houston ground quad is subdivided (64×64) so its depth stays accurate near the camera.

@@ -1659,7 +1659,7 @@ function icRealLeft(x, z, t) {
     try { music.clearDriverPin(); } catch (e) { /* ignore */ }
     music.stop();
     hud.classList.remove('on', 'hid'); hudPeek.classList.remove('on');
-    pad.classList.remove('on'); dash.classList.remove('on', 'carOn'); window._followOff = { x: 0, z: 0 };
+    pad.classList.remove('on'); dash.classList.remove('on', 'carOn'); window._followOff = { x: 0, z: 0 }; _winOn = false; document.body.classList.remove('hts-winview');
     if (camera.fov !== 55) { camera.fov = 55; camera.updateProjectionMatrix(); }
     camera.up.set(0, 1, 0); camGoal.radius = Math.max(camGoal.radius, 600); camGoal.phi = 0.95;
   }
@@ -2362,11 +2362,13 @@ function icRealLeft(x, z, t) {
     }
     if (S.view === 'chase' || S.view === 'orbit') { if (ob) ob.visible = true; }
     camera.lookAt(look);
+    { const wv = S.view === 'window' && !car; if (wv !== _winOn) { _winOn = wv; document.body.classList.toggle('hts-winview', wv); } } /* cabin window frame around the view */
     camera.userData.tourNearT = performance.now();
     /* high above the ground a tiny near plane wastes depth precision and the ground layers flicker: push it out with altitude */
     if (!car) { const agl = Math.max(0, camera.position.y); near = Math.max(near, Math.min(S.view === 'driver' || S.view === 'cockpit' ? 3 : Math.max(0.3, camera.position.distanceTo(S.p) * 0.35), agl * 0.012)); near = Math.round(near * 4) / 4 || near; }
     if (Math.abs(camera.near - near) > 0.01 || camera.fov !== fov) { camera.near = near; camera.fov = fov; camera.updateProjectionMatrix(); }
   }
+  let _winOn = false;
   function updateLights() {
     const nf = typeof window !== 'undefined' && window._nightF != null ? window._nightF : 0;
     if (dash && dash.classList.contains('night') !== nf > 0.35) dash.classList.toggle('night', nf > 0.35);

@@ -274,7 +274,9 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       await yieldIf(st);
     }
     if (!index.local.has(key) && (trees.length || bushes.length)) {
-      const maj = (await majorRoads()).get(key) || [], occ = new Set(), cell = 4, ck = (gx, gz) => gx * 1000003 + gz;
+      /* downtown / midtown streets live in the minor tiles: keep park and street-tree crowns off them too */
+      const mr0 = index.minor && index.minor.has(key) ? await fetch(base + 'tiles/minor/' + key + '.json').then((r) => r.json()).catch(() => null) : null;
+      const maj = ((await majorRoads()).get(key) || []).concat((mr0 && mr0.roads) || []), occ = new Set(), cell = 4, ck = (gx, gz) => gx * 1000003 + gz;
       for (const r of maj) { const p = r.p, R = Math.ceil((r.w / 2 + 3) / cell);
         for (let i = 2; i < p.length; i += 2) { const ax = p[i - 2], az = p[i - 1], n = Math.max(1, Math.ceil(Math.hypot(p[i] - ax, p[i + 1] - az) / cell));
           for (let j = 0; j <= n; j++) { const gx = Math.floor((ax + (p[i] - ax) * j / n) / cell), gz = Math.floor((az + (p[i + 1] - az) * j / n) / cell);
