@@ -1,5 +1,9 @@
 import { useEffect, useReducer, useState } from "react";
 import NotesForm from "./NoteForm";
+import {
+  loadNotesFromStorage,
+  saveNotesToStorage,
+} from "./notesStorage.js";
 
 // reducer function:
 function reducer(state, action) {
@@ -24,6 +28,8 @@ function reducer(state, action) {
       return state.map((note) =>
         note.id === action.id ? { ...note, done: !note.done } : note,
       );
+    default:
+      return state;
   }
 }
 
@@ -39,7 +45,7 @@ function filterReducer(state, action) {
     case "COMPLETED":
       return { ...state, filter: "completed" };
     default:
-      state;
+      return state;
   }
 }
 
@@ -55,21 +61,7 @@ const Notes = () => {
     filterReducer,
     initialFilter,
   );
-  const [notes, dispatch] = useReducer(reducer, [], () => {
-    const saved = localStorage.getItem("MyNote");
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: 1,
-            title: "Learn React JS",
-            priority: "high",
-            category: "personal",
-            desc: "this is a sample note",
-            done: false,
-          },
-        ];
-  });
+  const [notes, dispatch] = useReducer(reducer, [], loadNotesFromStorage);
 
   // filtered logic implementation
   const filterNotes = notes.filter((note) => {
@@ -162,9 +154,9 @@ const Notes = () => {
     if (prioritySelect === "low") return colors[2];
   }
 
-  // useEffect for local storage
+  // useEffect for local storage — never throw if storage is blocked/full
   useEffect(() => {
-    localStorage.setItem("MyNote", JSON.stringify(notes));
+    saveNotesToStorage(notes);
   }, [notes]);
 
   // const handleAddNote = () => dispatch({type: "ADD", title: titleInput})
