@@ -1212,7 +1212,8 @@ function stratusTexture(){
   fadeCloudEdges(x,256,128);
   const t=new THREE.CanvasTexture(c);return t;
 }
-const clouds=new THREE.Group();skyRoot.add(clouds);
+/* clouds live in world space (not skyRoot, which follows the camera) so a plane flies past them instead of towing them */
+const clouds=new THREE.Group();scene.add(clouds);
 (function(){
   const texes=[cloudTexture(),cloudTexture(),cloudTexture(),cloudTexture()];
   const ciTex=[cirrusTexture(),cirrusTexture()],stTex=[stratusTexture(),stratusTexture()];
@@ -12985,8 +12986,8 @@ function envUpdate(dt,h){
   skyUni.glowCol.value.copy(_sc);
   skyUni.glowI.value=clamp(keyNum(SUN_INT,h),0,1.2)*lerp(0.5,0.03,cl)*lerp(1,0.5,rainF);
   const mA=A+Math.PI;
-  moonDisc.position.set(Math.cos(mA)*15000,Math.max(Math.sin(mA),-0.2)*9000+400,-4200);
-  moonDisc.lookAt(camera.position);
+  /* place the moon relative to the eye, not the sky root (which sits at the orbit target): no parallax swing when orbiting */
+  moonDisc.position.set(Math.cos(mA)*15000+camera.position.x-skyRoot.position.x,Math.max(Math.sin(mA),-0.2)*9000+400+camera.position.y,-4200+camera.position.z-skyRoot.position.z);
   moonDisc.material.opacity=clamp(Math.sin(mA)*2.5,0,0.85)*(1-wxBlend.cloud*0.9);
   hemi.intensity=keyNum(HEMI_INT,h)*lerp(1,0.32,cl)*lerp(1,0.35,nightF)*lerp(1,0.85,rainF);
   /* Google-Maps night: soft moonlight + warm CBD bounce so towers keep volume */
@@ -13125,8 +13126,11 @@ function envUpdate(dt,h){
         lerp(lerp(0.16,grey,lit), lerp(0.78,_sc.g*0.82,0.8), gold),
         lerp(lerp(0.22,grey*1.04,lit), lerp(0.82,_sc.b*0.9+0.08*hi,0.7), gold));
       c.position.x+=c.userData.vx*drift;
-      if(c.position.x>wrap)c.position.x-=wrap*2;
-      else if(c.position.x<-wrap)c.position.x+=wrap*2;
+      /* endless deck: wrap around the camera on both axes */
+      if(c.position.x-cx>wrap)c.position.x-=wrap*2;
+      else if(c.position.x-cx<-wrap)c.position.x+=wrap*2;
+      if(c.position.z-cz>wrap)c.position.z-=wrap*2;
+      else if(c.position.z-cz<-wrap)c.position.z+=wrap*2;
       /* Soft vertical bob so the deck never looks frozen during time-lapse */
       if(!liveMode){
         c.position.y+=(Math.sin(simClock*0.0011+c.position.x*0.0002)*c.userData.vx*0.02)*dt*clamp(timeScale/90,1,20);
@@ -14409,9 +14413,9 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       window.HTS_TOUR=createTour({scene,camera,cam,camGoal,geoToWorld,$,
         getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,
         airports:()=>AIRPORTS.map((a)=>({code:a.code,x:a.x,z:a.z})),makePlane:makeProp,makeJet:(c,a,t)=>tourJet(c,a,t),makeHeli:makeTourHeli,makeMil:makeMilitary,
-        stopFollow:()=>stopFollow(),isFollowing:()=>!!(followPlane||follow),getUserGeo:()=>userGeo});
+        stopFollow:()=>stopFollow(),isFollowing:()=>!!(followPlane||follow),getUserGeo:()=>userGeo,nearRoad:(x,z,r)=>nearRoadFast(x,z,r)});
       window.HTS_ROUTE=createRoutePlanner({scene,cam,camGoal,geoToWorld,$,
-        getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,getUserGeo:()=>userGeo,
+        getTraffic:()=>window.HTS_TRAFFIC2,getRoads:()=>window.HTS_ROADS2,getUserGeo:()=>userGeo,nearRoad:(x,z,r)=>nearRoadFast(x,z,r),
         requestGeo,getCamViews:()=>CAM_VIEWS,
         startTourDrive:(dest,o)=>{if(window.HTS_TOUR)HTS_TOUR.start('car','tour',dest,o);}});
       const signs=createHoustonSigns({parent:scene});

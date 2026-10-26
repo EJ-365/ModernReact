@@ -275,7 +275,7 @@ function makeTourCar(color, style, detail = true) {
   return g;
 }
 
-export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic, getRoads, airports, makePlane, makeJet, makeHeli, makeMil, stopFollow, isFollowing, $, getUserGeo = () => null }) {
+export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic, getRoads, airports, makePlane, makeJet, makeHeli, makeMil, stopFollow, isFollowing, $, getUserGeo = () => null, nearRoad = () => false }) {
   const prefs = loadPrefs();
   const audio = createTourAudio();
   const music = createTourMusic();
@@ -1026,6 +1026,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const views = VIEWS[S.kind].map(([id, n], i) => '<button data-view="' + id + '" class="' + (S.view === id ? 'on' : '') + '" title="key ' + (i + 1) + '">' + n + '</button>').join('');
     const speeds = S.kind === 'car' && S.mode === 'tour'
       ? '<span style="color:#8a96a3;align-self:center">Cruise</span>' + [0, 30, 40, 50, 60, 70, 80, 90, 100].map((x) => '<button data-cruise="' + x + '" class="' + (S.cruise === x ? 'on' : '') + '">' + (x ? x : 'Limit +5') + '</button>').join('')
+        + '<span style="color:#8a96a3;align-self:center;margin-left:6px">Time</span>' + [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '" title="Speed the whole drive up ×' + x + ' (ETA stays real)">×' + x + '</button>').join('')
       : [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '">×' + x + '</button>').join('')
         + (S.kind === 'plane' && S.wx && /^(jet|fighter)$/.test(S.planeStyle) ? '<button data-ss="1" class="' + (S.supersonic ? 'on' : '') + '" title="Optional: cruise at Mach 2 (about 1,150 kt) once above 30,000 ft. The ETA follows your real speed.">Supersonic</button>' : '')
         + (S.kind === 'plane' && S.planeStyle !== 'heli' ? '<button data-park="1" class="' + (S.taxiPark !== false ? 'on' : '') + '" title="After landing, leave the runway and taxi to an apron parking spot">Taxi to park</button>' : '')
@@ -1049,7 +1050,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.innerHTML = '<div class="tt"><span><span class="drag" title="Drag panel">⠿</span><span id="tourTitle"></span></span>'
       + '<span class="acts"><button type="button" class="hide" data-hide="1" title="Hide panel (H)">Hide</button>'
       + '<button type="button" class="x" data-exit="1">Exit (Esc)</button></span></div>'
-      + (S.mode === 'tour' ? '<div class="tbar" id="tourBar" title="Tour progress"><i id="tourBarFill"></i><span class="tplane" id="tourBarIcon">' + (S.kind === 'plane' ? '✈' : '●') + '</span></div>' : '')
+      + (S.mode === 'tour' ? '<div class="tbar" id="tourBar" title="Tour progress"><i id="tourBarFill"></i><span class="tplane" id="tourBarIcon">' + (S.kind === 'plane' ? '✈' : '<svg viewBox="0 0 24 12" width="18" height="9" fill="currentColor" style="display:block"><path d="M3 7.2 5.4 3.2Q6 2 7.6 2h6.6q1.3 0 2.2 1l2.8 3 2.4.5q1.4.4 1.4 1.8V9.5q0 .7-.7.7H21a2.4 2.4 0 0 0-4.7 0H8.4a2.4 2.4 0 0 0-4.7 0H1.6q-.8 0-.8-.8V8.6q0-1.1 2.2-1.4z"/><circle cx="6" cy="10" r="1.8"/><circle cx="18.6" cy="10" r="1.8"/></svg>') + '</span></div>' : '')
       + '<div class="tm" id="tourMeters">'
       + '<span><b id="mSpd">0</b> <span id="mSpdU">mph</span></span>'
       + '<span id="mAltWrap" style="display:none"><b id="mAlt">0</b> ft</span>'
@@ -1431,7 +1432,7 @@ function icRealLeft(x, z, t) {
     stopFollow && stopFollow();
     clearObj();
     window._followOff = { x: 0, z: 0 };
-    S.kind = kind; S.mode = mode; S.dest = dest; S.destTz = (dest && dest.tz) || null; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0; S.taxi = null;
+    S.kind = kind; S.mode = mode; S.dest = dest; S.destTz = (dest && dest.tz) || null; S.view = 'chase'; S.v = 0; S.pitch = 0; S.roll = 0; S.s = 0; S._si = 0; S.progBase = 0; S.route = null; S._eta = null; S._etaF = 0; S._cm = null; S.phase = ''; S.odo = 0; S.vy = 0; S.taxi = null;
     S.th0 = camGoal.theta; S.ph0 = camGoal.phi; camGoal.radius = kind === 'car' ? 14 : 45; camGoal.phi = 1.25; S.ph0 = 1.25;
     const cx = origin.x, cz = origin.z;
     S.origin = { x: cx, z: cz }; S.leg = 'out'; S.waitT = 0; S.orbT = 0;
@@ -1811,6 +1812,7 @@ function icRealLeft(x, z, t) {
     const end2 = P2[P2.length - 1];
     if (end2.s > S.remain * 2 + 2500) { S._ffWhy = 'too-long ' + Math.round(end2.s); return; }
     S._ffWhy = 'ok';
+    S.progBase = tourProgress(); /* re-route near the end keeps the bar where it was */
     S.route = P2; S.s = 0; S._si = 0; S.tripLen = end2.s; S._eta = null; S._etaF = 0;
     note('Taking the exit for ' + (S.dest.n || 'your destination') + ' · parking on ' + (end2.name || 'a side street') + '.');
   }
@@ -1844,7 +1846,7 @@ function icRealLeft(x, z, t) {
       }
       if (S.phase === 'arrived' && !S.icDrive && (S.waitT += dt) > 6) {
         const P2 = T && findRoute(T, S.p.x, S.p.z, S.origin.x, S.origin.z, { local: true });
-        if (P2) { S.route = P2; S.s = 0; S._si = 0; S._eta = null; S._etaF = 0; S.leg = 'back'; S.phase = 'drive'; S.tripLen = P2[P2.length - 1].s; note('Driving back to where you started.'); }
+        if (P2) { S.route = P2; S.s = 0; S._si = 0; S._eta = null; S._etaF = 0; S.leg = 'back'; S.progBase = 0; S.phase = 'drive'; S.tripLen = P2[P2.length - 1].s; note('Driving back to where you started.'); }
         else { S.phase = 'home'; note('No road route back from here — tour ended.'); }
       }
     } else {
@@ -2069,18 +2071,22 @@ function icRealLeft(x, z, t) {
         /* helicopter: vertical lift-off, direct ~115 kt cruise at ~1000 ft, slow approach, vertical touchdown next to the destination */
         const wrapH = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
         const ease = (cur, tgt, r) => cur + Math.max(-r * dt, Math.min(r * dt, tgt - cur));
-        const padD = Math.max(0, dist - 45);
+        /* touch down on open ground clear of every road near the destination, never on a street */
+        if (!S.heliPad || S.heliPad.d !== S.dest) S.heliPad = heliPad(S.dest);
+        const hpx = S.heliPad.x - S.p.x, hpz = S.heliPad.z - S.p.z, padD = Math.hypot(hpx, hpz), hBrg = Math.atan2(hpx, hpz);
         let vy = 0, wantVH = 0, turn = 1;
         if (S.phase === 'heliLift') {
           vy = 5; wantVH = S.p.y > 25 ? 12 : 0; turn = S.p.y > 25 ? 1 : 0;
           if (S.p.y > 70) S.phase = 'heliCruise';
         } else if (S.phase === 'heliCruise') {
           vy = Math.max(-6, Math.min(6, (300 - S.p.y) * 0.25)); wantVH = 59;
-          if (padD < 1400) S.phase = 'heliLand';
+          if (padD < 1400) { S.phase = 'heliLand'; S.heliPad = heliPad(S.dest); }
         } else if (S.phase === 'heliLand') {
           /* glide down toward ~40 m (never climb on approach) and keep at least walking pace so it actually reaches the pad */
           const tgtY = Math.min(S.p.y, Math.max(40, padD * 0.18));
           vy = Math.max(-6, Math.min(0, (tgtY - S.p.y) * 0.3)); wantVH = padD < 8 ? 0 : Math.min(59, 2.5 + padD * 0.08);
+          /* street tiles around the destination stream in during the approach: re-check the spot whenever more arrive */
+          if (S.heliPad.n !== tileWays.size) S.heliPad = heliPad(S.dest);
           if (padD < 8 && S.v < 4) S.phase = 'heliDown';
         } else if (S.phase === 'heliDown') {
           vy = -Math.max(0.6, Math.min(4, (S.p.y - 1.4) * 0.35)); wantVH = 0; turn = 0;
@@ -2090,7 +2096,7 @@ function icRealLeft(x, z, t) {
           }
         } else { wantVH = 0; turn = 0; S.p.y = 1.4; }
         S.v = ease(S.v, wantVH, S.phase === 'heliLand' ? 2.2 : 3);
-        const dH = wrapH(brg - S.hd), rate = turn ? Math.max(-0.35, Math.min(0.35, dH * 0.9)) : 0;
+        const dH = wrapH(hBrg - S.hd), rate = turn ? Math.max(-0.35, Math.min(0.35, dH * 0.9)) : 0;
         S.hd += rate * dt;
         S.vy = vy; S.p.y = Math.max(1.4, S.p.y + vy * dt);
         S.pitch += ((S.v > 1 ? -Math.min(0.12, (wantVH - S.v) * 0.01 + S.v * 0.0012) : 0) - S.pitch) * Math.min(1, dt * 1.5);
@@ -2459,9 +2465,42 @@ function icRealLeft(x, z, t) {
     }
     return Math.max(0, t);
   }
+  /* streamed street tiles (local + minor roads) so the helicopter can see every street, not just the freeways */
+  const tileWays = new Map(); let tilesHooked = false;
+  function hookTiles() {
+    const R = getRoads && getRoads(); if (tilesHooked || !R || !R.onTile) return; tilesHooked = true;
+    R.onTile((op, id, ways) => { if (op === 'add') tileWays.set(id, ways); else tileWays.delete(id); });
+  }
+  function heliPad(D) {
+    hookTiles();
+    const R = getRoads && getRoads(), deck = (x, z) => !!(R && R.heightAt && R.heightAt(x, z, 0) != null);
+    const segs = [];
+    for (const ways of tileWays.values()) for (const w of ways) {
+      const q = w.f && w.f.pts, hw = ((w.r && w.r.w) || 8) / 2 + 12; if (!q) continue;
+      for (let i = 2; i < q.length; i += 2) {
+        const ax = q[i - 2], az = q[i - 1], bx = q[i], bz = q[i + 1];
+        if (Math.min(ax, bx) > D.x + 1300 || Math.max(ax, bx) < D.x - 1300 || Math.min(az, bz) > D.z + 1300 || Math.max(az, bz) < D.z - 1300) continue;
+        segs.push(ax, az, bx, bz, hw);
+      }
+    }
+    const street = (x, z) => {
+      for (let i = 0; i < segs.length; i += 5) {
+        const ax = segs[i], az = segs[i + 1], ex = segs[i + 2] - ax, ez = segs[i + 3] - az, L2 = ex * ex + ez * ez || 1;
+        const t = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / L2)), dx = x - ax - ex * t, dz = z - az - ez * t;
+        if (dx * dx + dz * dz < segs[i + 4] * segs[i + 4]) return true;
+      }
+      return false;
+    };
+    const clear = (x, z) => !nearRoad(x, z, 16) && !deck(x, z) && !deck(x + 20, z) && !deck(x - 20, z) && !deck(x, z + 20) && !deck(x, z - 20) && !street(x, z);
+    for (let r = 45; r <= 1200; r += 30) {
+      const n = Math.max(8, Math.round(r / 12));
+      for (let i = 0; i < n; i++) { const a = (i / n) * 2 * Math.PI, x = D.x + Math.sin(a) * r, z = D.z + Math.cos(a) * r; if (clear(x, z)) return { d: D, x, z, n: tileWays.size }; }
+    }
+    return { d: D, x: D.x + 45, z: D.z, n: tileWays.size };
+  }
   function tourProgress() {
     if (S.mode !== 'tour') return 0;
-    if (S.kind === 'car' && S.route && S.tripLen) return Math.min(1, S.s / S.tripLen);
+    if (S.kind === 'car' && S.route && S.tripLen) { const b = S.progBase || 0; return Math.min(1, b + (1 - b) * Math.min(1, S.s / S.tripLen)); }
     if (S.kind === 'plane') {
       if (S.phase === 'parked' || S.phase === 'rollout' || S.phase === 'taxi') return 1;
       if (S.phase === 'toFaf' || S.phase === 'final') return 0.82 + 0.16 * (1 - Math.min(1, (S.remain || 0) / 12000));

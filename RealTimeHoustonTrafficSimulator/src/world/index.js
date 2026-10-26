@@ -328,12 +328,12 @@ async function loadWeather() {
 async function loadTraffic(c, nm) {
   if (trafficBusy || (trafficFor === c.id && Date.now() - trafficAt < 15000)) return;
   trafficBusy = true;
-  const local = /localhost|127\.0\.0\.1/.test(location.hostname);
-  const path = `/v2/point/${c.apt.lat.toFixed(4)}/${c.apt.lng.toFixed(4)}/${nm}`;
-  const hosts = [['https://api.airplanes.live' + path, '/api/airplanes' + path], ['https://api.adsb.lol' + path, '/api/adsblol' + path]];
+  /* same proxy-first order and query form as Houston's live flights (direct calls are often CORS-blocked) */
+  const la = c.apt.lat.toFixed(4), lo = c.apt.lng.toFixed(4), path = `/v2/point/${la}/${lo}/${nm}`, pathL = `/v2/lat/${la}/lon/${lo}/dist/${nm}`;
+  const hosts = [['/api/adsblol' + pathL, 'https://api.adsb.lol' + pathL], ['/api/airplanes' + pathL, 'https://api.airplanes.live' + path]];
   let rows = [];
   for (const [d, p] of hosts) {
-    const j = await fetchJson(local ? [p, d] : [d, p]);
+    const j = await fetchJson([d, p]);
     if (j && Array.isArray(j.ac) && j.ac.length) {
       rows = j.ac.filter((a) => Number.isFinite(a.lat) && Number.isFinite(a.lon)).map((a) => ({
         lat: a.lat, lng: a.lon, onGround: a.alt_baro === 'ground', altFt: typeof a.alt_baro === 'number' ? a.alt_baro : 0,

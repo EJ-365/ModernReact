@@ -38,6 +38,13 @@ This log captures the work from the late **v10.8.x / v10.9** baseline through th
 
 
 
+## v10.101.0 — clouds stay put, steady moon, helicopter lands clear of roads, car progress icon, drive time warp
+- Clouds were children of skyRoot, which follows the camera on tours, so nearby puffs travelled with the plane. They now live in world space and wrap around the camera on both axes.
+- Moon was placed relative to the orbit target, so it swung around as the camera orbited far from the target; it is now placed relative to the eye.
+- Tour helicopter: picks a touchdown spot near the destination clear of every road (legacy road samples + OSM major-road deck grid) instead of 45 m from the place point, which was often a street.
+- Drive tours: progress bar shows a car icon; a re-route near the end (taking the exit) no longer resets the bar to 0. ×1/×2/×4/×10 time buttons added for drives (the notes already promised them).
+- Other cities' live aircraft: proxy-first with Houston's query form (/api/adsblol/v2/lat/…/lon/…/dist/…), direct calls only as fallback.
+
 ## v10.100.0 — Houston place names, trees off downtown streets, richer city cards, 52 new songs
 - Houston trees: tiles without local residential streets (downtown, Midtown) only kept park/street-tree crowns off the major roads; they now also clear the minor-tile streets (downtown grid), so trees no longer stand in the middle of downtown streets.
 - Houston place names: neighbourhoods and subdivisions mapped in OSM as areas (not just nodes) and place=locality are now labelled (scripts/extract-houston-places.py).
