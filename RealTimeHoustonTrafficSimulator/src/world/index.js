@@ -573,6 +573,7 @@ function globeRose(cam) {
   if (_gn.lengthSq() < 1e-8) return;
   _gr.set(1, 0, 0).applyQuaternion(cam.quaternion); _gu.set(0, 1, 0).applyQuaternion(cam.quaternion);
   const deg = Math.atan2(_gn.dot(_gr), _gn.dot(_gu)) * 180 / Math.PI;
+  if (Math.abs(deg - (roseEl._d ?? 1e9)) < 0.3) return; roseEl._d = deg;
   roseEl.style.transform = 'rotate(' + deg.toFixed(1) + 'deg)'; roseEl.style.setProperty('--rr', deg.toFixed(1) + 'deg');
 }
 const _gp = new THREE.Vector3(), _gn = new THREE.Vector3(), _gr = new THREE.Vector3(), _gu = new THREE.Vector3();

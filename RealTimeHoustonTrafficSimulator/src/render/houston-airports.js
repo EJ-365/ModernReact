@@ -42,7 +42,7 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
   const X = (v) => (v - offset) * k + offset;
   const fields = [];
   const mats = {
-    grass: mat(0x7d8c5a, 1), apron: mat(0xa9abad, 2), taxi: mat(0x44474b, 3), runway: mat(0x34373b, 4),
+    grass: new THREE.MeshLambertMaterial({ color: 0x8aa25e }), /* original colour; no depth pull: the airport grass sat 'in front of' landside roads and hid them */ apron: mat(0xa9abad, 2), taxi: mat(0x44474b, 3), runway: mat(0x34373b, 4),
     yellow: mat(0xe2b52a, 5), white: mat(0xf2f2ee, 5), wall: new THREE.MeshLambertMaterial({ color: 0xc9ccd0 }),
     hangar: new THREE.MeshLambertMaterial({ color: 0x9aa0a6 }), glass: new THREE.MeshLambertMaterial({ color: 0x40556a }),
     roof: new THREE.MeshLambertMaterial({ color: 0xc4c7ca }), concrete: new THREE.MeshLambertMaterial({ color: 0xd9d5cc }),
@@ -352,10 +352,12 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
     const L = {};
     for (const n of ['grass', 'apron', 'taxi', 'runway', 'yellow', 'white']) L[n] = [[], []];
     for (const a of d.aerodromes) {
-      poly([a.r], 0.16 * k, ...L.grass);
+      /* grass blanket only for real airports: small airparks/heliports (no IATA code) sit inside neighbourhoods and painted them green */
+      if (a.iata) poly([a.r], 0.16 * k, ...L.grass);
       let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
       for (let i = 0; i < a.r.length; i += 2) { x0 = Math.min(x0, a.r[i]); x1 = Math.max(x1, a.r[i]); z0 = Math.min(z0, a.r[i + 1]); z1 = Math.max(z1, a.r[i + 1]); }
-      fields.push({ r: a.r, x0, x1, z0, z1 });
+      /* only real airports keep their whole fence line clear of houses/trees; airpark neighbourhoods keep their homes */
+      if (a.iata) fields.push({ r: a.r, x0, x1, z0, z1 });
     }
     for (const a of d.aprons) poly([a.r], 0.2 * k, ...L.apron);
     for (const a of d.aprons) {

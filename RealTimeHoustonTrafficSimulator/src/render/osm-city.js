@@ -124,7 +124,6 @@ function norm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''
  * @param {{n:string,d:string,x?:number,z?:number}[]} [o.landmarks]  info cards for real towers
  * @param {number} [o.aniso]
  */
-function dropArray() { this.array = null; }
 export async function loadOsmCity(o) {
   const url = `/data/cities/${o.cityId}/buildings.json?r=10.74`; /* bump when the pack changes (fetch uses force-cache) */
   const r = await fetch(url, { cache: 'force-cache' });
@@ -269,9 +268,7 @@ export async function loadOsmCity(o) {
     g.setAttribute('color', new THREE.Float32BufferAttribute(B.c, 3));
     g.setIndex(B.v > 65535 ? new THREE.Uint32BufferAttribute(B.i, 1) : new THREE.Uint16BufferAttribute(B.i, 1));
     g.computeBoundingSphere();
-    /* GPU keeps the buffers; drop the CPU copies once uploaded (picking uses the AABB list, not triangles) */
-    for (const k in g.attributes) g.attributes[k].onUpload(dropArray);
-    g.index.onUpload(dropArray);
+    /* keep CPU copies: if the GPU context is lost/restored (common on busy Windows GPUs) buffers must re-upload, or the buildings vanish */
     const m = new THREE.Mesh(g, mats[B.cls]);
     m.matrixAutoUpdate = false;
     m.castShadow = B.cls === 'glass' || B.cls === 'stone';

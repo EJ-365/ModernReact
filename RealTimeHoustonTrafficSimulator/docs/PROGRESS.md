@@ -38,6 +38,26 @@ This log captures the work from the late **v10.8.x / v10.9** baseline through th
 
 
 
+## v10.94.0 — Houston landscape by area
+- Houston ground is tinted per real land cover (soft blends, map data layers stay on top): grey-beige concrete in the downtown/Midtown core and the Ship Channel / Pasadena industrial belt, dark pine forest in the north (Kingwood, The Woodlands, Spring, Lake Houston), tan-green farm fields and prairie west (Katy, Brookshire, Fulshear), olive coastal marsh toward Baytown and Galveston Bay (Seabrook, Kemah, La Porte), drier pasture to the southwest (Rosharon); everything else stays suburban lawn green.
+- The 480 km Houston ground quad is subdivided (64×64) so its depth stays accurate near the camera.
+
+## v10.93.0 — Houston buildings stay detailed
+- Houston OSM buildings keep their CPU vertex copies again (v10.84.0 dropped them after upload to save memory). Without them a GPU context loss/restore — common on busy Windows GPUs — could not re-upload the geometry, so downtown and campus buildings silently disappeared and Houston looked less detailed.
+
+## v10.92.4 — Houston as in v10.88.0, lighter compass
+- Houston ground, land use, trees and roads are byte-identical to v10.88.0 (no green changes ever touched houston-land.js / houston-roads.js). Only houston-airports.js differs: original grass colour, roads inside airport fences draw on top, no grass blanket over residential airparks, yellow taxi guide.
+- Compass touches the DOM only when the heading changes by 0.3°+ (was a style recalc every frame).
+
+## v10.92.3 — Houston airport grass back to its original colour
+- Real Houston airports use the original infield grass colour (0x8aa25e) again; only the depth fix (roads draw on top) and the airpark change remain.
+
+## v10.92.2 — no green blankets over Houston neighbourhoods
+- Houston: the airport grass fill and the "keep clear of houses/trees" fence now apply only to real airports with an IATA code (IAH, HOU, EFD, DWH, SGR, IWS, HPY…). Residential airparks and heliports (Lane Airpark, Dry Creek, Freyer Field, Alvin Airpark…) no longer paint their neighbourhoods green or leave them empty.
+
+## v10.92.1 — Houston airport roads visible
+- Houston airports: the aerodrome grass fill used a depth pull (polygonOffset −1) that put it "in front of" the landside roads inside the airport boundary, so terminal roads disappeared under green. The grass now has no depth pull; roads (which pull forward) draw on top.
+
 ## v10.92.0 — airliner nose, 747 upper-deck windows, fly-on pick, softer farmland
 - Airliner nose: removed the separate grey radome ball, windscreen frame posts and centre box that stuck out of the nose shell (read as bumps); the nose is one smooth shape with the dark windscreen band.
 - 747 upper deck: windows sit on the hump surface (skipped where it tapers) and tilt with it, so the row lines up instead of floating above the fuselage.

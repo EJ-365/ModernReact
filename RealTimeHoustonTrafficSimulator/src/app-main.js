@@ -76,7 +76,8 @@ const HTS_HAS_PACK=!!(HTS_PACK&&HTS_PACK.useBuiltinRoads===false);
 const CITY_NAME=(window.HTS_CITY&&window.HTS_CITY.name)||'Houston';
 const _roseDir=new THREE.Vector3();
 function updateRose(roseEl){
-  if(roseEl){camera.getWorldDirection(_roseDir);const hz=Math.hypot(_roseDir.x,_roseDir.z);const deg=hz>0.02?Math.atan2(-_roseDir.x,-_roseDir.z)*180/Math.PI:cam.theta*180/Math.PI;roseEl.style.transform='rotate('+deg.toFixed(1)+'deg)';roseEl.style.setProperty('--rr',deg.toFixed(1)+'deg');}
+  if(roseEl){camera.getWorldDirection(_roseDir);const hz=Math.hypot(_roseDir.x,_roseDir.z);const deg=hz>0.02?Math.atan2(-_roseDir.x,-_roseDir.z)*180/Math.PI:cam.theta*180/Math.PI;if(Math.abs(deg-(roseEl._d??1e9))<0.3)return;roseEl._d=deg; /* touch the DOM only when it turns: no style recalc every frame */
+    roseEl.style.transform='rotate('+deg.toFixed(1)+'deg)';roseEl.style.setProperty('--rr',deg.toFixed(1)+'deg');}
 }
 const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':(HTS_CITY_ID==='houston'?'Greater Houston':(CITY_NAME+' metro')));
 const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':(HTS_CITY_ID==='houston'?'Houston-area':(CITY_NAME+'-area')));
@@ -1262,10 +1263,30 @@ const groundTex=(function(){const c=document.createElement('canvas');c.width=c.h
   }
   x.globalAlpha=1;
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(14*WS*1.4,14*WS*1.4);t.anisotropy=MAXAN;return t;})();
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(WS!==1?480000:24000,WS!==1?480000:24000),
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(WS!==1?480000:24000,WS!==1?480000:24000,64,64),
   new THREE.MeshLambertMaterial({map:groundTex,color:HTS_IS_AUS?0xb8d090:0xb4c890,
     polygonOffset:true,polygonOffsetFactor:2,polygonOffsetUnits:4}));
 ground.rotation.x=-Math.PI/2;ground.position.y=-1.6;scene.add(ground);
+/* Houston land cover by area (real geography, soft blends): concrete core + Ship Channel industry, northern pine forest,
+   western farm prairie, bay-shore marsh, drier southwest pasture; everywhere else keeps the suburban lawn colour */
+if(!HTS_IS_AUS){
+  const HZ=[ /* lat, lng, radius km, colour multiplier on the lawn base */
+    [29.758,-95.369,9,[1.75,1.05,1.65]],[29.735,-95.39,6,[1.55,1.0,1.45]],
+    [29.725,-95.17,11,[1.65,0.97,1.7]],[29.70,-95.06,8,[1.55,0.95,1.55]],
+    [30.07,-95.19,16,[0.55,0.68,0.55]],[30.17,-95.47,18,[0.52,0.66,0.52]],[30.10,-95.38,10,[0.6,0.72,0.6]],[30.30,-95.30,22,[0.5,0.64,0.5]],
+    [29.79,-95.86,20,[1.7,1.08,1.05]],[29.70,-96.00,22,[1.75,1.1,1.0]],[29.95,-95.80,16,[1.6,1.06,1.0]],
+    [29.60,-95.00,12,[1.15,0.86,0.95]],[29.50,-94.95,14,[1.1,0.84,0.92]],[29.66,-94.98,8,[1.2,0.9,0.95]],
+    [29.40,-95.45,20,[1.45,1.02,0.95]]];
+  const xz=(la,ln)=>{const o=geoToWorld(la,ln);return Array.isArray(o)?{x:o[0],z:o[1]}:{x:o.x,z:o.z};};
+  ground.material.onBeforeCompile=(sh)=>{
+    const o=xz(29.76,-95.37),q=xz(29.769,-95.37),uKm=Math.hypot(q.x-o.x,q.z-o.z);
+    sh.uniforms.hzP={value:HZ.map(([la,ln,r])=>{const w=xz(la,ln);return new THREE.Vector3(w.x,w.z,r*uKm);})};
+    sh.uniforms.hzC={value:HZ.map((z)=>new THREE.Vector3(...z[3]))};
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vHw;').replace('#include <begin_vertex>','#include <begin_vertex>\nvHw=(modelMatrix*vec4(transformed,1.0)).xz;');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vHw;uniform vec3 hzP['+HZ.length+'];uniform vec3 hzC['+HZ.length+'];')
+      .replace('#include <map_fragment>','#include <map_fragment>\n{vec3 m=vec3(0.0);float ws=0.0;for(int i=0;i<'+HZ.length+';i++){float w=1.0-smoothstep(hzP[i].z*0.45,hzP[i].z,length(vHw-hzP[i].xy));m+=hzC[i]*w;ws+=w;}\n if(ws>0.001){float k=min(1.0,ws);diffuseColor.rgb*=mix(vec3(1.0),m/ws,k);}}');
+  };
+}
 ground.userData.baseColor=new THREE.Color(HTS_IS_AUS?0xb8d090:0xb4c890);
 /* Cinematic: soft shadows + env — skip in homepage peek (iframe FPS) */
 const htsCinematic=HTS_PEEK?null:createCinematic({renderer,scene,camera,sun,ground,isAus:HTS_IS_AUS});
