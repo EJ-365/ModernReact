@@ -72,7 +72,10 @@ export class Drive {
     if (this.hdg === null) this.hdg = h;
     let dh = h - this.hdg; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
     this.hdg += dh * Math.min(1, dt * 5);
-    this.car.position.set(x, 0.35 + (this.e.r.cls <= 5 ? (5 - this.e.r.cls) * 0.04 : 0), z);
+    /* ride on the deck the road was drawn at (flyovers sit 0.9 m higher), never inside it */
+    const ry = this.e.r.y != null ? this.e.r.y : 0.3 + (this.e.r.cls <= 5 ? (5 - this.e.r.cls) * 0.04 : 0);
+    this.cy = this.cy == null ? ry : this.cy + (ry - this.cy) * Math.min(1, dt * 6);
+    this.car.position.set(x, this.cy + 0.05, z);
     this.car.rotation.y = this.hdg;
     this.car.userData.beam.intensity = this.cs.night > 0.4 ? 60 : 0;
   }

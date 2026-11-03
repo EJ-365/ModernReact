@@ -9,6 +9,18 @@ export const WORLD_AIRCRAFT = [
   ['a320', 'Airbus A320neo', 37.6, 35.8, 2, 4.0],
   ['a350', 'Airbus A350-900', 66.8, 64.8, 2, 6.0],
   ['a380', 'Airbus A380', 72.7, 79.8, 4, 7.1],
+  ['b757', 'Boeing 757-200', 47.3, 38.1, 2, 3.8],
+  ['b767', 'Boeing 767-300ER', 54.9, 47.6, 2, 5.0],
+  ['a321', 'Airbus A321neo', 44.5, 35.8, 2, 4.0],
+  ['a330', 'Airbus A330-900neo', 63.7, 64.0, 2, 5.6],
+  ['a220', 'Airbus A220-300', 38.7, 35.1, 2, 3.5],
+  ['e175', 'Embraer E175', 31.7, 26.0, 2, 3.0],
+  ['g650', 'Gulfstream G650ER', 30.4, 30.4, 2, 2.6],
+  ['gl75', 'Bombardier Global 7500', 33.8, 31.7, 2, 2.7],
+  ['c68a', 'Cessna Citation Latitude', 19.0, 22.0, 2, 2.1],
+  ['lj75', 'Learjet 75', 17.7, 15.5, 2, 1.8],
+  ['e55p', 'Embraer Phenom 300E', 15.9, 16.2, 2, 1.7],
+  ['conc', 'Concorde', 61.7, 25.6, 4, 2.9],
 ];
 
 const white = new THREE.MeshStandardMaterial({ color: 0xf3f5f7, roughness: 0.45, metalness: 0.15 });

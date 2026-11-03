@@ -307,6 +307,10 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       }
       /* park / wood polygons often span the streets through them (downtown): keep their trees off the pavement */
       for (const arr of [trees, bushes]) { let k = 0; for (const o of arr) if (!occ.has(ck(Math.floor(o.x / cell), Math.floor(o.z / cell)))) arr[k++] = o; arr.length = k; }
+      const clearLot = (x, z, w, d, a) => { /* whole rotated footprint (+2 m) off every carriageway, not just its centre */
+        const s = Math.sin(a), c = Math.cos(a);
+        for (const u of [-0.5, -0.25, 0, 0.25, 0.5]) for (const v of [-0.5, 0, 0.5]) { const lx = u * (w + 4), lz = v * (d + 4); if (occ.has(ck(Math.floor((x + lx * c + lz * s) / cell), Math.floor((z - lx * s + lz * c) / cell)))) return false; }
+        return true; };
       const free = (x, z) => { for (const ox of [-6, 0, 6]) for (const oz of [-6, 0, 6]) if (occ.has(ck(Math.floor((x + ox) / cell), Math.floor((z + oz) / cell)))) return false; return true; };
       outer: for (const r of (lr && lr.roads) || []) {
         if (r.h !== 'residential' && r.h !== 'living_street' && r.h !== 'unclassified') continue;
@@ -321,6 +325,8 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
               const x = ax + ux * acc - uz * setback * sd, z = az + uz * acc + ux * setback * sd;
               if (rnd() < 0.08 || t.block.hit(x, z) || !free(x, z) || inField(x, z) || (window.HTS_HOUSE_EXCL && window.HTS_HOUSE_EXCL(X(x), X(z)))) continue;
               const w = 11 + rnd() * 5, dep = 12 + rnd() * 6, h = rnd() < 0.25 ? 6.8 + rnd() * 1.4 : 3.6 + rnd() * 1.2;
+              /* also test the live Houston road network (freeways/arterials/ramps streamed by the road renderer) */
+              if (!clearLot(x, z, w, dep, ang) || (window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x), X(z), X(Math.max(w, dep) * 0.6) - X(0)))) continue;
               houses.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0] });
               roofs.push({ x, z, y: h * k, sx: w * 1.06, sy: 3 + rnd() * 1.5, sz: dep * 1.06, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });
               /* front garage + driveway to the kerb, backyard fence, sometimes a pool (common in Houston) */

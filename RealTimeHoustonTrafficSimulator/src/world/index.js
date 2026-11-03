@@ -7,7 +7,8 @@
 import * as THREE from 'three';
 import catalog from './catalog.json';
 import { createGlobe, gcDist, gcLerp, bearing, llToVec } from './globe.js';
-import { createCityScene } from './city-scene.js';
+import { createCityScene, localGeo } from './city-scene.js';
+import { createPoiIcons, loadPois, POI_CAT } from '../render/poi-icons.js';
 import { Takeoff, Approach, Cruise, planeCam } from './flight.js';
 import { Drive } from './drive.js';
 import { WORLD_AIRCRAFT, airliner } from './models.js';
@@ -384,13 +385,21 @@ async function loadCity(c) {
     return s;
   } finally { clearTimeout(lt); showLoad = false; setLoading(false); }
 }
-function disposeCity() { showFlightTip(null); if (drive) { drive.dispose(); drive = null; } if (cs) { cs.dispose(); cs = null; } city = null; }
+let poiL = null; /* popular places / attractions icons (OSM, data/world/pois/<id>.json) */
+function cityPois(c) {
+  if (!poiL) poiL = createPoiIcons({ dom: canvas, getCamera: () => (mode === 'city' && cs && !drive ? cs.camera : null), getView: () => ({ x: orbit.tx, z: orbit.tz, r: orbit.r }), y: 0.3, maxV: 36,
+    onPick: (p) => { follow = null; Object.assign(orbit, { tx: p.x, tz: p.z, r: Math.min(orbit.r, 900) }); toast(p.n + ' · ' + POI_CAT[p.c][2], 3500); } });
+  poiL.setData([]);
+  const g = localGeo(c.lat, c.lng), id = c.id;
+  loadPois('/data/world/pois/' + id + '.json', (la, ln) => g.toW(la, ln)).then((L) => { if (city && city.id === id) poiL.setData(L); }).catch(() => {});
+}
+function disposeCity() { if (poiL) poiL.setData([]); showFlightTip(null); if (drive) { drive.dispose(); drive = null; } if (cs) { cs.dispose(); cs = null; } city = null; }
 async function enterCity(c, keepPose) {
   if (city && city.id === c.id && cs) { mode = 'city'; renderCard(); return; }
   disposeCity();
   try { cs = await loadCity(c); } catch (e) { toast('Could not load ' + c.name + ' (' + e.message + ')'); mode = 'globe'; return; }
   if (/debug/.test(location.search)) { window._wcs = cs; window._worbit = orbit; }
-  city = c; mode = 'city';
+  city = c; mode = 'city'; cityPois(c);
   if (!keepPose) Object.assign(orbit, { tx: 0, tz: 0, r: 3600, theta: 0.6, phi: 0.92 });
   loadTraffic(c, 80); renderCard();
 }
@@ -762,5 +771,5 @@ export function close(focus) {
   if (window.HTS_WORLD_RETURN) window.HTS_WORLD_RETURN(focus ? focus.lat : 29.76, focus ? focus.lng : -95.37, focus && focus.zoomIn);
 }
 
-window.HTS_WORLD = { open: openWorld, close, frame, preload, get active() { return active; }, cities: CITIES,
+window.HTS_WORLD = { open: openWorld, close, frame, preload, get active() { return active; }, cities: CITIES, enter: (id) => byId[id] && enterCity(byId[id]),
   debug: () => ({ mode, city: city && city.id, globe: globe && { ...globe.state }, cam: globe && globe.camera.position.toArray().map(Math.round), hou: labels.houston && labels.houston.style.cssText }) };

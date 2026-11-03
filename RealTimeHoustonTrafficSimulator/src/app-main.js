@@ -1032,6 +1032,8 @@ const renderer=new THREE.WebGLRenderer({canvas,antialias:!_isWin&&!HTS_PEEK,powe
 renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=(THREE.SRGBColorSpace||THREE.sRGBEncoding);
+/* shader error checks (getProgramInfoLog/getShaderInfoLog per program) only in ?debug; three.js recommends this off in production */
+renderer.debug.checkShaderErrors=/[?&]debug\b/.test(location.search);
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.08; /* weather-scaled each frame — clear days brighter, overcast softer */
 canvas.addEventListener('webglcontextlost',(e)=>{
@@ -2839,6 +2841,7 @@ function nearRoad(x,z,extra){
     const dx=x-p[0],dz=z-p[1];if(dx*dx+dz*dz<lim*lim)return true;}return false;}
 /* Grid-indexed nearRoad for bulk queries (OSM buildings): O(1) per lookup instead of a full scan */
 let _roadGrid=null;
+window.HTS_ROAD_NEAR=(x,z,e)=>nearRoadFast(x,z,e);
 function nearRoadFast(x,z,extra){
   const C=120;
   if(!_roadGrid||_roadGrid.n!==roadSamplePts.length){
@@ -3934,14 +3937,14 @@ const NAV_GLOW_TEX=(function(){const c=document.createElement('canvas');c.width=
   g.addColorStop(0.45,'rgba(255,255,255,0.18)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;})();
 function navGlowMat(col){return new THREE.SpriteMaterial({map:NAV_GLOW_TEX,color:col,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false});}
-function addNavLights(g,span,tailZ){
+function addNavLights(g,span,tailZ,tipZ=0,tipY=0,landZ=null){
   const out=[];
   /* metre-sized glows on the airframe; they grow with the plane's distance scale, so stay small on screen */
   const mk=(col,x,y,z,kind,sz)=>{const m=navGlowMat(col);
     const sp=new THREE.Sprite(m);sp.scale.set(sz,sz,1);sp.position.set(x,y,z);g.add(sp);out.push([m,kind]);};
-  mk(0xff2a20,span,0,0,'nav',3.2);mk(0x30ff60,-span,0,0,'nav',3.2);mk(0xffffff,0,1,tailZ,'nav',2.4);
-  mk(0xffffff,span,0,-0.5,'st',5.5);mk(0xffffff,-span,0,-0.5,'st',5.5);
-  mk(0xfff4dc,0,-1.5,span*0.8,'land',7);
+  mk(0xff2a20,span,tipY,tipZ,'nav',3.2);mk(0x30ff60,-span,tipY,tipZ,'nav',3.2);mk(0xffffff,0,1,tailZ,'nav',2.4);
+  mk(0xffffff,span,tipY,tipZ-0.5,'st',5.5);mk(0xffffff,-span,tipY,tipZ-0.5,'st',5.5);
+  mk(0xfff4dc,0,-1.5,landZ==null?span*0.8:landZ,'land',7);
   return out;
 }
 /* airliner families, scaled from the 737-800 base model by real length / span / fuselage diameter ratios */
@@ -3953,20 +3956,44 @@ const AIRLINER_TYPES={
   a320:{n:'Airbus A320neo',lK:0.95,sK:1,dK:1.05,eng:2,eK:1.08,tip:'sharklet',nose:1.5},
   a350:{n:'Airbus A350-900',lK:1.69,sK:1.81,dK:1.59,eng:2,eK:1.1,tip:'curved',nose:1.6},
   a380:{n:'Airbus A380',lK:1.84,sK:2.23,dK:1.8,eng:4,eK:0.9,tip:'fence',nose:1.45,dbl:1.18},
+  b757:{n:'Boeing 757-200',lK:1.2,sK:1.06,dK:1,eng:2,eK:1.12,tip:'winglet',nose:1.75},
+  b767:{n:'Boeing 767-300ER',lK:1.39,sK:1.33,dK:1.34,eng:2,eK:1.15,tip:'winglet',nose:1.75},
+  a321:{n:'Airbus A321neo',lK:1.13,sK:1,dK:1.05,eng:2,eK:1.08,tip:'sharklet',nose:1.5},
+  a330:{n:'Airbus A330-900neo',lK:1.61,sK:1.79,dK:1.5,eng:2,eK:1.18,tip:'sharklet',nose:1.55},
+  a220:{n:'Airbus A220-300',lK:0.98,sK:0.98,dK:0.93,eng:2,eK:1.02,tip:'winglet',nose:1.45},
+  e175:{n:'Embraer E175',lK:0.8,sK:0.73,dK:0.8,eng:2,eK:0.82,tip:'winglet',nose:1.5},
+  /* business jets: engines on the rear fuselage, T-tail, big oval cabin windows (real length/span/diameter ratios to the 737) */
+  g650:{n:'Gulfstream G650ER',lK:0.77,sK:0.85,dK:0.69,eng:2,eK:0.77,tip:'winglet',nose:1.9,rear:1,tt:1,biz:1},
+  gl75:{n:'Bombardier Global 7500',lK:0.86,sK:0.89,dK:0.72,eng:2,eK:0.78,tip:'winglet',nose:1.8,rear:1,tt:1,biz:1},
+  c68a:{n:'Cessna Citation Latitude',lK:0.48,sK:0.62,dK:0.55,eng:2,eK:0.7,tip:'winglet',nose:1.6,rear:1,tt:1,biz:1},
+  lj75:{n:'Learjet 75',lK:0.45,sK:0.43,dK:0.48,eng:2,eK:0.7,tip:'winglet',nose:2.1,rear:1,tt:1,biz:1},
+  e55p:{n:'Embraer Phenom 300E',lK:0.4,sK:0.45,dK:0.45,eng:2,eK:0.68,tip:'winglet',nose:1.7,rear:1,tt:1,biz:1},
 };
 function airlinerTypeFor(actype,seed){
   const t=String(actype||'').toUpperCase();
+  if(/^(GLF|GA[5-8]C|CL[36])/.test(t))return 'g650';
+  if(/^(GL[5-8]T|GLEX)/.test(t))return 'gl75';
+  if(/^C(25|5[0-6]|6[058]|70)/.test(t))return 'c68a';
+  if(/^LJ/.test(t))return 'lj75';
+  if(/^E5[05]P/.test(t))return 'e55p';
   if(/^A38/.test(t))return 'a380';
-  if(/^A3[345]/.test(t))return 'a350';
-  if(/^(A3[12]|A2|BCS)/.test(t))return 'a320';
+  if(/^A3[45]/.test(t))return 'a350';
+  if(/^A33/.test(t))return 'a330';
+  if(/^(A321|A21N)/.test(t))return 'a321';
+  if(/^(BCS|A22)/.test(t))return 'a220';
+  if(/^E(17|75|19|29|90|95)/.test(t))return 'e175';
+  if(/^(A3[12]|A2)/.test(t))return 'a320';
   if(/^B74/.test(t))return 'b747';
   if(/^B77/.test(t))return 'b777';
-  if(/^(B78|B76)/.test(t))return 'b787';
+  if(/^B75/.test(t))return 'b757';
+  if(/^B76/.test(t))return 'b767';
+  if(/^B78/.test(t))return 'b787';
   if(/^(B7|B3)/.test(t))return 'b737';
   const r=((seed|0)*2654435761>>>0)%100;
   return r<35?'b737':r<65?'a320':r<75?'b787':r<85?'b777':r<92?'a350':r<96?'b747':'a380';
 }
 function makeAirliner(finCol,liv,type){
+  if(type==='conc')return makeConcorde(finCol,liv);
   const T=AIRLINER_TYPES[type]||AIRLINER_TYPES.b737;
   const g=new THREE.Group();
   const LV=liv||[0xeef0f3,0x9aa2ab,finCol,0x9aa2ab];
@@ -3982,7 +4009,7 @@ function makeAirliner(finCol,liv,type){
   const Lc=45*T.lK-(T.nose+3.83)*R,zF=Lc/2,zB=-Lc/2;      /* constant-section barrel between nose and tail cone */
   add(new THREE.CylinderGeometry(R,R,Lc,24),white,0,yc,0,Math.PI/2).scale.z=Y;
   /* Boeing: tapered, pointed nose with the tip dropped low; Airbus: fuller, rounder, blunt nose (see type references) */
-  const boeing=/^b7/.test(type||'b737'),droop=boeing?0.12:0.04;
+  const boeing=/^b7/.test(type||'b737')||!!T.biz,droop=boeing?0.12:0.04;
   const nose=add(noseShape(new THREE.SphereGeometry(R,32,20),R,boeing),white,0,yc-0.12*dK,zF);nose.scale.set(1,0.95*Y,T.nose);
   /* face: dark wrap-around cockpit windscreen band on the upper nose, split by a centre post, plus a grey radome tip */
   const wsM=new THREE.MeshPhongMaterial({color:0x0b1118,specular:0x8899aa,shininess:90});
@@ -4008,26 +4035,37 @@ function makeAirliner(finCol,liv,type){
       add(new THREE.BoxGeometry(0.5*dK,P[0]*dK,2.6*dK),finM,sd*(tx+P[0]*dK*0.5*Math.sin(P[1])),ty+P[0]*dK*0.5*Math.cos(P[1]),tz+0.7*dK,P[2],0,-sd*P[1]);
     }
     const eR=1.5*dK*T.eK,eL=3.1*eR;
-    for(const f of (T.eng===4?[0.3,0.62]:[0.36])){
+    for(const f of (T.rear?[]:T.eng===4?[0.3,0.62]:[0.36])){
       const ex=f*tx,ez=zc(ex)+0.376*eL,ey=wy-eR*0.95;
       add(new THREE.CylinderGeometry(eR,eR*0.88,eL,16),engM,sd*ex,ey,ez,Math.PI/2);
       add(new THREE.CircleGeometry(eR*0.87,18),intakeM,sd*ex,ey,ez+eL/2+0.02);
       add(new THREE.BoxGeometry(0.3*dK,eR*0.9,eL*0.7),white,sd*ex,wy-eR*0.45,ez-eL*0.2);
     }
+    if(T.rear){ /* aft-fuselage nacelles on short horizontal pylons, just ahead of the tail cone */
+      const ex=R+eR*1.05+0.2*dK,ez=zB+0.2*R,ey=yc+0.32*R;
+      add(new THREE.CylinderGeometry(eR,eR*0.85,eL,16),engM,sd*ex,ey,ez,Math.PI/2);
+      add(new THREE.CircleGeometry(eR*0.86,18),intakeM,sd*ex,ey,ez+eL/2+0.02);
+      add(new THREE.BoxGeometry(ex-R*0.7,0.28*dK,eL*0.5),white,sd*(ex+R*0.7)/2,ey,ez-eL*0.1);
+    }
+    if(T.tt){ /* T-tail: the stabiliser sits on top of the fin */
+      const ls=6.2*T.sK,fh=8.4*dK;
+      add(new THREE.BoxGeometry(ls,0.38*dK,3.2*dK),white,sd*ls/2,yc+R*Y-1.95*dK+fh*0.96,zB-2.34*R-0.138*fh-1.2*dK,0,sd*0.5);
+    }else{
     const ls=8.6*T.sK*0.95;
     add(new THREE.BoxGeometry(ls,0.45*dK,3.6*dK),white,sd*(ls/2+0.3*dK),yc+1.6*dK,zB-2.13*R,0,sd*0.5);
+    }
   }
   const fh=8.4*dK;
   add(new THREE.BoxGeometry(0.7*dK,fh,5.6*dK),finM,0,yc+R*Y-1.95*dK+fh/2,zB-2.34*R,-0.28);
   /* passenger windows — shared mats (batched below); A380 gets two decks, 747 an upper-deck row on the hump */
   const winGlass=new THREE.MeshLambertMaterial({color:0x5a82a0,transparent:true,opacity:0.55,depthWrite:false});
   const winFrame=new THREE.MeshLambertMaterial({color:0x1a1e24});
-  const wk=1+(dK-1)*0.4,sp=1.7*wk,rows=Y>1?[-0.12,0.5]:[0.32];
+  const wk=(1+(dK-1)*0.4)*(T.biz?1.3:1),sp=1.7*wk*(T.biz?1.25:1),rows=Y>1?[-0.12,0.5]:[0.32];
   const win=(x,y,z)=>{add(new THREE.BoxGeometry(0.12,0.58*wk,0.85*wk),winFrame,x,y,z);add(new THREE.BoxGeometry(0.08,0.44*wk,0.6*wk),winGlass,x+Math.sign(x)*0.06,y,z);};
   for(const sd of [1,-1]){
     for(const ry of rows){
       const xr=R*Math.sqrt(1-ry*ry)+0.04*dK;
-      for(let z=zF-4.5*dK;z>zB+1.5*dK;z-=sp)win(sd*xr,yc+ry*R*Y,z);
+      for(let z=zF-4.5*dK;z>zB+(T.rear?1.2*R:1.5*dK);z-=sp)win(sd*xr,yc+ry*R*Y,z);
     }
     /* 747 upper deck: each window sits on the hump's own surface (it tapers at both ends) and tilts with it */
     if(T.hump){const hr=0.78*R,hz=zF-Lc*0.12,ha=Lc*0.2,th=1.15;
@@ -4074,7 +4112,63 @@ function noseShape(geo,R,boeing,fwdY){
   }
   geo.computeVertexNormals();return geo;
 }
+function makeConcorde(finCol,liv){
+  /* Aérospatiale/BAC Concorde: slim 2.9 m fuselage, long drooped needle nose, ogee delta wing, 4 Olympus engines
+     in two under-wing boxes, tall swept fin, long gear legs. Same scale/axes as makeAirliner (nose +z, ×1.2 m) */
+  const g=new THREE.Group(),LV=liv||[0xf4f5f6,0x9aa2ab,finCol,0x9aa2ab];
+  const white=new THREE.MeshLambertMaterial({color:LV[0],emissive:0x2a2826}),grayB=new THREE.MeshLambertMaterial({color:0xb8bec4,emissive:0x1a1a1a});
+  const finM=new THREE.MeshLambertMaterial({color:LV[2]}),dark=new THREE.MeshBasicMaterial({color:0x15181c});
+  const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
+  const R=1.74,Lc=50,zF=22,zB=-28,span=30.7;
+  add(new THREE.CylinderGeometry(R,R,Lc,22),white,0,0,(zF+zB)/2,Math.PI/2);
+  /* cockpit section: tapers from the cabin to the nose hinge, carrying the six-pane wrap-around windscreen */
+  const Rk=R*0.74,Lk=3.4;
+  add(new THREE.CylinderGeometry(Rk,R,Lk,24),white,0,0,zF+Lk/2,Math.PI/2);
+  const wsM=new THREE.MeshPhongMaterial({color:0x0c1219,specular:0xaabbcc,shininess:110,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+  /* panes are slices of the tapered section itself (they follow its curve); the white gaps between them are the frames */
+  {const rA=R+(Rk-R)*0.28,rB=R+(Rk-R)*0.86,hb=Lk*0.58,D=Math.PI/180;
+    for(const [c,w] of [[-63,19],[-38.5,23],[-12.5,23.5],[12.5,23.5],[38.5,23],[63,19]])
+      add(new THREE.CylinderGeometry(rB*1.012,rA*1.012,hb,3,1,true,Math.PI+(c-w/2)*D,w*D),wsM,0,0,zF+Lk*0.57,Math.PI/2);}
+  /* droop nose (hinged under the windscreen; lowers ~12° with the gear for take-off and landing, like the real one) */
+  const noseG=new THREE.Group();noseG.position.set(0,-Rk,zF+Lk);g.add(noseG);
+  const prof=[];for(let i=0;i<=12;i++){const t=i/12;prof.push(new THREE.Vector2(Math.max(0.03,Rk*Math.pow(1-t,1.45)),t*12.5));}
+  const nm=new THREE.Mesh(new THREE.LatheGeometry(prof,22),white);nm.rotation.x=Math.PI/2;nm.position.y=Rk;noseG.add(nm);
+  const pit=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,1.6,6),grayB);pit.rotation.x=Math.PI/2;pit.position.set(0,Rk,13.2);noseG.add(pit);
+  const visor=new THREE.Mesh(new THREE.BoxGeometry(Rk*0.9,0.06,1.4),wsM);visor.position.set(0,Rk+Rk*0.86,0.9);visor.rotation.x=-0.12;noseG.add(visor);
+  add(new THREE.ConeGeometry(R,9,22),white,0,0.35,zB-4.5,-Math.PI/2).scale.set(1,1,0.8);
+  /* ogee delta, both halves in one shape (x: span, y: world z) */
+  const s=new THREE.Shape(),hw=span/2,pts=[[0,zF-3],[1.2,zF-8],[2.6,zF-15],[5.2,zF-21],[9,zF-28],[12.6,zF-35],[hw,zF-43],[hw,zF-45.5],[3,zB-0.8],[0,zB-0.8]];
+  s.moveTo(0,pts[0][1]);for(const [x,y] of pts.slice(1))s.lineTo(x,y);for(const [x,y] of pts.slice(1,-1).reverse())s.lineTo(-x,y);s.closePath();
+  const wg=new THREE.ExtrudeGeometry(s,{depth:0.55,bevelEnabled:true,bevelThickness:0.15,bevelSize:0.15,bevelSegments:1});wg.rotateX(Math.PI/2);
+  add(wg,white,0,-R*0.45,0);
+  for(const sd of [1,-1]){
+    add(new THREE.BoxGeometry(3.7,1.45,12.5),grayB,sd*4.6,-R*0.45-1.25,zB+6.5);                /* twin Olympus 593 box */
+    for(const dx of [-0.92,0.92]){add(new THREE.BoxGeometry(1.6,1.1,0.1),dark,sd*4.6+dx,-R*0.45-1.25,zB+12.8);
+      add(new THREE.CylinderGeometry(0.62,0.55,1.4,12),dark,sd*4.6+dx,-R*0.45-1.25,zB-0.4,Math.PI/2);}
+    add(new THREE.BoxGeometry(0.22,0.5,3.2),white,sd*(hw-0.4),-R*0.45+0.1,zF-44.2);              /* elevon tip fairing */
+  }
+  /* tall swept fin (shape x: aft distance → world -z) */
+  const fs=new THREE.Shape();fs.moveTo(0,0);fs.lineTo(8.6,10.4);fs.lineTo(11.4,10.4);fs.lineTo(12.6,0);fs.closePath();
+  const fg=new THREE.ExtrudeGeometry(fs,{depth:0.45,bevelEnabled:false});fg.rotateY(Math.PI/2);
+  add(fg,finM,-0.22,R*0.75,zB+7.5);
+  /* windows: small Concorde portholes */
+  const winM=new THREE.MeshLambertMaterial({color:0x1a1e24});
+  for(const sd of [1,-1])for(let z=zF-3.5;z>zB+5;z-=1.25)add(new THREE.BoxGeometry(0.1,0.34,0.26),winM,sd*(R*0.95+0.03),0.55,z);
+  /* long gear: nose leg + two 4-wheel bogies */
+  const gear=new THREE.Group(),strutM=new THREE.MeshLambertMaterial({color:0x8a9098}),tireM=new THREE.MeshLambertMaterial({color:0x14161a});
+  const leg=(x,z,n)=>{const st=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,4.4,6),strutM);st.position.set(x,-R-1.9,z);gear.add(st);
+    for(const dz of (n===4?[0.75,-0.75]:[0]))for(const dx of [-0.42,0.42]){const t=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.42,10),tireM);t.rotation.z=Math.PI/2;t.position.set(x+dx,-R-4.0,z+dz);gear.add(t);}};
+  leg(0,zF-2,2);leg(-3.9,zB+10,4);leg(3.9,zB+10,4);
+  batchStaticChildren(gear,{cell:1e6});g.add(gear);
+  const strobe=new THREE.Sprite(navGlowMat(0xffffff));strobe.scale.set(4,4,1);strobe.position.set(0,-R-0.4,-6);g.add(strobe);
+  const beacon=new THREE.Sprite(navGlowMat(0xff3626));beacon.scale.set(4,4,1);beacon.position.set(0,R+0.3,-2);g.add(beacon);
+  g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,hw-0.2,zB-9,zF-44.6,-R*0.45+0.2,zF-3),gear,gearDrop:R+4.62,
+    gearPts:[[-(R+4.62),zF-2],[-(R+4.62),zB+10.75],[-(R+4.62),zB+9.25]],noseDroop:noseG,acType:'conc',ckZ:zF+1.2,ckY:R*0.5,sideD:Math.max(15,hw*0.95+6),dims:{R,Lc,zF,yc:0,Y:1,nose:15/R}};
+  batchStaticChildren(g,{cell:1e6});
+  return g;
+}
 function tourJet(c,a,type){
+  if(type==='conc')return makeConcorde(c,[c,c,a==null?c:a,c]);
   /* tour jet: main colour everywhere; optional accent paints fin, winglets, engines, a cheat-line and a nose crown */
   if(a==null)return makeAirliner(c,[c,c,c,c],type);
   const g=makeAirliner(c,[c,c,a,a],type),D=g.userData.dims;
@@ -8340,12 +8434,14 @@ function wxUpdate(dt){
   const tgt={cloud:cloudOv!=null?Math.max(T.cloud*0.4,cloudOv):T.cloud,
              fogK:T.fogK,speed:T.speed,cong:T.cong,
              rain:rainTarget};
-  for(const key of ['cloud','fogK','speed','cong','rain'])wxBlend[key]=lerp(wxBlend[key],tgt[key],k);
+  /* cover, fog and cloud decks drift in over ~6 s of live time (rain still snaps so streaks match the sky) */
+  const kSky=liveMode?clamp(dt*0.18,0,1):k;
+  for(const key of ['cloud','fogK','speed','cong','rain'])wxBlend[key]=lerp(wxBlend[key],tgt[key],key==='cloud'||key==='fogK'?kSky:k);
   /* low / mid / high cloud decks: measured by the live model (Open-Meteo cloud_cover_low/mid/high) when we have it,
      otherwise inferred from the weather type — so cumulus, altocumulus and cirrus only show when they're really up there */
   {
     const c=tgt.cloud,L=layersOv||{lo:targetPreset==='clear'?c*0.6:c*0.85,mid:targetPreset==='partly'?c*0.6:c*0.4,hi:targetPreset==='clear'?0.15:c*0.3};
-    for(const [kk,v] of [['cLow',L.lo],['cMid',L.mid],['cHigh',L.hi]])wxBlend[kk]=lerp(wxBlend[kk]==null?v:wxBlend[kk],clamp(v,0,1),k);
+    for(const [kk,v] of [['cLow',L.lo],['cMid',L.mid],['cHigh',L.hi]])wxBlend[kk]=lerp(wxBlend[kk]==null?v:wxBlend[kk],clamp(v,0,1),kSky);
     wxBlend.layersLive=!!layersOv;
   }
   wxBlend.storm=!!(T.storm||rainTarget>=0.85);wxBlend.tempD=T.tempD;
@@ -8527,7 +8623,7 @@ window.HTS_OPEN_WORLD=openWorldMap;
 /* Tour → By plane → "Fly to another city": the same aircraft choice flies airport to airport on the globe */
 {const sel=document.getElementById('tourWorld'),go=document.getElementById('tourGo'),row=document.getElementById('tourAptRow');
   if(sel)for(const c of WORLD_CAT.cities){if(c.full)continue;const o=document.createElement('option');o.value=c.id;o.textContent=c.name+' ('+c.apt.code+') · '+c.country;sel.appendChild(o);}
-  const JETS=['b737','b787','b777','b747','a320','a350','a380'];
+  const JETS=['b737','b757','b767','b787','b777','b747','a220','a320','a321','a330','a350','a380','e175','g650','gl75'];
   /* flying to another city: "Land at" becomes that city's airport (Houston airports don't apply) */
   const arr=document.getElementById('tourArr');let arrHtml=null;
   if(sel&&arr)sel.addEventListener('change',()=>{
@@ -9888,12 +9984,12 @@ function updateLiveFlights(dt){
 
     f.m.position.set(w.x,f._y,w.z);
     f.m.rotation.set(-(f._pitch||0),yaw,f._bank||0);
-    /* metre scale: true-size jets vanish past a few km — grow with distance so they read like real
-       planes spotted in the sky (never smaller than ~3 px), true size up close */
+    /* metre scale: true size when seen from the ground or alongside, like real planes (a jet far off
+       is a speck); only when looking down from well above it (map view) does it grow with distance */
     if(WS!==1){
       const ud=f.m.userData;if(ud.baseSc==null)ud.baseSc=f.m.scale.x;
-      const dCam=camera.position.distanceTo(f.m.position);
-      f.m.scale.setScalar(ud.baseSc*Math.max(1,dCam/1800));
+      const dCam=camera.position.distanceTo(f.m.position),up=clamp((camera.position.y-f.m.position.y-1500)/1500,0,1);
+      f.m.scale.setScalar(ud.baseSc*(1+up*(Math.max(1,dCam/1800)-1)));
     }
     {const gd=f.m.userData&&f.m.userData.gearDrop;if(gd!=null){const gy=gd*f.m.scale.y+0.15;if(f.m.position.y<gy)f.m.position.y=gy;}}
     /* Spin helicopter rotors */
@@ -13014,6 +13110,7 @@ function envUpdate(dt,h){
   for(const m of crownMats)m.opacity=nightF*0.9;
   /* suburb houses: warm windows after dusk */
   if(window.HTS_MYHOUSE)HTS_MYHOUSE.update(camera.position.x,camera.position.z,nightF);
+  if(window.HTS_WTOWERS)HTS_WTOWERS.update(camera.position,nightF);
   if(window.HTS_LAND2&&HTS_LAND2.materials&&HTS_LAND2.materials.body)HTS_LAND2.materials.body.emissiveIntensity=nightF*0.85;
   if(window.sprawlMat){
     if(!sprawlMat.userData._dayCol)sprawlMat.userData._dayCol=sprawlMat.color.clone();
@@ -13115,8 +13212,10 @@ function envUpdate(dt,h){
     const flyingT=!!(window.HTS_TOUR&&HTS_TOUR.active&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane');let mist=0;
     for(const c of clouds.children){
       const ty=c.userData.type||'cu';
-      const on=c.userData.u<amt[ty];
-      const base=on?(ty==='cu'?clamp(0.45+cl*0.5,0,0.95):ty==='ac'?0.82:ty==='ci'?0.3*dayN:clamp(0.35+cl*0.55,0,0.9))*lerp(1,0.35,nightF):0;
+      /* soft threshold + eased opacity: puffs fade in/out as the measured cover changes instead of popping */
+      const on=clamp((amt[ty]-c.userData.u)*10,0,1);
+      const base0=on>0?on*(ty==='cu'?clamp(0.45+cl*0.5,0,0.95):ty==='ac'?0.82:ty==='ci'?0.3*dayN:clamp(0.35+cl*0.55,0,0.9))*lerp(1,0.35,nightF):0;
+      const base=c.userData.opS=c.userData.opS==null?base0:lerp(c.userData.opS,base0,clamp(dt*0.5,0,1));
       c.userData.baseOp=base;
       /* high clouds keep catching the sun for a while after sunset (that's when the dotted altocumulus glows) */
       const hi=ty==='ac'?0.6:ty==='ci'?0.85:ty==='st'?-0.3:0;
@@ -14438,6 +14537,9 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
         /* owner's home, 16623 Red Gully Dr (OSM/Microsoft footprint) — custom model, generated houses kept off it */
         {const hp=window.HTS_HOUSE_POS;
          import('./render/my-house.js').then((m)=>{window.HTS_MYHOUSE=m.createMyHouse({parent:scene,x:hp.x,z:hp.z,yaw:0});}).catch((e)=>console.warn('[HTS] my house',e&&e.message));}
+        /* city water towers (OSM man_made=water_tower), each city in its own paint and lettering */
+        import('./render/poi-icons.js').then(async(m)=>{const L=await m.loadPois('data/houston/pois.json',(la,ln)=>geoToWorld(la,ln));const lay=m.createPoiIcons({dom:renderer.domElement,getCamera:()=>window.HTS_WORLD_ACTIVE||(window.HTS_TOUR&&window.HTS_TOUR.active)?null:camera,getView:()=>({x:cam.target.x,z:cam.target.z,r:cam.radius}),onPick:(p,cx,cy)=>openPoiCard({n:p.n,addr:m.POI_CAT[p.c][2],x:p.x,z:p.z},cx,cy)});lay.setData(L);window.HTS_POIS=lay;}).catch((e)=>console.warn('[HTS] attractions',e&&e.message));
+        import('./render/houston-water-towers.js').then((m)=>{window.HTS_WTOWERS=m.createWaterTowers({parent:scene,geoToWorld,url:'data/houston/water-towers.json'});}).catch((e)=>console.warn('[HTS] water towers',e&&e.message));
         sl.ready.then((st)=>console.log('%cHouston streetlights: '+JSON.stringify(st),'color:#ffd080')).catch((e)=>console.warn('[HTS] streetlights',e&&e.message));
       }
       /* Sim budget > draw cap so near-camera streets stay full after distance cull */

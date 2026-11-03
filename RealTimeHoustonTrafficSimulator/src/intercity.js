@@ -150,6 +150,33 @@ export async function embedCity(city, { scene, renderer }) {
   return rec;
 }
 
+/* road deck height under (x, z) in an embedded city (null if not on one of its roads): the Houston tour car
+   rides on it instead of the bare ground, so it never sinks into raised arterials or flyovers */
+export function cityRoadY(x, z, cur = 0) {
+  let best = null;
+  for (const [, r] of embeds) {
+    const cs = r.cs; if (!cs || !cs.graph) continue;
+    const lx = x - r.w.x, lz = z - r.w.z, C = 60;
+    if (!cs._rgrid) {
+      const m = new Map();
+      cs.graph.forEach((g, gi) => { const p = g.pts; for (let i = 2; i < p.length; i += 2) { /* flat [x, z, x, z, …] */
+        const ax = p[i - 2], az = p[i - 1], bx = p[i], bz = p[i + 1], x0 = Math.floor(Math.min(ax, bx) / C), x1 = Math.floor(Math.max(ax, bx) / C), z0 = Math.floor(Math.min(az, bz) / C), z1 = Math.floor(Math.max(az, bz) / C);
+        if ((x1 - x0 + 1) * (z1 - z0 + 1) > 400) continue;
+        for (let gx = x0; gx <= x1; gx++) for (let gz = z0; gz <= z1; gz++) { const k = gx * 65536 + gz; (m.get(k) || m.set(k, []).get(k)).push(gi, i); } } });
+      cs._rgrid = m;
+    }
+    const L = cs._rgrid.get(Math.floor(lx / C) * 65536 + Math.floor(lz / C)); if (!L) continue;
+    for (let j = 0; j < L.length; j += 2) {
+      const g = cs.graph[L[j]], i = L[j + 1], ax = g.pts[i - 2], az = g.pts[i - 1], dx = g.pts[i] - ax, dz = g.pts[i + 1] - az, l2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((lx - ax) * dx + (lz - az) * dz) / l2)), ex = ax + dx * t - lx, ez = az + dz * t - lz, hw = (g.w || 8) / 2 + 0.8;
+      if (ex * ex + ez * ez > hw * hw || g.y == null) continue;
+      if (best == null || Math.abs(g.y - cur) < Math.abs(best - cur)) best = g.y;
+    }
+  }
+  return best;
+}
+if (typeof window !== 'undefined') window.HTS_IC_ROAD_Y = cityRoadY;
+
 export function dropCities(keep = []) {
   for (const [id, r] of embeds) {
     if (keep.includes(id)) continue;

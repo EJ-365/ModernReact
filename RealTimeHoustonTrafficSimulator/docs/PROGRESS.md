@@ -1,7 +1,22 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.81.0** — Trip times over an hour show as hours (12 h 15 min); "Drive to Houston" from any Americas city uses the Houston tour car, panel, dash, music and radio; all 31 city data packs checked (no 404s).
+**Current build:** **v10.106.0** — water towers and live planes at true size near the ground (no giants on the horizon).
+
+### v10.106.0
+- Water towers: true size whenever the eye is below ~1.5 km, and not drawn beyond ~4 km + 3x eye height, so they no longer stand on the horizon like giants. The enlargement for the zoomed-out map now only applies when viewing from well above (eye 1.5–3 km and higher).
+- Live planes: true size when seen from the ground or at the same height (a far-off jet is a speck, as in real life); they only grow with distance when the camera is at least ~1.5 km above them (map view).
+
+### v10.105.0
+- Motorbike rider: helmet with dark visor, riding jacket, trousers, gloves on the grips, knees on the tank, boots on the pegs; leans with the bike. Hidden in Driver view, which now sits at the rider's eye height inside the helmet.
+- Motorbike rides like a bike: lane filtering when traffic ahead drops below ~20 mph on multi-lane roads (rides the lane line, at most ~10 mph faster than the cars alongside, never over 50 mph, still stops at red lights and for anything in the gap, merges back into a clear lane when traffic speeds up or before an exit); quicker acceleration and faster lane moves; takes bends with more lateral grip (4.5 vs 3 m/s²).
+- Private jets in the aircraft picker: Gulfstream G650ER, Bombardier Global 7500, Cessna Citation Latitude, Learjet 75, Embraer Phenom 300E. Real length/span/diameter ratios, rear-fuselage engines, T-tails, big cabin windows, runway needs 1,000–1,800 m (shorter runways than airliners). G650 and Global 7500 can also fly to other cities. Live business jets (GLF*, GL*T, CL3*/CL6*, C25*/C56*/C68A/C700, LJ*, E50P/E55P) now draw as these models instead of a random airliner.
+
+### v10.104.0
+- Window seat view: the rounded cabin-window frame (v10.98) is gone for every aircraft; the view is full-screen again as before.
+- Six more tour aircraft with real length/span/diameter ratios: Boeing 757-200, Boeing 767-300ER, Airbus A321neo, A330-900neo, A220-300 and Embraer E175 (runway needs 1,400–2,700 m). Also pickable for flights to other cities, and live traffic of those types (B75x, B76x, A33x, A321/A21N, BCS/A22x, E17x/E19x) now uses its own model instead of the nearest lookalike.
+- Motorbike for car tours (Car → Motorbike): sport-touring bike with tank, seat, engine, forks, bars, screen, head/tail light and headlight pool; it leans into turns (tan lean = speed × turn rate / g). Rider view sits behind the bars instead of the car dashboard. No rider is drawn (no people).
+- Speed: three.js shader error checks only run with ?debug.
 
 ### v10.57.0
 - Go to my location: flies in to ~170 m (was up to 900 m) at a steeper angle so the pin/house is clearly visible.
@@ -37,6 +52,19 @@ This log captures the work from the late **v10.8.x / v10.9** baseline through th
 
 
 
+
+## v10.103.0 — Concorde done right (lights, cockpit, droop nose, gear, Mach 2 timing), attraction icons for Houston and world cities
+- Concorde: nav lights and strobes now sit on the real wingtips (they floated behind the wing); new tapered cockpit section with a six-pane wrap-around windscreen; lathe-turned needle nose with pitot and visor that droops ~12° with the gear and raises for cruise.
+- Concorde gear: the main bogies are far aft, so the ~12° rotation/flare pitch pushed them into the runway. The tour now keeps the lowest tyre on the deck using the model's gear points (userData.gearPts).
+- Concorde timing: intercity cruise at 55,000 ft, Mach 2.02 (~1,160 kt); the ETA uses the supersonic speed (it assumed 480 kt); HUD shows the Mach number above ~M0.6. Houston-airport tours show Houston time (America/Chicago) instead of the device time zone. The Supersonic button also shows on local Concorde tours and explains that Mach 2 runs on flights to other cities.
+- Attractions: new icon layer (src/render/poi-icons.js) for popular places from OSM (museums, zoos, theme/water parks, aquariums, stadiums, theatres, malls, monuments, famous parks, beaches, universities). Houston: 635 places (scripts/extract-pois.py + 13 hand-researched extras in scripts/houston-poi-extras.json), click opens the place card. World cities: data/world/pois/<id>.json from each city's OSM extract; click flies the camera there. Decluttered on screen, famous places first.
+
+## v10.102.0 — Houston water towers, Concorde, cars on other cities' roads, downtown houses off streets, smoother sky
+- Water towers: 213 real towers from OSM (`man_made=water_tower`, scripts/extract-houston-water-towers.py → public/data/houston/water-towers.json), each tagged with the city whose limits it stands in. Sugar Land, Houston, Pasadena, Pearland, Katy, League City, Baytown, The Woodlands, Missouri City and ~20 more get their own paint, trim and lettering (Sugar Land: white composite bowl, blue serif name + star seal); three designs (composite, pedestal sphere, multi-leg). Unincorporated utility-district towers are plain. Instanced (a few draws); towers grow up to 14x with camera distance so they stay visible on the zoomed-out map; red top light at night.
+- Concorde: new aircraft in the tour picker (needle drooped nose, ogee delta wing, twin engine boxes, tall fin, long gear); also in the world-city flight list. Picking it turns on Mach 2 cruise; needs a 3,200 m runway.
+- Driving in other cities (car tour from a US city to Houston): the car followed Houston's road heights only and sat at 0.27 m elsewhere, so it sank into the city's raised streets (0.3–0.5 m) and flyovers (+0.9 m). It now rides on the embedded city's own road deck (`cityRoadY`). World-city drive mode also uses each road's real deck height, eased.
+- Downtown / inner-loop houses: generated houses now test their whole rotated footprint (+2 m) against every street, plus the live Houston road network, not only their centre point.
+- Smoother sky: cloud puffs fade in/out as the measured cover changes instead of popping; live cloud cover / fog / cloud decks blend over ~6 s; the sun's intensity follows the smoothed cover.
 
 ## v10.101.0 — clouds stay put, steady moon, helicopter lands clear of roads, car progress icon, drive time warp
 - Clouds were children of skyRoot, which follows the camera on tours, so nearby puffs travelled with the plane. They now live in world space and wrap around the camera on both axes.

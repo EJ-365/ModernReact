@@ -53,14 +53,18 @@ const DEST_BLURB = {
 };
 const VIEWS = { car: [['chase', 'Chase'], ['driver', 'Driver'], ['side', 'Side'], ['top', 'Top'], ['orbit', 'Free look']],
   plane: [['chase', 'Chase'], ['cockpit', 'Cockpit'], ['window', 'Window'], ['wing', 'Wing'], ['top', 'Top'], ['orbit', 'Free look']] };
-const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van']];
+const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van'], ['moto', 'Motorbike']];
 const PLANE_STYLES = [['prop', 'Cessna'], ['jet', 'Jet'], ['heli', 'Helicopter'], ['fighter', 'F-16 fighter'], ['b2', 'B-2 Spirit'], ['c130', 'C-130 Hercules']];
 /* tour aircraft picker: [id, name, family]; family drives physics/cockpit/audio, id picks the airliner model */
 const AIRCRAFT = [['b737', 'Boeing 737-800', 'jet'], ['b747', 'Boeing 747-8', 'jet'], ['b777', 'Boeing 777-300ER', 'jet'], ['b787', 'Boeing 787-9 Dreamliner', 'jet'],
-  ['a320', 'Airbus A320neo', 'jet'], ['a350', 'Airbus A350-900', 'jet'], ['a380', 'Airbus A380', 'jet'],
+  ['b757', 'Boeing 757-200', 'jet'], ['b767', 'Boeing 767-300ER', 'jet'],
+  ['a320', 'Airbus A320neo', 'jet'], ['a321', 'Airbus A321neo', 'jet'], ['a330', 'Airbus A330-900neo', 'jet'], ['a350', 'Airbus A350-900', 'jet'], ['a380', 'Airbus A380', 'jet'],
+  ['a220', 'Airbus A220-300', 'jet'], ['e175', 'Embraer E175', 'jet'], ['conc', 'Concorde', 'jet'],
+  ['g650', 'Gulfstream G650ER (private jet)', 'jet'], ['gl75', 'Bombardier Global 7500 (private jet)', 'jet'], ['c68a', 'Cessna Citation Latitude (private jet)', 'jet'],
+  ['lj75', 'Learjet 75 (private jet)', 'jet'], ['e55p', 'Embraer Phenom 300E (private jet)', 'jet'],
   ['prop', 'Cessna 172', 'prop'], ['c130', 'C-130 Hercules', 'c130'], ['fighter', 'F-16 Fighting Falcon', 'fighter'], ['b2', 'B-2 Spirit', 'b2'], ['heli', 'Bell 206 helicopter', 'heli']];
 /* minimum runway (m) each type may depart from / land on — widebodies only fit IAH-class runways */
-const RWY_NEED = { b737: 2000, a320: 2000, b787: 2700, a350: 2700, b777: 2900, b747: 3000, a380: 3000, c130: 1200, fighter: 1500, prop: 0, heli: 0 };
+const RWY_NEED = { b737: 2000, a320: 2000, b757: 1900, b767: 2500, a321: 2100, a330: 2700, a220: 1500, e175: 1400, g650: 1800, gl75: 1800, c68a: 1100, lj75: 1400, e55p: 1000, b787: 2700, a350: 2700, b777: 2900, b747: 3000, a380: 3000, conc: 3200, c130: 1200, fighter: 1500, prop: 0, heli: 0 };
 const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a, 0x14a3a3, 0x5bb8ff, 0xd94f8a, 0x8cc63f, 0x9aa3ad, 0x6e1f2b];
 /* accent palette (cheat-line, tail, nose, engines); -1 = none */
 const PLANE_ACCENTS = [0xc23a2c, 0x5bb8ff, 0x2b5ea8, 0x1b2a4a, 0xd9a441, 0xe6c34a, 0xf3f4f6, 0x9aa3ad, 0x1a1c22, 0x1a6b4a, 0xff7a1a, 0xd94f8a, 0x5a2d7a, 0x14a3a3];
@@ -94,7 +98,79 @@ function loadPrefs() {
 function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } }
 
 /* Tour car — Lambert mats for FPS; full cabin only on the player vehicle (detail=true) */
-function makeTourCar(color, style, detail = true) {
+/* sport-touring motorbike (~2.1 m): tank, seat, engine, forks and bars; no rider */
+function makeTourMoto(color, detail = true) {
+  const g = new THREE.Group();
+  const paint = new THREE.MeshPhysicalMaterial({ color, metalness: 0.45, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.08 });
+  const chrome = new THREE.MeshStandardMaterial({ color: 0xd8dde2, metalness: 1, roughness: 0.2 });
+  const black = new THREE.MeshLambertMaterial({ color: 0x141618 });
+  const engM = new THREE.MeshStandardMaterial({ color: 0x3a3e44, metalness: 0.7, roughness: 0.4 });
+  const tyre = new THREE.MeshStandardMaterial({ color: 0x121416, roughness: 0.92 });
+  const add = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.rotation.set(rx, ry, rz); g.add(me); return me; };
+  const box = (w, h, l, m, x, y, z, rx = 0) => add(new THREE.BoxGeometry(w, h, l), m, x, y, z, rx);
+  const wr = 0.33, zF = 0.74, zR = -0.72;
+  for (const z of [zF, zR]) {
+    add(new THREE.TorusGeometry(wr - 0.06, 0.065, 8, detail ? 20 : 12), tyre, 0, wr, z, 0, Math.PI / 2);
+    add(new THREE.CylinderGeometry(wr - 0.1, wr - 0.1, 0.05, detail ? 14 : 8), chrome, 0, wr, z, 0, 0, Math.PI / 2);
+    add(new THREE.CylinderGeometry(0.13, 0.13, 0.07, 10), engM, 0.06, wr, z, 0, 0, Math.PI / 2); /* brake disc */
+  }
+  box(0.2, 0.08, 1.1, engM, 0, 0.5, -0.05, 0.12);                                   /* frame spine */
+  box(0.34, 0.24, 0.55, paint, 0, 0.86, 0.22, -0.12);                              /* fuel tank */
+  box(0.3, 0.09, 0.62, black, 0, 0.86, -0.34, 0.05);                               /* seat */
+  box(0.24, 0.16, 0.48, paint, 0, 0.82, -0.75, -0.18);                             /* tail cowl */
+  box(0.36, 0.3, 0.42, engM, 0, 0.5, 0.12);                                         /* engine */
+  box(0.4, 0.2, 0.3, paint, 0, 0.62, 0.48, 0.3);                                    /* side fairing */
+  add(new THREE.CylinderGeometry(0.045, 0.06, 0.8, 8), chrome, 0.16, 0.34, -0.4, Math.PI / 2 - 0.2); /* exhaust */
+  for (const sd of [-1, 1]) add(new THREE.CylinderGeometry(0.025, 0.025, 0.72, 6), chrome, sd * 0.1, 0.68, 0.62, -0.42); /* forks */
+  box(0.68, 0.035, 0.035, black, 0, 1.06, 0.48);                                    /* handlebar */
+  for (const sd of [-1, 1]) box(0.05, 0.05, 0.12, black, sd * 0.36, 1.06, 0.46);   /* grips */
+  box(0.18, 0.1, 0.03, black, 0, 1.08, 0.58);                                       /* gauge pod */
+  add(new THREE.PlaneGeometry(0.34, 0.2), new THREE.MeshStandardMaterial({ color: 0x2a3640, metalness: 0.6, roughness: 0.05, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }), 0, 1.16, 0.66, -0.5); /* screen */
+  box(0.12, 0.04, 0.32, paint, 0, 0.66, zF + 0.04);                                 /* front mudguard */
+  const head = new THREE.MeshBasicMaterial({ color: 0xfff2c8, transparent: true, opacity: 1 });
+  const tail = new THREE.MeshBasicMaterial({ color: 0xd0141c, transparent: true, opacity: 1 });
+  add(new THREE.CylinderGeometry(0.08, 0.08, 0.04, 14), head, 0, 0.92, 0.72, Math.PI / 2);
+  box(0.14, 0.05, 0.03, tail, 0, 0.84, -1.0);
+  const pools = [];
+  if (detail) {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 128; const x = c.getContext('2d');
+    const gr = x.createRadialGradient(16, 10, 1, 16, 40, 70); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 32, 128);
+    const pm = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), color: 0xeef4ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    const pool = add(new THREE.PlaneGeometry(2.2, 12), pm, 0, 0.08, 6.5, -Math.PI / 2); pool.renderOrder = 4; pool.userData.lit = true; pools.push(pm);
+  }
+  /* rider: helmet with a dark visor, riding jacket and trousers, gloves on the grips, knees on the tank, boots on the pegs */
+  const rider = new THREE.Group(); g.add(rider);
+  const suit = new THREE.MeshStandardMaterial({ color: 0x1d2026, roughness: 0.75 });
+  const pants = new THREE.MeshStandardMaterial({ color: 0x2a2e36, roughness: 0.85 });
+  const helmM = new THREE.MeshPhysicalMaterial({ color, metalness: 0.3, roughness: 0.25, clearcoat: 1 });
+  const visorM = new THREE.MeshStandardMaterial({ color: 0x0b0e12, metalness: 0.8, roughness: 0.1 });
+  const V = (x, y, z) => new THREE.Vector3(x, y, z), UP = V(0, 1, 0);
+  const limb = (a, b, r0, r1, m) => {
+    const d = new THREE.Vector3().subVectors(b, a), me = new THREE.Mesh(new THREE.CylinderGeometry(r1, r0, d.length(), 8), m);
+    me.position.copy(a).addScaledVector(d, 0.5); me.quaternion.setFromUnitVectors(UP, d.normalize()); rider.add(me); return me;
+  };
+  limb(V(0, 0.98, -0.42), V(0, 1.44, -0.08), 0.15, 0.17, suit).scale.x = 1.35;
+  limb(V(0, 1.4, -0.1), V(0, 1.52, -0.02), 0.07, 0.06, suit);
+  const hm = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 12), helmM); hm.position.set(0, 1.63, 0.03); hm.scale.set(1, 1, 1.12); rider.add(hm);
+  const vz = new THREE.Mesh(new THREE.SphereGeometry(0.153, 16, 6, Math.PI / 2 - 0.85, 1.7, Math.PI * 0.36, Math.PI * 0.2), visorM); hm.add(vz);
+  for (const sd of [-1, 1]) {
+    const sh = V(sd * 0.21, 1.42, -0.1), el = V(sd * 0.28, 1.2, 0.18), gr = V(sd * 0.34, 1.07, 0.44);
+    limb(sh, el, 0.055, 0.06, suit); limb(el, gr, 0.045, 0.05, suit);
+    const gl = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), black); gl.position.copy(gr); rider.add(gl);
+    const hip = V(sd * 0.14, 0.98, -0.4), kn = V(sd * 0.22, 0.92, 0.1), an = V(sd * 0.21, 0.5, -0.17);
+    limb(hip, kn, 0.085, 0.07, pants); limb(kn, an, 0.06, 0.05, pants);
+    const bt = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.13, 0.26), black); bt.position.set(sd * 0.21, 0.45, -0.12); rider.add(bt);
+    add(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), chrome, sd * 0.25, 0.4, -0.16, 0, 0, Math.PI / 2);
+  }
+  g.userData.rider = rider;
+  g.userData.paint = paint; g.userData.moto = true;
+  g.userData.carLights = { head, tail, pools, lenses: [], spots: [], pool: pools[0] || null };
+  return g;
+}
+
+export function makeTourCar(color, style, detail = true) {
+  if (style === 'moto') return makeTourMoto(color, detail);
   const g = new THREE.Group();
   /* clear-coated metallic paint, tinted glass and real chrome (PBR) so the tour car reads like a real car, not a toy */
   const paint = new THREE.MeshPhysicalMaterial({ color, metalness: 0.45, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.08 });
@@ -366,7 +442,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function chooseAircraft() {
     const v = ($('tourAc') || {}).value || '', a = AIRCRAFT.find((q) => q[0] === v);
     if (!a) { note('Choose your aircraft first — Boeing, Airbus, Cessna, C-130, F-16 or helicopter.'); const sl = $('tourAc'); if (sl) sl.focus(); return false; }
-    S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0];
+    S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0]; if (a[0] === 'conc') S.supersonic = true;
     persistVeh(); return true;
   }
   function beginTour(dest, opts) {
@@ -519,6 +595,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     suv: { ring: '#2f6f9f', face: '#040a12', nd: '#46b4ff', rp: '#46b4ff', acc: '#7fc8ff', badge: 'SUV', lay: 'digital' },
     pickup: { ring: '#aab2ba', face: '#0b0a08', nd: '#ffb020', rp: '#ffb020', acc: '#e8c43a', badge: '4X4', lay: 'twin', extra: 1 },
     coupe: { ring: '#b3202a', face: '#050505', nd: '#ff2a2a', rp: '#ff2a2a', acc: '#ff5a3a', badge: 'GT', lay: 'sport' },
+    moto: { ring: '#e8742a', face: '#050505', nd: '#ff7a1a', rp: '#ff7a1a', acc: '#ffa040', badge: 'MOTO', lay: 'sport' },
     van: { ring: '#56606a', face: '#0a0c0e', nd: '#ffffff', rp: '#31d06a', acc: '#9aa3ab', badge: 'VAN', lay: 'digital' },
   };
   const ndl = (id, cx, cy, r, max, col, w) => '<line id="' + id + '" data-c="' + cx + ',' + cy + ',' + r + ',' + max + '" x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (cy - r) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>';
@@ -858,7 +935,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     }
   }
   function drawDash() {
-    const show = S.view === 'driver' || S.view === 'cockpit';
+    const show = (S.view === 'driver' && S.carStyle !== 'moto') || S.view === 'cockpit'; /* on the bike the 3D bars and gauge pod are the view */
     const carDriver = show && S.kind === 'car';
     dash.classList.toggle('on', show);
     dash.classList.toggle('carOn', carDriver);
@@ -961,7 +1038,13 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     return s === 'heli' ? 'heli' : s === 'fighter' ? 'fighter' : s === 'c130' ? 'turboprop' : s === 'jet' || s === 'b2' ? 'jet' : 'prop';
   }
   /* Model origin → wheel / skid bottom (userData.gearDrop) so tyres sit on the runway deck instead of sinking into it */
-  function groundClear() { const ud = S.obj && S.obj.userData; return ud && ud.gearDrop != null ? ud.gearDrop * S.obj.scale.y + 0.15 - 1.4 : 0; }
+  function groundClear() {
+    const ud = S.obj && S.obj.userData; if (!ud || ud.gearDrop == null) return 0;
+    /* long-legged types (Concorde) pitch ~12° on rotation and flare: keep the lowest tyre on the deck, not just the centre */
+    let d = ud.gearDrop;
+    if (ud.gearPts && S.p.y < 60) { const p = S.pitch || 0, c = Math.cos(p), s = Math.sin(p); for (const [y, z] of ud.gearPts) d = Math.max(d, -(y * c + z * s)); }
+    return d * S.obj.scale.y + 0.15 - 1.4;
+  }
   /* Retractable gear (jet, F-16, C-130): down on the ground, up once climbing past ~200 ft, down again ~5 nm out. Cessna gear and heli skids are fixed. */
   function gearWanted() {
     if (!/^(jet|fighter|turboprop)$/.test(S.acClass || '')) return true;
@@ -976,6 +1059,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const t = want ? 1 : 0, step = dt / 6; /* ~6 s gear cycle */
     S._gearK = S._gearK == null ? t : S._gearK + Math.max(-step, Math.min(step, t - S._gearK));
     g.scale.y = Math.max(0.02, S._gearK); g.visible = S._gearK > 0.03;
+    const nd = S.obj.userData.noseDroop; if (nd) nd.rotation.x = 0.21 * S._gearK; /* Concorde droop nose: down with the gear, up for supersonic cruise */
   }
   /* Engine power 0–1 by flight phase (drives N1/RPM gauges and engine sound) */
   function enginePwr(dt) {
@@ -1028,7 +1112,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       ? '<span style="color:#8a96a3;align-self:center">Cruise</span>' + [0, 30, 40, 50, 60, 70, 80, 90, 100].map((x) => '<button data-cruise="' + x + '" class="' + (S.cruise === x ? 'on' : '') + '">' + (x ? x : 'Limit +5') + '</button>').join('')
         + '<span style="color:#8a96a3;align-self:center;margin-left:6px">Time</span>' + [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '" title="Speed the whole drive up ×' + x + ' (ETA stays real)">×' + x + '</button>').join('')
       : [1, 2, 4, 10].map((x) => '<button data-sx="' + x + '" class="' + (S.speedX === x ? 'on' : '') + '">×' + x + '</button>').join('')
-        + (S.kind === 'plane' && S.wx && /^(jet|fighter)$/.test(S.planeStyle) ? '<button data-ss="1" class="' + (S.supersonic ? 'on' : '') + '" title="Optional: cruise at Mach 2 (about 1,150 kt) once above 30,000 ft. The ETA follows your real speed.">Supersonic</button>' : '')
+        + (S.kind === 'plane' && (S.wx || S.jetModel === 'conc') && /^(jet|fighter)$/.test(S.planeStyle) ? '<button data-ss="1" class="' + (S.supersonic ? 'on' : '') + '" title="Optional: cruise at Mach 2 (about 1,150 kt) once above 30,000 ft. The ETA follows your real speed.">Supersonic</button>' : '')
         + (S.kind === 'plane' && S.planeStyle !== 'heli' ? '<button data-park="1" class="' + (S.taxiPark !== false ? 'on' : '') + '" title="After landing, leave the runway and taxi to an apron parking spot">Taxi to park</button>' : '')
         + (flyOnHtml());
     function flyOnHtml() {
@@ -1075,7 +1159,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.classList.toggle('hid', !!S.hudHid);
     hudPeek.classList.toggle('on', !!(S.mode && S.hudHid));
     hud.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.getAttribute('data-view'))));
-    hud.querySelectorAll('[data-ss]').forEach((b) => b.addEventListener('click', () => { S.supersonic = !S.supersonic; note(S.supersonic ? 'Supersonic: Mach 2 above 30,000 ft' : 'Normal cruise speed'); renderHud(); }));
+    hud.querySelectorAll('[data-ss]').forEach((b) => b.addEventListener('click', () => { S.supersonic = !S.supersonic; note(S.supersonic ? (S.wx ? 'Supersonic: Mach 2 above 30,000 ft' : 'Supersonic on: Mach 2.02 at 55,000 ft on flights to other cities (pick one in Land at)') : 'Normal cruise speed'); renderHud(); }));
     hud.querySelectorAll('[data-sx]').forEach((b) => b.addEventListener('click', () => { S.speedX = +b.getAttribute('data-sx'); renderHud(); }));
     hud.querySelectorAll('[data-cruise]').forEach((b) => b.addEventListener('click', () => { S.cruise = +b.getAttribute('data-cruise'); renderHud(); }));
     hud.querySelectorAll('[data-park]').forEach((b) => b.addEventListener('click', () => { S.taxiPark = S.taxiPark === false; renderHud(); }));
@@ -1159,7 +1243,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       ['mAltWrap', 'mVsWrap', 'mHdgWrap'].forEach((id) => { const el = hud.querySelector('#' + id); if (el) el.style.display = 'none'; });
     } else {
       mSpd.textContent = String(Math.round(S.v / KT));
-      if (mSpdU) mSpdU.textContent = 'kt';
+      /* Mach (speed of sound ~573 kt in the stratosphere, ~661 kt at sea level) */
+      if (mSpdU) { const kt = S.v / KT, a = 661 - Math.min(1, altFt() / 36000) * 88; mSpdU.textContent = kt > 0.6 * a ? 'kt · M' + (kt / a).toFixed(2) : 'kt'; }
       const aw = hud.querySelector('#mAltWrap'), vw = hud.querySelector('#mVsWrap'), hw = hud.querySelector('#mHdgWrap');
       if (aw) { aw.style.display = ''; const a = hud.querySelector('#mAlt'); if (a) a.textContent = altFt().toLocaleString(); }
       if (vw) { vw.style.display = ''; const v = hud.querySelector('#mVs'); if (v) { const fpm = vsFpm(); v.textContent = (fpm >= 0 ? '+' : '') + fpm; } }
@@ -1176,7 +1261,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
         const at = new Date(Date.now() + et * 1000 / Math.max(1, S.speedX));
         const e = hud.querySelector('#mEta');
         if (e) {
-          const clock = clockTz(S.destTz, at);
+          const clock = clockTz(S.destTz || 'America/Chicago', at); /* Houston airports: Houston time, not the device zone */
           if (et < 25) e.textContent = 'Now · ' + clock;
           else if (et < 105) e.textContent = Math.round(et) + 's · ' + clock;
           else e.textContent = fmtDur(et) + ' · ' + clock;
@@ -1289,7 +1374,7 @@ function icRealLeft(x, z, t) {
       turn = Math.max(turn, Math.abs(d)); dist = P[j + 1].s - P[i].s; j++;
     }
     if (turn < 0.05) return 1e9;
-    return Math.sqrt(3 * Math.max(15, dist) / turn);
+    return Math.sqrt((S.obj && S.obj.userData.moto ? 4.5 : 3) * Math.max(15, dist) / turn); /* a bike leans through bends faster */
   }
 
   /* ---------- start / stop ---------- */
@@ -1484,14 +1569,14 @@ function icRealLeft(x, z, t) {
         S.icDrive = !!opts.icRoute; S.icTitle = (S.icDrive && opts.title) || null;
         if (S.icDrive) { if (opts.onRoute) try { opts.onRoute(S.icTo ? S.route.slice(0, S.icTo + 1) : S.route, S.icFrom || 0); } catch (e) { console.warn('[intercity] highway', e); }
           note('Driving to ' + dest.n + ' · ' + Math.round(S.route[0].rr / 1609.344) + ' mi on real highways · ×2 ×4 ×10 speed it up.'); }
-        S.phase = 'drive'; S.tripLen = S.route[S.route.length - 1].s; S.lane = null; S.latCur = 0; S._lcw = null; S._ffT = 0; S._ffTry = 0;
+        S.phase = 'drive'; S.tripLen = S.route[S.route.length - 1].s; S.lane = null; S.filter = false; S.latCur = 0; S._lcw = null; S._ffT = 0; S._ffTry = 0;
       }
       spawnVehicle();
       if (mode === 'tour') spawnEscorts();
     } else {
       if (mode === 'tour') {
         if (opts.arrive) { S.planeStyle = 'jet'; S.jetModel = opts.arrive.type || 'b787'; }
-        if (opts.ac) { const a = AIRCRAFT.find((q) => q[0] === opts.ac); if (a) { S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0]; } }
+        if (opts.ac) { const a = AIRCRAFT.find((q) => q[0] === opts.ac); if (a) { S.planeStyle = a[2]; if (a[2] === 'jet') S.jetModel = a[0]; if (a[0] === 'conc') S.supersonic = true; } }
         /* intercity: the trip's real airports join the list so Land at / runways work exactly like Houston's */
         { const base = (S.apts && S.apts.length ? S.apts : (airports() || [])).filter((a) => !a.world);
           S.apts = opts.world ? base.concat(opts.world.apts || []) : base; }
@@ -1660,7 +1745,7 @@ function icRealLeft(x, z, t) {
     try { music.clearDriverPin(); } catch (e) { /* ignore */ }
     music.stop();
     hud.classList.remove('on', 'hid'); hudPeek.classList.remove('on');
-    pad.classList.remove('on'); dash.classList.remove('on', 'carOn'); window._followOff = { x: 0, z: 0 }; _winOn = false; document.body.classList.remove('hts-winview');
+    pad.classList.remove('on'); dash.classList.remove('on', 'carOn'); window._followOff = { x: 0, z: 0 }; 
     if (camera.fov !== 55) { camera.fov = 55; camera.updateProjectionMatrix(); }
     camera.up.set(0, 1, 0); camGoal.radius = Math.max(camGoal.radius, 600); camGoal.phi = 0.95;
   }
@@ -1668,7 +1753,7 @@ function icRealLeft(x, z, t) {
   /* ---------- per-frame ---------- */
   const o = {}, v3 = new THREE.Vector3(), look = new THREE.Vector3();
   /* nearest simulated car ahead in our lane, and red/amber stop lines ahead → IDM virtual leaders */
-  function leaderAhead(T, px, pz, hd, maxD) {
+  function leaderAhead(T, px, pz, hd, maxD, latW = 1.7) {
     let gap = maxD, lv = 30;
     const fx = Math.sin(hd), fz = Math.cos(hd);
     if (T && T.active) for (const c of T.active) {
@@ -1677,7 +1762,7 @@ function icRealLeft(x, z, t) {
         if (car._px == null) continue;
         const dx = car._px - px, dz = car._pz - pz, along = dx * fx + dz * fz;
         if (along < 1 || along - 4.6 > gap) continue;
-        if (Math.abs(dx * fz - dz * fx) > 1.7 || (car._fx * fx + car._fz * fz) < 0.75) continue;
+        if (Math.abs(dx * fz - dz * fx) > latW || (car._fx * fx + car._fz * fz) < 0.75) continue;
         gap = along - 4.6; lv = car.v;
       }
     }
@@ -1690,8 +1775,8 @@ function icRealLeft(x, z, t) {
     });
     return [gap, lv];
   }
-  function idm(v, v0, gap, lv) {
-    const a = 2.2, b = 3.2, s0 = 3, Th = 1.3;
+  function idm(v, v0, gap, lv, a = 2.2) {
+    const b = 3.2, s0 = 3, Th = 1.3;
     const ss = s0 + Math.max(0, v * Th + (v * (v - lv)) / (2 * Math.sqrt(a * b)));
     return a * (1 - Math.pow(Math.max(0, v) / Math.max(1, v0), 4) - Math.pow(ss / Math.max(0.5, gap), 2));
   }
@@ -1768,7 +1853,7 @@ function icRealLeft(x, z, t) {
     const at = (k) => [o.x + o.lx * (ln - 1 - k) * lw, o.z + o.lz * (ln - 1 - k) * lw];
     if (remain < 140) S.lane = 0; /* destination: stop in the kerb-side lane, centred */
     else if (S.lane < 0) S.lane = 0;
-    else if (S._lcT <= 0 && S.v > 4 && ln > 1) {
+    else if (S._lcT <= 0 && S.v > 4 && ln > 1 && !S.filter) {
       S._lcT = 1;
       const mustRight = remain < 900 || exitAhead(P, o.i, 700);
       if (mustRight && S.lane > 0) { const q = at(S.lane - 1); if (laneClear(T, q[0], q[1], S.hd)) { S.lane--; S._lcT = 4; } }
@@ -1785,7 +1870,8 @@ function icRealLeft(x, z, t) {
     /* the offset is measured from the route's lane line, which itself jumps at every road change (freeway -> 1-lane ramp):
        re-target instantly there and always clamp to the paved lanes, so the car can never slide off the road */
     const hi = (ln - 1) * lw; /* never past the centre of the kerb-side lane */
-    const tgt = Math.max(0, Math.min(hi, (ln - 1 - S.lane) * lw)), step = Math.max(0.6, lw / 3) * dt; /* ~3 s per lane */
+    /* filtering motorbike rides on the lane line between this lane and the next one out */
+    const tgt = Math.max(0, Math.min(hi, (ln - 1 - S.lane) * lw - (S.filter ? lw / 2 : 0))), step = Math.max(0.6, lw / (S.filter ? 1.6 : 3)) * dt; /* ~3 s per lane */
     const cw = ln + ':' + lw.toFixed(2) + ':' + (o.name || '');
     let prev = Math.max(0, Math.min(hi, S.latCur || 0));
     if (S._lcw !== cw) { if (S._lcw != null) prev = tgt; S._lcw = cw; }
@@ -1816,6 +1902,24 @@ function icRealLeft(x, z, t) {
     S.route = P2; S.s = 0; S._si = 0; S.tripLen = end2.s; S._eta = null; S._etaF = 0;
     note('Taking the exit for ' + (S.dest.n || 'your destination') + ' · parking on ' + (end2.name || 'a side street') + '.');
   }
+  /* motorbike lane filtering (as real riders do): when the traffic ahead slows below ~20 mph on a multi-lane road, ride
+     the gap on the lane line, at most ~10 mph faster than the cars alongside and never over 50 mph; it still stops for
+     red lights and anything right in the gap, and slots back into a clear lane when traffic speeds up or the exit nears */
+  function motoFilter(T, P, o, gap, lv) {
+    const ln = Math.max(1, o.ln || 1), lw = o.lw || 3.5, remain = S.remain != null ? S.remain : 1e9;
+    const can = ln > 1 && lw >= 2.9 && remain > 300 && !exitAhead(P, o.i, 500) && (S.lane || 0) < ln - 1;
+    const [tg, tv] = leaderAhead(T, S.p.x, S.p.z, S.hd, 120, 2.9);
+    if (!S.filter) { if (can && gap < 45 && lv < 9) S.filter = true; }
+    else if (!can || tg > 90 || tv > 13) {
+      const q = (k) => [o.x + o.lx * (ln - 1 - k) * lw, o.z + o.lz * (ln - 1 - k) * lw];
+      const a = q(S.lane || 0), b = q((S.lane || 0) + 1);
+      if (!can || laneClear(T, a[0], a[1], S.hd)) S.filter = false;
+      else if ((S.lane || 0) < ln - 1 && laneClear(T, b[0], b[1], S.hd)) { S.lane = (S.lane || 0) + 1; S.filter = false; }
+    }
+    if (!S.filter) return null;
+    const [g2, l2] = leaderAhead(T, S.p.x, S.p.z, S.hd, 200, 0.95);
+    return [g2, l2, tg < 120 ? tv : 99];
+  }
   function stepCar(dt) {
     const T = getTraffic && getTraffic();
     if (T && T.setEgo) T.setEgo(S.p.x, S.p.z, Math.abs(S.v));
@@ -1829,8 +1933,10 @@ function icRealLeft(x, z, t) {
       if (!S._cm || (S._cmT -= dt) <= 0 || S._cm.ff !== o.ff || S._cm.cr !== S.cruise) { S._cm = { v: cruiseMps(o.ff, o.x, o.z), ff: o.ff, cr: S.cruise }; S._cmT = 0.5; }
       const v0 = Math.min(S._cm.v, curveLimit(P, o.i));
       let [gap, lv] = leaderAhead(T, S.p.x, S.p.z, S.hd, 200);
+      const moto = !!(S.obj && S.obj.userData.moto); let vCap = 1e9;
+      if (moto) { const f = motoFilter(T, P, o, gap, lv); if (f) { gap = f[0]; lv = f[1]; vCap = Math.min(22, f[2] + 4.5); } } else S.filter = false;
       if (end - S.s - 2 < gap) { gap = Math.max(0.1, end - S.s - 2); lv = 0; }
-      const acc = Math.max(-7, idm(S.v, v0, gap, lv));
+      const acc = Math.max(-7, idm(S.v, Math.min(v0, vCap), gap, lv, moto ? 3.4 : 2.2));
       S.v = Math.max(0, S.v + acc * dt);
       const ds = S.v * dt; S.s = Math.min(end, S.s + ds * (o.k || 1)); S.odo += ds; /* intercity: map metres per real metre */
       sampleAt(P, S.s, o);
@@ -1857,7 +1963,10 @@ function icRealLeft(x, z, t) {
       const ang = steer * 0.52 / (1 + Math.abs(S.v) / 14);
       S.hd += S.v / 2.7 * Math.tan(ang) * dt;
       S.p.x += Math.sin(S.hd) * S.v * dt; S.p.z += Math.cos(S.hd) * S.v * dt; S.odo += Math.abs(S.v) * dt;
-      const R = getRoads && getRoads(), h = R && R.heightAt ? R.heightAt(S.p.x, S.p.z, S.p.y) : null;
+      const R = getRoads && getRoads();
+      let h = R && R.heightAt ? R.heightAt(S.p.x, S.p.z, S.p.y) : null;
+      /* outside Houston: the embedded city's own road decks (other cities' streets sit 0.3–1.4 m up) */
+      if (h == null && window.HTS_IC_ROAD_Y) h = window.HTS_IC_ROAD_Y(S.p.x, S.p.z, S.p.y);
       const gy = h != null && Math.abs(h - S.p.y) < 2.5 ? h + 0.02 : (S.p.y > 1.2 && h == null ? S.p.y : 0.27);
       S.p.y += (gy - S.p.y) * Math.min(1, dt * 10);
       /* Street / limit filled by CarPlay probe in drawDash (throttled) */
@@ -1865,6 +1974,12 @@ function icRealLeft(x, z, t) {
     let dh = S.hd - h0; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI;
     S.yawRate += ((dt > 0 ? dh / dt : 0) - S.yawRate) * Math.min(1, dt * 6);
     S.obj.position.copy(S.p); S.obj.rotation.set(0, S.hd + (S.mode === 'tour' ? S.latYaw || 0 : 0), 0);
+    if (S.obj.userData.moto) { /* lean into turns: tan(lean) = v·yawRate / g */
+      const want = -Math.atan(Math.max(-1.2, Math.min(1.2, S.v * S.yawRate / 9.81)));
+      S.lean = (S.lean || 0) + (want - (S.lean || 0)) * Math.min(1, dt * 5);
+      S.obj.rotation.order = 'YXZ'; S.obj.rotation.z = S.lean;
+      if (S.obj.userData.rider) S.obj.userData.rider.visible = S.view !== 'driver'; /* you are the rider */
+    }
   }
   /* time to go along the rest of the route at the speed you would actually hold (cruise, limit, curves) */
   /* landing runway at an airport: longest OSM runway, landing in the direction we arrive from */
@@ -1983,7 +2098,7 @@ function icRealLeft(x, z, t) {
     let wantHd = S.hd, wantY = S.p.y, wantV = S.v;
     const jet = S.acClass === 'jet';
     const icx = !!(S.wx && S.mode === 'tour');
-    const cruiseKt = icx ? (S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && S.p.y > 29000 * FT ? 1150 : jet ? 480 : 260) : jet ? 220 : 110, climbKt = icx ? (jet ? 250 : 160) : jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = icx ? S.wx.alt : jet ? 3500 : 1500;
+    const cruiseKt = icx ? (S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && S.p.y > 29000 * FT ? (S.jetModel === 'conc' ? 1160 : 1150) : jet ? 480 : 260) : jet ? 220 : 110, climbKt = icx ? (jet ? 250 : 160) : jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = icx ? (S.supersonic && S.jetModel === 'conc' && S.wx.alt >= 30000 ? 55000 : S.wx.alt) : jet ? 3500 : 1500;
     if (S.mode === 'tour') {
       const D = S.dest, dx = D.x - S.p.x, dz = D.z - S.p.z, dist = Math.hypot(dx, dz), brg = Math.atan2(dx, dz);
       if (icx) {
@@ -2305,7 +2420,12 @@ function icRealLeft(x, z, t) {
       near = Math.max(0.3, d * 0.03);
     } else if (S.view === 'driver' || S.view === 'cockpit') {
       const lp = Math.max(-0.9, Math.min(0.9, pitchOff * 1.2)), ly = Math.max(-2.6, Math.min(2.6, yaw));
-      if (car) {
+      if (car && ob && ob.userData.moto) {
+        camera.position.copy(L(0, 1.62, 0.04)); /* rider's eyes, inside the helmet */
+        look.copy(L(Math.sin(-ly) * 30, -1.6 + Math.sin(lp) * 30, Math.cos(ly) * 30));
+        camera.up.set(0, 1, 0).applyQuaternion(ob.quaternion);
+        ob.visible = true;
+      } else if (car) {
         camera.position.copy(L(0.38, 1.22, 0.22));
         look.copy(L(Math.sin(-ly) * 30 + 0.38, 1.12 + Math.sin(lp) * 30, Math.cos(ly) * 30 + 0.5));
         /* the dashboard overlay is the cabin; hide the exterior so SUV/pickup/van hoods never block the road ahead,
@@ -2368,13 +2488,11 @@ function icRealLeft(x, z, t) {
     }
     if (S.view === 'chase' || S.view === 'orbit') { if (ob) ob.visible = true; }
     camera.lookAt(look);
-    { const wv = S.view === 'window' && !car; if (wv !== _winOn) { _winOn = wv; document.body.classList.toggle('hts-winview', wv); } } /* cabin window frame around the view */
     camera.userData.tourNearT = performance.now();
     /* high above the ground a tiny near plane wastes depth precision and the ground layers flicker: push it out with altitude */
     if (!car) { const agl = Math.max(0, camera.position.y); near = Math.max(near, Math.min(S.view === 'driver' || S.view === 'cockpit' ? 3 : Math.max(0.3, camera.position.distanceTo(S.p) * 0.35), agl * 0.012)); near = Math.round(near * 4) / 4 || near; }
     if (Math.abs(camera.near - near) > 0.01 || camera.fov !== fov) { camera.near = near; camera.fov = fov; camera.updateProjectionMatrix(); }
   }
-  let _winOn = false;
   function updateLights() {
     const nf = typeof window !== 'undefined' && window._nightF != null ? window._nightF : 0;
     if (dash && dash.classList.contains('night') !== nf > 0.35) dash.classList.toggle('night', nf > 0.35);
@@ -2440,7 +2558,8 @@ function icRealLeft(x, z, t) {
     const jet = S.acClass === 'jet';
     if (S.wx && /^(roll|climb|cruise)$/.test(S.phase)) {
       /* intercity: cruise at ~460 kt over the ground, slower on the descent, then a few minutes of approach */
-      const rr = S.remain || 0, cr = (S.acClass === 'jet' ? 480 : 260) * KT, gs = S.phase === 'cruise' ? Math.max(S.v || 0, cr * 0.6) : cr;
+      const ss = S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && S.wx.alt >= 30000 && (S.remain || 0) > 400000;
+      const rr = S.remain || 0, cr = (ss ? (S.jetModel === 'conc' ? 1160 : 1150) * 0.9 : S.acClass === 'jet' ? 480 : 260) * KT, gs = S.phase === 'cruise' ? Math.max(S.v || 0, cr * 0.6) : cr;
       return Math.max(0, rr - 60000) / gs + Math.min(rr, 60000) / (230 * KT) + 240 + (S.phase === 'roll' ? 60 : 0);
     }
     /* Short-final approach after orbit (matches startLanding joining final when near) */

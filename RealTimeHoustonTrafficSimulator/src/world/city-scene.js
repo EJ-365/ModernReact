@@ -294,7 +294,7 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
         carry = d - L;
       }
     }
-    graph.push({ cls, oneway: !!oneway, name, pts });
+    graph.push({ cls, oneway: !!oneway, name, pts, y, w: W[cls] });
   }
   for (const a of P.rail || []) sRail.add(dec(a, dl, q, kx, kz), 4, 0.26);
   /* suburbs like Houston: houses along residential streets outside the OSM building core, street trees */
