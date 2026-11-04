@@ -522,6 +522,7 @@ function renderCard() {
     ${city && cs ? `<div class="row"><span>3D buildings</span><b>${cs.buildings ? cs.buildings.toLocaleString() : (c.full ? 'full simulator' : '—')}</b></div>` : ''}
     <div class="acts">
       ${mode === 'globe' ? `<button class="wbtn pri" data-a="visit">${c.full ? 'Open Houston' : 'Visit ' + c.name}</button>` : ''}
+      ${mode === 'globe' && !c.full && window.HTS_CITIES && window.HTS_CITIES[c.id] ? `<button class="wbtn" data-a="pack">Open ${c.name} traffic</button>` : ''}
       ${city ? `<button class="wbtn pri" data-a="fly">Fly to…</button>` : ''}
       ${city ? `<button class="wbtn" data-a="drive" ${c.drive ? '' : 'disabled title="Driving is available in the Americas"'}>Drive to Houston</button>` : ''}
       ${city ? `<button class="wbtn" data-a="apt">Airport</button>` : ''}
@@ -562,6 +563,13 @@ async function cardAction(a) {
   if (a.startsWith('look-')) { if (cs && cs.setLook) cs.setLook(a.slice(5)); renderCard(); return; }
   if (a === 'min') { cardMin = !cardMin; try { localStorage.setItem('hts-wcard-min', cardMin ? '1' : '0'); } catch { /* private mode */ } renderCard(); return; }
   if (a === 'visit') selectCity(c, true);
+  else if (a === 'pack' && c && window.HTS_CITIES && window.HTS_CITIES[c.id]) {
+    /* Full researched traffic pack (Texas metros first) — reloads app-main with ?city= */
+    const u = new URL(location.href);
+    u.searchParams.set('city', c.id);
+    location.href = u.pathname + u.search + u.hash;
+    return;
+  }
   else if (a === 'from') { await enterCity(c); cardAction('fly'); }
   else if (a === 'fly') { flyOpen = !flyOpen; const f = ui.card.querySelector('#wFly'); if (f) f.style.display = flyOpen ? 'block' : 'none'; }
   else if (a === 'go') {

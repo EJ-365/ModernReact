@@ -5,6 +5,7 @@ import { houstonManifest } from './houston/manifest.js';
 import { austinManifest } from './austin/manifest.js';
 import { sanantonioManifest } from './sanantonio/manifest.js';
 import { dallasManifest } from './dallas/manifest.js';
+import { elpasoManifest } from './elpaso/manifest.js';
 import { losangelesManifest } from './losangeles/manifest.js';
 import { newyorkManifest } from './newyork/manifest.js';
 import { bostonManifest } from './boston/manifest.js';
@@ -25,6 +26,7 @@ export const CITY_PACKS = Object.freeze({
   austin: austinManifest,
   sanantonio: sanantonioManifest,
   dallas: dallasManifest,
+  elpaso: elpasoManifest,
   losangeles: losangelesManifest,
   newyork: newyorkManifest,
   boston: bostonManifest,

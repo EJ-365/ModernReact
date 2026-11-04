@@ -8,7 +8,7 @@ import { loadOsmCity } from '../render/osm-city.js';
 import { subSolar, llToVec } from './globe.js';
 
 const D2R = Math.PI / 180;
-const DRY = new Set(['cairo', 'dubai', 'delhi', 'mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas']);
+const DRY = new Set(['cairo', 'dubai', 'delhi', 'mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas', 'elpaso']);
 const RIGHT_HAND_CENTRE_YELLOW = new Set(['United States', 'Canada', 'Mexico']);
 
 export function localGeo(lat0, lng0) {
@@ -92,7 +92,7 @@ function dashTex() {
   const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 64, 4); g.fillStyle = '#fff'; g.fillRect(0, 0, 26, 4);
   const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t;
 }
-const DESERT = new Set(['cairo', 'dubai', 'lasvegas', 'phoenix', 'lima']);
+const DESERT = new Set(['cairo', 'dubai', 'lasvegas', 'phoenix', 'lima', 'elpaso']);
 const ARID = new Set(['mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas', 'delhi', 'santiago', 'casablanca', 'denver', 'johannesburg', 'capetown', 'sydney', 'melbourne', 'rome', 'istanbul', 'beijing']);
 const TROPIC = new Set(['singapore', 'bangkok', 'manila', 'mumbai', 'lagos', 'accra', 'cancun', 'miami', 'riodejaneiro', 'saopaulo', 'bogota', 'nairobi', 'hongkong', 'shenzhen', 'guangzhou']);
 /* Land cover from above, researched per city (km offsets: +x east, +z south). base: natural cover; ur: urban areas [x, z, radius];
@@ -108,6 +108,8 @@ const COVER = {
   dallas: { base: ['#8f9565', '#86905c', '#9a9a6a', '#7b8655'], urban: '#a29d90', ur: [[0, 0, 28], [-48, 3, 14]], feat: [['farm', 0, -55, 40, 15, 0]] },
   austin: { base: ['#7f8a58', '#728050', '#8c9262', '#6a7a4a'], urban: '#a09c8e', ur: [[0, 0, 16], [0, -25, 8]], feat: [['forest', -26, 0, 14, 40, 0.2], ['farm', 30, 0, 18, 40, 0]] },
   sanantonio: { base: ['#8d8f62', '#99956a', '#7f8656', '#a09a6c'], urban: '#a59f90', ur: [[0, 0, 20]], feat: [['forest', -20, -28, 22, 10, -0.5], ['farm', 15, 25, 20, 12, 0]] },
+  /* Chihuahuan Desert + Franklin Mountains ridge N of downtown; Rio Grande corridor S */
+  elpaso: { base: DESERT_C, urban: '#b0a490', ur: [[0, 0, 18], [18, -4, 12], [-14, -8, 10]], grid: 1, feat: [['mtn', 2, -18, 8, 28, 0.05], ['mtn', -6, -35, 6, 18, 0.1], ['farm', 35, 8, 16, 12, 0]] },
   newyork: { base: DECID, urban: '#9a968e', ur: [[0, 0, 26], [-16, 0, 12], [6, 14, 16], [18, -6, 14]], feat: [] },
   chicago: { base: ['#7a8a52', '#869656', '#6e8048', '#8f9a5e'], urban: '#a29e94', ur: [[-14, 0, 30]], grid: 1, feat: [['farm', -58, 0, 20, 60, 0], ['wpoly', [[-6, -60], [-2.5, -13], [1.3, 0], [8, 14], [23, 31], [90, 31], [90, -60]]]] },
   miami: { base: ['#6f8a58', '#7c9460', '#627e50', '#869a66'], urban: '#a7a396', ur: [[-6, -8, 16], [-8, 14, 10]], grid: 1, feat: [['wet', -42, 0, 20, 50, 0]] },

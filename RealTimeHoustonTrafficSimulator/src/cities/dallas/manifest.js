@@ -16,11 +16,12 @@ export const dallasManifest = {
     weatherProvider: 'open-meteo',
     timezone: 'America/Chicago',
   },
-  airportCodes: ['DFW', 'DAL', 'ADS'],
+  airportCodes: ['DFW', 'DAL', 'ADS', 'AFW'],
   boardAirports: {
     DFW: 'Dallas/Fort Worth International',
     DAL: 'Dallas Love Field',
     ADS: 'Addison Airport',
+    AFW: 'Fort Worth Alliance',
   },
 };
 

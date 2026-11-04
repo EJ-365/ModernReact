@@ -8,6 +8,7 @@ import { preferredBoardAirport } from './cities/airport-set.js';
 import { buildAustinRuntimePack } from './cities/austin/runtime.js';
 import { buildSanAntonioRuntimePack } from './cities/sanantonio/runtime.js';
 import { buildDallasRuntimePack } from './cities/dallas/runtime.js';
+import { buildElPasoRuntimePack } from './cities/elpaso/runtime.js';
 import { buildLosAngelesRuntimePack } from './cities/losangeles/runtime.js';
 import { buildNewYorkRuntimePack } from './cities/newyork/runtime.js';
 import { buildBostonRuntimePack } from './cities/boston/runtime.js';
@@ -28,6 +29,7 @@ const PACK_BUILDERS = {
   austin: buildAustinRuntimePack,
   sanantonio: buildSanAntonioRuntimePack,
   dallas: buildDallasRuntimePack,
+  elpaso: buildElPasoRuntimePack,
   losangeles: buildLosAngelesRuntimePack,
   newyork: buildNewYorkRuntimePack,
   boston: buildBostonRuntimePack,
@@ -176,6 +178,21 @@ function applyCityChrome(city, pack) {
   if (flEmpty && pack && pack.flightsEmpty) flEmpty.textContent = pack.flightsEmpty;
   const boardSub = document.querySelector('#tourBoardGrp .sublabel');
   if (boardSub && pack && pack.boardSublabel) boardSub.textContent = pack.boardSublabel;
+  if (city.id && city.id !== 'houston') {
+    let home = document.getElementById('htsCityHome');
+    if (!home) {
+      home = document.createElement('a');
+      home.id = 'htsCityHome';
+      home.href = location.pathname;
+      home.textContent = '← Houston';
+      home.title = 'Back to Houston full simulator';
+      home.style.cssText =
+        'position:fixed;bottom:12px;left:12px;z-index:40;padding:6px 10px;border-radius:8px;' +
+        'background:rgba(12,18,28,.82);color:#d8e4f0;font:600 12px/1.2 system-ui,sans-serif;' +
+        'text-decoration:none;border:1px solid rgba(255,255,255,.12)';
+      document.body.appendChild(home);
+    }
+  }
 }
 
 /** @param {any} pack */

@@ -61,7 +61,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.121.2. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.122.1. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -125,7 +125,20 @@ window.addEventListener('error',(ev)=>{
   console.error('[HTS]',ev.message,ev.filename,ev.lineno);
   try{
     const l=document.getElementById('loading');
-    if(l)l.innerHTML='<div class="lcopy"><div class="lsign">Traffic Simulation</div><div class="lsub" style="color:#ff8a7a">Boot error — open DevTools console.<br><span style="color:#aeb7c0;font-size:10px">'+(ev.message||'unknown')+'</span></div></div>';
+    if(!l)return;
+    const msg=String(ev.message||'unknown');
+    const webgl=/WebGL|webgl|CONTEXT_LOST|getContext/i.test(msg);
+    if(webgl){
+      try{sessionStorage.setItem('hts-webgl-soft','1');}catch(_e){}
+      l.innerHTML='<div class="lcopy"><div class="lsign">Traffic Simulation</div>'+
+        '<div class="lsub" style="color:#ff8a7a">Graphics context failed (GPU busy or recovered).<br>'+
+        '<span style="color:#aeb7c0;font-size:11px;line-height:1.45">Close other 3D tabs, wait a few seconds, then retry.<br>'+
+        '<button type="button" id="htsWebglRetry" style="margin-top:12px;padding:8px 14px;border-radius:8px;border:0;background:#2a6df4;color:#fff;font:600 13px system-ui;cursor:pointer">Retry graphics</button></span></div></div>';
+      const b=document.getElementById('htsWebglRetry');
+      if(b)b.onclick=()=>{try{sessionStorage.setItem('hts-webgl-soft','1');}catch(_e){} location.reload();};
+    }else{
+      l.innerHTML='<div class="lcopy"><div class="lsign">Traffic Simulation</div><div class="lsub" style="color:#ff8a7a">Boot error — open DevTools console.<br><span style="color:#aeb7c0;font-size:10px">'+msg+'</span></div></div>';
+    }
   }catch(e){}
 });
 setTimeout(()=>{
@@ -1041,11 +1054,52 @@ function keyCol(keys,h,out){const k=evalKeys(keys,h);_c1.set(k.a.v);_c2.set(k.b.
 const canvas=document.getElementById('scene');
 /* Windows: skip MSAA + DPR 1.0 — biggest free FPS win on this city mesh. */
 const _isWin=/Windows/i.test(navigator.userAgent||'');
-const renderer=new THREE.WebGLRenderer({canvas,antialias:!_isWin&&!HTS_PEEK,powerPreference:'high-performance',
-  stencil:false,depth:true,alpha:false,preserveDrawingBuffer:false,
-  /* reversed-Z depth (where the GPU supports it): the 1 m - 300 km view range no longer z-fights far-off land, roofs and lanes into blinking glitter */
-  reverseDepthBuffer:true});
-renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
+/* After a context-loss / failed create, prefer gentler GPU prefs so reload can recover */
+let _webglSoft=false;
+try{_webglSoft=sessionStorage.getItem('hts-webgl-soft')==='1';}catch(_e){}
+function createHtsRenderer(cv){
+  const base={canvas:cv,stencil:false,depth:true,alpha:false,preserveDrawingBuffer:false};
+  const soft=_webglSoft;
+  const tries=[
+    /* After context-loss, skip high-performance — that path often fails while the GPU is still recovering on Windows */
+    {...base, antialias:!_isWin&&!HTS_PEEK&&!soft, powerPreference:soft?'default':'high-performance', reverseDepthBuffer:!soft},
+    {...base, antialias:false, powerPreference:'default', reverseDepthBuffer:false},
+    {...base, antialias:false, powerPreference:'low-power', reverseDepthBuffer:false},
+    {...base, antialias:false, powerPreference:'default', reverseDepthBuffer:false, failIfMajorPerformanceCaveat:false},
+  ];
+  let lastErr=null;
+  for(let i=0;i<tries.length;i++){
+    try{
+      const r=new THREE.WebGLRenderer(tries[i]);
+      if(i>0||soft)console.warn('[HTS] WebGL ok with fallback #'+(i+1)+(soft?' (soft mode)':''));
+      try{if(i===0&&!soft)sessionStorage.removeItem('hts-webgl-soft');}catch(_e){}
+      return r;
+    }catch(e){
+      lastErr=e;
+      console.warn('[HTS] WebGL create try '+(i+1)+' failed',e&&e.message);
+    }
+  }
+  try{sessionStorage.setItem('hts-webgl-soft','1');}catch(_e){}
+  throw lastErr||new Error('THREE.WebGLRenderer: Error creating WebGL context.');
+}
+let renderer;
+try{
+  renderer=createHtsRenderer(canvas);
+}catch(e){
+  try{sessionStorage.setItem('hts-webgl-soft','1');}catch(_e){}
+  /* Surface a recoverable UI instead of an uncaught throw during module eval */
+  const l=document.getElementById('loading');
+  if(l){
+    l.innerHTML='<div class="lcopy"><div class="lsign">Traffic Simulation</div>'+
+      '<div class="lsub" style="color:#ff8a7a">Could not start 3D graphics.<br>'+
+      '<span style="color:#aeb7c0;font-size:11px;line-height:1.45">GPU context unavailable — close other heavy tabs, wait ~10s, then retry.<br>'+
+      '<button type="button" id="htsWebglRetry" style="margin-top:12px;padding:8px 14px;border-radius:8px;border:0;background:#2a6df4;color:#fff;font:600 13px system-ui;cursor:pointer">Retry graphics</button></span></div></div>';
+    const b=document.getElementById('htsWebglRetry');
+    if(b)b.onclick=()=>location.reload();
+  }
+  throw e;
+}
+renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin||_webglSoft?1:1.5)));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=(THREE.SRGBColorSpace||THREE.sRGBEncoding);
 /* shader error checks (getProgramInfoLog/getShaderInfoLog per program) only in ?debug; three.js recommends this off in production */
@@ -1055,25 +1109,50 @@ renderer.toneMappingExposure=1.12; /* weather-scaled each frame — clear days b
 canvas.addEventListener('webglcontextlost',(e)=>{
   e.preventDefault();
   console.warn('[HTS] WebGL context lost — waiting for restore');
-  clearTimeout(window._htsCtxT);window._htsCtxT=setTimeout(()=>{try{if(renderer.getContext().isContextLost())location.reload();}catch(_e){location.reload();}},4000);
+  try{sessionStorage.setItem('hts-webgl-soft','1');}catch(_e){}
+  /* Longer wait + rate-limit: rapid reload while GPU is still dead causes “Error creating WebGL context” on boot */
+  clearTimeout(window._htsCtxT);window._htsCtxT=setTimeout(()=>{
+    try{
+      const last=Number(sessionStorage.getItem('hts-autoreload')||0);
+      if(Date.now()-last<180000){console.warn('[HTS] skip context-lost reload (cooldown)');return;}
+      const gl=renderer.getContext();
+      if(gl&&gl.isContextLost()){
+        sessionStorage.setItem('hts-autoreload',String(Date.now()));
+        sessionStorage.setItem('hts-webgl-soft','1');
+        location.reload();
+      }
+    }catch(_e){/* ignore — don't force reload */}
+  },20000);
 },{passive:false});
 canvas.addEventListener('webglcontextrestored',()=>{
   clearTimeout(window._htsCtxT);
   try{
     renderer.setSize(innerWidth,innerHeight);
-    renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
+    renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin||_webglSoft?1:1.5)));
   }catch(_e){}
 });
-/* long-run safety net: frozen canvas (no successful paint) → soft reload instead of black screen */
+/* Frozen-canvas safety net — MUST NOT fire during boot/load or it reload-loops on slow PCs */
+const _htsBootAt=performance.now();
+let _htsStallHits=0;
 setInterval(()=>{
   if(document.visibilityState!=='visible')return;
+  if(document.getElementById('loading'))return;
+  if(!htsReadyFired)return;
+  if(performance.now()-_htsBootAt<180000)return; /* 3 min grace after open */
   const age=window._htsLastFrame?(performance.now()-window._htsLastFrame):0;
   const fails=window._htsFrameFail||0;
-  if((age>12000&&window._htsLastFrame)||fails>=180){
-    try{sessionStorage.setItem('hts-autoreload',String(Date.now()));}catch(_e){}
-    location.reload();
-  }
-},4000);
+  const stalled=(age>30000&&window._htsLastFrame)||fails>=400;
+  if(!stalled){_htsStallHits=0;return;}
+  if(++_htsStallHits<3)return; /* require three consecutive checks (~15s) */
+  try{
+    const last=Number(sessionStorage.getItem('hts-autoreload')||0);
+    if(Date.now()-last<180000){console.warn('[HTS] skip stall reload (cooldown)');_htsStallHits=0;return;}
+    sessionStorage.setItem('hts-autoreload',String(Date.now()));
+    sessionStorage.setItem('hts-webgl-soft','1');
+  }catch(_e){}
+  console.warn('[HTS] canvas stalled — soft reload');
+  location.reload();
+},5000);
 /* Cap anisotropy — high values stall texture uploads on Windows GPUs */
 const MAXAN=Math.min(_isWin?4:8,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
@@ -15119,18 +15198,22 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       window.HTS_SIGNS=signs;
       signs.ready.then(()=>setInterval(()=>signs.update(cam.target.x,cam.target.z,cam.radius),900))
         .catch((e)=>console.warn('[HTS] signs',e&&e.message));
-      /* Plane crash simulator — tour jets, multi-airport runway takeoff, then fail modes */
+      /* Plane crash simulator — deferred until Run (allocating a tour jet + FX on boot OOM'd Windows tabs) */
       try{
-        window.HTS_CRASH=createPlaneCrashSim({
-          scene,camera,cam,
-          makeAircraft:(type)=>tourJet(0xf3f5f7,0x1f4e9c,type),
-          getAirports:()=>AIRPORTS,
-          airportsUrl:'/data/houston/airports.json',
-          probeBuilding:(x,y,z)=>footHitsBldgAt(x,y,z),
-          cityAim:()=>({x:60,z:60}), /* downtown / metro origin — steer failed jets toward fabric */
-        });
         const crashSel=$('crashScenario'),crashApt=$('crashAirport'),crashAc=$('crashAircraft');
         const crashStat=$('crashStatus'),crashGo=$('crashStart'),crashStop=$('crashStop'),crashFollow=$('crashFollow');
+        function ensureCrashSim(){
+          if(window.HTS_CRASH)return window.HTS_CRASH;
+          window.HTS_CRASH=createPlaneCrashSim({
+            scene,camera,cam,
+            makeAircraft:(type)=>tourJet(0xf3f5f7,0x1f4e9c,type),
+            getAirports:()=>AIRPORTS,
+            airportsUrl:'/data/houston/airports.json',
+            probeBuilding:(x,y,z)=>footHitsBldgAt(x,y,z),
+            cityAim:()=>({x:60,z:60}),
+          });
+          return window.HTS_CRASH;
+        }
         if(crashSel&&CRASH_SCENARIOS){
           crashSel.innerHTML='';
           for(const sc of CRASH_SCENARIOS){const o=document.createElement('option');o.value=sc.id;o.textContent=sc.n;crashSel.appendChild(o);}
@@ -15141,7 +15224,7 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
         }
         if(crashApt){
           crashApt.innerHTML='';
-          const apts=(HTS_CRASH.airports&&HTS_CRASH.airports())||AIRPORTS||[];
+          const apts=AIRPORTS||[];
           for(const a of apts){
             const o=document.createElement('option');
             o.value=a.code;
@@ -15153,13 +15236,14 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
         if(crashGo)crashGo.addEventListener('click',()=>{
           if(window.HTS_TOUR&&HTS_TOUR.active)try{HTS_TOUR.stop();}catch(_e){}
           stopFollow();
+          const C=ensureCrashSim();
           const id=(crashSel&&crashSel.value)||'engine';
           const aptCode=(crashApt&&crashApt.value)||'IAH';
           const acType=(crashAc&&crashAc.value)||'b737';
           if(crashFollow)crashFollow.checked=true;
-          const sc=HTS_CRASH.start({scenario:id,airport:aptCode,aircraft:acType});
-          HTS_CRASH.follow=true;
-          HTS_CRASH.setSpeedX(1);
+          const sc=C.start({scenario:id,airport:aptCode,aircraft:acType});
+          C.follow=true;
+          C.setSpeedX(1);
           crashSetView('chase');
           if(crashStat)crashStat.textContent=(sc&&sc.blurb)||'Running…';
           showCrashHud(true);
@@ -15190,6 +15274,7 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
         });
         const stopCrashUi=()=>{
           /* Full teardown — Free look must not leave orbit/follow stuck on the map */
+          if(!window.HTS_CRASH){showCrashHud(false);return;}
           HTS_CRASH.stop();
           showCrashHud(false);
           setCrashDashVisible(false);
