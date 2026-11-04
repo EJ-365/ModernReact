@@ -45,6 +45,9 @@ Houston is the full simulator. Keep zooming out of Houston (or tap the globe but
 each with OSM 3D buildings, roads, water, its main airport, live weather and live aircraft. Fly airport to airport
 between any of them, including from Houston's plane tour ("Fly to another city": take off from IAH on the full Houston map, continue over the globe, land at that city's airport; flights into Houston return to the full Houston map for the IAH approach); Tour Houston → By car → "Drive to another city" takes the same tour car on real highways to Austin, Dallas, San Antonio, New York, Los Angeles, Chicago, Miami, Toronto, Vancouver, Mexico City, Cancún or Guadalajara; driving is available in the Americas cities.
 
+**Crash simulator** (Tour → By plane → Crash simulator): seven emergencies modelled on real accidents (US Airways 1549, BA 2276, Colgan 3407, Delta 191, LOT 16, Air France 358, the Gimli Glider) at any airport with runway data and with any fixed-wing aircraft. Pick a textbook or delayed/wrong crew response; each run ends with a lesson card on how pilots avoid it. No people are drawn.
+
+
 | Region | Cities |
 |--------|--------|
 | Texas | Houston (full), Austin, Dallas, San Antonio |

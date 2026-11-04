@@ -8,7 +8,7 @@ import { loadOsmCity } from '../render/osm-city.js';
 import { subSolar, llToVec } from './globe.js';
 
 const D2R = Math.PI / 180;
-const DRY = new Set(['cairo', 'dubai', 'delhi', 'mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas', 'elpaso']);
+const DRY = new Set(['cairo', 'dubai', 'delhi', 'mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas']);
 const RIGHT_HAND_CENTRE_YELLOW = new Set(['United States', 'Canada', 'Mexico']);
 
 export function localGeo(lat0, lng0) {
@@ -92,7 +92,7 @@ function dashTex() {
   const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, 64, 4); g.fillStyle = '#fff'; g.fillRect(0, 0, 26, 4);
   const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; return t;
 }
-const DESERT = new Set(['cairo', 'dubai', 'lasvegas', 'phoenix', 'lima', 'elpaso']);
+const DESERT = new Set(['cairo', 'dubai', 'lasvegas', 'phoenix', 'lima']);
 const ARID = new Set(['mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas', 'delhi', 'santiago', 'casablanca', 'denver', 'johannesburg', 'capetown', 'sydney', 'melbourne', 'rome', 'istanbul', 'beijing']);
 const TROPIC = new Set(['singapore', 'bangkok', 'manila', 'mumbai', 'lagos', 'accra', 'cancun', 'miami', 'riodejaneiro', 'saopaulo', 'bogota', 'nairobi', 'hongkong', 'shenzhen', 'guangzhou']);
 /* Land cover from above, researched per city (km offsets: +x east, +z south). base: natural cover; ur: urban areas [x, z, radius];
@@ -108,8 +108,6 @@ const COVER = {
   dallas: { base: ['#8f9565', '#86905c', '#9a9a6a', '#7b8655'], urban: '#a29d90', ur: [[0, 0, 28], [-48, 3, 14]], feat: [['farm', 0, -55, 40, 15, 0]] },
   austin: { base: ['#7f8a58', '#728050', '#8c9262', '#6a7a4a'], urban: '#a09c8e', ur: [[0, 0, 16], [0, -25, 8]], feat: [['forest', -26, 0, 14, 40, 0.2], ['farm', 30, 0, 18, 40, 0]] },
   sanantonio: { base: ['#8d8f62', '#99956a', '#7f8656', '#a09a6c'], urban: '#a59f90', ur: [[0, 0, 20]], feat: [['forest', -20, -28, 22, 10, -0.5], ['farm', 15, 25, 20, 12, 0]] },
-  /* Chihuahuan Desert + Franklin Mountains ridge N of downtown; Rio Grande corridor S */
-  elpaso: { base: DESERT_C, urban: '#b0a490', ur: [[0, 0, 18], [18, -4, 12], [-14, -8, 10]], grid: 1, feat: [['mtn', 2, -18, 8, 28, 0.05], ['mtn', -6, -35, 6, 18, 0.1], ['farm', 35, 8, 16, 12, 0]] },
   newyork: { base: DECID, urban: '#9a968e', ur: [[0, 0, 26], [-16, 0, 12], [6, 14, 16], [18, -6, 14]], feat: [] },
   chicago: { base: ['#7a8a52', '#869656', '#6e8048', '#8f9a5e'], urban: '#a29e94', ur: [[-14, 0, 30]], grid: 1, feat: [['farm', -58, 0, 20, 60, 0], ['wpoly', [[-6, -60], [-2.5, -13], [1.3, 0], [8, 14], [23, 31], [90, 31], [90, -60]]]] },
   miami: { base: ['#6f8a58', '#7c9460', '#627e50', '#869a66'], urban: '#a7a396', ur: [[-6, -8, 16], [-8, 14, 10]], grid: 1, feat: [['wet', -42, 0, 20, 50, 0]] },
@@ -184,7 +182,7 @@ function detailTex() {
 function groundMaterial(map, renderer) {
   map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const m = new THREE.MeshLambertMaterial({ map, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 8 });
-  const dMap = detailTex();
+  const dMap = detailTex(); m.userData.dMap = dMap;
   m.onBeforeCompile = (sh) => {
     sh.uniforms.dMap = { value: dMap };
     sh.fragmentShader = 'uniform sampler2D dMap;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.rgb *= mix(vec3(1.0), texture2D(dMap, vMapUv * 700.0).rgb * 2.0, 0.55);');
@@ -203,20 +201,30 @@ function cloudSpriteTex() {
 
 /** Simple airliner for the live-traffic layer (≈ 40 m). */
 export function trafficPlaneGeometry() {
-  const parts = [];
+  /* ~40 m twin-jet airliner with painted parts (vertex colours): white body, grey wings and engines, blue tail, dark cockpit and window line */
+  const parts = [], W = 0xf2f4f6, GR = 0xa9b0b7, BL = 0x1f4e9c, DK = 0x1c2228, CF = 0x8d949b;
   const sweep = (g, k) => { const a = g.attributes.position; for (let i = 0; i < a.count; i++) a.setZ(i, a.getZ(i) + Math.abs(a.getX(i)) * k); return g; };
-  const fus = new THREE.CylinderGeometry(2, 2, 30, 12); fus.rotateX(Math.PI / 2); parts.push(fus);
-  const tail = new THREE.CylinderGeometry(0.7, 2, 10, 12); tail.rotateX(Math.PI / 2); tail.translate(0, 0.5, 20); parts.push(tail);
-  const nose = new THREE.SphereGeometry(2, 12, 8); nose.scale(1, 0.95, 2.1); nose.translate(0, 0, -15); parts.push(nose);
+  const taper = (g, k) => { const a = g.attributes.position; for (let i = 0; i < a.count; i++) { const f = 1 - Math.abs(a.getX(i)) * k; a.setY(i, a.getY(i) * f); a.setZ(i, a.getZ(i) * (0.55 + 0.45 * f)); } return g; };
+  const P = (g, c) => parts.push([g, c]);
+  const fus = new THREE.CylinderGeometry(1.95, 1.95, 28, 16); fus.rotateX(Math.PI / 2); P(fus, W);
+  const tail = new THREE.CylinderGeometry(0.45, 1.95, 11, 16); tail.rotateX(Math.PI / 2); tail.translate(0, 0.55, 19.5); P(tail, W);
+  const nose = new THREE.SphereGeometry(1.95, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2); nose.rotateX(-Math.PI / 2); nose.scale(1, 0.92, 2.2); nose.translate(0, 0, -14); P(nose, W);
+  const ck = new THREE.BoxGeometry(2.3, 0.55, 1.2); ck.translate(0, 0.95, -16.6); P(ck, DK);
   for (const sx of [-1, 1]) {
-    const w = new THREE.BoxGeometry(17, 0.5, 5.5); w.translate(sx * 9.5, -0.9, 0); parts.push(sweep(w, 0.5));
-    const e = new THREE.CylinderGeometry(1.15, 1.0, 4.6, 10); e.rotateX(Math.PI / 2); e.translate(sx * 6.8, -2.3, 1.2); parts.push(e);
-    const h = new THREE.BoxGeometry(6, 0.3, 2.6); h.translate(sx * 3.6, 0.9, 0); parts.push(sweep(h, 0.6).translate(0, 0, 21));
+    const wl = new THREE.BoxGeometry(31.8 / 2 * 0.96, 0.05, 0.35); wl.translate(sx * 1.97, 0.75, -2); wl.rotateZ(0); P(new THREE.BoxGeometry(0.05, 0.32, 24).translate(sx * 1.94, 0.7, -1.5), DK); /* window line */
+    void wl;
+    const w = taper(new THREE.BoxGeometry(16.5, 0.55, 6.2), 0.035); w.translate(sx * 9.6, -0.95, 0.5); P(sweep(w, 0.55), GR);
+    const wt = new THREE.BoxGeometry(0.25, 2.2, 1.3); wt.translate(sx * 17.7, 0.2, 10.1); P(wt, BL); /* winglet */
+    const e = new THREE.CylinderGeometry(1.2, 1.0, 4.8, 14); e.rotateX(Math.PI / 2); e.translate(sx * 6.0, -2.3, -1.4); P(e, CF);
+    const ei = new THREE.CircleGeometry(1.05, 14); ei.translate(sx * 6.0, -2.3, -3.81); ei.rotateY(0); P(ei, DK);
+    const h = taper(new THREE.BoxGeometry(6.2, 0.3, 2.8), 0.08); h.translate(sx * 3.6, 0.9, 0); P(sweep(h, 0.6).translate(0, 0, 21.5), W);
   }
-  const fin = new THREE.BoxGeometry(0.45, 6.5, 4.2); const fa = fin.attributes.position; for (let i = 0; i < fa.count; i++) fa.setZ(i, fa.getZ(i) + (fa.getY(i) + 3.25) * 0.55); fin.translate(0, 4.4, 20.5); parts.push(fin);
-  const pos = [];
-  for (const g of parts) { const a = g.toNonIndexed().attributes.position.array; for (let i = 0; i < a.length; i++) pos.push(a[i]); }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals();
+  const fin = new THREE.BoxGeometry(0.45, 6.8, 4.6); const fa = fin.attributes.position; for (let i = 0; i < fa.count; i++) { fa.setZ(i, fa.getZ(i) + (fa.getY(i) + 3.4) * 0.62); if (fa.getY(i) > 0) fa.setZ(i, fa.getZ(i) * 0.7 + 1.0); }
+  fin.translate(0, 4.6, 20.5); P(fin, BL);
+  const belly = new THREE.CylinderGeometry(1.97, 1.97, 27.6, 16, 1, true, Math.PI * 0.7, Math.PI * 0.6); belly.rotateX(Math.PI / 2); P(belly, CF);
+  const pos = [], col = [], c = new THREE.Color();
+  for (const [g, hex] of parts) { const a = g.toNonIndexed().attributes.position.array; c.setHex(hex); for (let i = 0; i < a.length; i += 3) { pos.push(a[i], a[i + 1], a[i + 2]); col.push(c.r, c.g, c.b); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
   return g;
 }
 
@@ -429,13 +437,16 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
   for (let i = 0; i < RN; i++) { rainPos[i * 6 + 1] = Math.random() * 400; }
   /* live traffic */
   const MAXT = 160;
-  const tMesh = new THREE.InstancedMesh(trafficPlaneGeometry(), new THREE.MeshLambertMaterial({ color: 0xf4f6f8 }), MAXT);
+  const tMesh = new THREE.InstancedMesh(trafficPlaneGeometry(), new THREE.MeshPhongMaterial({ color: 0xffffff, vertexColors: true, specular: 0x555555, shininess: 60 }), MAXT);
   tMesh.count = 0; tMesh.frustumCulled = false; scene.add(tMesh);
   let traffic = [];
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(1, 1, 1);
   function setTraffic(list) {
     const now = performance.now();
-    traffic = list.slice(0, MAXT).map((f) => { const w = geo.toW(f.lat, f.lng); return Object.assign({}, f, { x: w.x, z: w.z, t0: now }); });
+    /* a new feed row starts where the plane is drawn now and glides onto its reported track (no jumps every refresh) */
+    const prev = new Map(); for (const f of traffic) if (f.wx != null) prev.set(f.hex || f.call, f);
+    traffic = list.slice(0, MAXT).map((f) => { const w = geo.toW(f.lat, f.lng), o = prev.get(f.hex || f.call);
+      return Object.assign({}, f, { x: w.x, z: w.z, t0: now, ox: o ? o.wx - w.x : 0, oz: o ? o.wz - w.z : 0, oy: o ? o.wy : null, hd0: o ? o.hdS : null }); });
   }
   let weather = null;
   function setWeather(w) { weather = w; setClouds(w ? w.cloud || 0 : 20); }
@@ -510,9 +521,13 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
     let n = 0;
     for (const f of traffic) {
       const t = Math.min(120, (now - f.t0) / 1000), v = (f.gs || 0) * 0.5144, h = (f.hdg || 0) * D2R;
-      const x = f.x + Math.sin(h) * v * t, z = f.z - Math.cos(h) * v * t;
-      const y = f.onGround ? 3 : Math.max(30, (f.altFt || 0) * 0.3048);
-      _e.set(0, -h, 0); _q.setFromEuler(_e); _p.set(x, y, z);
+      const blend = Math.exp(-t / 2.5), x = f.x + Math.sin(h) * v * t + (f.ox || 0) * blend, z = f.z - Math.cos(h) * v * t + (f.oz || 0) * blend;
+      const y0 = f.onGround ? 3 : Math.max(30, (f.altFt || 0) * 0.3048), y = f.oy != null ? y0 + (f.oy - y0) * blend : y0;
+      /* heading eases too; bank into the turn while it does (tan bank = v * turn rate / g) */
+      let dh = 0; if (f.hd0 != null) { dh = h - f.hd0; while (dh > Math.PI) dh -= 2 * Math.PI; while (dh < -Math.PI) dh += 2 * Math.PI; }
+      const hs = h - dh * blend; f.hdS = hs;
+      const bank = f.onGround ? 0 : THREE.MathUtils.clamp(Math.atan(v * (dh / 2.5) * blend / 9.81), -0.45, 0.45);
+      _e.set(0, -hs, -bank, 'YXZ'); _q.setFromEuler(_e); _p.set(x, y, z);
       f.wx = x; f.wy = y; f.wz = z;
       _m.compose(_p, _q, _s); tMesh.setMatrixAt(n++, _m);
     }
@@ -523,8 +538,9 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
     scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
-      for (const m of ms) { for (const k of ['map', 'alphaMap']) if (m[k]) m[k].dispose(); m.dispose(); }
+      for (const m of ms) { for (const k in m) if (m[k] && m[k].isTexture) m[k].dispose(); if (m.userData.dMap) m.userData.dMap.dispose(); m.dispose(); }
     });
+    cloudTex.dispose();
     renderer.renderLists.dispose();
   }
   const apt = P.apt || city.apt;

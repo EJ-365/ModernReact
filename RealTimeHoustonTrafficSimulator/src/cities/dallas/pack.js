@@ -19,18 +19,6 @@ export const DALLAS_ROAD_LATLNG = [
     latlng:[[32.70,-97.20],[32.70,-97.05],[32.70,-96.90],[32.70,-96.80],[32.70,-96.65],[32.70,-96.50]] },
   { id:'woodall', name:'Spur 366 — Woodall Rodgers', short:'Woodall Rodgers', closed:false, width:34, lanes:3, ff:50, share:0.9, baseY:0.9, prio:5, arterial:true,
     latlng:[[32.790,-96.820],[32.790,-96.810],[32.790,-96.800],[32.790,-96.790],[32.788,-96.780]] },
-  { id:'i35w', name:'Interstate 35W — Fort Worth', short:'I-35W', closed:false, width:42, lanes:4, ff:65, share:1.2, baseY:0.82, prio:6.5,
-    latlng:[[33.05,-97.28],[32.95,-97.30],[32.85,-97.32],[32.78,-97.33],[32.7555,-97.3308],[32.70,-97.32],[32.60,-97.30]] },
-  { id:'i820', name:'Interstate 820 — Fort Worth Loop', short:'I-820', closed:false, width:40, lanes:3, ff:60, share:1.05, baseY:0.82, prio:5.5,
-    latlng:[[32.85,-97.25],[32.85,-97.15],[32.82,-97.08],[32.75,-97.05],[32.68,-97.10],[32.68,-97.25],[32.72,-97.35],[32.80,-97.38],[32.85,-97.32],[32.85,-97.25]] },
-  { id:'sh114', name:'SH-114 — Airport Freeway', short:'SH-114', closed:false, width:38, lanes:3, ff:60, share:1.1, baseY:0.82, prio:5.5,
-    latlng:[[32.90,-97.20],[32.90,-97.10],[32.90,-97.00],[32.90,-96.95],[32.90,-96.90],[32.88,-96.85]] },
-  { id:'sh121', name:'SH-121 / TEXpress', short:'SH-121', closed:false, width:38, lanes:3, ff:65, share:1.05, baseY:0.82, prio:5.5,
-    latlng:[[33.05,-97.15],[32.98,-97.05],[32.95,-96.95],[32.92,-96.88],[32.88,-96.82],[32.82,-96.80]] },
-  { id:'pgbt', name:'President George Bush Turnpike', short:'PGBT', closed:false, width:38, lanes:3, ff:65, share:1.15, baseY:0.82, prio:5.5,
-    latlng:[[33.00,-97.05],[33.00,-96.95],[33.00,-96.85],[32.98,-96.75],[32.95,-96.65],[32.90,-96.60],[32.82,-96.58],[32.75,-96.60]] },
-  { id:'sh183', name:'SH-183 — Airport / Irving', short:'SH-183', closed:false, width:36, lanes:3, ff:55, share:0.95, baseY:0.82, prio:5,
-    latlng:[[32.86,-97.10],[32.85,-97.00],[32.84,-96.92],[32.84,-96.88],[32.83,-96.85]] },
 ];
 
 export const DALLAS_DISTRICTS = [
@@ -63,8 +51,7 @@ export const DALLAS_DISTRICTS = [
 export const DALLAS_AIRPORTS = [
   { id:'dfw', code:'DFW', name:'Dallas/Fort Worth International', lat:32.8998, lng:-97.0403, rot:0.0, intl:true, runLen:700, city:'DFW Metroplex', elev:'607 ft', note:'World’s 2nd-busiest · American Airlines hub', addr:'2400 Aviation Dr, DFW Airport, TX 75261' },
   { id:'dal', code:'DAL', name:'Dallas Love Field', lat:32.8471, lng:-96.8518, rot:0.2, intl:true, runLen:520, city:'Dallas', elev:'487 ft', note:'Southwest Airlines hometown hub', addr:'8008 Herb Kelleher Way, Dallas, TX 75235' },
-  { id:'ads', code:'ADS', name:'Addison Airport', lat:32.9686, lng:-96.8364, rot:-0.1, intl:false, runLen:400, city:'Addison', elev:'644 ft', note:'Busy North Dallas GA field', addr:'4505 Claire Chennault Dr, Addison, TX 75001' },
-  { id:'ftw', code:'AFW', name:'Fort Worth Alliance', lat:32.9876, lng:-97.3188, rot:0.05, intl:false, runLen:520, city:'Fort Worth', elev:'722 ft', note:'FedEx / industrial cargo hub north of Fort Worth', addr:'2221 Alliance Blvd, Fort Worth, TX 76177' },
+  { id:'ads', code:'ADS', name:'Addison Airport', lat:32.9686, lng:-97.0180, rot:-0.1, intl:false, runLen:400, city:'Addison', elev:'644 ft', note:'Busy North Dallas GA field', addr:'4505 Claire Chennault Dr, Addison, TX 75001' },
 ];
 
 export const DALLAS_POIS = [
@@ -98,16 +85,13 @@ export const DALLAS_CORRIDORS = [
   { road:'i30', label:'I-30 · Arlington', aLat:32.75, aLng:-97.09, bLat:32.7797, bLng:-96.7980, realMi:18, typMin:25, minMin:18, maxMin:50, toDt:true },
   { road:'i35e', label:'I-35E · Denton approach', aLat:33.05, aLng:-96.90, bLat:32.7797, bLng:-96.7980, realMi:24, typMin:30, minMin:22, maxMin:60, toDt:true },
   { road:'i30', label:'I-30 · Fort Worth', aLat:32.7555, aLng:-97.3308, bLat:32.7797, bLng:-96.7980, realMi:32, typMin:40, minMin:32, maxMin:75, toDt:true },
-  { road:'sh114', label:'SH-114 · DFW / Grapevine', aLat:32.93, aLng:-97.05, bLat:32.7797, bLng:-96.7980, realMi:20, typMin:28, minMin:22, maxMin:55, toDt:true },
-  { road:'pgbt', label:'PGBT · Richardson belt', aLat:32.95, aLng:-96.70, bLat:32.7797, bLng:-96.7980, realMi:16, typMin:24, minMin:18, maxMin:45, toDt:true },
-  { road:'i35w', label:'I-35W · Fort Worth', aLat:32.7555, aLng:-97.3308, bLat:32.90, bLng:-97.30, realMi:12, typMin:18, minMin:14, maxMin:35, toDt:false },
 ];
 
 export const DALLAS_JUMP_GROUPS = [
   { label:'Dallas core', options:[['downtown','Downtown Dallas'],['uptown','Uptown'],['victory','Victory Park'],['deepellum','Deep Ellum'],['bishoparts','Bishop Arts'],['parkcities','Park Cities']] },
   { label:'North suburbs', options:[['plano','Plano'],['frisco','Frisco'],['mckinney','McKinney'],['richardson','Richardson'],['addison','Addison'],['carrollton','Carrollton']] },
   { label:'West / Mid-cities', options:[['arlington','Arlington'],['irving','Irving'],['fortworth','Fort Worth'],['grandprairie','Grand Prairie'],['grapevine','Grapevine']] },
-  { label:'Airports', options:[['dfw','DFW International'],['dal','DAL — Love Field'],['ads','ADS — Addison'],['ftw','AFW — Alliance']] },
+  { label:'Airports', options:[['dfw','DFW International'],['dal','DAL — Love Field'],['ads','ADS — Addison']] },
   { label:'Attractions', options:[['poi_reunion','Reunion Tower'],['poi_attstad','AT&T Stadium'],['poi_globelife','Globe Life Field'],['poi_aac','American Airlines Center'],['poi_dealey','Dealey Plaza'],['poi_sundance','Sundance Square'],['poi_stockyards','Stockyards']] },
 ];
 
@@ -129,11 +113,11 @@ export const DALLAS_CAM_EXTRAS = [{ id:'arlington', lat:32.7473, lng:-97.0945, r
 
 /* World height ≈ real feet / 3.16 · coords from Wikipedia / SkyscraperCenter */
 export const DALLAS_SKYLINE = [
-  { n:'Bank of America Plaza', lat:32.77997, lng:-96.80397, w:38, d:36, h:291, s:1, info:'921 ft · tallest in Dallas', kind:'needle', spire:28 },
-  { n:'Renaissance Tower', lat:32.78119, lng:-96.80183, w:36, d:34, h:280, s:0, info:'886 ft · twin antennas', kind:'needle', spire:40 },
-  { n:'Comerica Bank Tower', lat:32.7815, lng:-96.7964, w:34, d:34, h:249, s:2, info:'787 ft · 60 floors', kind:'stepped' },
+  { n:'Bank of America Plaza', lat:32.77997, lng:-96.80397, w:38, d:36, h:291, s:1, info:'921 ft · tallest in Dallas', spire:28 },
+  { n:'Renaissance Tower', lat:32.78119, lng:-96.80183, w:36, d:34, h:280, s:0, info:'886 ft · twin antennas' },
+  { n:'Comerica Bank Tower', lat:32.7815, lng:-96.7964, w:34, d:34, h:249, s:2, info:'787 ft · 60 floors' },
   { n:'Dallas Arts Tower', lat:32.7878, lng:-96.7966, w:32, d:30, h:233, s:1, info:'738 ft · JPMorgan Chase' },
-  { n:'Fountain Place', lat:32.7846, lng:-96.8025, w:34, d:34, h:228, s:3, info:'720 ft prism', kind:'pyramid' },
+  { n:'Fountain Place', lat:32.7846, lng:-96.8025, w:34, d:34, h:228, s:3, info:'720 ft prism' },
   { n:'Trammell Crow Center', lat:32.7875, lng:-96.7988, w:30, d:28, h:217, s:2, info:'686 ft · 2001 Ross' },
   { n:'1700 Pacific', lat:32.7830, lng:-96.7978, w:30, d:28, h:209, s:0, info:'660 ft' },
   { n:'Santander Tower', lat:32.7825, lng:-96.7960, w:28, d:26, h:204, s:1, info:'645 ft · Thanksgiving Tower' },
@@ -142,8 +126,8 @@ export const DALLAS_SKYLINE = [
   { n:'Energy Plaza', lat:32.7840, lng:-96.7998, w:30, d:28, h:191, s:2, info:'627 ft' },
   { n:'Museum Tower', lat:32.7885, lng:-96.8005, w:26, d:26, h:170, s:1, info:'560 ft · Arts District' },
   { n:'Cityplace Tower', lat:32.8055, lng:-96.7925, w:34, d:32, h:170, s:0, info:'560 ft · North Central' },
-  { n:'Reunion Tower', lat:32.7752, lng:-96.8091, w:16, d:16, h:140, s:0, info:'561 ft observation sphere', cyl:true, kind:'sphere', spire:38 },
-  { n:'Burnett Plaza', lat:32.7558, lng:-97.3312, w:34, d:32, h:205, s:1, info:'873 ft · Fort Worth tallest', kind:'stepped' },
+  { n:'Reunion Tower', lat:32.7752, lng:-96.8091, w:16, d:16, h:140, s:0, info:'561 ft observation sphere', cyl:true, spire:38 },
+  { n:'Burnett Plaza', lat:32.7558, lng:-97.3312, w:34, d:32, h:205, s:1, info:'873 ft · Fort Worth tallest' },
   { n:'Wells Fargo Tower FTW', lat:32.7552, lng:-97.3320, w:30, d:28, h:168, s:2, info:'546 ft · Fort Worth' },
   { n:'Frost Tower FTW', lat:32.7515, lng:-97.3308, w:28, d:26, h:155, s:3, info:'518 ft · Fort Worth' },
 ];
@@ -177,5 +161,5 @@ export const DALLAS_META = {
   slogan:'Big D · Metroplex', loadingSub:'Paving North Texas freeways…',
   wxPlace:'Dallas · Downtown', freewayJumpLabel:'Freeway level — I-35E @ Downtown',
   originLat:32.7797, originLng:-96.7980, groundColor:0xb4c890,
-  shields:[{label:'35E'},{label:'30'},{label:'45'},{label:'75',us:true},{label:'635'},{label:'820'},{label:'DNT',small:true},{label:'PGBT',small:true}],
+  shields:[{label:'35E'},{label:'30'},{label:'45'},{label:'75',us:true},{label:'635'},{label:'DNT',small:true}],
 };

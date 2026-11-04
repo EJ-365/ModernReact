@@ -5,7 +5,6 @@ import { houstonManifest } from './houston/manifest.js';
 import { austinManifest } from './austin/manifest.js';
 import { sanantonioManifest } from './sanantonio/manifest.js';
 import { dallasManifest } from './dallas/manifest.js';
-import { elpasoManifest } from './elpaso/manifest.js';
 import { losangelesManifest } from './losangeles/manifest.js';
 import { newyorkManifest } from './newyork/manifest.js';
 import { bostonManifest } from './boston/manifest.js';
@@ -26,7 +25,6 @@ export const CITY_PACKS = Object.freeze({
   austin: austinManifest,
   sanantonio: sanantonioManifest,
   dallas: dallasManifest,
-  elpaso: elpasoManifest,
   losangeles: losangelesManifest,
   newyork: newyorkManifest,
   boston: bostonManifest,
@@ -54,17 +52,21 @@ export function resolveCity(id) {
 }
 
 /**
- * Home sim is always Houston. Other cities are entered from the globe, not a Metro dropdown.
- * Optional `?city=` remains a silent debug override only (not persisted).
+ * Browser: ?city=austin or localStorage `hts-city`. Default Houston.
  * @returns {string}
  */
 export function activeCityId() {
-  if (typeof window === 'undefined') return 'houston';
+  /* Houston-only release: other city packs stay in the repo but are not reachable */
+  if (typeof window === 'undefined' || true) return 'houston';
   try {
-    /* Drop sticky Metro-dropdown preference from earlier builds */
-    try { window.localStorage.removeItem('hts-city'); } catch { /* ignore */ }
     const q = new URLSearchParams(window.location.search).get('city');
-    if (q && CITY_PACKS[String(q).toLowerCase()]) return String(q).toLowerCase();
+    if (q && CITY_PACKS[String(q).toLowerCase()]) {
+      const id = String(q).toLowerCase();
+      try { window.localStorage.setItem('hts-city', id); } catch { /* ignore */ }
+      return id;
+    }
+    const stored = window.localStorage.getItem('hts-city');
+    if (stored && CITY_PACKS[String(stored).toLowerCase()]) return String(stored).toLowerCase();
   } catch {
     /* ignore */
   }

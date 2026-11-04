@@ -486,7 +486,7 @@
   #camhint button:hover,#camhint a:hover{color:#f0c078;text-decoration:underline}
 
   /* ---------- You-are-here pill (like driving nav) ---------- */
-  #whereami{position:fixed;top:66px;left:50%;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:7px;background:var(--panel);backdrop-filter:blur(10px);
+  #whereami{position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:7px;background:var(--panel);backdrop-filter:blur(10px);
     border:1px solid var(--panel-line);border-radius:99px;padding:6px 14px;white-space:nowrap;
     box-shadow:0 6px 20px rgba(0,0,0,.45);animation:riseCenter .5s ease both;animation-delay:.1s}
   #whereami .pin{display:block;flex:0 0 auto}
@@ -689,67 +689,35 @@
   .dtchip .tm{font-family:'Overpass Mono',monospace;font-size:18px;font-weight:700;margin-top:4px;color:#f1f5f7}
   .dtchip .tm small{display:block;font-size:8.5px;color:var(--dim);font-weight:700;margin-top:2px;margin-left:0;line-height:1.35;white-space:normal}
   #flash{position:fixed;inset:0;background:#dfe9ff;opacity:0;pointer-events:none;z-index:20;transition:opacity .08s}
-  #cloudMist{position:fixed;inset:0;pointer-events:none;z-index:19;opacity:0;
-    background:
-      radial-gradient(ellipse 90% 70% at 28% 38%,rgba(255,255,255,.55),transparent 58%),
-      radial-gradient(ellipse 75% 60% at 72% 58%,rgba(236,242,250,.48),transparent 55%),
-      radial-gradient(ellipse 55% 45% at 50% 48%,rgba(220,228,238,.4),transparent 62%),
-      radial-gradient(ellipse at center,rgba(210,218,230,.25),rgba(198,208,222,.88));
-    transition:opacity .45s ease,filter .45s ease}
+  #cloudMist{position:fixed;inset:0;pointer-events:none;z-index:19;opacity:0;background:radial-gradient(ellipse at center,rgba(244,247,252,.6),rgba(232,238,246,.95));transition:opacity .3s}
   #vignette{position:fixed;inset:0;pointer-events:none;z-index:5;
     background:radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,.34) 100%)}
   #topCenter{display:contents}
   #compass{position:fixed;top:var(--ui-pad);left:50%;transform:translateX(-50%);z-index:9;
-    width:56px;height:56px;border-radius:50%;background:#0d1014d9;border:1px solid #333b45;
+    width:52px;height:52px;border-radius:50%;background:#0d1014d9;border:1px solid #333b45;
     box-shadow:0 4px 16px rgba(0,0,0,.45)}
   #rose{position:absolute;inset:3px;border-radius:50%;will-change:transform}
   #rose::before{content:'';position:absolute;inset:0;border-radius:50%;
     background:repeating-conic-gradient(from -1.5deg,#3a434e 0 3deg,transparent 3deg 45deg)}
-  #rose span{position:absolute;font-size:8px;font-weight:900;color:#8b949e;
-    width:14px;text-align:center;left:calc(50% - 7px);transform:rotate(calc(-1 * var(--rr,0deg)));
-    transition:color .12s,font-size .12s} /* letters stay upright while the rose turns */
-  #rose span.on{color:#ff6b5e;font-size:10px}
-  #rose .cn{top:2px}
+  #rose span{position:absolute;font-size:9.5px;font-weight:900;color:#aeb7c0;
+    width:12px;text-align:center;left:calc(50% - 6px);transform:rotate(calc(-1 * var(--rr,0deg)))} /* letters stay upright while the rose turns */
+  #rose .cn{top:4px;color:#ff6b5e;font-size:10.5px}
+  #rose .ce{top:calc(50% - 7px);left:auto;right:1px}
   #rose .cs{bottom:1px}
-  #rose .ce{top:calc(50% - 6px);left:auto;right:0}
-  #rose .cw{top:calc(50% - 6px);left:0}
-  #rose .cne{top:8px;left:auto;right:3px;font-size:7px}
-  #rose .cnw{top:8px;left:3px;font-size:7px}
-  #rose .cse{bottom:6px;left:auto;right:3px;font-size:7px}
-  #rose .csw{bottom:6px;left:3px;font-size:7px}
-  #rose .cne.on,#rose .cnw.on,#rose .cse.on,#rose .csw.on{font-size:8.5px}
+  #rose .cw{top:calc(50% - 7px);left:1px}
   #lubber{position:absolute;top:-1px;left:calc(50% - 4px);width:0;height:0;
     border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid #ffb400}
   #planeNeedle{position:absolute;inset:0;border-radius:50%;pointer-events:none;
     background:conic-gradient(from -8deg,transparent 0 344deg,#5ec8ff 344deg 360deg);
     opacity:.92;transition:opacity .15s}
   #planeNeedle[hidden]{display:none!important;opacity:0}
-  #crashHud{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:40;display:none;
-    background:linear-gradient(165deg,rgba(28,23,18,.94),rgba(14,12,10,.96));border:1px solid rgba(232,168,56,.28);
-    border-radius:14px;padding:12px 14px;color:#f3ebe0;font:12px/1.35 Overpass,system-ui,sans-serif;
-    min-width:300px;max-width:min(440px,94vw);box-shadow:0 12px 36px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,220,160,.08);touch-action:none}
-  #crashHud.on{display:block}#crashHud.on.hid{display:none}#crashHud.dragged{left:0;bottom:auto;transform:none}
-  #crashHud .tt{font-weight:700;font-size:13px;margin-bottom:6px;display:flex;justify-content:space-between;gap:12px;align-items:center;user-select:none;color:#fff6ea;cursor:grab}
-  #crashHud .tt:active{cursor:grabbing}
-  #crashHud .tt .drag{color:#8a7e70;font-size:11px;font-weight:600;letter-spacing:.04em;margin-right:6px}
-  #crashHud .tt .acts{display:flex;gap:6px;align-items:center;flex-shrink:0}
-  #crashHud .tm{display:flex;gap:14px;font-family:"Overpass Mono",monospace;font-size:12px;color:#e8c49a;margin-bottom:6px;flex-wrap:wrap}
-  #crashHud .tm b{font-size:17px;color:#fff6ea}
-  #crashHud .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;align-items:center}
-  #crashHud button{background:rgba(255,236,210,.08);border:1px solid rgba(255,236,210,.16);color:#f3ebe0;
-    border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer}
-  #crashHud button.on{background:linear-gradient(135deg,#e8a838,#c96a28);border-color:transparent;color:#1a1008}
-  #crashHud button.x{background:#5a1d22;border-color:#a8323c;color:#f3ebe0}
-  #crashHud .hide{background:rgba(255,236,210,.06);border-color:rgba(232,168,56,.35)}
-  #crashHud .lesson{margin-top:8px;padding:8px 10px;border-radius:10px;background:rgba(20,12,8,.55);border:1px solid rgba(232,168,56,.22)}
-  #crashHud .lesson .lk{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#e8a838;margin-bottom:4px}
-  #crashHud .lesson .lt{font-size:11px;line-height:1.45;color:#f3ebe0;font-weight:600}
-  #crashHud .lesson.debrief .lk{color:#ff8a6a}
-  #crashHud .lesson ul{margin:6px 0 0;padding-left:16px;color:#d4c4b0;font-size:11px;line-height:1.4;font-weight:500}
-  #crashHud .lesson li{margin:3px 0}
-  #crashHud .lesson .mem{margin-top:6px;padding-top:6px;border-top:1px solid rgba(232,168,56,.18);color:#fff6ea;font-weight:700;font-size:11px}
-  #crashHudPeek{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:40;display:none;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:linear-gradient(165deg,rgba(28,23,18,.94),rgba(14,12,10,.96));border:1px solid rgba(232,168,56,.35);color:#fff6ea;font:12px/1 Overpass,system-ui,sans-serif;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-  #crashHudPeek.on{display:flex}#crashHudPeek:hover{border-color:rgba(232,168,56,.6)}
+  /* 8-point rose like the iPhone compass: letters orbit with the rose and stay upright; true bearing readout below */
+  #compass{width:62px;height:62px}
+  #rose span,#rose .cn,#rose .ce,#rose .cs,#rose .cw{top:50%;left:50%;right:auto;bottom:auto;width:auto;
+    transform:translate(-50%,-50%) rotate(var(--a)) translateY(-21px) rotate(calc(-1 * (var(--a) + var(--rr,0deg))))}
+  #rose .ci{font-size:7px;font-weight:800;color:#7d8792}
+  #hdgRead{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);font:700 10px/1 system-ui,sans-serif;
+    color:#dfe5ea;background:#0d1014d9;border:1px solid #333b45;border-radius:6px;padding:3px 6px;white-space:nowrap;letter-spacing:.04em;pointer-events:none}
   #loading{position:fixed;inset:0;z-index:30;background:radial-gradient(ellipse 70% 45% at 50% 66%,rgba(224,122,46,.32),rgba(224,122,46,0) 70%),linear-gradient(180deg,#0b0807 0%,#140c08 55%,#24140b 100%);
     display:flex;align-items:center;justify-content:center;
     padding:0;transition:opacity .55s ease;pointer-events:none}
@@ -846,7 +814,7 @@
       backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.4);cursor:pointer;padding:0}
     #mHudLoc.on{color:#6cb8ff;border-color:#2c5a80}
 
-    #whereami{top:calc(max(8px,var(--m-safe-t)) + 54px);left:50%;transform:translateX(-50%);
+    #whereami{top:calc(max(8px,var(--m-safe-t)) + 88px);left:50%;transform:translateX(-50%);
       bottom:auto;font-size:11px;padding:5px 11px;max-width:calc(100vw - 24px);z-index:13;
       background:rgba(10,14,20,.82)}
     #whereami .road{max-width:42vw;overflow:hidden;text-overflow:ellipsis}
@@ -892,7 +860,7 @@
     body.m-tab-more #tourTimeGrp,
     body.m-tab-more #tourWxGrp,
     body.m-tab-more #tourHazGrp,
-    body.m-tab-more #tourCrashGrp,
+    body.m-tab-more #tourCityGrp,
     body.m-tab-more #tourVolGrp,
     body.m-tab-more #tourReplayGrp{display:block}
     .btn{min-height:44px;padding:11px 8px;font-size:13px}
@@ -969,18 +937,14 @@
   }
 </style>
 <style>
-/* loading: dusk sky + silhouette — page orange matches PNG so the image rect has no hard box */
-#loading{background:
-  radial-gradient(ellipse 70% 48% at 50% 62%,rgba(232,140,60,.38),rgba(180,90,30,0) 72%),
-  linear-gradient(180deg,#c46a2e 0%,#a8521c 42%,#7a3810 78%,#3a1c0a 100%)}
+/* loading: dusk sky + silhouette (no paste, no HOUSTON label) */
+#loading{background:radial-gradient(ellipse 70% 45% at 50% 66%,rgba(224,122,46,.32),rgba(224,122,46,0) 70%),linear-gradient(180deg,#0b0807 0%,#140c08 55%,#24140b 100%)}
 #loading .lscene{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
 #loading .lsky{position:absolute;inset:0;background:
   radial-gradient(ellipse 80% 50% at 50% 8%,rgba(220,140,70,.22),transparent 55%),
-  linear-gradient(180deg,#c46a2e 0%,#9a4518 50%,#6b3010 100%);opacity:.85}
-#loading .lcity{width:100%;line-height:0;isolation:isolate}
-/* multiply merges the PNG's solid orange fill into the page dusk — no rectangular seam */
-#loading .lcity img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none;
-  mix-blend-mode:multiply;background:transparent;border:0;outline:0}
+  linear-gradient(180deg,#c46a2e 0%,#9a4518 50%,#6b3010 100%)}
+#loading .lcity{width:100%;line-height:0}
+#loading .lcity img{display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none}
 #loading .lplane{position:absolute;top:16%;left:0;width:clamp(64px,10vw,92px);height:auto;z-index:3;
   filter:drop-shadow(0 4px 10px rgba(20,8,0,.4));
   animation:lfly 9s linear infinite;animation-delay:-2.4s}
@@ -1011,12 +975,12 @@
 <canvas id="scene"></canvas>
 <div id="vignette"></div>
 
-<div id="compass"><div id="rose"><span class="cn" data-h="0">N</span><span class="cne" data-h="1">NE</span><span class="ce" data-h="2">E</span><span class="cse" data-h="3">SE</span><span class="cs" data-h="4">S</span><span class="csw" data-h="5">SW</span><span class="cw" data-h="6">W</span><span class="cnw" data-h="7">NW</span></div><div id="lubber"></div><div id="planeNeedle" hidden></div></div>
+<div id="compass"><div id="rose"><span class="cn" style="--a:0deg">N</span><span class="ci" style="--a:45deg">NE</span><span class="ce" style="--a:90deg">E</span><span class="ci" style="--a:135deg">SE</span><span class="cs" style="--a:180deg">S</span><span class="ci" style="--a:225deg">SW</span><span class="cw" style="--a:270deg">W</span><span class="ci" style="--a:315deg">NW</span></div><div id="lubber"></div><div id="planeNeedle" hidden></div><div id="hdgRead" aria-live="off">0° N</div></div>
 
 <div id="leftCol">
 <div id="sign">
   <h1>Houston<br>Traffic Simulator</h1>
-  <div class="sub">Live conditions <span id="vtag">v10.116.0</span></div>
+  <div class="sub">Live conditions <span id="vtag">v10.109.0</span></div>
   <div id="clockRow"><div id="clock">--:--</div><div id="phase">—</div></div>
   <div id="dateLine">—</div>
   <div id="wxCard">
@@ -1297,6 +1261,10 @@
       <button type="button" class="btn" id="tourSurprise" title="Random Houston landmark">Surprise me</button>
       <button type="button" class="btn" id="tourFree">Free drive</button>
     </div>
+    <div class="sublabel" style="margin-top:10px"><b>Crash simulator</b> · real accident scenarios to learn from, no people shown</div>
+    <select id="crashScn" style="margin-top:4px" aria-label="Crash scenario"></select>
+    <select id="crashApt" style="margin-top:4px" aria-label="Crash test airport"><option value="">Loading airports…</option></select>
+    <div class="btnrow" style="margin-top:6px"><button type="button" class="btn" id="crashGo">Start crash sim</button><button type="button" class="btn" id="crashWrong" aria-pressed="false" title="Fly it the way the crew in the real accident did">Response: textbook</button></div>
     <div class="sublabel" id="tourNote" style="margin-top:6px">Car: real OSM roads to your pick. Plane: choose your aircraft first — airliners (Boeing 737/747/777/787, Airbus A320/A350/A380), Cessna, C-130 and F-16 take off from an airport runway long enough for them; the helicopter lifts straight up from your location. Pick a genre in the tour Music panel (Pop, Hip-hop/R&amp;B, Rock, Electronic, Latin, Afrobeat, Gospel, Classics). Keys 1–5 camera · H hide panel · Esc exit.</div>
   </div>
   <div class="grp" id="houFacts">
@@ -1320,7 +1288,7 @@
       <button type="button" class="btn" data-lapse="friday" title="Sim clock → 5:00 PM peak, 5 min/s">Rush 5:00 PM</button>
     </div>
     <select id="todSelect">
-      <option value="live" selected>Live - real local time</option>
+      <option value="live" selected>● Live — real local time</option>
       <option value="preview">Time preview</option>
       <option value="dawn">Dawn (6:20 AM)</option>
       <option value="day">Midday (12:30 PM)</option>
@@ -1338,13 +1306,13 @@
       <button class="btn" data-speed="1800">30 min/s</button>
     </div>
     <input type="range" id="timeSlider" min="0" max="1439" step="1" value="720">
-    <div id="timeDayLabel">Preview day - Today</div>
+    <div id="timeDayLabel">Preview day · Today</div>
     <div class="hint" id="timeHint">Traffic &amp; sky follow live local time. Pick Tomorrow or a speed to scrub the forecast day/night.</div>
   </div>
   <div class="grp" id="tourWxGrp">
     <label>Weather</label>
     <select id="wxSelect">
-      <option value="auto" selected>Auto - live local weather</option>
+      <option value="auto" selected>Auto — live local weather</option>
       <option value="clear">Clear</option>
       <option value="partly">Partly cloudy</option>
       <option value="overcast">Overcast</option>
@@ -1398,34 +1366,12 @@
     <button type="button" class="btn" id="hazClear" style="width:100%;margin-top:6px">Clear prediction</button>
     <div id="hazStatus">No active hazard prediction. Pick a scenario to preview impacts on traffic &amp; the map.</div>
   </div>
-  <div class="grp" id="tourCrashGrp">
-    <label>Plane crash sim</label>
-    <div class="sublabel">Educational demo — tour jets on real OSM runways (not a certified model). Soft follow: orbit freely; right-drag pan releases the camera. Jet sound on Run.</div>
-    <select id="crashAirport" aria-label="Airport" style="margin-bottom:6px">
-      <option value="IAH" selected>IAH · Bush Intercontinental</option>
+  <div class="grp" id="tourCityGrp" hidden>
+    <label>Metro</label>
+    <div class="sublabel">Switch city — reloads the simulator for that pack</div>
+    <select id="citySelect" aria-label="Choose metro">
+      <option value="houston">Houston</option>
     </select>
-    <select id="crashAircraft" aria-label="Aircraft" style="margin-bottom:6px">
-      <option value="b737" selected>Boeing 737-800</option>
-      <option value="a320">Airbus A320neo</option>
-      <option value="b787">Boeing 787-9</option>
-      <option value="b777">Boeing 777-300ER</option>
-      <option value="e175">Embraer E175</option>
-    </select>
-    <select id="crashScenario" aria-label="Crash scenario">
-      <option value="engine" selected>Engine failure after takeoff</option>
-      <option value="urban">Engine-out into city</option>
-      <option value="stall">Approach stall</option>
-      <option value="bird">Bird strike on climb</option>
-      <option value="midair">Structural upset (wake)</option>
-      <option value="ditch">Water ditching</option>
-      <option value="hard">Hard landing bounce</option>
-    </select>
-    <div class="btnrow" style="margin-top:8px">
-      <button type="button" class="btn" id="crashStart">Run</button>
-      <button type="button" class="btn" id="crashStop">Stop</button>
-    </div>
-    <label style="display:flex;gap:6px;align-items:center;margin-top:8px;font-weight:400"><input type="checkbox" id="crashFollow" checked> Soft follow (orbit free · pan releases)</label>
-    <div class="hint" id="crashStatus">Idle - choose airport, aircraft, scenario, then Run. On Run: use the crash panel (or keys 1–6) for Chase / Cockpit / Window / Wing / Top / Free look.</div>
   </div>
   <div class="grp" id="tourVolGrp">
     <label>Traffic volume</label>
@@ -1468,36 +1414,6 @@
 <div class="te" id="pcEta"></div>
 <div class="pcRow"><button id="pcFly">Fly there</button><button id="pcDir">Directions ↗</button><button id="pcWiki" style="display:none">Wikipedia ↗</button><button id="pcX">×</button></div></div>
 <div id="followChip"><span class="fdot"></span><span id="fTxt">Following</span><button id="fX" title="Stop following">×</button></div>
-<div id="crashHud" aria-label="Crash tour panel">
-  <div class="tt">
-    <span><span class="drag" title="Drag panel">⠿</span><span id="crashTitle">Crash test</span></span>
-    <span class="acts">
-      <button type="button" class="hide" id="crashHudHide" title="Hide panel (H)">Hide</button>
-      <button type="button" class="x" id="crashHudStop">Exit (Esc)</button>
-    </span>
-  </div>
-  <div class="tm" id="crashMeters">
-    <span><b id="cSpd">0</b> kt</span>
-    <span><b id="cAlt">0</b> ft</span>
-    <span>HDG <b id="cHdg">000</b>°</span>
-    <span>trip <b id="cTrip">0.0</b> mi</span>
-    <span id="crashHudMeta">—</span>
-  </div>
-  <div class="row" id="crashViewRow"></div>
-  <div class="row" style="margin-top:6px" id="crashSpeedRow">
-    <button type="button" data-sx="1" class="on" title="Real-time">×1</button>
-    <button type="button" data-sx="2" title="2× sim speed">×2</button>
-    <button type="button" data-sx="4" title="4× sim speed">×4</button>
-    <button type="button" data-sx="10" title="10× sim speed">×10</button>
-  </div>
-  <div class="lesson" id="crashLesson">
-    <div class="lk" id="crashLessonKicker">Safety tip</div>
-    <div class="lt" id="crashLessonTip">—</div>
-    <ul id="crashLessonAvoid" hidden></ul>
-    <div class="mem" id="crashLessonMem" hidden></div>
-  </div>
-</div>
-<div id="crashHudPeek" title="Show crash panel">Show panel</div>
 <div id="bottomDock">
   <button type="button" class="dockToggle" id="dockToggle" aria-label="Hide drive times" title="Hide drive times" aria-expanded="true" aria-controls="driveDockContent">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -1650,8 +1566,7 @@
       <div class="lbar" aria-hidden="true"><i></i></div>
     </div>
     <div class="lcity">
-      <img id="loadSkyline" src="/img/houston-skyline-dusk-light.png" alt="" width="1600" height="640" decoding="async">
-      <script>(function(){try{var c=(new URLSearchParams(location.search).get('city')||'').toLowerCase();var img=document.getElementById('loadSkyline');if(img&&c==='boston')img.src='/img/boston-skyline-sil.png';}catch(e){}})();</script>
+      <img src="/img/houston-skyline-dusk-light.png" alt="" width="1600" height="640" decoding="async">
     </div>
   </div>
 </div>

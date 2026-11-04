@@ -2,7 +2,7 @@
  * Houston-area water towers from OSM (scripts/extract-houston-water-towers.py), each in its city's
  * own paint scheme with the city name around the tank. Three common Texas designs: composite
  * (concrete column + steel bowl), pedestal sphere and multi-leg. Instanced (a few draws in total);
- * true size near the ground; they grow (up to 14x) only when viewed from well above, so they stay visible on the zoomed-out map.
+ * always drawn at true size; not drawn beyond ~6 km.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -139,7 +139,8 @@ export function createWaterTowers({ parent, geoToWorld, url = '/data/houston/wat
          grows only when the map is viewed from well above (eye over ~1.5 km), so it still reads from the zoomed-out map */
       const h = cam ? cam.y - baseY : 1e9, hd = cam ? Math.hypot(cam.x - o.x, cam.z - o.z) : 0;
       const up = Math.max(0, Math.min(1, (h - 1500) / 1500)), d = Math.hypot(hd, h);
-      const k = hd > 4000 + Math.max(0, h) * 3 ? 0 : 1 + up * (Math.min(14, Math.max(1, d / 1500)) - 1);
+      /* always true size (no swelling when zoomed out); past ~6 km a 40 m tower is under half a degree, so it isn't drawn */
+      const k = hd > 6000 ? 0 : 1; void up; void d;
       o.k = k; _q.setFromAxisAngle(_s.set(0, 1, 0), o.yaw); _s.set(k, k, k);
       for (const [m, i, top] of o.slots) {
         _p.set(o.x, baseY + (top ? top * k : 0), o.z); _m.compose(_p, _q, top ? _s.set(k, k, k) : _s); m.setMatrixAt(i, _m);
@@ -151,7 +152,7 @@ export function createWaterTowers({ parent, geoToWorld, url = '/data/houston/wat
     if (!towers.length || (++frame % 6)) return;
     const k = Math.round(Math.log(1 + Math.hypot(cam.x, cam.y, cam.z) / 50) * 40 + cam.y);
     if (k !== lastK) { lastK = k; place(cam.y, cam); }
-    const lamp = meshes[meshes.length - 1]; if (lamp) lamp.visible = night > 0.25 || ((performance.now() / 1000) % 2) < 1;
+    const lamp = meshes[meshes.length - 1]; if (lamp) lamp.visible = night > 0.25; /* steady red obstruction light after dusk only (no daytime blinking) */
   }
   return { root, ready, update, get count() { return towers.length; } };
 }

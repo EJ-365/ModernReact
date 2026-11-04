@@ -60,20 +60,6 @@ export const SANANTONIO_ROAD_LATLNG = [
       [29.42, -98.70], [29.42, -98.60], [29.42, -98.52], [29.42, -98.48], [29.42, -98.40],
     ],
   },
-  {
-    id: 'sh151', name: 'SH-151 — Westover Hills', short: 'SH-151',
-    closed: false, width: 34, lanes: 3, ff: 55, share: 0.75, baseY: 0.82, prio: 4.2,
-    latlng: [
-      [29.48, -98.65], [29.46, -98.62], [29.45, -98.58], [29.44, -98.54], [29.43, -98.50],
-    ],
-  },
-  {
-    id: 'i10e', name: 'I-10 East — Seguin approach', short: 'I-10 E',
-    closed: false, width: 42, lanes: 4, ff: 70, share: 0.85, baseY: 0.82, prio: 5.5,
-    latlng: [
-      [29.45, -98.15], [29.48, -98.05], [29.52, -97.95], [29.55, -97.85],
-    ],
-  },
 ];
 
 export const SANANTONIO_DISTRICTS = [

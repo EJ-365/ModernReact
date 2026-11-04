@@ -1,7 +1,32 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.106.0** — water towers and live planes at true size near the ground (no giants on the horizon).
+**Current build:** **v10.109.0** — landing callouts, crash-sim cockpit warnings, smoother camera and better live planes in world cities. Previous: **v10.108.0** — 8-point compass with true bearing, military helicopters, true-size sun/moon with real moon phase, more suburban houses, water towers at true size, 14 new songs.
+
+### v10.109.0
+- Landing callouts: radio-altimeter voice on the way down for every fixed-wing aircraft (1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10; "twenty, retard" on Airbus, "ten, retard" on Boeing and others). Browser speech, follows the tour Sound toggle.
+- Crash sim cockpit warnings: annunciator panel with flashing MASTER WARNING and amber MASTER CAUTION, STALL, PULL UP, WINDSHEAR, ENG FIRE, ENG FAIL, GEAR and OVERRUN lights driven by the simulation, plus the repeating master-warning chime.
+- World cities: the camera glides toward each drag/zoom/pan goal instead of jumping (smooth panning and zooming). Live planes use a painted airliner model (white body, grey wings and engines, blue fin, cockpit and window line, winglets) and glide from where they are drawn onto each new feed position, easing their heading and banking in turns instead of jumping every refresh.
+
+### v10.108.0
+- Compass: 8-point rose (N, NE, E, SE, S, SW, W, NW) that turns with the view like the iPhone compass, plus a true-bearing readout (e.g. "315° NW") computed from the camera direction (north = -z, east = +x in the map).
+- Military helicopters at real dimensions: Sikorsky UH-60 Black Hawk, Boeing AH-64 Apache (stub wings, rocket pods, tandem canopy, nose turret), Boeing CH-47 Chinook (tandem counter-rotating rotors). Pickable in the plane tour; live ADS-B H60/H64/H47 types use them.
+- Sun and moon drawn at their true angular size (0.53° / 0.52°) from the eye. The moon shows the real phase for today's date, with the lit limb on the correct side and faint earthshine, and sits at its real angle from the sun.
+- Water towers: always true size (no more swelling when zoomed out) and not drawn beyond ~6 km; the red obstruction light is steady and only on after dusk.
+- Houses: denser suburban lots (14 m step, ~15-20 m Houston lot frontage), higher per-tile cap; still kept off every carriageway. Houston land-cover colours tuned toward its humid subtropical greens (tree-canopy residential, darker woods, greener pasture).
+- Watchdog: a long blocking load step on a slow PC no longer counts as a frozen app (the stall check only counts time while its own timer ticks on schedule, and not in the first minute). This could reload the page on slow machines.
+- Songs (oEmbed-verified, not already listed): Wonder (Katy Perry), Inferno (Zlatan, Peruzzi & Shoday), Beez In The Trap (Nicki Minaj ft. 2 Chainz), Wonder (Shawn Mendes), Heroes (Alesso ft. Tove Lo), synthwave: Sunset (The Midnight), Running in the Night (FM-84), Back to You (Timecop1983); Super Bass and Starships (Nicki Minaj), Yeah Glo! (GloRilla), Zanku (Zlatan), Latch (Disclosure), Best Part (Daniel Caesar & H.E.R.).
+
+### v10.107.1
+- "Error creating WebGL context": the renderer now retries with lighter settings (no MSAA, default then low-power GPU, no reversed-Z) before giving up, and if the browser still refuses it shows what to do (close 3D tabs, restart the browser, turn on hardware acceleration, chrome://gpu) with a Try again button instead of "Boot error".
+- Root cause of the block: after a GPU context loss the app reloaded itself every time, and repeated GPU resets make Chrome block WebGL for the site. Auto-reload (context loss or stalled render loop) now happens at most once per 3 minutes; after that it shows a Reload prompt. A GPU reset also switches the next 3 days of visits to a lighter mode (1x pixels, no MSAA), and a restored context drops to 1x pixels.
+
+### v10.107.0
+- Crash simulator (Tour → By plane → Crash simulator): 7 scenarios modelled on real accidents — dual engine failure after bird strike (US Airways 1549), engine fire on the takeoff roll (BA 2276), stall on approach (Colgan 3407), microburst windshear (Delta 191), gear-up belly landing (LOT 16), wet-runway overrun (Air France 358) and fuel-exhaustion glide (Gimli Glider). Any airport with runway data, any fixed-wing tour aircraft. Point-mass flight model (stall speed limits lift, drag polar from best glide ratio, engine thrust that can fail, post-stall lift loss, windshear head/tailwind and downdraft, runway/grass/belly friction). Textbook or delayed/wrong crew response changes the outcome. Smoke, fire, sparks, dust, debris; stick shaker, chimes, fire bell and spoken callouts (Web Audio + browser speech). Lesson card: what happened and how pilots avoid it. Views: chase, cockpit, window, wing, top, free look; time ×0.5–×3. No people are drawn.
+- Crash fix: world-city scenes leaked 4 GPU textures per visit (facade night maps, ground detail map, cloud sprite) because dispose() only freed `map`/`alphaMap`. All material textures are now disposed; repeated city switching holds steady (~168 textures). A city picked while another was still loading no longer leaves the older scene alive.
+- Homepage redesign: full-bleed public-domain Houston photography (Carol M. Highsmith, Library of Congress), live Houston clock, stats, real frames from the simulator instead of the heavy live 3D iframe (which loaded a second full sim on the homepage), source credits.
+- Service worker: pages and CSS are network-first, so a new homepage/app shows on the first visit after an update (cache hts-shell-v254).
+- Sky: softer haze band at the horizon, warmer forward-scatter glow on the sun's side at sunrise/sunset.
 
 ### v10.106.0
 - Water towers: true size whenever the eye is below ~1.5 km, and not drawn beyond ~4 km + 3x eye height, so they no longer stand on the horizon like giants. The enlargement for the zoomed-out map now only applies when viewing from well above (eye 1.5–3 km and higher).

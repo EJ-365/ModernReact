@@ -94,34 +94,29 @@ export const BOSTON_NWS = {
 };
 
 export const BOSTON_WATERS = [
-  { n:'Charles River', lat:42.3600, lng:-71.0750, r:260, tag:'river' },
-  { n:'Charles Basin', lat:42.3565, lng:-71.0900, r:200, tag:'river' },
-  { n:'Boston Harbor', lat:42.3550, lng:-71.0400, r:480, tag:'harbor' },
-  { n:'Inner Harbor', lat:42.3620, lng:-71.0480, r:220, tag:'harbor' },
-  { n:'Mystic River', lat:42.3900, lng:-71.0700, r:200, tag:'river' },
-  { n:'Fort Point Channel', lat:42.3500, lng:-71.0480, r:140, tag:'channel' },
-  { n:'Chelsea Creek', lat:42.3850, lng:-71.0250, r:160, tag:'channel' },
+  { n:'Charles River', lat:42.3600, lng:-71.0750, r:240, tag:'river' },
+  { n:'Boston Harbor', lat:42.3550, lng:-71.0400, r:420, tag:'harbor' },
+  { n:'Mystic River', lat:42.3900, lng:-71.0700, r:180, tag:'river' },
+  { n:'Fort Point Channel', lat:42.3500, lng:-71.0480, r:120, tag:'channel' },
 ];
 
 export const BOSTON_CAM_EXTRAS = [{ id:'fenway', lat:42.3467, lng:-71.0972, radius:300 }];
 
-/* World height ≈ real feet / 3.16 · silhouette-accurate crowns (Hancock needle, Fed hollow, Custom House, Bunker Hill) */
+/* World height ≈ real feet / 3.16 · Back Bay + Financial District */
 export const BOSTON_SKYLINE = [
-  { n:'200 Clarendon (Hancock)', lat:42.34927, lng:-71.07509, w:26, d:40, h:250, s:1, info:'790 ft · mirrored rhomboid', rot:0.45, kind:'needle', spire:55 },
-  { n:'Prudential Tower', lat:42.34716, lng:-71.08249, w:36, d:34, h:237, s:0, info:'749 ft · View Boston', kind:'stepped', spire:36 },
+  { n:'200 Clarendon (Hancock)', lat:42.34927, lng:-71.07509, w:28, d:42, h:250, s:1, info:'790 ft · mirrored rhomboid', rot:0.45 },
+  { n:'Prudential Tower', lat:42.34716, lng:-71.08249, w:34, d:32, h:237, s:0, info:'749 ft · View Boston', spire:40 },
   { n:'One Dalton Street', lat:42.3465, lng:-71.0855, w:26, d:26, h:235, s:3, info:'742 ft · Four Seasons' },
   { n:'Millennium Tower', lat:42.3555, lng:-71.0595, w:28, d:28, h:217, s:2, info:'685 ft · Downtown Crossing' },
-  { n:'Federal Reserve Bank', lat:42.3530, lng:-71.0535, w:30, d:30, h:194, s:1, info:'614 ft · washboard void', kind:'hollow' },
-  { n:'One International Place', lat:42.3560, lng:-71.0515, w:32, d:32, h:190, s:0, info:'600 ft · Financial District', kind:'stepped' },
+  { n:'Federal Reserve Bank', lat:42.3530, lng:-71.0535, w:28, d:28, h:194, s:1, info:'614 ft' },
+  { n:'One International Place', lat:42.3560, lng:-71.0515, w:32, d:32, h:190, s:0, info:'600 ft · Financial District' },
   { n:'One Financial Center', lat:42.3525, lng:-71.0555, w:28, d:26, h:187, s:2, info:'590 ft' },
-  { n:'111 Huntington Avenue', lat:42.3468, lng:-71.0818, w:26, d:24, h:175, s:3, info:'554 ft openwork crown', kind:'dome' },
+  { n:'111 Huntington Avenue', lat:42.3468, lng:-71.0818, w:26, d:24, h:175, s:3, info:'554 ft openwork crown' },
   { n:'Two International Place', lat:42.3552, lng:-71.0510, w:28, d:28, h:168, s:1, info:'538 ft' },
   { n:'Berkeley Building', lat:42.3500, lng:-71.0705, w:30, d:28, h:160, s:0, info:'500+ ft Back Bay' },
-  { n:'Custom House Tower', lat:42.3590, lng:-71.0525, w:18, d:18, h:157, s:2, info:'496 ft · 1915 clock tower', kind:'clock' },
+  { n:'Custom House Tower', lat:42.3590, lng:-71.0525, w:18, d:18, h:157, s:2, info:'496 ft · 1915 clock tower' },
   { n:'100 Federal Street', lat:42.3550, lng:-71.0565, w:28, d:26, h:155, s:1, info:'591 ft · First National Bank' },
   { n:'Hub on Causeway', lat:42.3660, lng:-71.0625, w:30, d:28, h:145, s:0, info:'Near TD Garden' },
-  { n:'Bunker Hill Monument', lat:42.3762, lng:-71.0608, w:10, d:10, h:70, s:0, info:'221 ft granite obelisk', kind:'obelisk' },
-  { n:'Massachusetts State House', lat:42.3588, lng:-71.0638, w:36, d:28, h:55, s:3, info:'Golden dome · Beacon Hill', kind:'dome' },
   { n:'Ames Building', lat:42.3585, lng:-71.0585, w:22, d:22, h:65, s:3, info:'1893 · early skyscraper' },
   { n:'MIT Site 4', lat:42.3608, lng:-71.0885, w:28, d:26, h:120, s:1, info:'Kendall Square high-rise' },
 ];

@@ -93,24 +93,21 @@ export const MIAMI_NWS = {
 };
 
 export const MIAMI_WATERS = [
-  { n:'Biscayne Bay', lat:25.7750, lng:-80.1600, r:520, tag:'bay' },
-  { n:'Brickell Bay', lat:25.7600, lng:-80.1850, r:220, tag:'bay' },
-  { n:'Miami River', lat:25.7750, lng:-80.2050, r:180, tag:'river' },
-  { n:'Atlantic Ocean', lat:25.7900, lng:-80.1100, r:440, tag:'ocean' },
-  { n:'Government Cut', lat:25.7650, lng:-80.1350, r:160, tag:'channel' },
-  { n:'Intracoastal', lat:25.8200, lng:-80.1400, r:200, tag:'channel' },
+  { n:'Biscayne Bay', lat:25.7750, lng:-80.1600, r:480, tag:'bay' },
+  { n:'Miami River', lat:25.7750, lng:-80.2050, r:160, tag:'river' },
+  { n:'Atlantic Ocean', lat:25.7900, lng:-80.1100, r:400, tag:'ocean' },
 ];
 
 export const MIAMI_CAM_EXTRAS = [{ id:'southbeach', lat:25.7820, lng:-80.1330, radius:300 }];
 
 /* World height ≈ real feet / 3.16 · Brickell + Downtown */
 export const MIAMI_SKYLINE = [
-  { n:'Panorama Tower', lat:25.7635, lng:-80.1915, w:30, d:30, h:275, s:0, info:'868 ft · Brickell', kind:'needle' },
-  { n:'Waldorf Astoria Miami', lat:25.7705, lng:-80.1890, w:28, d:28, h:270, s:1, info:'Under construction crown', kind:'stepped' },
-  { n:'One Thousand Museum', lat:25.7825, lng:-80.1870, w:26, d:26, h:220, s:2, info:'Zaha Hadid exoskeleton', kind:'hollow' },
+  { n:'Panorama Tower', lat:25.7635, lng:-80.1915, w:30, d:30, h:275, s:0, info:'868 ft · Brickell' },
+  { n:'Waldorf Astoria Miami', lat:25.7705, lng:-80.1890, w:28, d:28, h:270, s:1, info:'Under construction crown' },
+  { n:'One Thousand Museum', lat:25.7825, lng:-80.1870, w:26, d:26, h:220, s:2, info:'Zaha Hadid exoskeleton' },
   { n:'Echo Brickell', lat:25.7605, lng:-80.1905, w:24, d:24, h:215, s:3, info:'Brickell waterfront' },
-  { n:'Brickell Flatiron', lat:25.7645, lng:-80.1910, w:26, d:26, h:210, s:0, info:'Triangular tower', kind:'pyramid' },
-  { n:'Miami Tower', lat:25.7715, lng:-80.1900, w:28, d:28, h:200, s:1, info:'Downtown classic', kind:'stepped' },
+  { n:'Brickell Flatiron', lat:25.7645, lng:-80.1910, w:26, d:26, h:210, s:0, info:'Triangular tower' },
+  { n:'Miami Tower', lat:25.7715, lng:-80.1900, w:28, d:28, h:200, s:1, info:'Downtown classic' },
   { n:'Southeast Financial Center', lat:25.7725, lng:-80.1915, w:30, d:30, h:195, s:2, info:'764 ft' },
   { n:'900 Biscayne Bay', lat:25.7835, lng:-80.1865, w:28, d:28, h:190, s:3, info:'Edgewater' },
   { n:'Marquis Miami', lat:25.7850, lng:-80.1860, w:26, d:26, h:185, s:0, info:'Downtown north' },

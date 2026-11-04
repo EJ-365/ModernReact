@@ -1,4 +1,4 @@
-const CACHE = "hts-shell-v253";
+const CACHE = "hts-shell-v257";
 const PRECACHE = [
   "/",
   "/index.html",
@@ -35,12 +35,15 @@ self.addEventListener("fetch", (event) => {
   /* Never cache API proxies */
   if (url.pathname.startsWith("/api/")) return;
 
-  /* App/modules: network-first so syntax/runtime fixes are never stuck behind stale cache */
+  /* App/modules/pages/styles: network-first so syntax/runtime fixes are never stuck behind stale cache */
   const isAppShell =
     url.pathname.startsWith("/src/") ||
     url.pathname.endsWith(".js") ||
     url.pathname.endsWith(".mjs") ||
-    url.pathname === "/app.html";
+    url.pathname === "/app.html" ||
+    req.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname.endsWith(".css");
 
   if (isAppShell) {
     event.respondWith(

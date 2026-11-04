@@ -436,6 +436,18 @@ function setupPreview() {
   });
 }
 
+function setupHeroClock() {
+  const el = document.getElementById("hxClock");
+  if (!el) return;
+  const tick = () => {
+    try {
+      el.textContent = "Houston · " + new Date().toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+    } catch (e) {}
+  };
+  tick();
+  setInterval(tick, 15000);
+}
+
 setupNav();
 setupInstall();
 registerSW();
@@ -444,3 +456,4 @@ setupReveal();
 setupCounters();
 setupParallax();
 setupPreview();
+setupHeroClock();

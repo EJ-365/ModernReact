@@ -273,6 +273,7 @@ function look(dx, dy, pan) {
   } else { orbit.theta -= dx * 0.005; orbit.phi = THREE.MathUtils.clamp(orbit.phi - dy * 0.004, 0.12, 1.45); }
 }
 let outTicks = 0;
+const orbitS = {};
 function zoom(f) {
   if (flight && flight.phase === 'cruise') { flight.cdist = THREE.MathUtils.clamp((flight.cdist || 1) * f, 0.15, 6); return; }
   if (flight) { const o = flight.orb || (flight.orb = { yaw: 0, pitch: 0.21, dist: 1 }); o.dist = THREE.MathUtils.clamp(o.dist * f, 0.35, 12); return; }
@@ -394,10 +395,14 @@ function cityPois(c) {
   loadPois('/data/world/pois/' + id + '.json', (la, ln) => g.toW(la, ln)).then((L) => { if (city && city.id === id) poiL.setData(L); }).catch(() => {});
 }
 function disposeCity() { if (poiL) poiL.setData([]); showFlightTip(null); if (drive) { drive.dispose(); drive = null; } if (cs) { cs.dispose(); cs = null; } city = null; }
+let enterGen = 0;
 async function enterCity(c, keepPose) {
   if (city && city.id === c.id && cs) { mode = 'city'; renderCard(); return; }
   disposeCity();
-  try { cs = await loadCity(c); } catch (e) { toast('Could not load ' + c.name + ' (' + e.message + ')'); mode = 'globe'; return; }
+  const my = ++enterGen; let s;
+  try { s = await loadCity(c); } catch (e) { if (my === enterGen) { toast('Could not load ' + c.name + ' (' + e.message + ')'); mode = 'globe'; } return; }
+  if (my !== enterGen) { s.dispose(); return; } /* a newer city was picked while this one loaded */
+  cs = s;
   if (/debug/.test(location.search)) { window._wcs = cs; window._worbit = orbit; }
   city = c; mode = 'city'; cityPois(c);
   if (!keepPose) Object.assign(orbit, { tx: 0, tz: 0, r: 3600, theta: 0.6, phi: 0.92 });
@@ -522,7 +527,6 @@ function renderCard() {
     ${city && cs ? `<div class="row"><span>3D buildings</span><b>${cs.buildings ? cs.buildings.toLocaleString() : (c.full ? 'full simulator' : '—')}</b></div>` : ''}
     <div class="acts">
       ${mode === 'globe' ? `<button class="wbtn pri" data-a="visit">${c.full ? 'Open Houston' : 'Visit ' + c.name}</button>` : ''}
-      ${mode === 'globe' && !c.full && window.HTS_CITIES && window.HTS_CITIES[c.id] ? `<button class="wbtn" data-a="pack">Open ${c.name} traffic</button>` : ''}
       ${city ? `<button class="wbtn pri" data-a="fly">Fly to…</button>` : ''}
       ${city ? `<button class="wbtn" data-a="drive" ${c.drive ? '' : 'disabled title="Driving is available in the Americas"'}>Drive to Houston</button>` : ''}
       ${city ? `<button class="wbtn" data-a="apt">Airport</button>` : ''}
@@ -563,13 +567,6 @@ async function cardAction(a) {
   if (a.startsWith('look-')) { if (cs && cs.setLook) cs.setLook(a.slice(5)); renderCard(); return; }
   if (a === 'min') { cardMin = !cardMin; try { localStorage.setItem('hts-wcard-min', cardMin ? '1' : '0'); } catch { /* private mode */ } renderCard(); return; }
   if (a === 'visit') selectCity(c, true);
-  else if (a === 'pack' && c && window.HTS_CITIES && window.HTS_CITIES[c.id]) {
-    /* Full researched traffic pack (Texas metros first) — reloads app-main with ?city= */
-    const u = new URL(location.href);
-    u.searchParams.set('city', c.id);
-    location.href = u.pathname + u.search + u.hash;
-    return;
-  }
   else if (a === 'from') { await enterCity(c); cardAction('fly'); }
   else if (a === 'fly') { flyOpen = !flyOpen; const f = ui.card.querySelector('#wFly'); if (f) f.style.display = flyOpen ? 'block' : 'none'; }
   else if (a === 'go') {
@@ -629,10 +626,17 @@ function cityCam(dt) {
     if (f && f.wx != null) { orbit.tx = f.wx; orbit.tz = f.wz; ty = f.wy; followT = performance.now(); }
     else if (performance.now() - followT > 20000) { follow = null; toast('The aircraft left live coverage', 3000); renderCard(); }
   }
-  const sp = Math.sin(orbit.phi), cp = Math.cos(orbit.phi);
-  cam.position.set(orbit.tx + orbit.r * sp * Math.sin(orbit.theta), ty + orbit.r * cp + 2, orbit.tz + orbit.r * sp * Math.cos(orbit.theta));
-  cam.up.set(0, 1, 0); cam.lookAt(orbit.tx, ty, orbit.tz);
-  cam.near = Math.max(0.5, orbit.r * 0.004); cam.far = 90000; cam.updateProjectionMatrix();
+  /* glide the camera toward the orbit goal (drag/zoom/pan set the goal) so moving around a city is smooth, not steppy */
+  const _now = performance.now(), _dt = Math.min(0.1, (_now - (orbitS.t || _now)) / 1000), _k = orbitS.t ? 1 - Math.exp(-_dt * 10) : 1; orbitS.t = _now;
+  if (!orbitS.r || Math.hypot(orbit.tx - orbitS.tx, orbit.tz - orbitS.tz) > 20000) Object.assign(orbitS, { tx: orbit.tx, tz: orbit.tz, r: orbit.r, phi: orbit.phi, theta: orbit.theta });
+  else {
+    orbitS.tx += (orbit.tx - orbitS.tx) * _k; orbitS.tz += (orbit.tz - orbitS.tz) * _k; orbitS.phi += (orbit.phi - orbitS.phi) * _k; orbitS.theta += (orbit.theta - orbitS.theta) * _k;
+    orbitS.r *= Math.pow(orbit.r / orbitS.r, _k);
+  }
+  const O = orbitS, sp = Math.sin(O.phi), cp = Math.cos(O.phi);
+  cam.position.set(O.tx + O.r * sp * Math.sin(O.theta), ty + O.r * cp + 2, O.tz + O.r * sp * Math.cos(O.theta));
+  cam.up.set(0, 1, 0); cam.lookAt(O.tx, ty, O.tz);
+  cam.near = Math.max(0.5, O.r * 0.004); cam.far = 90000; cam.updateProjectionMatrix();
   void dt;
 }
 function setNear(cam, n) { if (cam.near !== n) { cam.near = n; cam.updateProjectionMatrix(); } }

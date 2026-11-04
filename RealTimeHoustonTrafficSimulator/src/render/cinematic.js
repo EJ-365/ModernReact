@@ -48,7 +48,7 @@ export function createCinematic(opts) {
     pmrem.compileEquirectangularShader();
     envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environment = envMap;
-    scene.environmentIntensity = isAus ? 0.18 : (_win ? 0.48 : 0.62);
+    scene.environmentIntensity = isAus ? 0.18 : 0.55;
     pmrem.dispose();
   } catch (e) {
     console.warn('[HTS] cinematic env', e && e.message);
@@ -124,8 +124,6 @@ export function createCinematic(opts) {
 
   function markShadowCasters(root) {
     if (!root) return;
-    let nCast = 0;
-    const castCap = _win ? 90 : 350;
     root.traverse((o) => {
       if (!o.isMesh) return;
       if (o.material && o.material.map && o.isSprite) return;
@@ -135,10 +133,7 @@ export function createCinematic(opts) {
         o.receiveShadow = true;
         return;
       }
-      if (nCast < castCap) {
-        o.castShadow = true;
-        nCast++;
-      } else o.castShadow = false;
+      o.castShadow = true;
       o.receiveShadow = true;
     });
   }
@@ -149,10 +144,10 @@ export function createCinematic(opts) {
     const tz = (camState && camState.target && camState.target.z) || 0;
     const altY = camera.position.y || 0;
     /* hysteresis everywhere: shadows used to pop on/off every time fps or zoom crossed a threshold (the flicker) */
-    const perfOk = fpsAvg == null || fpsAvg > (shadowsOn ? (_win ? 28 : 22) : (_win ? 40 : 34));
+    const perfOk = fpsAvg == null || fpsAvg > (shadowsOn ? 22 : 34);
     if (fpsAvg != null) ssaoBudget = ssaoOn ? fpsAvg > 46 : fpsAvg > 55;
-    const aerial = altY > (shadowsOn ? (_win ? 380 : 460) : (_win ? 300 : 380));
-    const rMax = (isAus ? 4200 : (_win ? 1600 : 2400)) * (shadowsOn ? 1.15 : 1);
+    const aerial = altY > (shadowsOn ? 460 : 380);
+    const rMax = (isAus ? 4200 : 2400) * (shadowsOn ? 1.15 : 1);
     const wantShadow = !aerial && radius < rMax && nightF < (shadowsOn ? 0.9 : 0.8) && perfOk;
     const wantSsao = !_win && !aerial && useComposer && radius < (isAus ? 1800 : 1600) && ssaoBudget && nightF < 0.9;
 
@@ -182,8 +177,8 @@ export function createCinematic(opts) {
       sc.updateProjectionMatrix();
       const moved = Math.hypot(tx - _shTx, tz - _shTz) > 55 || Math.abs(radius - _shR) > 90;
       const now = performance.now();
-      /* the sun keeps moving: refresh shadows periodically even when the camera is parked */
-      if (moved || now - _shT > (_win ? 3200 : 2000)) {
+      /* the sun keeps moving: refresh shadows every 2 s even when the camera is parked */
+      if (moved || now - _shT > 2000) {
         _shT = now;
         _shTx = tx; _shTz = tz; _shR = radius;
         renderer.shadowMap.needsUpdate = true;

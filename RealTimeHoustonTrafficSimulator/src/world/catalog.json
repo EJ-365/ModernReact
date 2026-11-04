@@ -131,41 +131,6 @@
    }
   },
   {
-   "id": "elpaso",
-   "name": "El Paso",
-   "country": "United States",
-   "region": "Texas",
-   "tz": "America/Denver",
-   "lat": 31.7619,
-   "lng": -106.485,
-   "drive": true,
-   "src": "texas",
-   "apt": {
-    "code": "ELP",
-    "name": "El Paso International",
-    "lat": 31.8072,
-    "lng": -106.3778,
-    "hdg": 40,
-    "len": 3660,
-    "rwy": [
-     [
-      31.7975,
-      -106.393
-     ],
-     [
-      31.8165,
-      -106.363
-     ]
-    ],
-    "w": 46,
-    "ref": "04/22"
-   },
-   "info": {
-    "pop": "870,000 (city) · 2.7 million (El Paso–Juárez)",
-    "fact": "Pass of the North on the Rio Grande — Franklin Mountains State Park divides the city; Fort Bliss and the border with Ciudad Juárez define the metro."
-   }
-  },
-  {
    "id": "newyork",
    "name": "New York",
    "country": "United States",

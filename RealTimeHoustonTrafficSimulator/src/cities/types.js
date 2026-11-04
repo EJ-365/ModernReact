@@ -65,7 +65,6 @@ export const CITY_IDS = Object.freeze([
   'austin',
   'sanantonio',
   'dallas',
-  'elpaso',
   'losangeles',
   'newyork',
   'boston',

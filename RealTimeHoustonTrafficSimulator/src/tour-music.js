@@ -481,6 +481,21 @@ const TRACKS = [
   { g: 'movies', id: 'fNFzfwLM72c', title: 'Stayin\' Alive (Saturday Night Fever)', artist: 'Bee Gees' },
   { g: 'movies', id: '8a-HfNE3EIo', title: 'Chariots Of Fire', artist: 'Vangelis' },
   /* Houston artists, 80s anthems, synthwave/cyberpunk, EDM, rock and country — oEmbed-verified */
+  /* v10.108: requested hits (Wonder, Inferno, Beez In The Trap) + EDM, synthwave and more — oEmbed-verified, not already listed */
+  { g: 'pop', id: 'Kmx9NaeihXw', title: 'Wonder', artist: 'Katy Perry' },
+  { g: 'afrobeat', id: 'cKx9TeXMx1M', title: 'Inferno', artist: 'Zlatan, Peruzzi & Shoday' },
+  { g: 'hiphop', id: 'EmZvOhHF85I', title: 'Beez In The Trap', artist: 'Nicki Minaj ft. 2 Chainz' },
+  { g: 'pop', id: 'fHeQemJJQII', title: 'Wonder', artist: 'Shawn Mendes' },
+  { g: 'electronic', id: 'a7SouU3ECpU', title: 'Heroes (we could be)', artist: 'Alesso ft. Tove Lo' },
+  { g: 'electronic', id: 'URma_gu1aNE', title: 'Sunset', artist: 'The Midnight' },
+  { g: 'electronic', id: 'TvZskcqdYcE', title: 'Running in the Night', artist: 'FM-84 ft. Ollie Wride' },
+  { g: 'electronic', id: 'v0xAWmTbInM', title: 'Back to You', artist: 'Timecop1983' },
+  { g: 'hiphop', id: '4JipHEz53sU', title: 'Super Bass', artist: 'Nicki Minaj' },
+  { g: 'hiphop', id: 'SeIJmciN8mo', title: 'Starships', artist: 'Nicki Minaj' },
+  { g: 'hiphop', id: 'voT9hOs6FZc', title: 'Yeah Glo!', artist: 'GloRilla' },
+  { g: 'afrobeat', id: 'tupb4xV-15w', title: 'Zanku (Legwork)', artist: 'Zlatan' },
+  { g: 'electronic', id: '93ASUImTedo', title: 'Latch', artist: 'Disclosure ft. Sam Smith' },
+  { g: 'soul', id: 'hKgl5-lkT8U', title: 'Best Part', artist: 'Daniel Caesar ft. H.E.R.' },
   /* popular hits + Lukas Graham / LG Malique — official uploads, oEmbed-verified */
   { g: 'pop', id: 'kffacxfA7G4', title: 'Baby', artist: 'Justin Bieber ft. Ludacris' },
   { g: 'pop', id: 'tt2k8PGm-TI', title: 'Dusk Till Dawn', artist: 'ZAYN ft. Sia' },
@@ -652,38 +667,13 @@ const TRACKS = [
   { g: 'hiphop', id: 'B5YNiCfWC3A', title: 'Swimming Pools', artist: 'Kendrick Lamar' },
   { g: 'hiphop', id: 'hI8A14Qcv68', title: 'N.Y. State Of Mind', artist: 'Nas' },
   { g: 'hiphop', id: 'ThlhSnRk21E', title: 'Ruff Ryders\' Anthem', artist: 'DMX' },
-  /* Popular adds — ALL dedupes by id + normalized title so existing songs are skipped */
-  { g: 'pop', id: 'NmugSMBh_iI', title: 'Maps', artist: 'Maroon 5' },
-  { g: 'pop', id: 'iEPTlhBmwRg', title: 'Moves Like Jagger', artist: 'Maroon 5 ft. Christina Aguilera' },
-  { g: 'pop', id: 'KRaWnd3LJfs', title: 'Payphone', artist: 'Maroon 5 ft. Wiz Khalifa' },
-  { g: 'pop', id: '98WtmW-lfeE', title: 'Teenage Dream', artist: 'Katy Perry' },
-  { g: 'pop', id: 'F57P9C4SAW4', title: 'California Gurls', artist: 'Katy Perry ft. Snoop Dogg' },
-  { g: 'pop', id: 'bESGLojNYSo', title: 'Poker Face', artist: 'Lady Gaga' },
-  { g: 'pop', id: 'E07s5ZYygMg', title: 'Watermelon Sugar', artist: 'Harry Styles' },
-  { g: 'pop', id: 'eVli-tstM5E', title: 'Espresso', artist: 'Sabrina Carpenter' },
-  { g: 'pop', id: 'gNlFliJU5YY', title: 'good 4 u', artist: 'Olivia Rodrigo' },
-  { g: 'pop', id: 'Oa_RSwwpPaA', title: 'Beautiful Things', artist: 'Benson Boone' },
-  { g: 'pop', id: '9gWIIIr2Asw', title: 'Lose Control', artist: 'Teddy Swims' },
-  { g: 'electronic', id: '_ovdm2yX4MA', title: 'Levels', artist: 'Avicii' },
-  { g: 'electronic', id: '1y6smkh6c-0', title: 'Don\'t You Worry Child', artist: 'Swedish House Mafia ft. John Martin' },
-  { g: 'electronic', id: 'egMWlD3x6M8', title: 'Outside', artist: 'Calvin Harris ft. Ellie Goulding' },
-  { g: 'gospel', id: '3gPTb3FowII', title: 'Looking For You', artist: 'Kirk Franklin' },
-  { g: 'gospel', id: 'R6T6qGZQOZk', title: 'Way Maker (Live)', artist: 'Leeland' },
-  { g: 'gospel', id: '1kXX7B3nC-E', title: 'Raise A Hallelujah', artist: 'Bethel Music' },
-  { g: 'soul', id: 'sjbY-R7L07A', title: 'Isn\'t She Lovely', artist: 'Stevie Wonder' },
-  { g: 'soul', id: '6toFy5I4NkA', title: 'Signed, Sealed, Delivered I\'m Yours', artist: 'Stevie Wonder' },
-  { g: 'soul', id: '1b2jGKGTtpA', title: 'Sir Duke', artist: 'Stevie Wonder' },
 ];
 
 const ALL = (() => {
-  const seenId = new Set(), seenTitle = new Set(), out = [];
-  const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const seen = new Set(), out = [];
   for (const t of TRACKS) {
-    if (!t.id || seenId.has(t.id)) continue;
-    const key = norm(t.title);
-    if (key && seenTitle.has(key)) continue;
-    seenId.add(t.id);
-    if (key) seenTitle.add(key);
+    if (!t.id || seen.has(t.id)) continue;
+    seen.add(t.id);
     out.push(t);
   }
   return out;
@@ -913,7 +903,7 @@ export function createTourMusic() {
   function ensureUi() {
     if (wrap) return;
     const css = document.createElement('style');
-    css.textContent = '#tourYt{position:fixed;left:14px;bottom:14px;z-index:41;display:none;flex-direction:column;gap:6px;width:min(360px,72vw);background:rgba(14,12,10,.92);border:1px solid rgba(232,168,56,.3);border-radius:12px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);font:11px/1.3 Overpass,system-ui,sans-serif;color:#f3ebe0;touch-action:none}'
+    css.textContent = '#tourYt{position:fixed;left:14px;bottom:14px;z-index:41;display:none;flex-direction:column;gap:6px;width:min(300px,56vw);background:rgba(14,12,10,.92);border:1px solid rgba(232,168,56,.3);border-radius:12px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);font:11px/1.3 Overpass,system-ui,sans-serif;color:#f3ebe0;touch-action:none}'
       + '#tourYt.on{display:flex}#tourYt.placed{left:0;bottom:auto;right:auto}'
       /* Driver look: stay on body (fixed overlay). Never reparent — moving the YT iframe restarts audio. */
       + '#tourYt.dashEmbed{position:fixed!important;z-index:42!important;display:flex!important;max-width:none!important;'
@@ -924,12 +914,10 @@ export function createTourMusic() {
       + '#tourYt .hd{display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;padding:2px 0 4px;border-bottom:1px solid rgba(255,236,210,.08);margin-bottom:2px}'
       + '#tourYt .hd:active{cursor:grabbing}#tourYt .hd .drag{color:#8a7e70;font-size:11px}'
       + '#tourYt .hd .acts{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}'
-      /* Video host always open while music is on (Devin player) — don't wait for yt-ready or the iframe stays 0-size */
-      + '#tourYt .host{display:none;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#0a0a0a;flex:0 0 auto;min-height:140px;position:relative}'
-      + '#tourYt.on:not(.radio):not(.spot):not(.min) .host{display:block}'
-      + '#tourYt.dashEmbed:not(.radio):not(.spot) .host{display:block}'
-      + '#tourYt.dashEmbed{flex-direction:column;overflow:hidden}#tourYt.dashEmbed .host{aspect-ratio:auto;flex:1 1 0;height:auto;min-height:90px;max-height:none;width:100%;align-self:stretch}'
-      + '#tourYt .host iframe,#tourYt .host > div{width:100%!important;height:100%!important;min-height:140px;border:0;display:block}'
+      + '#tourYt .host{display:none;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;flex:1;min-height:72px}'
+      + '#tourYt.yt-ready .host,#tourYt.dashEmbed .host{display:block}'
+      + '#tourYt.dashEmbed{flex-direction:column;overflow:hidden}#tourYt.dashEmbed .host{aspect-ratio:auto;flex:1 1 0;height:auto;min-height:60px;max-height:none;width:100%;align-self:stretch}'
+      + '#tourYt .host iframe{width:100%;height:100%;border:0;display:block}'
       + '#tourYt.spot,#tourYt.radio{display:flex}#tourYt.radio .host{display:none!important}#tourYt.spot .host{display:none!important}#tourYt.dashEmbed .spotFrame{height:80px!important;flex:none}#tourYt.spot.dashEmbed .gen{display:none!important}#tourYt .spotFrame iframe{width:100%!important;height:100%!important;border:0}'
       + '#tourYt .body{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}'
       + '#tourYt.min{width:auto;max-width:min(340px,82vw);padding:6px 8px}'
@@ -1174,8 +1162,6 @@ export function createTourMusic() {
 
   async function ensurePlayer() {
     ensureUi();
-    /* Show host before constructing the iframe — hidden mounts often get 0×0 players */
-    if (wrap && on) wrap.classList.add('on');
     const YT = await loadYTApi();
     if (player) return player;
     if (!mount || !mount.isConnected) {
@@ -1203,17 +1189,7 @@ export function createTourMusic() {
         events: {
           onReady: () => {
             playerReady = true;
-            if (wrap) wrap.classList.add('yt-ready', 'on');
-            /* Host was visible before create — nudge iframe size after layout */
-            try {
-              const iframe = wrap && wrap.querySelector('.host iframe');
-              if (iframe) { iframe.style.width = '100%'; iframe.style.height = '100%'; iframe.style.minHeight = '140px'; }
-              if (player && typeof player.setSize === 'function') {
-                const host = wrap && wrap.querySelector('.host');
-                const w = (host && host.clientWidth) || 300;
-                player.setSize(w, Math.round(w * 9 / 16));
-              }
-            } catch (e0) { /* ignore */ }
+            if (wrap) wrap.classList.add('yt-ready');
             const id = pendingId || wantId;
             if (id) {
               try {
@@ -1277,7 +1253,6 @@ export function createTourMusic() {
     startBed();
     if (player && playerReady && typeof player.loadVideoById === 'function') {
       try {
-        if (wrap) wrap.classList.add('yt-ready', 'on');
         try { if (player.stopVideo) player.stopVideo(); } catch (e0) { /* ignore */ }
         player.loadVideoById({ videoId: id, startSeconds: 0 });
         try { if (player.playVideo) player.playVideo(); } catch (e1) { /* ignore */ }
@@ -1287,7 +1262,6 @@ export function createTourMusic() {
       } catch (e) { /* fall through */ }
     }
     destroyPlayer();
-    if (wrap) wrap.classList.add('on'); /* show host before YT.Player mounts so iframe gets real size */
     ensurePlayer();
   }
 

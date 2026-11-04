@@ -112,11 +112,11 @@ export const LOSANGELES_CAM_EXTRAS = [{ id:'hollywood', lat:34.0928, lng:-118.32
 
 /* World height ≈ real feet / 3.16 · DTLA + satellite CBD icons */
 export const LOSANGELES_SKYLINE = [
-  { n:'Wilshire Grand Center', lat:34.05011, lng:-118.25999, w:36, d:34, h:348, s:1, info:'1100 ft · tallest in CA', kind:'needle', spire:52 },
-  { n:'U.S. Bank Tower', lat:34.0509, lng:-118.2545, w:34, d:34, h:322, s:0, info:'1018 ft · Library Tower', kind:'pyramid' },
+  { n:'Wilshire Grand Center', lat:34.05011, lng:-118.25999, w:36, d:34, h:348, s:1, info:'1100 ft · tallest in CA', spire:52 },
+  { n:'U.S. Bank Tower', lat:34.0509, lng:-118.2545, w:34, d:34, h:322, s:0, info:'1018 ft · Library Tower' },
   { n:'Aon Center', lat:34.0493, lng:-118.2555, w:32, d:32, h:271, s:2, info:'858 ft' },
   { n:'Two California Plaza', lat:34.0515, lng:-118.2515, w:30, d:28, h:237, s:1, info:'750 ft' },
-  { n:'Gas Company Tower', lat:34.0505, lng:-118.2530, w:28, d:26, h:237, s:3, info:'749 ft', kind:'stepped' },
+  { n:'Gas Company Tower', lat:34.0505, lng:-118.2530, w:28, d:26, h:237, s:3, info:'749 ft' },
   { n:'Bank of America Plaza', lat:34.0528, lng:-118.2548, w:30, d:28, h:232, s:0, info:'735 ft' },
   { n:'777 Tower', lat:34.0485, lng:-118.2615, w:30, d:26, h:229, s:2, info:'725 ft · Figueroa' },
   { n:'Wells Fargo Center North', lat:34.0520, lng:-118.2538, w:28, d:28, h:220, s:1, info:'699 ft' },
@@ -127,7 +127,7 @@ export const LOSANGELES_SKYLINE = [
   { n:'FourFortyFour South Flower', lat:34.0498, lng:-118.2565, w:30, d:28, h:198, s:0, info:'625 ft' },
   { n:'CITI Group Center LA', lat:34.0480, lng:-118.2585, w:28, d:26, h:190, s:2, info:'625 ft' },
   { n:'Ernst & Young Plaza', lat:34.0505, lng:-118.2575, w:30, d:28, h:185, s:1, info:'534 ft' },
-  { n:'Los Angeles City Hall', lat:34.0537, lng:-118.2427, w:40, d:36, h:144, s:0, info:'454 ft · 1928 tower', kind:'stepped' },
+  { n:'Los Angeles City Hall', lat:34.0537, lng:-118.2427, w:40, d:36, h:144, s:0, info:'454 ft · 1928 tower' },
   { n:'Ritz-Carlton / JW Marriott', lat:34.0435, lng:-118.2670, w:36, d:32, h:175, s:3, info:'LA Live twin hotels' },
   { n:'Century Plaza Tower North', lat:34.0590, lng:-118.4165, w:32, d:30, h:180, s:0, info:'Century City · 571 ft' },
   { n:'Century Plaza Tower South', lat:34.0582, lng:-118.4160, w:32, d:30, h:180, s:1, info:'Century City twin' },
