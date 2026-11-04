@@ -52,21 +52,17 @@ export function resolveCity(id) {
 }
 
 /**
- * Browser: ?city=austin or localStorage `hts-city`. Default Houston.
+ * Home sim is always Houston. Other cities are entered from the globe, not a Metro dropdown.
+ * Optional `?city=` remains a silent debug override only (not persisted).
  * @returns {string}
  */
 export function activeCityId() {
-  /* Houston-only release: other city packs stay in the repo but are not reachable */
-  if (typeof window === 'undefined' || true) return 'houston';
+  if (typeof window === 'undefined') return 'houston';
   try {
+    /* Drop sticky Metro-dropdown preference from earlier builds */
+    try { window.localStorage.removeItem('hts-city'); } catch { /* ignore */ }
     const q = new URLSearchParams(window.location.search).get('city');
-    if (q && CITY_PACKS[String(q).toLowerCase()]) {
-      const id = String(q).toLowerCase();
-      try { window.localStorage.setItem('hts-city', id); } catch { /* ignore */ }
-      return id;
-    }
-    const stored = window.localStorage.getItem('hts-city');
-    if (stored && CITY_PACKS[String(stored).toLowerCase()]) return String(stored).toLowerCase();
+    if (q && CITY_PACKS[String(q).toLowerCase()]) return String(q).toLowerCase();
   } catch {
     /* ignore */
   }

@@ -20,7 +20,8 @@ export const POI_CAT = {
   mall: [I('<path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2"/>'), '#3a7bd5', 'Shopping'],
   park: [I('<path d="M12 2l6 9h-3l4 6H5l4-6H6zM12 17v5"/>'), '#2e8b57', 'Park / garden'],
   beach: [I('<path d="M4 20h16M12 20V9M5 9a7 7 0 0 1 14 0z"/>'), '#d9a04c', 'Beach'],
-  campus: [I('<path d="M2 9l10-5 10 5-10 5zM6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6"/>'), '#5566cc', 'University'],
+  /* HCCS / universities — same circular badge style as theatre/park (white ring + glyph) */
+  campus: [I('<path d="M3 10l9-5 9 5-9 5-9-5z"/><path d="M7 12v4.5c2.5 1.8 7.5 1.8 10 0V12"/><path d="M21 10v5"/><circle cx="21" cy="16" r="1" fill="#fff"/>'), '#c9a227', 'College / university'],
   view: [I('<circle cx="7" cy="15" r="4"/><circle cx="17" cy="15" r="4"/><path d="M7 11l3-7h4l3 7M11 15h2"/>'), '#3f9b9b', 'Viewpoint'],
   worship: [I('<path d="M12 2v5M10 4h4M6 22V12l6-5 6 5v10zM10 22v-5h4v5"/>'), '#7d8590', 'Historic place of worship'],
 };

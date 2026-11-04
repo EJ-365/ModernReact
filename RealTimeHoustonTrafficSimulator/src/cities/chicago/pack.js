@@ -95,30 +95,34 @@ export const CHICAGO_NWS = {
 };
 
 export const CHICAGO_WATERS = [
-  { n:'Chicago River', lat:41.8880, lng:-87.6270, r:200, tag:'river' },
-  { n:'Lake Michigan', lat:41.8900, lng:-87.6000, r:520, tag:'lake' },
-  { n:'Chicago Harbor', lat:41.8880, lng:-87.6100, r:220, tag:'harbor' },
+  { n:'Chicago River', lat:41.8880, lng:-87.6270, r:220, tag:'river' },
+  { n:'South Branch', lat:41.8700, lng:-87.6400, r:180, tag:'river' },
+  { n:'North Branch', lat:41.9100, lng:-87.6550, r:180, tag:'river' },
+  { n:'Lake Michigan', lat:41.8900, lng:-87.5950, r:620, tag:'lake' },
+  { n:'Nearshore Lake', lat:41.9200, lng:-87.6150, r:380, tag:'lake' },
+  { n:'Chicago Harbor', lat:41.8880, lng:-87.6100, r:240, tag:'harbor' },
+  { n:'Burnham Harbor', lat:41.8600, lng:-87.6100, r:200, tag:'harbor' },
 ];
 
 export const CHICAGO_CAM_EXTRAS = [{ id:'wrigley', lat:41.9484, lng:-87.6553, radius:280 }];
 
 /* World height ≈ real feet / 3.16 · Loop + Near North */
 export const CHICAGO_SKYLINE = [
-  { n:'Willis Tower', lat:41.8789, lng:-87.6359, w:42, d:42, h:460, s:0, info:'1,450 ft · Sears Tower', spire:90 },
-  { n:'Trump International Hotel & Tower', lat:41.8890, lng:-87.6264, w:36, d:36, h:440, s:1, info:'1,389 ft' },
+  { n:'Willis Tower', lat:41.8789, lng:-87.6359, w:42, d:42, h:460, s:0, info:'1,450 ft · Sears Tower', kind:'stepped', spire:90 },
+  { n:'Trump International Hotel & Tower', lat:41.8890, lng:-87.6264, w:36, d:36, h:440, s:1, info:'1,389 ft', kind:'stepped' },
   { n:'Aon Center', lat:41.8853, lng:-87.6215, w:34, d:34, h:360, s:2, info:'1,136 ft' },
-  { n:'875 North Michigan (Hancock)', lat:41.8988, lng:-87.6229, w:32, d:32, h:355, s:3, info:'1,128 ft · antennas', spire:80 },
-  { n:'Franklin Center', lat:41.8796, lng:-87.6340, w:30, d:36, h:320, s:0, info:'1,007 ft' },
-  { n:'Two Prudential Plaza', lat:41.8855, lng:-87.6225, w:28, d:28, h:315, s:1, info:'995 ft' },
+  { n:'875 North Michigan (Hancock)', lat:41.8988, lng:-87.6229, w:32, d:32, h:355, s:3, info:'1,128 ft · antennas', kind:'needle', spire:80 },
+  { n:'Franklin Center', lat:41.8796, lng:-87.6340, w:30, d:36, h:320, s:0, info:'1,007 ft', kind:'gable' },
+  { n:'Two Prudential Plaza', lat:41.8855, lng:-87.6225, w:28, d:28, h:315, s:1, info:'995 ft', kind:'pyramid' },
   { n:'311 South Wacker', lat:41.8775, lng:-87.6355, w:30, d:30, h:300, s:2, info:'961 ft' },
   { n:'NEMA Chicago', lat:41.8665, lng:-87.6230, w:26, d:26, h:285, s:3, info:'896 ft · South Loop' },
-  { n:'Vista Tower', lat:41.8905, lng:-87.6185, w:28, d:28, h:280, s:0, info:'1,191 ft · Lakeshore East' },
+  { n:'Vista Tower', lat:41.8905, lng:-87.6185, w:28, d:28, h:280, s:0, info:'1,191 ft · Lakeshore East', kind:'stepped' },
   { n:'One Chicago East Tower', lat:41.8960, lng:-87.6310, w:28, d:28, h:270, s:1, info:'River North' },
   { n:'Salesforce Tower Chicago', lat:41.8865, lng:-87.6375, w:32, d:32, h:260, s:2, info:'Wolf Point' },
-  { n:'Aqua Tower', lat:41.8865, lng:-87.6200, w:28, d:30, h:270, s:3, info:'860 ft · Jeanne Gang' },
-  { n:'Marina City', lat:41.8880, lng:-87.6290, w:24, d:24, h:185, s:0, info:'Corncob towers' },
-  { n:'Tribune Tower', lat:41.8905, lng:-87.6235, w:22, d:22, h:145, s:1, info:'Gothic landmark' },
-  { n:'Wrigley Building', lat:41.8897, lng:-87.6247, w:24, d:24, h:135, s:2, info:'Clock tower twin' },
+  { n:'Aqua Tower', lat:41.8865, lng:-87.6200, w:28, d:30, h:270, s:3, info:'860 ft · Jeanne Gang', kind:'stepped' },
+  { n:'Marina City', lat:41.8880, lng:-87.6290, w:24, d:24, h:185, s:0, info:'Corncob towers', kind:'corncob', cyl:true },
+  { n:'Tribune Tower', lat:41.8905, lng:-87.6235, w:22, d:22, h:145, s:1, info:'Gothic landmark', kind:'needle' },
+  { n:'Wrigley Building', lat:41.8897, lng:-87.6247, w:24, d:24, h:135, s:2, info:'Clock tower twin', kind:'clock' },
 ];
 
 export const CHICAGO_SKYLINE_POCKETS = [

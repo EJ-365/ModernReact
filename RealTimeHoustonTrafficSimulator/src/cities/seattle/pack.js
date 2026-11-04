@@ -106,7 +106,7 @@ export const SEATTLE_SKYLINE = [
   { n:'Rainier Square Tower', lat:47.6090, lng:-122.3345, w:28, d:28, h:230, s:1, info:'850 ft' },
   { n:'Safeco Plaza', lat:47.6058, lng:-122.3325, w:30, d:30, h:200, s:2, info:'630 ft' },
   { n:'U.S. Bank Centre', lat:47.6085, lng:-122.3355, w:28, d:28, h:190, s:3, info:'607 ft' },
-  { n:'Space Needle', lat:47.6205, lng:-122.3493, w:18, d:18, h:190, s:0, info:'605 ft · icon', spire:50 },
+  { n:'Space Needle', lat:47.6205, lng:-122.3493, w:18, d:18, h:190, s:0, info:'605 ft · icon', kind:'sphere', spire:50, cyl:true },
   { n:'Arrivé', lat:47.6145, lng:-122.3400, w:24, d:24, h:160, s:1, info:'Belltown' },
   { n:'Insignia North', lat:47.6160, lng:-122.3420, w:26, d:26, h:155, s:2, info:'Denny Triangle' },
   { n:'The Bravern Tower', lat:47.6165, lng:-122.2010, w:26, d:26, h:140, s:3, info:'Bellevue' },

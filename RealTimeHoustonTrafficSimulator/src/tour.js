@@ -65,6 +65,43 @@ const AIRCRAFT = [['b737', 'Boeing 737-800', 'jet'], ['b747', 'Boeing 747-8', 'j
   ['prop', 'Cessna 172', 'prop'], ['c130', 'C-130 Hercules', 'c130'], ['fighter', 'F-16 Fighting Falcon', 'fighter'], ['b2', 'B-2 Spirit', 'b2'], ['heli', 'Bell 206 helicopter', 'heli']];
 /* minimum runway (m) each type may depart from / land on — widebodies only fit IAH-class runways */
 const RWY_NEED = { b737: 2000, a320: 2000, b757: 1900, b767: 2500, a321: 2100, a330: 2700, a220: 1500, e175: 1400, g650: 1800, gl75: 1800, c68a: 1100, lj75: 1400, e55p: 1000, b787: 2700, a350: 2700, b777: 2900, b747: 3000, a380: 3000, conc: 3200, c130: 1200, fighter: 1500, prop: 0, heli: 0 };
+/* Real cruise profiles (TAS kt + FL) — narrowbodies ~M0.78–0.80 / ~450–460 kt, widebodies ~M0.84 / ~480–490 kt.
+   Short metro hops stay lower/slower like real regional profiles; intercity uses full cruise. */
+const JET_CRUISE = {
+  b737: [455, 36000], a320: [450, 36000], a321: [450, 36000], a220: [440, 35000], e175: [430, 35000],
+  b757: [460, 37000], b767: [470, 38000], b777: [490, 39000], b787: [488, 40000], a330: [475, 39000],
+  a350: [488, 40000], a380: [490, 39000], b747: [490, 38000],
+  g650: [510, 45000], gl75: [516, 45000], c68a: [425, 43000], lj75: [465, 45000], e55p: [453, 45000],
+  conc: [1160, 55000],
+};
+function planePerf(S) {
+  const id = S.planeStyle === 'jet' ? (S.jetModel || 'b737') : S.planeStyle;
+  const icx = !!(S.wx && S.mode === 'tour');
+  const mi = Math.max((S.trip0 || 0), (S.remain || 0)) / 1609.344;
+  if (id === 'heli') return { cruiseKt: 115, cruiseAlt: 1000, climbKt: 70, rotateKt: 0, approachKt: 55 };
+  if (id === 'prop') return { cruiseKt: 130, cruiseAlt: icx ? 9000 : 5500, climbKt: 95, rotateKt: 55, approachKt: 70 };
+  if (id === 'c130') return { cruiseKt: 300, cruiseAlt: icx ? 25000 : 14000, climbKt: 190, rotateKt: 105, approachKt: 125 };
+  if (id === 'fighter') return { cruiseKt: icx ? 480 : 390, cruiseAlt: icx ? 32000 : 20000, climbKt: 320, rotateKt: 145, approachKt: 165 };
+  if (id === 'b2') return { cruiseKt: 485, cruiseAlt: icx ? 40000 : 24000, climbKt: 260, rotateKt: 135, approachKt: 155 };
+  const base = JET_CRUISE[id] || JET_CRUISE.b737;
+  let cruiseKt = base[0], cruiseAlt = base[1];
+  if (!icx) {
+    if (mi < 25) { cruiseKt = Math.min(cruiseKt, 330); cruiseAlt = Math.min(cruiseAlt, 12000); }
+    else if (mi < 90) { cruiseKt = Math.min(cruiseKt, 390); cruiseAlt = Math.min(cruiseAlt, 24000); }
+    else { cruiseKt = Math.min(cruiseKt, 440); cruiseAlt = Math.min(cruiseAlt, 33000); }
+  }
+  if (S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && (icx ? ((S.wx && S.wx.alt) >= 30000) : cruiseAlt >= 30000)) {
+    if (id === 'conc') { cruiseKt = 1160; cruiseAlt = Math.max(cruiseAlt, 55000); }
+    else if (icx) cruiseKt = 1150;
+  }
+  const biz = /^(g650|gl75|lj75|e55p|c68a)$/.test(id);
+  return {
+    cruiseKt, cruiseAlt,
+    climbKt: icx ? Math.min(290, cruiseKt * 0.58) : Math.min(260, cruiseKt * 0.58),
+    rotateKt: biz ? 125 : (id === 'conc' ? 165 : 145),
+    approachKt: biz ? 130 : 140,
+  };
+}
 const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a, 0x14a3a3, 0x5bb8ff, 0xd94f8a, 0x8cc63f, 0x9aa3ad, 0x6e1f2b];
 /* accent palette (cheat-line, tail, nose, engines); -1 = none */
 const PLANE_ACCENTS = [0xc23a2c, 0x5bb8ff, 0x2b5ea8, 0x1b2a4a, 0xd9a441, 0xe6c34a, 0xf3f4f6, 0x9aa3ad, 0x1a1c22, 0x1a6b4a, 0xff7a1a, 0xd94f8a, 0x5a2d7a, 0x14a3a3];
@@ -1305,11 +1342,11 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       S.ph0 = camGoal.phi;
     } else {
       S.th0 = camGoal.theta;
-      if (v === 'chase') { camGoal.radius = car ? 14 : 45; camGoal.phi = 1.25; }
+    if (v === 'chase') { camGoal.radius = car ? 14 : 45; camGoal.phi = 1.25; }
       /* Plane Top stays modest — large radius put the cam inside the cumulus deck (white wash) */
       if (v === 'top') { camGoal.radius = car ? 160 : 260; camGoal.phi = 0.1; }
-      if (v === 'driver' || v === 'cockpit' || v === 'side' || v === 'wing') camGoal.phi = 1.5;
-      S.ph0 = camGoal.phi;
+    if (v === 'driver' || v === 'cockpit' || v === 'side' || v === 'wing') camGoal.phi = 1.5;
+    S.ph0 = camGoal.phi;
     }
   }
 
@@ -1499,14 +1536,14 @@ function icRealLeft(x, z, t) {
         await begin(kind, mode, dest, { x: opts.origin.x, z: opts.origin.z }, opts);
         return;
       }
-      const g = await locate();
-      let origin = null, fromUser = false;
+    const g = await locate();
+    let origin = null, fromUser = false;
       if (g) {
         const w = geoToWorld(g.lat, g.lng);
         if (Math.hypot(w.x, w.z) < 90000) { origin = w; fromUser = true; }
       }
       /* Map centre is the reliable default — GPS is a bonus when inside the metro. */
-      if (!origin) origin = { x: cam.target.x, z: cam.target.z };
+    if (!origin) origin = { x: cam.target.x, z: cam.target.z };
       S.fromTxt = fromUser ? 'your location' : (g ? 'map centre (outside Houston metro GPS)' : 'map centre');
       await begin(kind, mode, dest, origin, opts);
     } finally {
@@ -1613,13 +1650,13 @@ function icRealLeft(x, z, t) {
         /* flat map metres per real metre along this route, so speed / ETA match the real great-circle trip */
         S._todNote = 0; S.icK = S.wx && S.wx.km ? Math.max(0.3, S.trip0 / (S.wx.km * 1000)) : 1; S.icKNow = 1;
         S.flightT0 = performance.now();
-        const cruiseKt = S.planeStyle === 'jet' ? 220 : 110;
-        /* Cruise + takeoff + short orbit + short-final approach (matches planeEtaSec) */
-        S.flightEta0 = S.trip0 / (cruiseKt * KT) + 28 + 22 + (S.planeStyle === 'jet' ? 55 : 85);
+        const pf0 = planePerf(S);
+        /* Cruise + takeoff + short orbit + short-final approach (matches planeEtaSec / live speed) */
+        S.flightEta0 = S.trip0 / (pf0.cruiseKt * KT) + 28 + 22 + (S.planeStyle === 'heli' ? 40 : (S.planeStyle === 'prop' ? 85 : 55));
         S._ga = 0;
         if (opts.arrive) { /* arriving from another city on the world map: already airborne, inbound to the landing airport */
-          S.p.set(opts.arrive.x, 3500 * FT, opts.arrive.z); S.hd = Math.atan2(dest.x - S.p.x, dest.z - S.p.z);
-          S.v = 220 * KT; S.phase = 'cruise'; S.rwLen = 0;
+          S.p.set(opts.arrive.x, Math.min(pf0.cruiseAlt, 12000) * FT, opts.arrive.z); S.hd = Math.atan2(dest.x - S.p.x, dest.z - S.p.z);
+          S.v = pf0.cruiseKt * KT * 0.85; S.phase = 'cruise'; S.rwLen = 0;
         }
       } else {
         S.p.set(cx, 600, cz); S.hd = cam.theta + Math.PI; S.v = 55; S.phase = 'free';
@@ -2096,9 +2133,11 @@ function icRealLeft(x, z, t) {
   }
   function stepPlane(dt) {
     let wantHd = S.hd, wantY = S.p.y, wantV = S.v;
-    const jet = S.acClass === 'jet';
+    const jet = S.acClass === 'jet' || /^(fighter|c130|b2)$/.test(S.planeStyle);
     const icx = !!(S.wx && S.mode === 'tour');
-    const cruiseKt = icx ? (S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && S.p.y > 29000 * FT ? (S.jetModel === 'conc' ? 1160 : 1150) : jet ? 480 : 260) : jet ? 220 : 110, climbKt = icx ? (jet ? 250 : 160) : jet ? 160 : 95, rotateKt = jet ? 130 : 55, cruiseAlt = icx ? (S.supersonic && S.jetModel === 'conc' && S.wx.alt >= 30000 ? 55000 : S.wx.alt) : jet ? 3500 : 1500;
+    const pf = planePerf(S);
+    const cruiseKt = pf.cruiseKt, climbKt = pf.climbKt, rotateKt = pf.rotateKt;
+    const cruiseAlt = icx ? (S.supersonic && S.jetModel === 'conc' && (S.wx.alt || 0) >= 30000 ? 55000 : (S.wx.alt || pf.cruiseAlt)) : pf.cruiseAlt;
     if (S.mode === 'tour') {
       const D = S.dest, dx = D.x - S.p.x, dz = D.z - S.p.z, dist = Math.hypot(dx, dz), brg = Math.atan2(dx, dz);
       if (icx) {
@@ -2230,7 +2269,11 @@ function icRealLeft(x, z, t) {
           if (desc && !S._todNote) { S._todNote = 1; note('Top of descent · ' + Math.round(rr / 1609.344) + ' mi to ' + D.n + ' · approach to ' + S.landApt + '.'); }
           if (rr < 28000) startLanding();
         } else if (S.phase === 'cruise') {
-          wantV = cruiseKt * KT; wantY = dist < (jet ? 6000 : 3500) ? Math.min(1000, cruiseAlt * 0.65) * FT : cruiseAlt * FT; wantHd = brg;
+          /* Hold cruise TAS; start a gentle descent only when close — keeps 1× motion readable like a real hop */
+          const nearDest = dist < (jet ? 14000 : 7000);
+          wantV = cruiseKt * KT;
+          wantY = nearDest ? Math.max(2500, cruiseAlt * 0.45) * FT : cruiseAlt * FT;
+          wantHd = brg;
           if (dist < S.orbitR * 1.35) {
             /* keep the airport the user picked in Land at; only fall back to nearest when none was chosen */
             const near = !S.landApt && nearestAptTo(D.x, D.z);
@@ -2242,7 +2285,7 @@ function icRealLeft(x, z, t) {
         if (S.phase === 'orbit') {
           /* Linger over the landmark so the flyby reads before approach */
           if ((S.orbT += dt) > 22) startLanding();
-          wantV = (jet ? 140 : 95) * KT; wantY = 1000 * FT;
+          wantV = (jet ? 160 : 100) * KT; wantY = 1200 * FT;
           const err = (dist - S.orbitR) / S.orbitR;
           wantHd = brg - Math.PI / 2 * (1 - Math.max(-0.8, Math.min(0.8, err)));
         }
@@ -2333,24 +2376,30 @@ function icRealLeft(x, z, t) {
             }
             climbRate = Math.max(-3.6, Math.min(2.4, climbRate));
             S.vy += (climbRate - (S.vy || 0)) * Math.min(1, dt * 1.4);
-            S.p.y = Math.max(1.4, S.p.y + S.vy * dt);
+        S.p.y = Math.max(1.4, S.p.y + S.vy * dt);
             /* hold the glide path while stabilised; the flare is flown on sink rate alone */
             if (!(S.flare > 0.05)) S.p.y += (wantY - S.p.y) * Math.min(1, dt * 0.6);
             if (S.p.y < 1.45) { S.p.y = 1.4; S.vy = Math.min(0, S.vy); }
           } else {
-            climbRate = Math.max(icx && S.p.y > 900 ? -11 : -5, Math.min(icx && S.p.y > 300 ? 12.5 : S.phase === 'climb' ? 3.6 : 3.2, climbRate));
+            /* Jet climb ~2–3k fpm early, then taper; descent capped for passenger comfort */
+            const maxUp = icx && S.p.y > 300 ? 14 : S.phase === 'climb' ? (jet ? 8.5 : 4.2) : (jet ? 5.5 : 3.4);
+            const maxDn = icx && S.p.y > 900 ? -12 : (jet ? -7 : -5);
+            climbRate = Math.max(maxDn, Math.min(maxUp, climbRate));
             S.vy += (climbRate - (S.vy || 0)) * Math.min(1, dt * 0.9);
             S.p.y = Math.max(1.4, S.p.y + S.vy * dt);
           }
-          S.v += Math.max(-1.4 * dt, Math.min(1.8 * dt, wantV - S.v));
-          let d = wantHd - S.hd; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
-          const maxRate = S.phase === 'final' ? 0.08 : (S.landNow || S.phase === 'toFaf' ? 0.1 : 0.0524);
+          /* Jets reach cruise TAS in ~1–2 min; old ±1.8 m/s² felt frozen at 1× */
+          const aUp = jet ? (S.phase === 'climb' ? 6.5 : 4.2) : 2.2;
+          const aDn = jet ? 3.8 : 1.6;
+          S.v += Math.max(-aDn * dt, Math.min(aUp * dt, wantV - S.v));
+        let d = wantHd - S.hd; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+          const maxRate = S.phase === 'final' ? 0.08 : (S.landNow || S.phase === 'toFaf' ? 0.1 : (S.phase === 'cruise' ? 0.035 : 0.0524));
           const rate = Math.max(-maxRate, Math.min(maxRate, d * (S.phase === 'final' ? 0.7 : S.landNow ? 1.0 : 0.6)));
-          S.hd += rate * dt;
-          const wantRoll = Math.atan(-rate * S.v / G);
+        S.hd += rate * dt;
+          const wantRoll = Math.atan(-rate * S.v / G) + (S.phase === 'cruise' ? Math.sin(performance.now() / 2600) * 0.014 : 0);
           const wantPitch = S.phase === 'final'
             ? Math.atan2(S.vy, Math.max(8, S.v)) + 0.02 + 0.06 * (S.flare || 0)
-            : Math.atan2(S.vy, Math.max(8, S.v)) + 0.04;
+            : Math.atan2(S.vy, Math.max(8, S.v)) + 0.04 + (S.phase === 'cruise' ? Math.sin(performance.now() / 3100) * 0.006 : 0);
           S.roll += (wantRoll - S.roll) * Math.min(1, dt * 1.6);
           S.pitch += (wantPitch - S.pitch) * Math.min(1, dt * 1.8);
         }
@@ -2409,14 +2458,16 @@ function icRealLeft(x, z, t) {
     let near = 0.3, fov = 55;
     camera.up.copy(up0);
     if (S.view === 'chase') {
-      const d = Math.max(car ? 5 : 16, Math.min(car ? 80 : 400, camGoal.radius));
+      /* Closer chase on jets so ground scroll reads at 1× cruise (far chase made 330–450 kt feel parked) */
+      const dMax = car ? 80 : (S.phase === 'cruise' || S.phase === 'climb' ? 220 : 400);
+      const d = Math.max(car ? 5 : 16, Math.min(dMax, camGoal.radius));
       const el = Math.max(0.03, Math.min(1.3, 0.22 + pitchOff * 0.8));
       /* smooth the offset from the vehicle, not the world position: at jet/×10 speeds a world-space lerp lagged
          past its snap distance and alternated snap/lerp every frame (chase-cam jitter) */
       const want = v3.set(-fx * d * Math.cos(el), (car ? 1.2 : 1.5) + d * Math.sin(el), -fz * d * Math.cos(el));
-      if (smooth.lengthSq() === 0) smooth.copy(want); else smooth.lerp(want, 1 - Math.exp(-Math.min(dt, 0.1) * (car ? 6 : 3)));
+      if (smooth.lengthSq() === 0) smooth.copy(want); else smooth.lerp(want, 1 - Math.exp(-Math.min(dt, 0.1) * (car ? 6 : 7)));
       camera.position.copy(S.p).add(smooth);
-      look.set(S.p.x + fx * (car ? 6 : 14), S.p.y + (car ? 1.1 : 1.2), S.p.z + fz * (car ? 6 : 14));
+      look.set(S.p.x + fx * (car ? 6 : 18), S.p.y + (car ? 1.1 : 1.0), S.p.z + fz * (car ? 6 : 18));
       near = Math.max(0.3, d * 0.03);
     } else if (S.view === 'driver' || S.view === 'cockpit') {
       const lp = Math.max(-0.9, Math.min(0.9, pitchOff * 1.2)), ly = Math.max(-2.6, Math.min(2.6, yaw));
@@ -2555,15 +2606,15 @@ function icRealLeft(x, z, t) {
     if (S.phase === 'parked') return 0;
     if (S.phase === 'taxi') return Math.max(5, (S.remain || 0) / Math.max(2, S.v || 0));
     if (S.phase === 'rollout') return Math.max(2, Math.min(25, (S.v || 0) / 2.4));
-    const jet = S.acClass === 'jet';
+    const jet = S.acClass === 'jet' || /^(fighter|c130|b2)$/.test(S.planeStyle);
+    const pf = planePerf(S);
     if (S.wx && /^(roll|climb|cruise)$/.test(S.phase)) {
-      /* intercity: cruise at ~460 kt over the ground, slower on the descent, then a few minutes of approach */
-      const ss = S.supersonic && /^(jet|fighter)$/.test(S.planeStyle) && S.wx.alt >= 30000 && (S.remain || 0) > 400000;
-      const rr = S.remain || 0, cr = (ss ? (S.jetModel === 'conc' ? 1160 : 1150) * 0.9 : S.acClass === 'jet' ? 480 : 260) * KT, gs = S.phase === 'cruise' ? Math.max(S.v || 0, cr * 0.6) : cr;
-      return Math.max(0, rr - 60000) / gs + Math.min(rr, 60000) / (230 * KT) + 240 + (S.phase === 'roll' ? 60 : 0);
+      /* intercity: ETA from live remain + this aircraft's cruise TAS (synced with stepPlane) */
+      const rr = S.remain || 0, cr = pf.cruiseKt * KT;
+      const gs = S.phase === 'cruise' ? Math.max(S.v || 0, cr * 0.75) : cr;
+      return Math.max(0, rr - 60000) / gs + Math.min(rr, 60000) / (Math.max(200, pf.approachKt) * KT) + 240 + (S.phase === 'roll' ? 60 : 0);
     }
     /* Short-final approach after orbit (matches startLanding joining final when near) */
-    const apprSec = jet ? 55 : 85;
     if (S.phase === 'toFaf' || S.phase === 'final') {
       const rem = S.remain || 0;
       const v = Math.max(28, S.v || (jet ? 90 : 65) * KT);
@@ -2571,16 +2622,16 @@ function icRealLeft(x, z, t) {
     }
     if (S.phase === 'orbit') return Math.max(0, 22 - (S.orbT || 0));
     const dist = S.dest ? Math.hypot(S.dest.x - S.p.x, S.dest.z - S.p.z) : (S.remain || 0);
-    const cruise = (jet ? 220 : 110) * KT;
-    const ground = Math.max(40, Math.min(cruise, (S.v || cruise) * Math.max(0.85, Math.cos(S.pitch || 0))));
-    let t = dist / ground; void apprSec;
+    const cruise = pf.cruiseKt * KT;
+    /* Prefer live groundspeed so ETA tracks what you see at 1× / ×2 / ×4 */
+    const ground = Math.max(cruise * 0.55, (S.v || cruise) * Math.max(0.85, Math.cos(S.pitch || 0)));
+    let t = dist / ground;
     if (S.phase === 'roll') t += 28;
-    else if (S.phase === 'climb') t += 16;
-    /* Light planned blend only en-route — freeze once circling / landing */
+    else if (S.phase === 'climb') t += Math.max(12, (pf.cruiseAlt * FT - S.p.y) / Math.max(4, S.vy || 6));
     if ((S.phase === 'cruise' || S.phase === 'climb' || S.phase === 'roll') && S.trip0 > 0 && S.flightEta0 > 0) {
       const flown = Math.min(1, Math.max(0, 1 - dist / S.trip0));
       const plannedLeft = Math.max(0, S.flightEta0 * (1 - flown));
-      t = t * 0.78 + plannedLeft * 0.22;
+      t = t * 0.82 + plannedLeft * 0.18;
     }
     return Math.max(0, t);
   }

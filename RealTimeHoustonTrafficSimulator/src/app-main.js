@@ -4,6 +4,8 @@ import { createHoustonRoads } from './render/houston-roads.js';
 import { createCelebrations } from './fx/celebrate.js';
 import { createHoustonLand } from './render/houston-land.js';
 import { createHoustonSigns } from './render/houston-signs.js';
+import { createPlaneCrashSim, CRASH_SCENARIOS, CRASH_AIRCRAFT } from './plane-crash-sim.js';
+import { dashSvg, updateDash } from './cockpit-dash.js';
 import { createHoustonTolls } from './render/houston-tolls.js';
 import { createHoustonTollRoads } from './render/houston-toll-roads.js';
 import { createTour } from './tour.js';
@@ -59,7 +61,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.81.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build v10.121.2. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -76,8 +78,22 @@ const HTS_HAS_PACK=!!(HTS_PACK&&HTS_PACK.useBuiltinRoads===false);
 const CITY_NAME=(window.HTS_CITY&&window.HTS_CITY.name)||'Houston';
 const _roseDir=new THREE.Vector3();
 function updateRose(roseEl){
-  if(roseEl){camera.getWorldDirection(_roseDir);const hz=Math.hypot(_roseDir.x,_roseDir.z);const deg=hz>0.02?Math.atan2(-_roseDir.x,-_roseDir.z)*180/Math.PI:cam.theta*180/Math.PI;if(Math.abs(deg-(roseEl._d??1e9))<0.3)return;roseEl._d=deg; /* touch the DOM only when it turns: no style recalc every frame */
-    roseEl.style.transform='rotate('+deg.toFixed(1)+'deg)';roseEl.style.setProperty('--rr',deg.toFixed(1)+'deg');}
+  if(!roseEl)return;
+  camera.getWorldDirection(_roseDir);
+  const hz=Math.hypot(_roseDir.x,_roseDir.z);
+  /* world +x=east, -z=north → deg 0=N, -90=E, 180=S, 90=W; rotate rose by -deg so that heading sits under the lubber */
+  const deg=hz>0.02?Math.atan2(-_roseDir.x,-_roseDir.z)*180/Math.PI:cam.theta*180/Math.PI;
+  if(Math.abs(deg-(roseEl._d??1e9))<0.3)return;
+  roseEl._d=deg;
+  const rot=(-deg).toFixed(1)+'deg';
+  roseEl.style.transform='rotate('+rot+')';
+  roseEl.style.setProperty('--rr',rot);
+  const br=(((-deg)%360)+360)%360;
+  const idx=Math.round(br/45)%8;
+  if(roseEl._hi===idx)return;
+  roseEl._hi=idx;
+  const spans=roseEl.querySelectorAll('[data-h]');
+  for(let i=0;i<spans.length;i++)spans[i].classList.toggle('on',+spans[i].dataset.h===idx);
 }
 const METRO_NAME=(HTS_PACK&&HTS_PACK.metroName)||(HTS_IS_AUS?'Greater Austin':(HTS_CITY_ID==='houston'?'Greater Houston':(CITY_NAME+' metro')));
 const AREA_NAME=(HTS_PACK&&HTS_PACK.areaName)||(HTS_IS_AUS?'Austin-area':(HTS_CITY_ID==='houston'?'Houston-area':(CITY_NAME+'-area')));
@@ -1035,7 +1051,7 @@ renderer.outputColorSpace=(THREE.SRGBColorSpace||THREE.sRGBEncoding);
 /* shader error checks (getProgramInfoLog/getShaderInfoLog per program) only in ?debug; three.js recommends this off in production */
 renderer.debug.checkShaderErrors=/[?&]debug\b/.test(location.search);
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.08; /* weather-scaled each frame — clear days brighter, overcast softer */
+renderer.toneMappingExposure=1.12; /* weather-scaled each frame — clear days brighter, overcast softer */
 canvas.addEventListener('webglcontextlost',(e)=>{
   e.preventDefault();
   console.warn('[HTS] WebGL context lost — waiting for restore');
@@ -1048,8 +1064,16 @@ canvas.addEventListener('webglcontextrestored',()=>{
     renderer.setPixelRatio(HTS_PEEK?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
   }catch(_e){}
 });
-/* long-run safety net: if the render loop dies (uncaught error / exhausted GPU) while the tab is visible, reload instead of a frozen white screen */
-setInterval(()=>{if(document.visibilityState==='visible'&&window._htsLastFrame&&performance.now()-window._htsLastFrame>20000){try{sessionStorage.setItem('hts-autoreload',String(Date.now()));}catch(_e){}location.reload();}},5000);
+/* long-run safety net: frozen canvas (no successful paint) → soft reload instead of black screen */
+setInterval(()=>{
+  if(document.visibilityState!=='visible')return;
+  const age=window._htsLastFrame?(performance.now()-window._htsLastFrame):0;
+  const fails=window._htsFrameFail||0;
+  if((age>12000&&window._htsLastFrame)||fails>=180){
+    try{sessionStorage.setItem('hts-autoreload',String(Date.now()));}catch(_e){}
+    location.reload();
+  }
+},4000);
 /* Cap anisotropy — high values stall texture uploads on Windows GPUs */
 const MAXAN=Math.min(_isWin?4:8,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
@@ -1082,11 +1106,19 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(WS!==1?240000:16000,32,20),
       uniform vec3 sunDir;uniform vec3 glowCol;uniform float glowI;varying vec3 vD;
       void main(){
         vec3 d=normalize(vD);
-        float h=max(d.y,0.0);
-        vec3 c=mix(bot,top,pow(h,0.62));
-        c=mix(haze,c,smoothstep(0.0,0.16,h));
-        float s=max(dot(d,sunDir),0.0);
-        c+=glowCol*glowI*(pow(s,7.0)*0.55+pow(s,90.0)*0.9);
+        float h=clamp(d.y*0.5+0.5,0.0,1.0);
+        /* Rayleigh-ish: deep zenith blue, warmer near horizon (real Gulf Coast sky) */
+        float zh=pow(max(d.y,0.0),0.55);
+        vec3 c=mix(bot,top,zh);
+        c=mix(haze,c,smoothstep(-0.02,0.18,d.y));
+        /* subtle aerial perspective band just above the horizon */
+        float band=exp(-max(d.y,0.0)*9.0);
+        c=mix(c,haze*1.05+bot*0.15,band*0.35);
+        float s=max(dot(d,normalize(sunDir)),0.0);
+        /* Mie halo + tight solar disc bloom */
+        c+=glowCol*glowI*(pow(s,5.0)*0.42+pow(s,28.0)*0.55+pow(s,160.0)*1.1);
+        /* opposite-sky cool fill (skydome bounce) */
+        c+=top*0.04*(1.0-s);
         gl_FragColor=vec4(c,1.0);
       }`}));
 skyRoot.add(sky);
@@ -1104,30 +1136,54 @@ function disc(color,size){return new THREE.Mesh(new THREE.CircleGeometry(size,26
   new THREE.MeshBasicMaterial({color,fog:false,transparent:true,depthWrite:false}));}
 const sunDisc=(function(){
   const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
-  const g=x.createRadialGradient(128,128,4,128,128,128);
+  const g=x.createRadialGradient(128,128,3,128,128,128);
   g.addColorStop(0,'rgba(255,255,255,1)');
-  g.addColorStop(0.16,'rgba(255,252,240,1)');
-  g.addColorStop(0.21,'rgba(255,240,200,.95)');
-  g.addColorStop(0.34,'rgba(255,214,140,.4)');
-  g.addColorStop(0.6,'rgba(255,190,110,.12)');
-  g.addColorStop(1,'rgba(255,180,100,0)');
+  g.addColorStop(0.12,'rgba(255,253,245,1)');
+  g.addColorStop(0.18,'rgba(255,245,210,1)');
+  g.addColorStop(0.28,'rgba(255,220,150,.85)');
+  g.addColorStop(0.45,'rgba(255,195,110,.35)');
+  g.addColorStop(0.7,'rgba(255,180,100,.1)');
+  g.addColorStop(1,'rgba(255,170,90,0)');
   x.fillStyle=g;x.fillRect(0,0,256,256);
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),
     transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
-  sp.scale.set(760,760,1);skyRoot.add(sp);return sp;})();
+  sp.scale.set(920,920,1);skyRoot.add(sp);return sp;})();
 const moonDisc=(function(){
-  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
-  const g=x.createRadialGradient(64,64,30,64,64,64);
-  g.addColorStop(0,'rgba(226,232,242,1)');g.addColorStop(0.55,'rgba(226,232,242,.96)');
-  g.addColorStop(0.72,'rgba(210,220,235,.4)');g.addColorStop(1,'rgba(210,220,235,0)');
-  x.fillStyle=g;x.fillRect(0,0,128,128);
-  x.fillStyle='rgba(160,172,190,.35)';
-  x.beginPath();x.arc(48,52,9,0,TAU);x.fill();
-  x.beginPath();x.arc(76,74,6,0,TAU);x.fill();
-  x.beginPath();x.arc(66,44,4.5,0,TAU);x.fill();
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),
-    transparent:true,depthWrite:false,fog:false}));
-  sp.scale.set(400,400,1);skyRoot.add(sp);return sp;})();
+  /* Sharp lunar disc + thin halo — not a fuzzy grey blob */
+  const S=512,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d');
+  const cx=S/2,cy=S/2,R=168;
+  /* faint atmospheric halo only outside the disc */
+  const halo=x.createRadialGradient(cx,cy,R*0.92,cx,cy,R*1.45);
+  halo.addColorStop(0,'rgba(210,220,235,.22)');halo.addColorStop(0.45,'rgba(190,205,225,.08)');halo.addColorStop(1,'rgba(180,195,220,0)');
+  x.fillStyle=halo;x.beginPath();x.arc(cx,cy,R*1.45,0,TAU);x.fill();
+  /* hard lunar body */
+  x.save();
+  x.beginPath();x.arc(cx,cy,R,0,TAU);x.clip();
+  const body=x.createRadialGradient(cx-R*0.22,cy-R*0.28,R*0.08,cx,cy,R);
+  body.addColorStop(0,'#f2f4f8');body.addColorStop(0.45,'#d8dde6');body.addColorStop(0.82,'#b8c0cc');body.addColorStop(1,'#8a94a4');
+  x.fillStyle=body;x.fillRect(0,0,S,S);
+  /* maria (dark basaltic plains) */
+  const maria=[[-0.18,-0.08,0.28,0.22],[0.22,0.05,0.2,0.16],[-0.05,0.28,0.16,0.12],[0.12,-0.28,0.14,0.11],[-0.32,0.18,0.12,0.1]];
+  maria.forEach(([mx,my,rx,ry])=>{
+    const g=x.createRadialGradient(cx+mx*R,cy+my*R,0,cx+mx*R,cy+my*R,R*Math.max(rx,ry));
+    g.addColorStop(0,'rgba(90,100,115,.42)');g.addColorStop(0.7,'rgba(90,100,115,.18)');g.addColorStop(1,'rgba(90,100,115,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(cx+mx*R,cy+my*R,R*rx,R*ry,mx*0.5,0,TAU);x.fill();
+  });
+  /* craters with rim highlight */
+  [[0.35,0.32,0.07],[ -0.4,-0.25,0.055],[0.08,0.42,0.04],[-0.12,-0.38,0.05],[0.42,-0.12,0.035],[-0.28,0.35,0.03]].forEach(([mx,my,rr])=>{
+    const px=cx+mx*R,py=cy+my*R,cr=R*rr;
+    x.strokeStyle='rgba(255,255,255,.28)';x.lineWidth=Math.max(1.2,cr*0.18);
+    x.beginPath();x.arc(px-cr*0.15,py-cr*0.15,cr,0,TAU);x.stroke();
+    x.fillStyle='rgba(60,70,85,.35)';x.beginPath();x.arc(px+cr*0.1,py+cr*0.1,cr*0.85,0,TAU);x.fill();
+  });
+  /* subtle limb darkening ring */
+  const limb=x.createRadialGradient(cx,cy,R*0.7,cx,cy,R);
+  limb.addColorStop(0,'rgba(0,0,0,0)');limb.addColorStop(1,'rgba(30,40,55,.35)');
+  x.fillStyle=limb;x.beginPath();x.arc(cx,cy,R,0,TAU);x.fill();
+  x.restore();
+  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false}));
+  sp.scale.set(380,380,1);skyRoot.add(sp);return sp;})();
 let _glV=null,_glS=null;
 const sunGlare=(function(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
   const g=x.createRadialGradient(64,64,4,64,64,64);
@@ -1137,120 +1193,129 @@ const sunGlare=(function(){const c=document.createElement('canvas');c.width=c.he
     blending:THREE.AdditiveBlending,depthWrite:false,fog:false,transparent:true,opacity:0}));
   sp.scale.set(1000,1000,1);skyRoot.add(sp);return sp;})();
 
-/* ---------------- cumulus clouds (multi-puff billboards) ---------------- */
-function cloudTexture(){
-  /* cumulus built from hundreds of small soft puffs inside a wide, lumpy dome (2-3 towers) — irregular fluffy edges, flat shaded base */
-  const W=512,H=256,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  const base=H*0.8,cx0=W*0.5,half=W*(0.34+rand()*0.11),top=H*(0.42+rand()*0.2);
-  const towers=[];for(let k=0,n=2+Math.floor(rand()*2);k<n;k++)towers.push([rand()*1.4-0.7,0.18+rand()*0.2,0.35+rand()*0.45]);
-  const prof=(u)=>{let h=Math.pow(Math.max(0,1-u*u),0.65)*0.55;for(const [tu,tw,th] of towers)h+=th*Math.exp(-((u-tu)*(u-tu))/(2*tw*tw));return Math.min(1,h)*top;};
-  for(let k=0;k<420;k++){
-    const u=(rand()*2-1)*Math.pow(rand(),0.35),hh=prof(u);if(hh<6)continue;
-    const v=Math.pow(rand(),0.8),px=cx0+u*half,py=base-v*hh,pr=(7+rand()*16)*(0.6+0.6*(1-v*0.5));
-    const lit=0.82+0.18*v,a=0.16+rand()*0.16;
-    const g=x.createRadialGradient(px-pr*0.2,py-pr*0.3,pr*0.1,px,py,pr);
-    const cc=Math.round(255*lit),cb=Math.round(cc*0.985+4);
-    g.addColorStop(0,'rgba('+cc+','+cc+','+Math.min(255,cb)+','+a+')');g.addColorStop(0.6,'rgba('+cc+','+cc+','+Math.min(255,cb)+','+(a*0.55)+')');g.addColorStop(1,'rgba('+cc+','+cc+','+Math.min(255,cb)+',0)');
-    x.fillStyle=g;x.beginPath();x.arc(px,py,pr,0,TAU);x.fill();
+/* ---------------- soft cumulus / cirrus / stratus ----------------
+   Real fair-weather clouds are cool mid-grey, lit on top / shaded underneath —
+   never pure white (ACES + white sprites = blown-out glowing pancakes).
+   Refs: Codrops procedural sprites (tint ~0.95 grey), smoke billboards (opacity ~0.4–0.6, normal blend). */
+function _cloudRng(seed){let s=(seed*9973+13)|0;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return((s>>>0)%10000)/10000;};}
+function fadeCloudEdges(x,w,h){
+  x.save();x.globalCompositeOperation='destination-in';
+  /* Softer rim — hard circular edges look like cutouts against aerial haze */
+  const g=x.createRadialGradient(w*0.5,h*0.56,Math.min(w,h)*0.06,w*0.5,h*0.54,Math.min(w,h)*0.52);
+  g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(0.45,'rgba(0,0,0,.97)');
+  g.addColorStop(0.72,'rgba(0,0,0,.55)');g.addColorStop(0.88,'rgba(0,0,0,.18)');g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g;x.fillRect(0,0,w,h);x.restore();
+}
+function cloudTexture(seed){
+  /* Soft cumulus: muted cool greys, lit crown, grey belly — no pure white, no flat disc body */
+  const W=512,H=280,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const R=_cloudRng(seed),cx=W*0.5+(R()-0.5)*20,base=H*0.78;
+  const lobes=[
+    [cx,base-72,88,58],[cx-78,base-48,70,48],[cx+82,base-52,74,50],
+    [cx-28,base-108,62,52],[cx+36,base-102,58,48],[cx,base-38,96,36],
+    [cx-110,base-28,48,30],[cx+118,base-30,50,32],
+  ];
+  for(const [px,py,rx,ry] of lobes){
+    const lit=0.55+R()*0.25;
+    const g=x.createRadialGradient(px,py-ry*0.4,2,px,py+ry*0.15,Math.max(rx,ry)*1.05);
+    /* cool grey, not white — keeps ACES from clipping */
+    g.addColorStop(0,`rgba(${Math.round(188+lit*28)},${Math.round(194+lit*26)},${Math.round(204+lit*22)},0.42)`);
+    g.addColorStop(0.45,`rgba(168,176,190,0.22)`);
+    g.addColorStop(1,'rgba(140,150,168,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(px,py,rx,ry,0,0,TAU);x.fill();
   }
-  /* sun-lit crowns, blue-grey shading toward the base, then a soft flat bottom */
+  /* shaded underside (real cumulus belly) */
   x.globalCompositeOperation='source-atop';
-  const sg=x.createLinearGradient(0,base-top,0,base);
-  sg.addColorStop(0,'rgba(255,255,255,.25)');sg.addColorStop(0.5,'rgba(150,162,184,.10)');sg.addColorStop(1,'rgba(98,112,138,.5)');
+  const sg=x.createLinearGradient(0,base-140,0,base+4);
+  sg.addColorStop(0,'rgba(255,255,255,0)');
+  sg.addColorStop(0.35,'rgba(200,208,220,0.05)');
+  sg.addColorStop(0.7,'rgba(120,132,152,0.28)');
+  sg.addColorStop(1,'rgba(88,98,118,0.55)');
   x.fillStyle=sg;x.fillRect(0,0,W,H);
   x.globalCompositeOperation='destination-out';
-  const cut=x.createLinearGradient(0,base-8,0,base+6);cut.addColorStop(0,'rgba(0,0,0,0)');cut.addColorStop(1,'rgba(0,0,0,1)');
-  x.fillStyle=cut;x.fillRect(0,base-8,W,H-base+8);
+  const cut=x.createLinearGradient(0,base-2,0,base+16);
+  cut.addColorStop(0,'rgba(0,0,0,0)');cut.addColorStop(1,'rgba(0,0,0,1)');
+  x.fillStyle=cut;x.fillRect(0,base-2,W,H-base+2);
   x.globalCompositeOperation='source-over';
   fadeCloudEdges(x,W,H);
-const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return t;
 }
-/* altocumulus / "mackerel sky": rows of small cells — the dotted clouds that light up pink/orange at sunset */
-function dottedCloudTexture(){
-  const c=document.createElement('canvas');c.width=512;c.height=256;const x=c.getContext('2d');
-  const rows=6+Math.floor(rand()*4),cols=14+Math.floor(rand()*8),skew=(rand()-.5)*0.5;
-  {const w=x.createRadialGradient(256,128,10,256,128,250);w.addColorStop(0,'rgba(240,244,250,.22)');w.addColorStop(1,'rgba(240,244,250,0)');
-   x.save();x.scale(1,0.5);x.fillStyle=w;x.fillRect(0,0,512,512);x.restore();}
-  x.filter='blur(2px)';
-  for(let r=0;r<rows;r++)for(let k=0;k<cols;k++){
-    const u=(k+0.5+(r%2)*0.5)/cols,v=(r+0.5)/rows;
-    const ex=Math.pow(Math.sin(u*Math.PI),0.7)*Math.pow(Math.sin(v*Math.PI),0.9);
-    if(rand()>ex*1.25)continue;
-    /* bigger, overlapping, soft-edged cells (real altocumulus), not a grid of hard dots */
-    const px=u*512+skew*v*120+(rand()-.5)*22,py=v*256+(rand()-.5)*16,pr=(13+rand()*12)*(0.6+ex*0.6);
-    const g=x.createRadialGradient(px,py-pr*0.25,pr*0.05,px,py,pr);
-    g.addColorStop(0,'rgba(255,255,255,.7)');g.addColorStop(0.5,'rgba(244,247,252,.35)');g.addColorStop(1,'rgba(235,240,250,0)');
-    x.fillStyle=g;x.beginPath();x.ellipse(px,py,pr*1.35,pr,0,0,TAU);x.fill();
+function midCloudTexture(seed){
+  const W=512,H=160,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const R=_cloudRng(seed+40);
+  for(let i=0;i<5;i++){
+    const px=70+R()*(W-140),py=45+R()*(H-70),rx=80+R()*90,ry=20+R()*24;
+    const g=x.createRadialGradient(px,py,2,px,py,Math.max(rx,ry));
+    g.addColorStop(0,'rgba(186,194,208,0.34)');g.addColorStop(0.55,'rgba(160,170,186,0.14)');g.addColorStop(1,'rgba(150,160,176,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(px,py,rx,ry,0,0,TAU);x.fill();
   }
-  const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+  fadeCloudEdges(x,W,H);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return t;
 }
-/* cirrus: thin, high ice streaks */
-function cirrusTexture(){
-  const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');
-  x.lineCap='round';
-  for(let i=0;i<26;i++){
-    const y0=20+rand()*88,x0=rand()*160,len=180+rand()*300,curl=(rand()-.5)*40;
+function cirrusTexture(seed){
+  const W=512,H=128,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const R=_cloudRng(seed+80);x.lineCap='round';
+  for(let i=0;i<10;i++){
+    const y0=24+R()*80,x0=R()*130,len=200+R()*240,curl=(R()-.5)*36;
     const g=x.createLinearGradient(x0,0,x0+len,0);
-    g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.3,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
-    x.strokeStyle=g;x.lineWidth=1.5+rand()*4;x.beginPath();x.moveTo(x0,y0);x.quadraticCurveTo(x0+len*0.5,y0+curl,x0+len,y0-curl*0.4);x.stroke();
+    g.addColorStop(0,'rgba(190,198,210,0)');g.addColorStop(0.35,'rgba(190,198,210,0.2)');g.addColorStop(1,'rgba(190,198,210,0)');
+    x.strokeStyle=g;x.lineWidth=1+R()*2;
+    x.beginPath();x.moveTo(x0,y0);x.quadraticCurveTo(x0+len*0.5,y0+curl,x0+len,y0-curl*0.25);x.stroke();
   }
-  const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;
+  fadeCloudEdges(x,W,H);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return t;
 }
-/* stratus / nimbostratus: broad soft grey sheet for overcast and rain */
-/* fade every cloud canvas to transparent at its border so sprites never show square edges */
-function fadeCloudEdges(x,w,h){
-  x.save();x.globalCompositeOperation='destination-in';x.translate(w/2,h/2);x.scale(w/2,h/2);
-  const g=x.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(0.62,'rgba(0,0,0,1)');g.addColorStop(1,'rgba(0,0,0,0)');
-  x.fillStyle=g;x.fillRect(-1,-1,2,2);x.restore();
-}
-function stratusTexture(){
-  const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d');
-  for(let i=0;i<40;i++){
-    const px=rand()*256,py=30+rand()*68,pr=26+rand()*40;
-    const g=x.createRadialGradient(px,py,0,px,py,pr);
-    g.addColorStop(0,'rgba(236,238,242,.42)');g.addColorStop(1,'rgba(225,228,234,0)');
-    x.fillStyle=g;x.beginPath();x.arc(px,py,pr,0,TAU);x.fill();
+function stratusTexture(seed){
+  const W=512,H=140,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const R=_cloudRng(seed+120);
+  for(let i=0;i<7;i++){
+    const px=R()*W,py=32+R()*76,rx=100+R()*110,ry=26+R()*32;
+    const g=x.createRadialGradient(px,py,0,px,py,Math.max(rx,ry));
+    g.addColorStop(0,'rgba(155,164,178,0.36)');g.addColorStop(0.55,'rgba(140,150,166,0.14)');g.addColorStop(1,'rgba(130,140,156,0)');
+    x.fillStyle=g;x.beginPath();x.ellipse(px,py,rx,ry,0,0,TAU);x.fill();
   }
-  fadeCloudEdges(x,256,128);
-  const t=new THREE.CanvasTexture(c);return t;
+  fadeCloudEdges(x,W,H);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;return t;
 }
-/* clouds live in world space (not skyRoot, which follows the camera) so a plane flies past them instead of towing them */
 const clouds=new THREE.Group();scene.add(clouds);
 (function(){
-  const texes=[cloudTexture(),cloudTexture(),cloudTexture(),cloudTexture()];
-  const ciTex=[cirrusTexture(),cirrusTexture()],stTex=[stratusTexture(),stratusTexture()];
-  /* metre mode: cumulus above GA/jet cruise (~2.2–4.0 km) so plane Top never sits inside puffs */
-  const NCLOUD=HTS_PEEK?20:(WS!==1?(_isWin?70:100):32),SPREAD=WS!==1?90000:22000*WS;
+  const texes=[cloudTexture(1),cloudTexture(2),cloudTexture(3),cloudTexture(4)];
+  const ciTex=[cirrusTexture(1),cirrusTexture(2)],stTex=[stratusTexture(1),stratusTexture(2)],acTex=[midCloudTexture(1),midCloudTexture(2)];
+  /* Real shallow cumulus ≈ 0.5–3 km across; at cruise an airliner is a speck vs the deck.
+     Keep sprite count mid (Win FPS) but make each puff kilometer-scale. */
+  const NCLOUD=HTS_PEEK?12:(WS!==1?(_isWin?28:48):24),SPREAD=WS!==1?110000:22000*WS;
   clouds.userData.spreadHalf=SPREAD*0.5;
+  const mkMat=(map,op)=>new THREE.SpriteMaterial({map,color:0xdce4ee,transparent:true,opacity:op,depthWrite:false,fog:false});
   for(let i=0;i<NCLOUD;i++){
-    const mat=new THREE.SpriteMaterial({map:texes[i%4],transparent:true,opacity:0.85,depthWrite:false,fog:false});
-    const sp=new THREE.Sprite(mat);
-    const w=1100+rand()*2200;
-    sp.scale.set(w,w*0.5,1);
-    sp.position.set((rand()-.5)*SPREAD,WS===1?920+rand()*640:2200+rand()*1800,(rand()-.5)*SPREAD);
-    sp.userData.vx=5+rand()*9;
-    sp.userData.baseOp=0.85;
-    sp.userData.type='cu';sp.userData.u=rand();
+    const sp=new THREE.Sprite(mkMat(texes[i%texes.length],0.5));
+    /* 5–14 km wide cumulus heaps (not plane-sized cotton balls) */
+    const w=5000+rand()*9000;
+    sp.scale.set(w,w*0.42,1);
+    sp.position.set((rand()-.5)*SPREAD,WS===1?980+rand()*580:1800+rand()*2200,(rand()-.5)*SPREAD);
+    sp.userData.vx=3+rand()*6;sp.userData.baseOp=0.5;sp.userData.type='cu';sp.userData.u=rand();
+    sp.userData.baseSx=sp.scale.x;sp.userData.baseSy=sp.scale.y;
     clouds.add(sp);
   }
-  /* other layers: every cloud is its own shape, size, height and drift speed */
   const add=(type,n,tex,wMin,wMax,aspect,yFn,vMul)=>{
     for(let i=0;i<n;i++){
-      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex[i%tex.length],transparent:true,opacity:0,depthWrite:false,fog:false}));
-      const w=wMin+rand()*(wMax-wMin);sp.scale.set(w,w*aspect*(0.8+rand()*0.4),1);
-      sp.material.rotation=(rand()-.5)*0.5;
+      const sp=new THREE.Sprite(mkMat(tex[i%tex.length],0));
+      const w=wMin+rand()*(wMax-wMin);sp.scale.set(w,w*aspect*(0.85+rand()*0.25),1);
+      sp.material.rotation=(rand()-.5)*0.12;
       sp.position.set((rand()-.5)*SPREAD,yFn(),(rand()-.5)*SPREAD);
-      sp.userData.vx=(5+rand()*9)*vMul;sp.userData.baseOp=0;sp.userData.type=type;sp.userData.u=rand();
+      sp.userData.vx=(3+rand()*6)*vMul;sp.userData.baseOp=0;sp.userData.type=type;sp.userData.u=rand();
+      sp.userData.baseSx=sp.scale.x;sp.userData.baseSy=sp.scale.y;
       sp.visible=false;clouds.add(sp);
     }
   };
   const M=WS===1?1:2.4;
-  add('st',Math.round(NCLOUD*0.3),stTex,5000,9000,0.4,()=>(700+rand()*300)*M,0.7);
+  /* Cirrus streaks + wide stratus sheets for cruise (looking down on a real deck) */
+  add('ci',Math.round(NCLOUD*(_isWin?0.18:0.26)),ciTex,14000,32000,0.12,()=>(4200+rand()*2200)*M,1.2);
+  add('ac',Math.round(NCLOUD*(_isWin?0.1:0.16)),acTex,9000,20000,0.22,()=>(2400+rand()*1200)*M,1.0);
+  add('st',Math.round(NCLOUD*0.2),stTex,16000,36000,0.2,()=>(900+rand()*500)*M,0.55);
 })();
 
-/* ---------------- ground — Houston lawn / Austin prairie (same green family) ---------------- */
+/* ---------------- ground — Devin Houston lawn undertone (land tiles paint real cover) ---------------- */
 const groundTex=(function(){const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
-  /* Both cities: green turf. Austin slightly warmer olive, never beige clay. */
   x.fillStyle=HTS_IS_AUS?'#3f6a34':'#3f5a32';x.fillRect(0,0,512,512);
   for(let i=0;i<(HTS_IS_AUS?3000:3200);i++){const r=rand();
     if(HTS_IS_AUS){
@@ -1260,10 +1325,9 @@ const groundTex=(function(){const c=document.createElement('canvas');c.width=c.h
     }
     x.globalAlpha=.2+rand()*.38;
     x.fillRect(rand()*512,rand()*512,2+rand()*12,2+rand()*12);}
-  for(let i=0;i<(HTS_IS_AUS?100:160);i++){
-    /* sparse dirt patches only — keep them small so the plane stays green */
+  for(let i=0;i<(HTS_IS_AUS?100:120);i++){
     x.fillStyle=HTS_IS_AUS?(rand()<.5?'#5a6840':'#4a5e38'):(rand()<.5?'#6e5e42':'#5a4e38');
-    x.globalAlpha=HTS_IS_AUS?(.08+rand()*.12):(.14+rand()*.22);
+    x.globalAlpha=HTS_IS_AUS?(.08+rand()*.12):(.12+rand()*.18);
     x.beginPath();x.ellipse(rand()*512,rand()*512,12+rand()*28,8+rand()*20,rand()*TAU,0,TAU);x.fill();
   }
   x.globalAlpha=1;
@@ -2903,9 +2967,9 @@ if(HTS_PACK&&HTS_PACK.airports&&HTS_PACK.airports.length){
 }
 /* metre-scale Houston: put every airport (labels, approach paths, landings) on its real airfield */
 if(WS!==1)for(const a of AIRPORTS)if(Number.isFinite(a.lat)&&Number.isFinite(a.lng)){const p=geoToWorld(a.lat,a.lng);a.x=p.x;a.z=p.z;}
-for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?540:320,airfield:true});
-/* Keep cars off runway/apron pads even if a road polyline clips the field */
-window.AIRFIELDS=AIRPORTS.map(a=>({x:a.x,z:a.z,r:a.intl?420:260}));
+for(const a of AIRPORTS)EXCLUDES.push({x:a.x,z:a.z,r:a.intl?900:380,airfield:true});
+/* Keep cars/trees off runway/apron pads even if a road polyline clips the field */
+window.AIRFIELDS=AIRPORTS.map(a=>({x:a.x,z:a.z,r:a.intl?780:320}));
 function inAirfield(x,z){
   for(const a of AIRFIELDS){
     const dx=x-a.x,dz=z-a.z;
@@ -2967,6 +3031,19 @@ function inWater(x,z){
     const dx=x-e.x,dz=z-e.z;
     if(dx*dx+dz*dz<e.r*e.r)return true;
   }
+  return false;
+}
+/** Open bay / Gulf band — used for aerial “over water” atmosphere on plane tours */
+function overOpenWater(x,z){
+  if(inWater(x,z))return true;
+  try{
+    const g=worldToGeo(x,z);
+    if(g&&Number.isFinite(g.lat)&&Number.isFinite(g.lng)){
+      /* Galveston Bay + nearshore Gulf of Mexico */
+      if(g.lat<29.55&&g.lng>-95.35&&g.lng<-94.4)return true;
+      if(g.lat<29.35&&g.lng>-95.6&&g.lng<-93.8)return true;
+    }
+  }catch(_e){}
   return false;
 }
 
@@ -3056,8 +3133,8 @@ window.BLDG_FOOT=[];
 window.BLDG_GRID=new Map();
 const BLDG_CELL=96;
 function bldgCellKey(x,z){return Math.floor(x/BLDG_CELL)+':'+Math.floor(z/BLDG_CELL);}
-function registerBldgFoot(x,z,hw,hd){
-  const b={x,z,hw:hw*0.55,hd:hd*0.55};
+function registerBldgFoot(x,z,hw,hd,h){
+  const b={x,z,hw:hw*0.55,hd:hd*0.55,h:h!=null?h:Math.max(24,Math.max(hw,hd)*1.1)};
   BLDG_FOOT.push(b);
   const pad=Math.max(b.hw,b.hd)+4;
   const x0=Math.floor((x-pad)/BLDG_CELL),x1=Math.floor((x+pad)/BLDG_CELL);
@@ -3077,6 +3154,15 @@ function footHitsBldg(px,pz){
   }
   return null;
 }
+/** Height-aware probe for crash sim — null if clear of façades at this altitude */
+function footHitsBldgAt(px,py,pz){
+  const b=footHitsBldg(px,pz);
+  if(!b)return null;
+  const top=(b.h!=null?b.h:36)+4;
+  if(py>top)return null;
+  return b;
+}
+window.footHitsBldgAt=footHitsBldgAt;
 function tower(x,z,w,dep,h,skin,rotY,cyl,opts){
   const n0=gDetail.children.length;
   try{return towerImpl(x,z,w,dep,h,skin,rotY,cyl,opts);}
@@ -3087,7 +3173,7 @@ function towerImpl(x,z,w,dep,h,skin,rotY,cyl,opts){
   const mat=towerMats[skin%towerMats.length];
   const m=new THREE.Mesh(cyl?cylGeo:towerGeo,cyl?mat:[mat,mat,towerRoof,towerRoof,mat,mat]);
   m.scale.set(w,h,dep);m.position.set(x,0,z);m.rotation.y=rotY||0;gDetail.add(m);
-  registerBldgFoot(x,z,w,dep);
+  registerBldgFoot(x,z,w,dep,h);
   /* parapet cap */
   const cap=new THREE.Mesh(cyl?cylGeo:towerGeo,parapetMat);
   cap.scale.set(w*1.03,1.6,dep*1.03);cap.position.set(x,h-0.4,z);cap.rotation.y=rotY||0;gDetail.add(cap);
@@ -3111,6 +3197,54 @@ function towerImpl(x,z,w,dep,h,skin,rotY,cyl,opts){
     const sh=opts.spire;
     const sp=new THREE.Mesh(new THREE.CylinderGeometry(0.6,1.4,sh,6),new THREE.MeshLambertMaterial({color:0x9aa2aa}));
     sp.position.set(x,h+sh*0.5,z);gDetail.add(sp);
+  }
+  /* Distinctive crowns so each metro skyline reads like a real silhouette (not identical boxes) */
+  if(faithful&&opts&&opts.kind){
+    const kind=opts.kind,ry=rotY||0,crownMat=new THREE.MeshLambertMaterial({color:0x3a4550});
+    if(kind==='gable'||kind==='dutch'){
+      /* TC Energy / Dutch stepped gables */
+      let ww=w*0.92;
+      for(let i=0;i<3;i++){
+        const step=new THREE.Mesh(towerGeo,[mat,mat,towerRoof,towerRoof,mat,mat]);
+        const hh=10+i*9;
+        step.scale.set(ww,hh,dep*0.92);step.position.set(x,h+hh*0.35,z);step.rotation.y=ry;gDetail.add(step);
+        ww*=0.72;
+      }
+    }else if(kind==='stepped'){
+      let ww=w*0.85;
+      for(let i=0;i<4;i++){
+        const step=new THREE.Mesh(towerGeo,[mat,mat,towerRoof,towerRoof,mat,mat]);
+        const hh=8+i*7;
+        step.scale.set(ww,hh,dep*(0.85-i*0.08));step.position.set(x,h+4+i*7,z);step.rotation.y=ry;gDetail.add(step);
+        ww*=0.78;
+      }
+    }else if(kind==='hollow'){
+      /* Boston Federal Reserve “washboard” void */
+      const frame=new THREE.Mesh(towerGeo,crownMat);
+      frame.scale.set(w*1.05,h*0.42,dep*0.22);frame.position.set(x,h*0.55,z);frame.rotation.y=ry;gDetail.add(frame);
+    }else if(kind==='needle'||kind==='obelisk'){
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(Math.max(2,w*0.12),kind==='obelisk'?h*0.35:Math.max(28,h*0.18),4),crownMat);
+      tip.position.set(x,h+(kind==='obelisk'?h*0.18:Math.max(14,h*0.09)),z);tip.rotation.y=ry+Math.PI/4;gDetail.add(tip);
+    }else if(kind==='clock'){
+      const shaft=new THREE.Mesh(towerGeo,crownMat);
+      shaft.scale.set(w*0.55,h*0.28,dep*0.55);shaft.position.set(x,h*0.95,z);shaft.rotation.y=ry;gDetail.add(shaft);
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(w*0.2,18,4),crownMat);
+      tip.position.set(x,h+h*0.14+9,z);gDetail.add(tip);
+    }else if(kind==='dome'){
+      const dome=new THREE.Mesh(new THREE.SphereGeometry(Math.min(w,dep)*0.55,10,8,0,TAU,0,Math.PI/2),new THREE.MeshLambertMaterial({color:0xb8860b}));
+      dome.position.set(x,h,z);gDetail.add(dome);
+    }else if(kind==='sphere'){
+      const ball=new THREE.Mesh(new THREE.SphereGeometry(Math.max(6,w*0.55),12,10),crownMat);
+      ball.position.set(x,h+Math.max(6,w*0.45),z);gDetail.add(ball);
+    }else if(kind==='corncob'){
+      for(let i=0;i<2;i++){
+        const c=new THREE.Mesh(new THREE.CylinderGeometry(w*0.42,w*0.48,h,10),mat);
+        c.position.set(x+(i?w*0.55:-w*0.55),h*0.5,z);gDetail.add(c);
+      }
+    }else if(kind==='pyramid'){
+      const pyr=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,dep)*0.55,Math.max(24,h*0.22),4),crownMat);
+      pyr.position.set(x,h+Math.max(12,h*0.11),z);pyr.rotation.y=ry+Math.PI/4;gDetail.add(pyr);
+    }
   }
   return m;
 }
@@ -3226,7 +3360,7 @@ if(HTS_IS_AUS){
     for(const L of list){
       const x=L.x,z=L.z;
       if(inOsmCover(x,z)){OSM_LANDMARKS.push({n:L.n,d:L.info||L.n,x,z});continue;}
-      const m=tower(x,z,L.w||28,L.d||28,L.h||120,L.s||0,L.rot||0,!!L.cyl,{faithful:true,spire:L.spire||0});
+      const m=tower(x,z,L.w||28,L.d||28,L.h||120,L.s||0,L.rot||0,!!L.cyl,{faithful:true,spire:L.spire||0,kind:L.kind||null});
       m.userData.info={n:L.n,d:L.info||L.n};
       PICK_TOWERS.push(m);
       HTS_AUS_LANDMARK_SKIP.push({x,z,r:Math.max(L.w||28,L.d||28)*0.75+18});
@@ -3287,15 +3421,15 @@ if(window.HTS_CINEMATIC&&HTS_CINEMATIC.markShadowCasters){
   try{HTS_CINEMATIC.markShadowCasters(gDetail);}catch(e){}
 }
 const LANDMARK_TOWERS=HTS_HAS_PACK?[]:[
- /* Offsets keep towers beside freeways, not sitting in the travel lanes */
- {n:'JPMorgan Chase Tower',x:W(105),z:W(25),w:40,d:40,h:335,s:0,info:'1,002 ft · 75 floors · 1982 · tallest in Texas until 2019'},
+ /* Offsets keep towers beside freeways, not sitting in the travel lanes · crowns match dusk silhouette icons */
+ {n:'JPMorgan Chase Tower',x:W(105),z:W(25),w:40,d:40,h:335,s:0,info:'1,002 ft · 75 floors · 1982 · tallest in Texas until 2019',kind:'needle',spire:36},
  {n:'Wells Fargo Plaza',x:W(-55),z:W(155),w:38,d:30,h:330,s:0,info:'992 ft · 71 floors · 1983 · all-glass twin quarter-cylinders'},
- {n:'Heritage Plaza',x:W(-110),z:W(-55),w:34,d:34,h:255,s:2,info:'762 ft · 53 floors · 1987 · Mayan-inspired granite crown'},
- {n:'TC Energy Center',x:W(155),z:W(-45),w:32,d:32,h:262,s:2,info:'780 ft · 56 floors · 1983 · Philip Johnson\'s Dutch-gabled icon'},
- {n:'609 Main at Texas',x:W(175),z:W(95),w:34,d:34,h:252,s:1,info:'757 ft · 48 floors · 2017 · diagonal-crown glass tower'},
+ {n:'Heritage Plaza',x:W(-110),z:W(-55),w:34,d:34,h:255,s:2,info:'762 ft · 53 floors · 1987 · Mayan-inspired granite crown',kind:'stepped'},
+ {n:'TC Energy Center',x:W(155),z:W(-45),w:32,d:32,h:262,s:2,info:'780 ft · 56 floors · 1983 · Philip Johnson\'s Dutch-gabled icon',kind:'gable'},
+ {n:'609 Main at Texas',x:W(175),z:W(95),w:34,d:34,h:252,s:1,info:'757 ft · 48 floors · 2017 · diagonal-crown glass tower',kind:'pyramid'},
  {n:'Texas Tower',x:W(-35),z:W(-105),w:32,d:36,h:230,s:3,info:'47 floors · 2021 · Hines HQ on the old Chronicle site'},
  {n:'One Shell Plaza',x:W(45),z:W(175),w:30,d:44,h:238,s:3,info:'715 ft · 50 floors · 1971 · once world\'s tallest concrete building'},
- {n:'Bank of America Center',x:W(-75),z:W(115),w:36,d:36,h:285,s:1,info:'780 ft · 56 floors · 1983 · stepped Art Deco crown'},
+ {n:'Bank of America Center',x:W(-75),z:W(115),w:36,d:36,h:285,s:1,info:'780 ft · 56 floors · 1983 · stepped Art Deco crown',kind:'stepped'},
 ];
 for(const L of LANDMARK_TOWERS){
   let x=L.x,z=L.z;
@@ -3312,7 +3446,7 @@ for(const L of LANDMARK_TOWERS){
     }
     if(best){x=best.x;z=best.z;}
   }
-  const m=tower(x,z,L.w,L.d,L.h,L.s,0,false);
+  const m=tower(x,z,L.w,L.d,L.h,L.s,0,false,{faithful:true,kind:L.kind||null,spire:L.spire||0});
   m.userData.info={n:L.n,d:L.info};
   PICK_TOWERS.push(m);
 }
@@ -6166,7 +6300,7 @@ const POIS=[
  poiAt('Rice University','school',29.7174,-95.4018,'6100 Main St · est. 1912','Private research university · hedge-lined campus'),
  poiAt('University of Houston','school',29.72208,-95.34696,'4800 Calhoun Rd · 46,000 students','UH main campus · Cullen family plaza'),
  poiAt('Texas Southern University','school',29.7220,-95.3578,'3100 Cleburne St','HBCU · Third Ward'),
- poiAt('Houston Community College — Central','school',29.7365,-95.3795,'1300 Holman St','HCC Central College'),
+ poiAt('HCCS — Central Campus','school',29.73695,-95.37570,'1300 Holman St','Houston Community College System'),
  poiAt('University of St. Thomas','school',29.7378,-95.3935,'3800 Montrose Blvd','Catholic university · Montrose'),
  {n:'MD Anderson Cancer Center',k:'health',x:W(-282),z:W(830),addr:'1515 Holcombe Blvd — #1 cancer hospital'},
  {n:'Houston Methodist Hospital',k:'health',x:W(-305),z:W(790),addr:'6565 Fannin St'},
@@ -6712,7 +6846,7 @@ function pickType(){let r=rand();for(const t of VEH_TYPES){if(r<t.p)return t;r-=
 
 const MPH=WS!==1?0.44704:0.338; /* world u/s per mph — WS!==1 is the metre-scale world, which runs real time (1 mph = 0.447 m/s) */
 const VS=1.28;        /* vehicle visual scale */
-const MAX_INST=HTS_PEEK?320:(_isWin?1700:2800);
+const MAX_INST=HTS_PEEK?280:(_isWin?900:2600);
 
 /* glasshouse texture: dark glass w/ pillars + light roofline */
 /* greenhouse texture: dark glass UPPER band, body-colored LOWER band
@@ -6934,8 +7068,8 @@ function demand(h,weekend){
 
 /* ---------------- weather ---------------- */
 const WX={
- clear:  {icon:'sun',   nIcon:'moon', desc:'Clear',        cloud:0.06,fogK:1.0, speed:1.0, cong:0,  rain:0,  storm:false,tempD:0},
- partly: {icon:'partly',nIcon:'moonCloud',desc:'Partly cloudy',cloud:0.45,fogK:0.95,speed:1.0, cong:0,  rain:0,  storm:false,tempD:-1},
+ clear:  {icon:'sun',   nIcon:'moon', desc:'Clear',        cloud:0.08,fogK:1.0, speed:1.0, cong:0,  rain:0,  storm:false,tempD:0},
+ partly: {icon:'partly',nIcon:'moonCloud',desc:'Partly cloudy',cloud:0.68,fogK:0.95,speed:1.0, cong:0,  rain:0,  storm:false,tempD:-1},
  overcast:{icon:'cloud',nIcon:'cloud',desc:'Overcast',     cloud:0.9, fogK:0.72,speed:0.97,cong:.04,rain:0,  storm:false,tempD:-4},
  fog:    {icon:'fog',   nIcon:'fog',  desc:'Fog',          cloud:0.7, fogK:0.2, speed:0.8, cong:.12,rain:0,  storm:false,tempD:-5},
  rain:   {icon:'rain',  nIcon:'rain', desc:'Rain',         cloud:1.0, fogK:0.45,speed:0.85,cong:.14,rain:0.65,storm:false,tempD:-8},
@@ -7119,7 +7253,7 @@ async function fetchNwsLocalObservation(lat,lng){
         press:press!=null?press.toFixed(2):null,
         vis:vis!=null?Math.round(vis):null,
         precip:0,
-        cloud:mapped.preset==='overcast'?0.9:(mapped.preset==='partly'?0.45:0.1),
+        cloud:mapped.preset==='overcast'?0.9:(mapped.preset==='partly'?0.68:0.1),
         preset:mapped.preset,label:mapped.label,rainAmt:mapped.rain,
         stationId:sid,stationName:sname,stationMi,
         at:Date.now(),
@@ -8431,7 +8565,9 @@ function wxUpdate(dt){
   const rainTarget=rainAmt!=null?rainAmt:T.rain;
   const rainDelta=Math.abs((wxBlend.rain||0)-rainTarget);
   const k=clamp(dt*(liveMode?(rainDelta>0.1?3.2:0.9):Math.min(4.2,0.85+timeScale/180)),0,1);
-  const tgt={cloud:cloudOv!=null?Math.max(T.cloud*0.4,cloudOv):T.cloud,
+  /* Live cover can report thin % with a "partly" label — keep a visible floor so the sky matches the label */
+  const cloudFloor=targetPreset==='partly'?0.72:(targetPreset==='clear'?0.35:0.45);
+  const tgt={cloud:cloudOv!=null?Math.max(T.cloud*cloudFloor,cloudOv):T.cloud,
              fogK:T.fogK,speed:T.speed,cong:T.cong,
              rain:rainTarget};
   /* cover, fog and cloud decks drift in over ~6 s of live time (rain still snaps so streaks match the sky) */
@@ -8440,7 +8576,12 @@ function wxUpdate(dt){
   /* low / mid / high cloud decks: measured by the live model (Open-Meteo cloud_cover_low/mid/high) when we have it,
      otherwise inferred from the weather type — so cumulus, altocumulus and cirrus only show when they're really up there */
   {
-    const c=tgt.cloud,L=layersOv||{lo:targetPreset==='clear'?c*0.6:c*0.85,mid:targetPreset==='partly'?c*0.6:c*0.4,hi:targetPreset==='clear'?0.15:c*0.3};
+    /* Partly cloudy: denser low+mid decks so the sky isn't mostly empty blue */
+    const c=tgt.cloud,L=layersOv||{
+      lo:targetPreset==='clear'?c*0.55:(targetPreset==='partly'?Math.max(c*0.92,0.55):c*0.85),
+      mid:targetPreset==='partly'?Math.max(c*0.8,0.42):(targetPreset==='clear'?c*0.35:c*0.45),
+      hi:targetPreset==='clear'?0.18:(targetPreset==='partly'?Math.max(c*0.45,0.28):c*0.35),
+    };
     for(const [kk,v] of [['cLow',L.lo],['cMid',L.mid],['cHigh',L.hi]])wxBlend[kk]=lerp(wxBlend[kk]==null?v:wxBlend[kk],clamp(v,0,1),kSky);
     wxBlend.layersLive=!!layersOv;
   }
@@ -8709,6 +8850,303 @@ function warmWorld(){if(_worldWarm||HTS_PEEK)return;_worldWarm=true;
 window.HTS_WARM_WORLD=warmWorld;
 {const wb=document.getElementById('worldBtn');if(wb)wb.addEventListener('click',()=>openWorldMap({fly:true}));}
 let _worldOutTicks=0;
+const _crashV3=new THREE.Vector3(),_crashLook=new THREE.Vector3(),_crashSmooth=new THREE.Vector3(),_crashUp0=new THREE.Vector3(0,1,0);
+let _crashDash=null,_crashDashReady=false;
+function ensureCrashDash(){
+  if(_crashDashReady)return _crashDash;
+  _crashDashReady=true;
+  if(!document.getElementById('crashDashCss')){
+    const css=document.createElement('style');css.id='crashDashCss';
+    css.textContent='#crashDash{position:fixed;left:0;right:0;bottom:0;height:max(min(27vw,34vh),min(22vh,190px));z-index:35;pointer-events:none;display:none}'
+      +'#crashDash.on{display:block}'
+      +'#crashDash .dashSvg{position:absolute;inset:0;width:100%;height:100%;display:block}'
+      +'#crashDash .jetGlass{position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:-1}'
+      +'#crashDash .dashSvg .led{fill:#6a1c1c}#crashDash.night .dashSvg .led{fill:#ff3b3b;filter:drop-shadow(0 0 3px #ff3030)}'
+      +'#crashDash.night .dashSvg .gl{fill:#0f2c48;filter:drop-shadow(0 0 9px rgba(80,180,255,.8))}'
+      +'#crashDash.night .dashSvg text{fill-opacity:1}';
+    document.head.appendChild(css);
+  }
+  _crashDash=document.getElementById('crashDash');
+  if(!_crashDash){
+    _crashDash=document.createElement('div');
+    _crashDash.id='crashDash';
+    _crashDash.className='jetCockpit';
+    _crashDash.innerHTML=dashSvg('jet');
+    document.body.appendChild(_crashDash);
+  }
+  return _crashDash;
+}
+function setCrashDashVisible(on){
+  const el=ensureCrashDash();
+  if(!el)return;
+  el.classList.toggle('on',!!on);
+  if(on)el.classList.toggle('night',(window._nightF||0)>0.35);
+}
+function syncCrashDash(){
+  const st=window.HTS_CRASH&&HTS_CRASH.state;
+  const show=!!(st&&st.active&&st.view==='cockpit');
+  setCrashDashVisible(show);
+  if(!show||!_crashDash)return;
+  const spd=Math.hypot(st.vx||0,st.vy||0,st.vz||0);
+  const kt=spd*1.94384;
+  const ft=(st.y||0)*3.28084;
+  const vs=Math.round((st.vy||0)*196.85); /* m/s → fpm */
+  const hdg=((Math.round(((st.yaw||0)*180/Math.PI)%360)+360)%360);
+  const phase=st.impact?'impact':(st.failed?'fail':(st.phase||''));
+  const info=st.impact?(st.impactKind||'impact'):(st.failed?((st.scenario&&st.scenario.n)||'EMERGENCY'):(st.status||'').split(' · ').slice(-2).join(' · '));
+  const pwr=st.impact?0:(st.failed?Math.max(0.05,st.thrust*0.35):Math.max(0.35,st.thrust||0));
+  updateDash(_crashDash,{
+    type:'jet',kt,ft,vs,hdg,
+    roll:st.roll||0,pitch:st.pitch||0,
+    pwr,gear:st.gearDown?1:0,
+    phase,info,
+  });
+}
+function crashActive(){return !!(window.HTS_CRASH&&HTS_CRASH.state&&HTS_CRASH.state.active);}
+function crashSetView(id){
+  if(!window.HTS_CRASH)return;
+  HTS_CRASH.setView(id);
+  const st=HTS_CRASH.state;if(!st)return;
+  window._followOff={x:0,z:0};
+  if(id==='orbit'){
+    /* Match tour plane Free look: hard-lock target to the jet, sync sphere from live camera */
+    const tx=st.x,ty=st.y||0,tz=st.z;
+    camGoal.target.set(tx,ty,tz);
+    cam.target.copy(camGoal.target);
+    const dx=camera.position.x-tx,dy=camera.position.y-ty,dz=camera.position.z-tz;
+    let r=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(!Number.isFinite(r)||r<1)r=160;
+    camGoal.radius=clamp(r,55,520);cam.radius=camGoal.radius;
+    camGoal.theta=Math.atan2(dx,dz);cam.theta=camGoal.theta;
+    const sp=Math.hypot(dx,dz);
+    camGoal.phi=clamp(Math.atan2(sp,Math.max(0.01,dy)),0.12,1.42);cam.phi=camGoal.phi;
+    st.th0=camGoal.theta;st.ph0=camGoal.phi;
+    st.follow=true;
+    camera.up.set(0,1,0);
+    if(camera.fov!==55){camera.fov=55;camera.updateProjectionMatrix();}
+  }else{
+    st.th0=camGoal.theta;
+    if(id==='chase'){camGoal.radius=45;camGoal.phi=1.25;}
+    if(id==='top'){camGoal.radius=260;camGoal.phi=0.1;}
+    if(id==='cockpit'||id==='window'||id==='wing')camGoal.phi=1.5;
+    st.ph0=camGoal.phi;
+  }
+  _crashSmooth.set(0,0,0);
+  syncCrashHud(true);
+  try{syncCrashDash();}catch(_e){}
+}
+let _crashHudPos={x:null,y:null};
+function applyCrashHudPos(){
+  const el=$('crashHud');if(!el)return;
+  if(_crashHudPos.x==null||_crashHudPos.y==null){
+    el.classList.remove('dragged');el.style.left='';el.style.top='';return;
+  }
+  el.classList.add('dragged');
+  const maxX=Math.max(8,innerWidth-el.offsetWidth-8);
+  const maxY=Math.max(8,innerHeight-el.offsetHeight-8);
+  el.style.left=Math.max(8,Math.min(maxX,_crashHudPos.x))+'px';
+  el.style.top=Math.max(8,Math.min(maxY,_crashHudPos.y))+'px';
+}
+function bindCrashHudDrag(){
+  const el=$('crashHud');if(!el||el._dragWired)return;
+  el._dragWired=true;
+  let drag=null;
+  el.addEventListener('pointerdown',(e)=>{
+    const handle=e.target.closest('.tt');
+    if(!handle||e.target.closest('button,select,a'))return;
+    const r=el.getBoundingClientRect();
+    if(!el.classList.contains('dragged')){
+      el.classList.add('dragged');
+      el.style.left=r.left+'px';el.style.top=r.top+'px';
+    }
+    drag={dx:e.clientX-r.left,dy:e.clientY-r.top,id:e.pointerId};
+    try{el.setPointerCapture(e.pointerId);}catch(_e){/* ignore */}
+    e.preventDefault();
+  });
+  el.addEventListener('pointermove',(e)=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const x=e.clientX-drag.dx,y=e.clientY-drag.dy;
+    const maxX=Math.max(8,innerWidth-el.offsetWidth-8);
+    const maxY=Math.max(8,innerHeight-el.offsetHeight-8);
+    _crashHudPos.x=Math.max(8,Math.min(maxX,x));
+    _crashHudPos.y=Math.max(8,Math.min(maxY,y));
+    el.style.left=_crashHudPos.x+'px';el.style.top=_crashHudPos.y+'px';
+  });
+  const end=(e)=>{if(!drag||(e&&e.pointerId!==drag.id))return;drag=null;};
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+  addEventListener('resize',()=>{if(el.classList.contains('dragged'))applyCrashHudPos();});
+}
+function setCrashHudHidden(hid){
+  const el=$('crashHud'),peek=$('crashHudPeek');
+  if(el)el.classList.toggle('hid',!!hid);
+  if(peek)peek.classList.toggle('on',!!(crashActive()&&hid));
+  if(!hid)applyCrashHudPos();
+}
+function showCrashHud(on){
+  const el=$('crashHud');if(!el)return;
+  el.classList.toggle('on',!!on);
+  if(!on){el.classList.remove('hid');const peek=$('crashHudPeek');if(peek)peek.classList.remove('on');setCrashDashVisible(false);return;}
+  el.classList.remove('hid');
+  const peek=$('crashHudPeek');if(peek)peek.classList.remove('on');
+  const row=$('crashViewRow');
+  if(row&&window.HTS_CRASH&&!row._wired){
+    row._wired=true;row.innerHTML='';
+    const views=(HTS_CRASH.views)||[['chase','Chase'],['cockpit','Cockpit'],['window','Window'],['wing','Wing'],['top','Top'],['orbit','Free look']];
+    for(const [id,lab] of views){
+      const b=document.createElement('button');b.type='button';b.dataset.view=id;b.textContent=lab;
+      b.addEventListener('click',()=>crashSetView(id));
+      row.appendChild(b);
+    }
+  }
+  const srow=$('crashSpeedRow');
+  if(srow&&window.HTS_CRASH&&!srow._wired){
+    srow._wired=true;
+    for(const b of srow.querySelectorAll('[data-sx]')){
+      b.addEventListener('click',()=>{HTS_CRASH.setSpeedX(b.dataset.sx);syncCrashHud();});
+    }
+  }
+  bindCrashHudDrag();
+  applyCrashHudPos();
+  syncCrashHud();
+}
+let _crashHudSyncAt=0;
+function syncCrashHud(force){
+  const st=window.HTS_CRASH&&HTS_CRASH.state;
+  if(!st)return;
+  /* DOM thrash every frame stalls paint → frozen-canvas auto-reload felt like “app crash” */
+  const now=performance.now();
+  if(!force&&now-_crashHudSyncAt<120)return;
+  _crashHudSyncAt=now;
+  const row=$('crashViewRow');
+  if(row)for(const b of row.querySelectorAll('[data-view]'))b.classList.toggle('on',b.dataset.view===st.view);
+  const srow=$('crashSpeedRow');
+  if(srow)for(const b of srow.querySelectorAll('[data-sx]'))b.classList.toggle('on',+b.dataset.sx===(st.speedX||1));
+  const title=$('crashTitle');
+  if(title){
+    const ac=(HTS_CRASH.aircraft||[]).find(a=>a.id===st.acType);
+    const sc=st.scenario;
+    const apt=st.rw?st.rw.code:(st.airport&&st.airport.code)||'';
+    const phase=st.impact?'Impact':(st.failed?(sc&&sc.n)||'Fail':(st.phase==='approach'?'Final':(st.phase==='climb'?'Climb':(st.phase==='rotate'?'Rotate':'Takeoff roll'))));
+    title.textContent=((ac&&ac.n)||'Jet')+(apt?' · '+apt:'')+' · '+phase;
+  }
+  const ias=Math.round(Math.hypot(st.vx||0,st.vy||0,st.vz||0)*1.94384);
+  const altFt=Math.round((st.y||0)*3.28084);
+  const hdg=((Math.round(((st.yaw||0)*180/Math.PI)%360)+360)%360);
+  const tripMi=(st.odo||0)/1609.344;
+  const cSpd=$('cSpd');if(cSpd)cSpd.textContent=String(ias);
+  const cAlt=$('cAlt');if(cAlt)cAlt.textContent=String(altFt);
+  const cHdg=$('cHdg');if(cHdg)cHdg.textContent=String(hdg).padStart(3,'0');
+  const cTrip=$('cTrip');if(cTrip)cTrip.textContent=tripMi<0.05?tripMi.toFixed(2):tripMi.toFixed(1);
+  const meta=$('crashHudMeta');
+  if(meta){
+    if(st.rw)meta.textContent='RWY '+st.rw.name+(st.impact?' · '+(st.impactKind||'impact'):(st.failed?' · fail':''));
+    else meta.textContent=st.status||'—';
+  }
+  const box=$('crashLesson'),kick=$('crashLessonKicker'),tip=$('crashLessonTip');
+  const avoid=$('crashLessonAvoid'),mem=$('crashLessonMem');
+  if(box&&tip){
+    const sc=st.scenario||{};
+    const L=sc.lesson||null;
+    const debrief=st.lessonPhase==='debrief'||st.impact;
+    box.classList.toggle('debrief',!!debrief);
+    if(kick){
+      kick.textContent=debrief?'How this could have been avoided'
+        :(st.lessonPhase==='fail'?'Emergency — fly the jet':(st.lessonPhase==='live'?'Safety pattern':'Brief'));
+    }
+    tip.textContent=st.tip||sc.tipLive||sc.blurb||'—';
+    if(avoid&&mem){
+      if(debrief&&L){
+        avoid.hidden=false;mem.hidden=false;
+        if(!avoid._built||avoid._sid!==sc.id){
+          avoid._built=true;avoid._sid=sc.id;avoid.innerHTML='';
+          const cause=document.createElement('li');
+          cause.textContent='What happened: '+(L.cause||'');
+          avoid.appendChild(cause);
+          for(const line of (L.avoid||[])){
+            const li=document.createElement('li');li.textContent=line;avoid.appendChild(li);
+          }
+        }
+        mem.textContent='Remember: '+(L.memory||'');
+      }else{
+        avoid.hidden=true;mem.hidden=true;
+      }
+    }
+  }
+}
+/** Tour-style crash camera angles locked to the sim jet (orbit keeps soft spherical follow). */
+function applyCrashCam(dt){
+  const C=window.HTS_CRASH;if(!C||!C.state||!C.state.active)return false;
+  const st=C.state,jet=C.jet,view=st.view||'chase';
+  if(view==='orbit')return false;
+  if(!jet)return false;
+  jet.updateMatrixWorld(true);
+  const off=window._followOff||{x:0,z:0};
+  const px=st.x+(off.x||0),pz=st.z+(off.z||0),py=st.y||0;
+  const L=(x,y,z)=>_crashV3.set(x,y,z).applyMatrix4(jet.matrixWorld);
+  /* Drag look-around: theta/phi offsets vs th0/ph0 (same as tour placeCamera) */
+  const th0=st.th0!=null?st.th0:camGoal.theta;
+  const ph0=st.ph0!=null?st.ph0:camGoal.phi;
+  const lookYaw=camGoal.theta-th0;
+  const pitchOff=ph0-camGoal.phi;
+  /* Chase from behind the ground track — using nose yaw while sliding looked like reverse flight */
+  const hs=Math.hypot(st.vx||0,st.vz||0);
+  const track=hs>1.5?Math.atan2(st.vx,st.vz):(st.yaw||0);
+  const hdv=track+lookYaw,fx=Math.sin(hdv),fz=Math.cos(hdv);
+  let near=0.3,fov=55;
+  camera.up.copy(_crashUp0);
+  jet.visible=true;
+  if(view==='chase'){
+    const d=clamp(camGoal.radius,16,400),el=clamp(0.22+pitchOff*0.8,0.03,1.3);
+    const wantX=-fx*d*Math.cos(el),wantY=1.8+d*Math.sin(el),wantZ=-fz*d*Math.cos(el);
+    if(_crashSmooth.lengthSq()===0)_crashSmooth.set(wantX,wantY,wantZ);
+    else _crashSmooth.lerp(_crashV3.set(wantX,wantY,wantZ),1-Math.exp(-Math.min(dt,0.1)*7));
+    camera.position.set(px+_crashSmooth.x,py+_crashSmooth.y,pz+_crashSmooth.z);
+    _crashLook.set(px+fx*28,py+2.2,pz+fz*28);
+    near=Math.max(0.4,d*0.03);
+  }else if(view==='cockpit'){
+    const lp=clamp(pitchOff*1.2,-0.9,0.9),ly=clamp(lookYaw,-2.6,2.6);
+    const ud=jet.userData||{},ckZ=ud.ckZ!=null?ud.ckZ:17.6,ckY=ud.ckY!=null?ud.ckY:0.9;
+    camera.position.copy(L(0,ckY,ckZ));
+    _crashLook.copy(L(Math.sin(-ly)*90,ckY-0.2+Math.sin(lp)*90,ckZ+Math.cos(ly)*90));
+    camera.up.set(0,1,0).applyQuaternion(jet.quaternion);
+    jet.visible=false;
+    fov=Math.max(28,Math.min(78,58*Math.sqrt(Math.max(4,camGoal.radius)/14)));near=0.15;
+  }else if(view==='window'){
+    const lp=clamp(pitchOff,-0.6,0.6),ly=clamp(lookYaw,-1.2,1.2);
+    if(!jet.userData.winBox){jet.userData.winBox=new THREE.Box3().setFromObject(jet).applyMatrix4(jet.matrixWorld.clone().invert());}
+    const bb=jet.userData.winBox,len=bb?Math.max(4,bb.max.z-bb.min.z):40,z0=bb?bb.min.z:-20;
+    const fw=len*0.045,cz=z0+len*0.8,cy=len*0.03;
+    camera.position.copy(L(-fw-0.25,cy,cz));
+    _crashLook.copy(L(-fw-len*0.5+Math.sin(-ly)*len*0.2,cy-len*0.2+Math.sin(lp)*len*0.2,cz-len*0.38));
+    camera.up.set(0,1,0).applyQuaternion(jet.quaternion);
+    fov=55;near=0.12;
+  }else if(view==='wing'){
+    const d=(jet.userData&&jet.userData.sideD)||16;
+    camera.position.copy(L(-d*Math.cos(lookYaw),2.4,d*Math.sin(lookYaw)-2));
+    _crashLook.copy(L(0,0.6,8));
+    near=0.3;
+  }else{ /* top */
+    const hgt=clamp(camGoal.radius*1.6,80,800);
+    camera.position.set(px-Math.sin(camGoal.theta)*0.01,py+hgt,pz-Math.cos(camGoal.theta)*0.01);
+    _crashLook.set(px,py,pz);
+    camera.up.set(-Math.sin(camGoal.theta),0,-Math.cos(camGoal.theta));
+    near=Math.max(1,hgt*0.01);
+  }
+  camera.lookAt(_crashLook);
+  /* Impact punch — brief camera shake so the crash hits harder */
+  if(st.camShake>0){
+    const a=st.camShake*1.8;
+    camera.position.x+=(Math.random()-0.5)*a;
+    camera.position.y+=(Math.random()-0.5)*a*0.7;
+    camera.position.z+=(Math.random()-0.5)*a;
+  }
+  camGoal.target.set(px,clamp(py*0.45+14,10,420),pz);
+  cam.target.copy(camGoal.target);
+  camera.userData.tourNearT=performance.now();
+  if(Math.abs(camera.near-near)>0.02||camera.fov!==fov){camera.near=near;camera.fov=fov;camera.updateProjectionMatrix();}
+  updateRose(document.getElementById('rose'));
+  return true;
+}
 function applyCam(){
   /* Smooth chase — softer on long fly-tos, snappier for small orbit/zoom nudges */
   const dist=cam.target.distanceToSquared(camGoal.target);
@@ -8754,6 +9192,9 @@ const PHI_MIN=0.06,PHI_MAX=1.55,R_MIN=WS===1?10:6,R_MAX=9200*WS;
 let drag=null,ptStart=null,follow=null,followPlane=null;
 let hoverPlace=null; /* {n, road?} from pointer hover — drives whereami pill */
 function camRadiusLimits(){
+  /* Crash Free look uses the same spherical band as tour plane orbit */
+  if(crashActive()&&HTS_CRASH.state.view==='orbit')return {rmin:55,rmax:520,phiMin:0.12,phiMax:1.42};
+  if(crashActive())return {rmin:12,rmax:800,phiMin:0.06,phiMax:1.55};
   if(followPlane)return {rmin:40,rmax:LIMITS.rmax,phiMin:0.08,phiMax:1.5};
   if(follow)return {rmin:28,rmax:900,phiMin:0.55,phiMax:1.42};
   return {rmin:LIMITS.rmin,rmax:LIMITS.rmax,phiMin:PHI_MIN,phiMax:PHI_MAX};
@@ -8764,7 +9205,13 @@ canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);
 canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerType==='touch')return;
   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
   const lim=camRadiusLimits();
-  if(drag.btn===2||drag.btn===1||drag.shift){pan(dx,dy);}
+  if(drag.btn===2||drag.btn===1||drag.shift){
+    pan(dx,dy);
+    /* Free-look orbit only: right-drag pans the soft spherical cam. Locked angles keep follow. */
+    if(crashActive()&&HTS_CRASH.state.view==='orbit'){
+      const cf=$('crashFollow');if(cf)cf.checked=false;
+    }
+  }
   else{camGoal.theta-=dx*0.005;camGoal.phi=clamp(camGoal.phi-dy*0.004,lim.phiMin,lim.phiMax);}});
 addEventListener('pointerup',e=>{
   if(ptStart&&Math.hypot(e.clientX-ptStart.x,e.clientY-ptStart.y)<6&&e.button===0)tryPickVehicle(e);
@@ -9984,12 +10431,17 @@ function updateLiveFlights(dt){
 
     f.m.position.set(w.x,f._y,w.z);
     f.m.rotation.set(-(f._pitch||0),yaw,f._bank||0);
-    /* metre scale: true size when seen from the ground or alongside, like real planes (a jet far off
-       is a speck); only when looking down from well above it (map view) does it grow with distance */
+    /* Nearby/overhead jets stay spottable from the street (like real sky spotting). Far horizon
+       stays quiet (fade past ~12 km). Map view (camera well above) still grows for readability. */
     if(WS!==1){
       const ud=f.m.userData;if(ud.baseSc==null)ud.baseSc=f.m.scale.x;
-      const dCam=camera.position.distanceTo(f.m.position),up=clamp((camera.position.y-f.m.position.y-1500)/1500,0,1);
-      f.m.scale.setScalar(ud.baseSc*(1+up*(Math.max(1,dCam/1800)-1)));
+      const dx=camera.position.x-f.m.position.x,dy=camera.position.y-f.m.position.y,dz=camera.position.z-f.m.position.z;
+      const dCam=Math.hypot(dx,dy,dz),horiz=Math.hypot(dx,dz);
+      const mapUp=clamp((dy-1200)/1800,0,1);
+      const spot=clamp(1-(horiz-3500)/9000,0,1); /* full within ~3.5 km, gone by ~12.5 km */
+      const skyK=1+spot*(Math.min(2.8,Math.max(1,dCam/3500))-1);
+      const mapK=1+mapUp*(Math.min(12,Math.max(1,dCam/1800))-1);
+      f.m.scale.setScalar(ud.baseSc*Math.max(skyK,mapK));
     }
     {const gd=f.m.userData&&f.m.userData.gearDrop;if(gd!=null){const gy=gd*f.m.scale.y+0.15;if(f.m.position.y<gy)f.m.position.y=gy;}}
     /* Spin helicopter rotors */
@@ -10453,13 +10905,14 @@ canvas.addEventListener('wheel',e=>{e.preventDefault();
   }
   if(camGoal.radius>lim.rmax*0.6)warmWorld();
   /* keep scrolling out past the Houston outline → the globe (Google Earth style) */
-  if(e.deltaY>0&&!follow&&!followPlane&&!(window.HTS_TOUR&&HTS_TOUR.active)&&camGoal.radius>=lim.rmax*0.995){
+  if(e.deltaY>0&&!follow&&!followPlane&&!crashActive()&&!(window.HTS_TOUR&&HTS_TOUR.active)&&camGoal.radius>=lim.rmax*0.995){
     if(++_worldOutTicks>=2){_worldOutTicks=0;openWorldMap();}
   }else if(e.deltaY<0)_worldOutTicks=0;
 },{passive:false});
 function pan(dx,dy){
   const k=cam.radius*0.0013;
-  if(!HTS_PEEK&&(followPlane||(window.HTS_TOUR&&HTS_TOUR.active))){
+  /* Crash (any view, including Free look) pans via follow-offset — same as tour */
+  if(!HTS_PEEK&&(followPlane||(window.HTS_TOUR&&HTS_TOUR.active)||crashActive())){
     const o=window._followOff||(window._followOff={x:0,z:0});
     o.x-=(Math.cos(cam.theta)*dx + Math.sin(cam.theta)*dy)*k;
     o.z-=(-Math.sin(cam.theta)*dx + Math.cos(cam.theta)*dy)*k;
@@ -10563,39 +11016,60 @@ if(HTS_HAS_PACK&&HTS_PACK&&HTS_PACK.jumpGroups){(function applyPackJumpSelect(){
 })();}
 
 /* ---------------- facility buildings (schools / worship) ---------------- */
-function facilityBuilding(kind,x,z){
-  const baseCol=kind==='school'?0x1d2b3a:kind==='mosque'?0x163227:kind==='church'?0x2a2520:0x22272f;
-  const roofCol=kind==='school'?0x2f5a80:kind==='mosque'?0x2c5c3f:kind==='church'?0x6b5130:0x39414b;
-  const base=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:baseCol}));
-  const w=52+rand()*30,d=40+rand()*26,h=12+rand()*8;
-  base.scale.set(w,h,d);
-  base.position.set(x,h*0.5,z);
-  base.rotation.y=(rand()-.5)*0.2;
-  gDetail.add(base);
-  const roof=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:roofCol}));
-  roof.scale.set(w*1.02,3.2,d*1.02);
-  roof.position.set(x,h+1.6,z);
-  roof.rotation.y=base.rotation.y;
-  gDetail.add(roof);
+function placeOffRoad(x,z,clearR){
+  if(!nearRoad(x,z,clearR))return {x,z};
+  let best=null,bestD=1e9;
+  for(let r=14;r<=90;r+=10){
+    for(let a=0;a<16;a++){
+      const ang=a/16*TAU,nx=x+Math.cos(ang)*r,nz=z+Math.sin(ang)*r;
+      if(nearRoad(nx,nz,clearR))continue;
+      const d=Math.hypot(nx-x,nz-z);
+      if(d<bestD){bestD=d;best={x:nx,z:nz};}
+    }
+    if(best)break;
+  }
+  return best||{x,z};
+}
+function facilityBuilding(kind,x,z,name){
+  /* Fit campus massing inside one city block (~55 m) so wings never sit on Holman / Fannin */
+  const yaw=(rand()-.5)*0.18;
+  const box=(col,sx,sy,sz,ox,oy,oz)=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:col}));
+    m.scale.set(sx,sy,sz);m.position.set(x+ox,oy,z+oz);m.rotation.y=yaw;gDetail.add(m);return m;
+  };
+  if(kind==='school'){
+    const big=/university|college|community|hccs?/i.test(name||'');
+    const brick=0xc4b49a, accent=0x2f5a80, dark=0x3a4552, glass=0x6a849c, roof=0x4a5560;
+    /* Keep massing inside ~one Midtown block so wings never sit on Holman / Fannin */
+    const mainW=big?36:30, mainD=big?22:18, mainH=big?13:10;
+    const main=box(brick,mainW,mainH,mainD,0,mainH*0.5,0);
+    box(roof,mainW*1.02,2.0,mainD*1.02,0,mainH+1.0,0);
+    box(brick,big?18:14,mainH*0.78,big?14:12,mainW*0.28,mainH*0.39,mainD*0.18);
+    box(roof,(big?18:14)*1.02,1.8,(big?14:12)*1.02,mainW*0.28,mainH*0.78+0.9,mainD*0.18);
+    box(glass,mainW*0.42,mainH*0.6,1.5,0,mainH*0.42,-mainD*0.52);
+    box(dark,big?18:14,mainH*0.9,big?16:13,-mainW*0.28,mainH*0.45,mainD*0.08);
+    box(accent,(big?18:14)*1.02,2.0,(big?16:13)*1.02,-mainW*0.28,mainH*0.9+1.0,mainD*0.08);
+    box(0xb8c0c8,big?16:12,5.5,10,mainW*0.05,2.75,-mainD*0.55);
+    box(0xb0aea6,big?44:36,0.1,big?32:26,0,0.05,0);
+    box(0x8a8b8c,big?28:22,0.08,big?16:12,0,0.04,big?22:18);
+    box(0xd8d2c6,10,0.5,4.5,0,mainH*0.48,-mainD*0.55-2.2);
+    return main;
+  }
+  const baseCol=kind==='mosque'?0x163227:kind==='church'?0x2a2520:0x22272f;
+  const roofCol=kind==='mosque'?0x2c5c3f:kind==='church'?0x6b5130:0x39414b;
+  const w=42+rand()*18,d=32+rand()*16,h=11+rand()*6;
+  const base=box(baseCol,w,h,d,0,h*0.5,0);
+  box(roofCol,w*1.02,3,d*1.02,0,h+1.5,0);
   if(kind==='mosque'){
-    const dome=new THREE.Mesh(new THREE.SphereGeometry(10,14,10),new THREE.MeshLambertMaterial({color:0x2c5c3f}));
-    dome.scale.set(1,0.72,1);
-    dome.position.set(x,h+8.5,z);
-    gDetail.add(dome);
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(9,14,10),new THREE.MeshLambertMaterial({color:0x2c5c3f}));
+    dome.scale.set(1,0.72,1);dome.position.set(x,h+7.5,z);gDetail.add(dome);
   }else if(kind==='church'){
-    const steeple=new THREE.Mesh(new THREE.CylinderGeometry(1.2,3.2,20,6),new THREE.MeshLambertMaterial({color:0xb9b0a3}));
-    steeple.position.set(x+w*0.22,h+12,z-d*0.18);
-    gDetail.add(steeple);
-  }else if(kind==='school'){
-    const gym=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0x283241}));
-    gym.scale.set(w*0.52,h*0.85,d*0.65);
-    gym.position.set(x-w*0.38,h*0.42,z+d*0.22);
-    gym.rotation.y=base.rotation.y;
-    gDetail.add(gym);
+    const steeple=new THREE.Mesh(new THREE.CylinderGeometry(1.1,3,18,6),new THREE.MeshLambertMaterial({color:0xb9b0a3}));
+    steeple.position.set(x+w*0.2,h+11,z-d*0.16);gDetail.add(steeple);
   }
   return base;
 }
-/* tie facilities to POI system (hover cards + badges) */
+/* Researched campus pins (HCCS / universities) — Midtown HCC Central is 1300 Holman @ 29.73744,-95.37586 */
 const FACILITY_POIS=HTS_IS_AUS?(function(){
   const rows=[
     {n:'University of Texas at Austin',k:'school',lat:30.28565,lng:-97.73921,addr:'University of Texas · Main Campus'},
@@ -10608,53 +11082,52 @@ const FACILITY_POIS=HTS_IS_AUS?(function(){
     {n:'St. David\'s Episcopal Church',k:'worship',lat:30.2685,lng:-97.7415,addr:'301 E 8th St'},
     {n:'Central Christian Church',k:'worship',lat:30.2735,lng:-97.7425,addr:'1110 Guadalupe St'},
   ];
-  return rows.map(r=>{
-    const w=geoToWorld(r.lat,r.lng);
-    return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr};
-  });
-})():(HTS_HAS_PACK?[]:(function(){
+  return rows.map(r=>{const w=geoToWorld(r.lat,r.lng);return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr,lat:r.lat,lng:r.lng};});
+})():(function(){
   const rows=[
     {n:'Rice University',k:'school',lat:29.7174,lng:-95.4018,addr:'6100 Main St · est. 1912'},
     {n:'University of Houston',k:'school',lat:29.72208,lng:-95.34696,addr:'4800 Calhoun Rd'},
     {n:'Texas Southern University',k:'school',lat:29.7220,lng:-95.3578,addr:'3100 Cleburne St'},
     {n:'Lamar High School',k:'school',lat:29.7428,lng:-95.4265,addr:'3325 Westheimer Rd'},
     {n:'Bellaire High School',k:'school',lat:29.69228,lng:-95.47026,addr:'5100 Maple St'},
-    {n:'Houston Community College — Central',k:'school',lat:29.7365,lng:-95.3795,addr:'1300 Holman St'},
+    /* Block-center pins (south of Holman) — street centroid put the mesh on asphalt */
+    {n:'HCCS Central',k:'school',lat:29.73695,lng:-95.37570,addr:'1300 Holman St · Houston Community College System'},
+    {n:'HCCS Northeast',k:'school',lat:29.77993,lng:-95.25621,addr:'555 Community College Dr'},
+    {n:'HCCS Southwest',k:'school',lat:29.60433,lng:-95.52782,addr:'1600 Texas Pkwy, Missouri City'},
+    {n:'HCCS Alief Hayes',k:'school',lat:29.7337,lng:-95.57481,addr:'2811 Hayes Rd'},
+    {n:'HCCS Spring Branch',k:'school',lat:29.78639,lng:-95.56116,addr:'1010 W Sam Houston Pkwy N'},
+    {n:'HCCS Eastside',k:'school',lat:29.7051,lng:-95.29794,addr:'6815 Rustic St'},
     {n:'University of St. Thomas',k:'school',lat:29.7378,lng:-95.3935,addr:'3800 Montrose Blvd'},
+    {n:'University of Houston–Downtown',k:'school',lat:29.7664,lng:-95.3596,addr:'1 Main St'},
     {n:'Lakewood Church',k:'worship',lat:29.7270,lng:-95.4345,addr:'3700 Southwest Fwy'},
     {n:'Co-Cathedral of the Sacred Heart',k:'worship',lat:29.74996,lng:-95.36862,addr:'1111 St Joseph Pkwy'},
     {n:'Islamic Society of Greater Houston',k:'worship',lat:29.73687,lng:-95.425,addr:'3110 Eastside St'},
     {n:'Congregation Beth Israel',k:'worship',lat:29.67741,lng:-95.48795,addr:'5600 N Braeswood Blvd'},
   ];
-  return rows.map(r=>{const w=geoToWorld(r.lat,r.lng);return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr};});
-})());
+  return rows.map(r=>{const w=geoToWorld(r.lat,r.lng);return {n:r.n,k:r.k,x:w.x,z:w.z,addr:r.addr,lat:r.lat,lng:r.lng};});
+})();
+window.HTS_FACILITY_POIS=FACILITY_POIS;
 for(const p of FACILITY_POIS){
-  /* UT Tower already placed — skip duplicate massing under the lantern */
-  if(HTS_IS_AUS&&/University of Texas at Austin/i.test(p.n)){
-    EXCLUDES.push({x:p.x,z:p.z,r:90});
-    continue;
-  }
-  /* Keep churches/schools off Capitol grounds and athletic venues */
+  if(HTS_IS_AUS&&/University of Texas at Austin/i.test(p.n)){EXCLUDES.push({x:p.x,z:p.z,r:90});continue;}
   if(HTS_IS_AUS){
-    const cap=geoToWorld(30.2747,-97.7404);
-    const dkr=geoToWorld(30.28361,-97.73252);
-    const moody=geoToWorld(30.2806,-97.7323);
+    const cap=geoToWorld(30.2747,-97.7404),dkr=geoToWorld(30.28361,-97.73252),moody=geoToWorld(30.2806,-97.7323);
     if(Math.hypot(p.x-cap.x,p.z-cap.z)<160)continue;
     if(Math.hypot(p.x-dkr.x,p.z-dkr.z)<55)continue;
     if(Math.hypot(p.x-moody.x,p.z-moody.z)<42)continue;
   }
   const kind=(p.n.includes('Islamic')?'mosque':(p.n.includes('Church')||p.n.includes('Cathedral')||p.n.includes('Congregation')||p.n.includes('Episcopal')?'church':'school'));
-  /* real OSM campus/church footprints already stand here — no placeholder massing, keep the info card */
-  if(!inOsmCover(p.x,p.z)){
-    const b=facilityBuilding(kind,p.x,p.z);
+  const needCampus=kind==='school'&&/\bHCCS?\b|community college|high school|st\.?\s*thomas|houston–downtown|houston-downtown/i.test(p.n);
+  if(!inOsmCover(p.x,p.z)||needCampus){
+    const clear=kind==='school'?28:22;
+    const spot=placeOffRoad(p.x,p.z,clear);
+    p.x=spot.x;p.z=spot.z;
+    const b=facilityBuilding(kind,p.x,p.z,p.n);
     b.userData.info={n:p.n,d:p.addr};
-    EXCLUDES.push({x:p.x,z:p.z,r:55});
+    EXCLUDES.push({x:p.x,z:p.z,r:needCampus?70:48});
     if(!window.PICK_TOWERS)window.PICK_TOWERS=[];
     PICK_TOWERS.push(b);
   }
-  registerLandmarkHit(p.x,16,p.z,60,30,50,
-    {n:p.n,d:p.addr},
-    {n:p.n,x:p.x,z:p.z,addr:p.addr});
+  registerLandmarkHit(p.x,16,p.z,55,28,45,{n:p.n,d:p.addr},{n:p.n,x:p.x,z:p.z,addr:p.addr});
 }
 
 /* ---------------- simulation clock ---------------- */
@@ -10679,7 +11152,7 @@ function setSimDayOffset(day){
   if(lab){
     const d=new Date(Date.now()+((window.simDayOffset||0)*86400)*1000);
     const pretty=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:CHI_TZ});
-    lab.textContent='Preview day · '+simDayLabel()+' · '+pretty;
+    lab.textContent='Preview day - '+simDayLabel()+' - '+pretty;
   }
   recomputeSimOffset();
 }
@@ -10689,11 +11162,11 @@ function syncDayButtons(){
   });
   const lab=$('timeDayLabel');
   if(lab){
-    if(liveMode)lab.textContent='Live clock · '+simDayLabel(0);
+    if(liveMode)lab.textContent='Live clock - '+simDayLabel(0);
     else{
       const d=new Date(Date.now()+(window.simOffsetSec||0)*1000);
       const pretty=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:CHI_TZ});
-      lab.textContent='Preview day · '+simDayLabel()+' · '+pretty;
+      lab.textContent='Preview day - '+simDayLabel()+' - '+pretty;
     }
   }
 }
@@ -13050,11 +13523,36 @@ function envUpdate(dt,h){
     scene.fog.near=scene.fog.far*lerp(0.08,0.1,nightF);
   }
   /* Always open haze with true camera height — rain fog used to skip this and milk out aerial views */
+  const _tourSt=window.HTS_TOUR&&HTS_TOUR.active&&HTS_TOUR.state;
+  const _planeY=(_tourSt&&_tourSt.kind==='plane'&&_tourSt.p)?_tourSt.p.y:0;
+  const _cruiseK=clamp((_planeY-350)/2800,0,1); /* ~1k–10k ft world units → aerial look */
+  const _overSea=overOpenWater(camera.position.x,camera.position.z)
+    ||(_tourSt&&_tourSt.kind==='plane'&&_tourSt.p&&overOpenWater(_tourSt.p.x,_tourSt.p.z));
+  window._htsAerial={cruiseK:_cruiseK,overSea:!!_overSea,planeY:_planeY};
   if(WS!==1){
-    const altY=Math.max(40,camera.position.y);
-    const vis=Math.min(150000,Math.max(scene.fog.far,baseFogFar*2.4,altY*12,cam.radius*2.6))*lerp(1,0.9,nightF);
+    const altY=Math.max(40,camera.position.y,_planeY);
+    let vis=Math.min(180000,Math.max(scene.fog.far,baseFogFar*2.4,altY*14,cam.radius*2.6))*lerp(1,0.9,nightF);
+    /* High cruise: clearer air, longer sight — real thin upper troposphere feel */
+    if(_cruiseK>0.05)vis=Math.min(220000,vis*lerp(1,1.55,_cruiseK));
     scene.fog.far=lerp(scene.fog.far,vis,fogLerp);
-    scene.fog.near=Math.min(scene.fog.far*lerp(0.05,0.09,nightF),Math.max(80,altY*0.28));
+    scene.fog.near=Math.min(scene.fog.far*lerp(0.05,0.09,nightF),Math.max(80,altY*lerp(0.28,0.12,_cruiseK)));
+  }
+  /* High-altitude sky: deeper zenith, whiter horizon haze */
+  if(_cruiseK>0.04&&nightF<0.85){
+    if(!window._htsDeepSky){window._htsDeepSky=new THREE.Color(0x2a5fad);window._htsHorSky=new THREE.Color(0xd8e6f4);}
+    skyUni.top.value.lerp(window._htsDeepSky,_cruiseK*0.55*(1-cl*0.5));
+    skyUni.bot.value.lerp(window._htsHorSky,_cruiseK*0.4*(1-cl*0.35));
+    _fc.lerp(window._htsHorSky,_cruiseK*0.35);
+    scene.fog.color.copy(_fc);
+  }
+  /* Over bay / Gulf: cooler teal atmosphere */
+  if(_overSea&&nightF<0.9){
+    if(!window._htsSeaHaze){window._htsSeaHaze=new THREE.Color(0x6aa8c4);window._htsSeaTop=new THREE.Color(0x3a7aaa);}
+    skyUni.bot.value.lerp(window._htsSeaHaze,0.45);
+    skyUni.top.value.lerp(window._htsSeaTop,_cruiseK>0.2?0.22:0.12);
+    _fc.lerp(window._htsSeaHaze,0.4);
+    scene.fog.color.copy(_fc);
+    skyUni.haze.value.lerp(window._htsSeaHaze,0.35);
   }
   const A=clamp(x,-0.2,1.2)*Math.PI;
   const sx=Math.cos(A),sy=Math.sin(A);
@@ -13063,7 +13561,7 @@ function envUpdate(dt,h){
   /* low sun: bigger, redder; overcast/rain: dimmer, hazier — sun disc nearly gone when socked in */
   const lowSun=clamp(1-sy*1.7,0,1);
   /* the real sun is ~0.5° wide; atmospheric haze makes it look only slightly larger at sunrise/sunset */
-  const sscl=560*WS*(1+lowSun*0.3)*(1-cl*0.35);
+  const sscl=720*WS*(1+lowSun*0.28)*(1-cl*0.35);
   sunDisc.scale.set(sscl,sscl,1);
   sunDisc.material.color.copy(_sc2Sun(_sc,h));
   sunDisc.material.opacity=clamp(sy*3,0,1)*(1-cl)*(1-rainF*0.5);
@@ -13084,7 +13582,8 @@ function envUpdate(dt,h){
   const mA=A+Math.PI;
   /* place the moon relative to the eye, not the sky root (which sits at the orbit target): no parallax swing when orbiting */
   moonDisc.position.set(Math.cos(mA)*15000+camera.position.x-skyRoot.position.x,Math.max(Math.sin(mA),-0.2)*9000+400+camera.position.y,-4200+camera.position.z-skyRoot.position.z);
-  moonDisc.material.opacity=clamp(Math.sin(mA)*2.5,0,0.85)*(1-wxBlend.cloud*0.9);
+  moonDisc.material.opacity=clamp(Math.sin(mA)*2.5,0,1)*(1-wxBlend.cloud*0.8)*(1-rainF*0.3);
+  moonDisc.scale.setScalar(360*WS*(0.98+nightF*0.08));
   hemi.intensity=keyNum(HEMI_INT,h)*lerp(1,0.32,cl)*lerp(1,0.35,nightF)*lerp(1,0.85,rainF);
   /* Google-Maps night: soft moonlight + warm CBD bounce so towers keep volume */
   nightAmb.intensity=nightF*(WS!==1?0.55:0.2)*(1-wxBlend.rain*0.3);
@@ -13203,46 +13702,85 @@ function envUpdate(dt,h){
     const lo=wxBlend.cLow==null?cl:wxBlend.cLow,md=wxBlend.cMid==null?cl*0.5:wxBlend.cMid,hiC=wxBlend.cHigh==null?0.2:wxBlend.cHigh;
     /* fraction of each layer's sprites shown = that deck's measured coverage; low deck >70% or rain = solid stratus */
     /* mid deck now drawn as flatter cumulus — no dotted altocumulus sprites */
-    const amt={cu:clamp(Math.max(lo,md*0.75)*1.1,0,1)*(1-clamp((lo-0.75)*3,0,0.7)),
-      ac:clamp(md*1.05,0,1)*(1-clamp((lo-0.85)*5,0,0.9)),
-      ci:clamp(hiC*1.05,0,1)*(1-clamp((lo-0.8)*4,0,1)),
+    /* Coverage→sprite fraction: partly (~0.5–0.7) used to leave most puffs off — bias mid cover up */
+    const coverBoost=cl>=0.25&&cl<=0.8?1.35:1.12;
+    const amt={cu:clamp(Math.max(lo,md*0.8)*coverBoost,0,1)*(1-clamp((lo-0.78)*3,0,0.7)),
+      ac:clamp(md*1.25,0,1)*(1-clamp((lo-0.88)*5,0,0.9)),
+      ci:clamp(hiC*1.2,0,1)*(1-clamp((lo-0.82)*4,0,1)),
       st:clamp(Math.max((lo-0.6)*2.5,rn*1.3),0,1)};
-    const grey=lerp(1,0.55,clamp(rn*1.2+Math.max(0,cl-0.85)*2,0,1));
-    /* plane tours fly through the real cloud deck: inside a puff the view whites out briefly, like a real window */
-    const flyingT=!!(window.HTS_TOUR&&HTS_TOUR.active&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane');let mist=0;
+    /* Brighter daytime albedo — still shy of pure white so ACES doesn't blow out */
+    const grey=lerp(0.9,0.52,clamp(rn*1.2+Math.max(0,cl-0.85)*2,0,1));
+    const flyingT=!!(window.HTS_TOUR&&HTS_TOUR.active&&HTS_TOUR.state&&HTS_TOUR.state.kind==='plane');
+    const aerial=window._htsAerial||{cruiseK:0,overSea:false,planeY:0};
+    const cruiseK=aerial.cruiseK||0;
+    const aboveDeck=flyingT&&(cy>2800||cruiseK>0.25); /* above / in the cumulus layer */
+    let mist=0;
     for(const c of clouds.children){
       const ty=c.userData.type||'cu';
-      /* soft threshold + eased opacity: puffs fade in/out as the measured cover changes instead of popping */
-      const on=clamp((amt[ty]-c.userData.u)*10,0,1);
-      const base0=on>0?on*(ty==='cu'?clamp(0.45+cl*0.5,0,0.95):ty==='ac'?0.82:ty==='ci'?0.3*dayN:clamp(0.35+cl*0.55,0,0.9))*lerp(1,0.35,nightF):0;
+      const on=clamp((amt[ty]-c.userData.u)*8,0,1);
+      let opMul=ty==='cu'?clamp(0.42+cl*0.38,0,0.7):ty==='ac'?0.5:ty==='ci'?0.34*dayN:clamp(0.36+cl*0.32,0,0.58);
+      if(aboveDeck&&(ty==='cu'||ty==='ac'||ty==='st'))opMul*=1.2; /* bright sunlit tops from cruise */
+      if(cruiseK>0.2&&ty==='ci')opMul*=1.35;
+      /* Night cruise: keep deck readable — don't collapse to faint ground blobs */
+      const nightOp=aboveDeck?lerp(1,0.55,nightF):lerp(1,0.38,nightF);
+      const base0=on>0?on*opMul*nightOp:0;
       const base=c.userData.opS=c.userData.opS==null?base0:lerp(c.userData.opS,base0,clamp(dt*0.5,0,1));
       c.userData.baseOp=base;
-      /* high clouds keep catching the sun for a while after sunset (that's when the dotted altocumulus glows) */
-      const hi=ty==='ac'?0.6:ty==='ci'?0.85:ty==='st'?-0.3:0;
-      const lit=clamp(dayN+hi*0.35*lowSun2,0,1),gold=clamp(lowSun2*(1+hi*0.6),0,1)*lit;
+      const hi=ty==='ac'?0.6:ty==='ci'?0.85:ty==='st'?-0.15:0;
+      let lit=clamp(dayN+hi*0.35*lowSun2,0,1),gold=clamp(lowSun2*(1+hi*0.5),0,1)*lit*0.55;
+      if(aboveDeck){lit=Math.max(lit,0.94);gold*=0.25;}
+      const gBright=aboveDeck?Math.min(0.97,grey+0.1):grey;
       c.material.color.setRGB(
-        lerp(lerp(0.14,grey,lit), lerp(1.0,_sc.r*1.08,0.8), gold),
-        lerp(lerp(0.16,grey,lit), lerp(0.78,_sc.g*0.82,0.8), gold),
-        lerp(lerp(0.22,grey*1.04,lit), lerp(0.82,_sc.b*0.9+0.08*hi,0.7), gold));
+        lerp(lerp(0.22,gBright*0.99,lit), lerp(0.9,_sc.r*0.9,0.55), gold),
+        lerp(lerp(0.24,gBright*1.02,lit), lerp(0.8,_sc.g*0.78,0.55), gold),
+        lerp(lerp(0.3,gBright*1.05,lit), lerp(0.76,_sc.b*0.8+0.05*hi,0.5), gold));
       c.position.x+=c.userData.vx*drift;
-      /* endless deck: wrap around the camera on both axes */
       if(c.position.x-cx>wrap)c.position.x-=wrap*2;
       else if(c.position.x-cx<-wrap)c.position.x+=wrap*2;
       if(c.position.z-cz>wrap)c.position.z-=wrap*2;
       else if(c.position.z-cz<-wrap)c.position.z+=wrap*2;
-      /* Soft vertical bob so the deck never looks frozen during time-lapse */
       if(!liveMode){
         c.position.y+=(Math.sin(simClock*0.0011+c.position.x*0.0002)*c.userData.vx*0.02)*dt*clamp(timeScale/90,1,20);
       }
-      /* Fade puffs near the camera — prevents soft white radial fill on long plane tours */
-      const prox=Math.hypot(c.position.x-cx,(c.position.y-cy)*0.65,c.position.z-cz);
-      const nearFade=prox<700?0:prox<1600?clamp((prox-700)/900,0,1):1;
+      /* Ground: hide near billboards. Cruise: dissolve into volume when entering a puff (sprites → mist). */
+      const prox=Math.hypot(c.position.x-cx,(c.position.y-cy)*0.7,c.position.z-cz);
+      const puffR=Math.max(900,(c.userData.baseSx||c.scale.x)*0.42);
+      let nearFade;
+      if(flyingT||aboveDeck){
+        /* outer: full cloud; approach: soft dissolve; core: nearly gone so mist reads as volume */
+        if(prox>puffR*0.55)nearFade=1;
+        else if(prox>puffR*0.22)nearFade=clamp((prox-puffR*0.22)/(puffR*0.33),0.12,1);
+        else nearFade=clamp(prox/(puffR*0.22),0.04,0.12);
+      }else{
+        nearFade=prox<700?0:prox<1600?clamp((prox-700)/900,0,1):1;
+      }
+      c.userData.nearFade=nearFade;
       c.material.opacity=base*nearFade;
-      c.visible=nearFade>0.04;
-      if(flyingT&&base>0.2&&(ty==='cu'||ty==='st')){const r=c.scale.x*0.3;if(prox<r)mist=Math.max(mist,(1-prox/r)*base);}
+      c.visible=base>0.02&&nearFade>0.03;
+      if(flyingT&&base>0.12&&(ty==='cu'||ty==='ac'||ty==='st')){
+        /* thicker interior as you sink into the puff; also pick up shallow layer skim */
+        const core=prox<puffR*0.55?clamp(1-prox/(puffR*0.55),0,1):0;
+        const skim=Math.abs(c.position.y-cy)<(c.userData.baseSy||c.scale.y)*0.65&&prox<puffR*0.9
+          ?clamp(1-prox/(puffR*0.9),0,0.45)*0.55:0;
+        mist=Math.max(mist,(core*0.95+skim)*Math.min(1,base*1.6));
+      }
+    }
+    /* Smooth white-out + pull fog in so pass-through feels like real IMC, not a flat sprite slap */
+    const mistS=window._cloudMistS=lerp(window._cloudMistS||0,mist,clamp(dt*2.4,0,1));
+    if(mistS>0.04&&scene.fog){
+      const pull=clamp(mistS,0,1);
+      scene.fog.far=Math.max(600,scene.fog.far*(1-pull*0.72));
+      scene.fog.near=Math.min(scene.fog.near,Math.max(25,scene.fog.far*0.04));
+      scene.fog.color.lerp(_gb,pull*0.55*(1-nightF*0.35));
     }
     {const me=window._mistEl||(window._mistEl=document.getElementById('cloudMist'));
-      if(me){const v=Math.min(0.88,mist*1.4);if(Math.abs(v-(me._v||0))>0.02||(v===0&&me._v)){me._v=v;me.style.opacity=v.toFixed(2);me.style.filter='brightness('+(1-0.78*nightF).toFixed(2)+')';}}}
+      if(me){
+        const v=Math.min(0.92,mistS*1.15);
+        if(Math.abs(v-(me._v||0))>0.015||(v<0.02&&me._v)){
+          me._v=v;me.style.opacity=v.toFixed(3);
+          me.style.filter='brightness('+(1-0.72*nightF).toFixed(2)+') saturate('+(1-0.35*v).toFixed(2)+')';
+        }
+      }}
   }
   if(htsRain)htsRain.update(dt,nightF,wxBlend,rainWindX,rainWindZ,liveWx);
   else bootRainSystem();
@@ -14121,12 +14659,19 @@ function updateFlights(dt){
 /* alerts flow inside the left column now — no JS positioning needed */
 
 let last=performance.now(),hudT=0;
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)last=performance.now();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){last=performance.now();window._htsLastFrame=performance.now();window._htsFrameFail=0;}});
 function frame(now){
-  requestAnimationFrame(frame);window._htsLastFrame=performance.now(); /* counts globe/city frames too: the watchdog reloaded every city visit */
+  requestAnimationFrame(frame);
   /* Peek / background tab: skip sim work — keeps homepage + laptop cool */
   if(document.hidden)return;
-  if(window.HTS_WORLD_ACTIVE){try{window.HTS_WORLD.frame(now);}catch(e){console.warn('[world]',e);}return;}
+  if(window.HTS_WORLD_ACTIVE){
+    try{window.HTS_WORLD.frame(now);window._htsLastFrame=performance.now();window._htsFrameFail=0;}
+    catch(e){window._htsFrameFail=(window._htsFrameFail||0)+1;console.warn('[world]',e);}
+    return;
+  }
+  let nightF=window._nightF||0;
+  let dt=0,inOSM=false;
+  try{
   if(window.HTS_IC&&HTS_IC.active()){ /* other cities on the flat map: far ground + embedded city scenes */
     const dtI=Math.min(0.1,(now-(window._icT||now))/1000);window._icT=now;
     try{
@@ -14142,8 +14687,8 @@ function frame(now){
   } else if(document.body.classList.contains('ic-away'))document.body.classList.remove('ic-away');
   /* tour never started (or was ended): drop the pending city flight */ /* same canvas: the globe/other cities draw here, Houston sim sleeps */
   if(HTS_PEEK&&window._htsPeek&&window._htsPeek.paused)return;
-  const dt=Math.min((now-last)/1000,0.08);last=now;
-  const inOSM=!!window.osmMode;
+  dt=Math.min((now-last)/1000,0.08);last=now;
+  inOSM=!!window.osmMode;
   simClock=now;
   const skyH=houstonNow();
   /* Live = real clock; preview = simulated clock drives sky, lights, weather, slider */
@@ -14189,14 +14734,33 @@ function frame(now){
   /* Day/night + sun/moon follow simH (same as early builds) so 5/30 min/s is a real time-lapse */
   /* far from Houston on the flat map (intercity trips): sun follows the local solar time under the camera */
   const _icOff=(window.HTS_IC&&HTS_IC.active())?((cam.target.x-60)/(59.9*UNITS_PER_MILE))/15:0;
-  const nightF=envUpdate(dt,((simH+_icOff)%24+24)%24);window._nightF=nightF;
+  nightF=envUpdate(dt,((simH+_icOff)%24+24)%24);window._nightF=nightF;
   try{if(!window.HTS_CELEB){window.HTS_CELEB=createCelebrations({scene,camera,u:UNITS_PER_MILE/1609.344});HTS_CELEB.bindUI();}HTS_CELEB.update(dt,nightF);}catch(e){if(!window._celebErr){window._celebErr=1;console.warn('[HTS] celebrations',e);}}
+  try{
+    if(window.HTS_CRASH&&HTS_CRASH.state&&HTS_CRASH.state.active){
+      const st=HTS_CRASH.update(dt);
+      const el=$('crashStatus');
+      if(el&&st&&st.status&&el.textContent!==st.status)el.textContent=st.status;
+      try{syncCrashHud();}catch(_e){}
+      try{if(st&&st.view==='cockpit')syncCrashDash();else setCrashDashVisible(false);}catch(_e){}
+      /* Free look = tour orbit: hard-lock look-at to the jet; applyCam only orbits theta/phi/radius */
+      if(st&&st.view==='orbit'&&st.follow&&Number.isFinite(st.x)&&Number.isFinite(st.z)){
+        const o=window._followOff||{x:0,z:0};
+        camGoal.target.set(st.x+(o.x||0),st.y||0,st.z+(o.z||0));
+        cam.target.copy(camGoal.target);
+        camera.up.set(0,1,0);
+        if(camera.fov!==55){camera.fov=55;camera.updateProjectionMatrix();}
+      }
+    }else{
+      const ch=$('crashHud');if(ch&&ch.classList.contains('on'))showCrashHud(false);
+    }
+  }catch(e){if(!window._crashErr){window._crashErr=1;console.warn('[HTS] crash sim tick',e);}}
   {
     const tTarget=inOSM?0:clamp((cam.radius-4200*WS)/(3200*WS),0,1);
     mapT+=(tTarget-mapT)*0.07;
     _fpsN++;_fpsDt+=dt;
     if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;}
-    const perfBinary=_fpsAvg<(_isWin?48:42)&&totalVeh>(_isWin?1400:2200);
+    const perfBinary=_fpsAvg<(_isWin?50:42)&&totalVeh>(_isWin?900:2200);
     if(mapT<=0.3||perfBinary){
       vehFade=mapT>0.78?0:1;
     }else{
@@ -14326,12 +14890,26 @@ function frame(now){
   if(HTS_PEEK&&window._htsPeek&&window._htsPeek.spin){
     camGoal.theta+=dt*0.12;
   }
-  /* Tour update first so Free look (orbit) gets a fresh target before applyCam */
-  if(!HTS_PEEK&&window.HTS_TOUR)HTS_TOUR.update(dt);
-  {const _tb=!!(window.HTS_TOUR&&HTS_TOUR.active);AMB.setBlocked(_tb);if(document.body.classList.contains('tour-on')!==_tb)document.body.classList.toggle('tour-on',_tb);}
-  const _tourOn=window.HTS_TOUR&&HTS_TOUR.active;
-  const _tourOrbit=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.view==='orbit';
-  if(!_tourOn||_tourOrbit)applyCam();
+  /* Tour update first so Free look (orbit) gets a fresh target before applyCam.
+     Crash locked angles override applyCam the same way tour chase/cockpit do. */
+  let _tourOn=false;
+  try{
+    if(!HTS_PEEK&&window.HTS_TOUR)HTS_TOUR.update(dt);
+    _tourOn=!!(window.HTS_TOUR&&HTS_TOUR.active);
+    {const _tb=_tourOn;AMB.setBlocked(_tb);if(document.body.classList.contains('tour-on')!==_tb)document.body.classList.toggle('tour-on',_tb);}
+    const _tourOrbit=_tourOn&&HTS_TOUR.state&&HTS_TOUR.state.view==='orbit';
+    const _crashOn=!!(window.HTS_CRASH&&HTS_CRASH.state&&HTS_CRASH.state.active);
+    const _crashLocked=_crashOn&&HTS_CRASH.state.view&&HTS_CRASH.state.view!=='orbit';
+    if(_crashLocked)applyCrashCam(dt);
+    else if(!_tourOn||_tourOrbit)applyCam();
+    /* Orbit free-look: punch after applyCam so shake isn't overwritten */
+    if(_crashOn&&!_crashLocked&&HTS_CRASH.state.camShake>0){
+      const a=HTS_CRASH.state.camShake*1.6;
+      camera.position.x+=(Math.random()-0.5)*a;
+      camera.position.y+=(Math.random()-0.5)*a*0.65;
+      camera.position.z+=(Math.random()-0.5)*a;
+    }
+  }catch(e){console.warn('[HTS] tour/cam',e&&e.message);_tourOn=!!(window.HTS_TOUR&&HTS_TOUR.active);}
   if(!HTS_PEEK)updatePoiCardVisibility();
   /* Sky / clouds / sun always wrap the viewed area — never leave a black void */
   /* on a tour (and every intercity trip) the sky follows the camera, else it's left behind as a pale band on the horizon */
@@ -14344,14 +14922,20 @@ function frame(now){
   const mapOp=mapT*0.72;
   if(on)for(const m of mapMats)m.opacity=mapOp;
   /* Night: lift midtones slightly (Google city night) — don’t crush façades to ink */
-  renderer.toneMappingExposure=lerp(lerp(1.12,0.78,nightF),0.9,mapT)
-    *lerp(1,0.72,wxBlend.layersLive&&wxBlend.cLow!=null?clamp(Math.max(wxBlend.cLow,wxBlend.cMid*0.65,wxBlend.cHigh*0.25),0,1):wxBlend.cloud)*lerp(1,0.9,wxBlend.rain);
+  {
+    const aerial=window._htsAerial||{cruiseK:0,overSea:false};
+    let exp=lerp(lerp(1.12,0.78,nightF),0.95,mapT)
+      *lerp(1,0.72,wxBlend.layersLive&&wxBlend.cLow!=null?clamp(Math.max(wxBlend.cLow,wxBlend.cMid*0.65,wxBlend.cHigh*0.25),0,1):wxBlend.cloud)*lerp(1,0.9,wxBlend.rain);
+    if(aerial.cruiseK>0.05)exp*=lerp(1,1.12,aerial.cruiseK); /* brighter high-altitude air */
+    if(aerial.overSea)exp*=1.06; /* open water bounce */
+    renderer.toneMappingExposure=exp;
+  }
   const showDetail=!inOSM&&mapT<0.98;
   if(gDetail.visible!==showDetail)gDetail.visible=showDetail;
   /* Roads should remain visible whenever vehicles are visible, otherwise cars look like they're "on the grass". */
   const vFade=vehFade;
   const vShow=vFade>0.01;
-  const perfBinary=_fpsAvg<(_isWin?48:42)&&totalVeh>(_isWin?1400:2200);
+  const perfBinary=_fpsAvg<(_isWin?50:42)&&totalVeh>(_isWin?900:2200);
   const showRoads=!inOSM&&(mapT<0.92||vShow);
   if(!gRoads3D.userData.v2Hidden&&gRoads3D.visible!==showRoads)gRoads3D.visible=showRoads;
   if(vShow){
@@ -14380,11 +14964,20 @@ function frame(now){
   /* Freeway decks must stay on when zoomed in — never hide gRoads3D at close range */
   if(!gRoads3D.userData.v2Hidden&&!inOSM&&cam.radius<3500*WS&&!gRoads3D.visible)gRoads3D.visible=true;
 
-  /* Clouds stay visible at far zoom (tiny city under sky) — use base opacity, don't multiply-decay */
-  const skyFade=inOSM?0:clamp(1-mapT*0.35,0.55,1);
+  /* Map zoom + cruise altitude both grow clouds — at FL300 a puff must dwarf the jet.
+     Keep envUpdate's nearFade (pass-through dissolve) — don't wipe it back to flat billboards. */
+  const skyFade=inOSM?0:clamp(1-mapT*0.1,0.88,1);
+  const aerial=window._htsAerial||{cruiseK:0,planeY:0};
+  const cruiseScale=lerp(1,4.2,aerial.cruiseK||0);
+  const altScale=(aerial.planeY>180)?lerp(1.6,3.6,clamp((aerial.planeY-180)/7000,0,1)):1;
+  const zoomCloud=Math.max(lerp(1,2.35,mapT),cruiseScale,altScale);
   for(const c of clouds.children){
     const base=(c.userData&&c.userData.baseOp!=null)?c.userData.baseOp:0.85;
-    c.material.opacity=base*skyFade;
+    const nf=(c.userData&&c.userData.nearFade!=null)?c.userData.nearFade:1;
+    c.material.opacity=base*skyFade*nf;
+    if(c.userData&&c.userData.baseSx){
+      c.scale.set(c.userData.baseSx*zoomCloud,c.userData.baseSy*zoomCloud,1);
+    }
   }
   if(!HTS_PEEK){
     /* Place labels: only the nearest name, faint + mid-zoom — no suburb billboard clutter */
@@ -14420,17 +15013,22 @@ function frame(now){
       HTS_OSM_CITY.update(camera);
   }
   if(!window.HTS_WORLD_ACTIVE)updateRose(document.getElementById('rose')); /* after tours move the camera */
-  /* Always paint the frame first — HUD/API errors must never blank the canvas */
-  if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update){
-    try{
-      HTS_CINEMATIC.update(camGoal||cam,nightF,_fpsAvg);
-    }catch(e){}
+  }catch(e){
+    window._htsFrameFail=(window._htsFrameFail||0)+1;
+    if(window._htsFrameFail===1||window._htsFrameFail%90===0)
+      console.warn('[HTS] frame update',e&&e.message?e.message:e);
   }
-  if(window.HTS_CINEMATIC&&HTS_CINEMATIC.render){
-    try{HTS_CINEMATIC.render();}
-    catch(e){renderer.render(scene,camera);}
-  }else{
-    renderer.render(scene,camera);
+  /* Always paint — update errors must never leave a black canvas */
+  try{
+    if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update)
+      HTS_CINEMATIC.update(camGoal||cam,nightF,_fpsAvg);
+    if(window.HTS_CINEMATIC&&HTS_CINEMATIC.render)HTS_CINEMATIC.render();
+    else renderer.render(scene,camera);
+    window._htsLastFrame=performance.now();
+    window._htsFrameFail=0;
+  }catch(e){
+    window._htsFrameFail=(window._htsFrameFail||0)+1;
+    try{renderer.render(scene,camera);window._htsLastFrame=performance.now();}catch(_e){}
   }
   hudT-=dt;
   if(hudT<=0&&!HTS_PEEK){
@@ -14479,8 +15077,8 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
   if(WS!==1){
     const land=createHoustonLand({
       parent:scene,k:1,
-      radius:HTS_PEEK?7000:(_isWin?10000:12000),
-      detailRadius:HTS_PEEK?2800:(_isWin?4200:5200),
+      radius:HTS_PEEK?7000:(_isWin?12000:14000),
+      detailRadius:HTS_PEEK?3200:(_isWin?7000:9000),
     });
     window.HTS_LAND2=land;
     if(!window.RWEDGE)window.RWEDGE=[];
@@ -14521,6 +15119,126 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       window.HTS_SIGNS=signs;
       signs.ready.then(()=>setInterval(()=>signs.update(cam.target.x,cam.target.z,cam.radius),900))
         .catch((e)=>console.warn('[HTS] signs',e&&e.message));
+      /* Plane crash simulator — tour jets, multi-airport runway takeoff, then fail modes */
+      try{
+        window.HTS_CRASH=createPlaneCrashSim({
+          scene,camera,cam,
+          makeAircraft:(type)=>tourJet(0xf3f5f7,0x1f4e9c,type),
+          getAirports:()=>AIRPORTS,
+          airportsUrl:'/data/houston/airports.json',
+          probeBuilding:(x,y,z)=>footHitsBldgAt(x,y,z),
+          cityAim:()=>({x:60,z:60}), /* downtown / metro origin — steer failed jets toward fabric */
+        });
+        const crashSel=$('crashScenario'),crashApt=$('crashAirport'),crashAc=$('crashAircraft');
+        const crashStat=$('crashStatus'),crashGo=$('crashStart'),crashStop=$('crashStop'),crashFollow=$('crashFollow');
+        if(crashSel&&CRASH_SCENARIOS){
+          crashSel.innerHTML='';
+          for(const sc of CRASH_SCENARIOS){const o=document.createElement('option');o.value=sc.id;o.textContent=sc.n;crashSel.appendChild(o);}
+        }
+        if(crashAc&&CRASH_AIRCRAFT){
+          crashAc.innerHTML='';
+          for(const ac of CRASH_AIRCRAFT){const o=document.createElement('option');o.value=ac.id;o.textContent=ac.n;crashAc.appendChild(o);}
+        }
+        if(crashApt){
+          crashApt.innerHTML='';
+          const apts=(HTS_CRASH.airports&&HTS_CRASH.airports())||AIRPORTS||[];
+          for(const a of apts){
+            const o=document.createElement('option');
+            o.value=a.code;
+            o.textContent=(a.code||'?')+' · '+(a.name||a.code);
+            crashApt.appendChild(o);
+          }
+          if(!crashApt.value&&apts.length)crashApt.value=apts.find((a)=>a.code==='IAH')? 'IAH':apts[0].code;
+        }
+        if(crashGo)crashGo.addEventListener('click',()=>{
+          if(window.HTS_TOUR&&HTS_TOUR.active)try{HTS_TOUR.stop();}catch(_e){}
+          stopFollow();
+          const id=(crashSel&&crashSel.value)||'engine';
+          const aptCode=(crashApt&&crashApt.value)||'IAH';
+          const acType=(crashAc&&crashAc.value)||'b737';
+          if(crashFollow)crashFollow.checked=true;
+          const sc=HTS_CRASH.start({scenario:id,airport:aptCode,aircraft:acType});
+          HTS_CRASH.follow=true;
+          HTS_CRASH.setSpeedX(1);
+          crashSetView('chase');
+          if(crashStat)crashStat.textContent=(sc&&sc.blurb)||'Running…';
+          showCrashHud(true);
+          /* Snap once onto the real OSM runway — retry briefly if runway JSON is still loading */
+          const snapCrashCam=()=>{
+            const st=HTS_CRASH.state;
+            if(!st||!st.active)return false;
+            camGoal.target.set(st.x,clamp(st.y*0.45+16,12,400),st.z);
+            camGoal.radius=120;
+            camGoal.phi=0.92;
+            camGoal.theta=-(st.yaw||0)+Math.PI*0.92;
+            st.th0=camGoal.theta;st.ph0=camGoal.phi;
+            cam.target.copy(camGoal.target);
+            cam.radius=camGoal.radius;cam.phi=camGoal.phi;cam.theta=camGoal.theta;
+            window._followOff={x:0,z:0};
+            _crashSmooth.set(0,0,0);
+            if(st.view==='orbit')applyCam();else applyCrashCam(0.016);
+            const chip=$('followChip'),ft=$('fTxt');
+            if(chip)chip.style.display='flex';
+            const rw=st.rw?(' · RWY '+st.rw.name):'';
+            if(ft)ft.textContent='Crash sim · '+(sc&&sc.n?sc.n:'jet')+' · '+aptCode+rw;
+            syncCrashHud();
+            return true;
+          };
+          if(!snapCrashCam()){
+            let n=0;const iv=setInterval(()=>{if(snapCrashCam()||++n>40)clearInterval(iv);},50);
+          }
+        });
+        const stopCrashUi=()=>{
+          /* Full teardown — Free look must not leave orbit/follow stuck on the map */
+          HTS_CRASH.stop();
+          showCrashHud(false);
+          setCrashDashVisible(false);
+          window._followOff={x:0,z:0};
+          _crashSmooth.set(0,0,0);
+          if(HTS_CRASH.jet)HTS_CRASH.jet.visible=true;
+          camera.up.set(0,1,0);
+          if(camera.fov!==55){camera.fov=55;camera.updateProjectionMatrix();}
+          camera.near=Math.max(camera.near,1.2);
+          camera.updateProjectionMatrix();
+          /* Pull back to normal map orbit (same idea as tour stop) */
+          camGoal.radius=Math.max(camGoal.radius,600);
+          camGoal.phi=0.95;
+          cam.radius=camGoal.radius;cam.phi=camGoal.phi;
+          cam.target.copy(camGoal.target);
+          if(crashFollow)crashFollow.checked=false;
+          if(crashStat)crashStat.textContent='Idle - choose airport, aircraft, scenario, then Run. On Run: use the crash panel (or keys 1–6) for Chase / Cockpit / Window / Wing / Top / Free look.';
+          const chip=$('followChip');if(chip)chip.style.display='none';
+          applyCam();
+        };
+        if(crashStop)crashStop.addEventListener('click',stopCrashUi);
+        const crashHudStop=$('crashHudStop');
+        if(crashHudStop)crashHudStop.addEventListener('click',stopCrashUi);
+        const crashHudHide=$('crashHudHide');
+        if(crashHudHide)crashHudHide.addEventListener('click',()=>setCrashHudHidden(true));
+        const crashHudPeek=$('crashHudPeek');
+        if(crashHudPeek)crashHudPeek.addEventListener('click',()=>setCrashHudHidden(false));
+        if(crashFollow)crashFollow.addEventListener('change',()=>{
+          if(!window.HTS_CRASH)return;
+          HTS_CRASH.follow=!!crashFollow.checked;
+          if(crashFollow.checked&&HTS_CRASH.state.view==='orbit'){/* keep orbit */}
+          else if(crashFollow.checked)crashSetView(HTS_CRASH.state.view||'chase');
+          syncCrashHud();
+        });
+        addEventListener('keydown',(e)=>{
+          if(!window.HTS_CRASH||!HTS_CRASH.state||!HTS_CRASH.state.active)return;
+          if(e.key==='Escape'){stopCrashUi();return;}
+          if(e.key==='h'||e.key==='H'){
+            const el=$('crashHud');
+            if(el&&el.classList.contains('on'))setCrashHudHidden(!el.classList.contains('hid'));
+            return;
+          }
+          if(/^Digit[1-6]$/.test(e.code)){
+            const views=HTS_CRASH.views||[];
+            const v=views[+e.code.slice(5)-1];
+            if(v)crashSetView(v[0]);
+          }
+        });
+      }catch(e){console.warn('[HTS] crash sim',e&&e.message);}
     }
     Promise.all([land.ready,ap.ready.catch(()=>null)]).then(()=>setInterval(()=>land.update(cam.target.x,cam.target.z,cam.radius),HTS_PEEK?900:600))
       .catch((e)=>console.warn('[HTS] land v2',e&&e.message));
@@ -14538,12 +15256,18 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
         {const hp=window.HTS_HOUSE_POS;
          import('./render/my-house.js').then((m)=>{window.HTS_MYHOUSE=m.createMyHouse({parent:scene,x:hp.x,z:hp.z,yaw:0});}).catch((e)=>console.warn('[HTS] my house',e&&e.message));}
         /* city water towers (OSM man_made=water_tower), each city in its own paint and lettering */
-        import('./render/poi-icons.js').then(async(m)=>{const L=await m.loadPois('data/houston/pois.json',(la,ln)=>geoToWorld(la,ln));const lay=m.createPoiIcons({dom:renderer.domElement,getCamera:()=>window.HTS_WORLD_ACTIVE||(window.HTS_TOUR&&window.HTS_TOUR.active)?null:camera,getView:()=>({x:cam.target.x,z:cam.target.z,r:cam.radius}),onPick:(p,cx,cy)=>openPoiCard({n:p.n,addr:m.POI_CAT[p.c][2],x:p.x,z:p.z},cx,cy)});lay.setData(L);window.HTS_POIS=lay;}).catch((e)=>console.warn('[HTS] attractions',e&&e.message));
+        import('./render/poi-icons.js').then(async(m)=>{
+          const L=await m.loadPois('data/houston/pois.json',(la,ln)=>geoToWorld(la,ln));
+          /* HCCS campuses as map badges (same circular style as theatre / park icons) */
+          const hcc=(window.HTS_FACILITY_POIS||[]).filter((p)=>/\bHCCS?\b/i.test(p.n)).map((p)=>({x:p.x,z:p.z,c:'campus',n:p.n,w:2,lat:p.lat,lng:p.lng}));
+          const lay=m.createPoiIcons({dom:renderer.domElement,getCamera:()=>window.HTS_WORLD_ACTIVE||(window.HTS_TOUR&&window.HTS_TOUR.active)?null:camera,getView:()=>({x:cam.target.x,z:cam.target.z,r:cam.radius}),onPick:(p,cx,cy)=>openPoiCard({n:p.n,addr:m.POI_CAT[p.c][2],x:p.x,z:p.z},cx,cy)});
+          lay.setData(L.concat(hcc));window.HTS_POIS=lay;
+        }).catch((e)=>console.warn('[HTS] attractions',e&&e.message));
         import('./render/houston-water-towers.js').then((m)=>{window.HTS_WTOWERS=m.createWaterTowers({parent:scene,geoToWorld,url:'data/houston/water-towers.json'});}).catch((e)=>console.warn('[HTS] water towers',e&&e.message));
         sl.ready.then((st)=>console.log('%cHouston streetlights: '+JSON.stringify(st),'color:#ffd080')).catch((e)=>console.warn('[HTS] streetlights',e&&e.message));
       }
       /* Sim budget > draw cap so near-camera streets stay full after distance cull */
-      window.HTS_TRAFFIC2=createHoustonTraffic({net:hr.net,k:UNITS_PER_MILE/1609.344,baseY:0.25,rand,budget:_isWin?Math.min(MAX_INST+900,2400):Math.min(MAX_INST+1200,4200),mkCar:mkCar2,
+      window.HTS_TRAFFIC2=createHoustonTraffic({net:hr.net,k:UNITS_PER_MILE/1609.344,baseY:0.25,rand,budget:_isWin?Math.min(MAX_INST+400,1300):Math.min(MAX_INST+1200,4000),mkCar:mkCar2,
         env:{cong:legacyCongAt,wx:()=>(wxBlend&&wxBlend.speed)||1,
           headway:()=>clamp(lerp(5.5,1.4,clamp(demand(simH,weekend),0,1)),1.4,6)}});
       hr.onTile((ev,id,ways)=>ev==='add'?HTS_TRAFFIC2.addTile(id,ways):HTS_TRAFFIC2.removeTile(id));
@@ -14634,28 +15358,6 @@ setTimeout(()=>{
     }else setTab(activeTab);
   });
   if(isMobile())setTab('go');
-})();
-/* ==================== Metro switcher ==================== */
-(function setupCitySelect(){
-  const sel=$('citySelect');
-  if(!sel)return;
-  const packs=window.HTS_CITIES||{};
-  const ids=window.HTS_CITY_IDS||Object.keys(packs);
-  const order=Array.isArray(ids)&&ids.length?ids:Object.keys(packs);
-  sel.innerHTML=order.map(id=>{
-    const m=packs[id]||{};
-    const label=m.name||id;
-    return '<option value="'+escHtml(id)+'">'+escHtml(label)+'</option>';
-  }).join('');
-  sel.value=HTS_CITY_ID||'houston';
-  sel.addEventListener('change',()=>{
-    const id=String(sel.value||'houston').toLowerCase();
-    try{localStorage.setItem('hts-city',id);}catch(e){}
-    const url=new URL(location.href);
-    if(id==='houston')url.searchParams.delete('city');
-    else url.searchParams.set('city',id);
-    location.assign(url.pathname+url.search+url.hash);
-  });
 })();
 /* ==================== Homepage peek orbit (?peek=1) ==================== */
 (function setupPeekOrbit(){

@@ -1,6 +1,6 @@
 /**
  * Loads the active city pack + core helpers onto window for the classic app.html script.
- * Default city remains Houston; other metros via ?city=<id> (lat/lng content packs).
+ * Default city remains Houston. Other cities are entered from the globe (not a Metro panel).
  */
 import { activeCity, activeCityId, CITY_IDS, CITY_PACKS } from './cities/registry.js';
 import { isCityManifest } from './cities/types.js';

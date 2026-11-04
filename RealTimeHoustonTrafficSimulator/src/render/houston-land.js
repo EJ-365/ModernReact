@@ -8,24 +8,26 @@
  */
 import * as THREE from 'three';
 
+/* Google satellite Houston / Sugar Land: soft sage suburbs, tan prairie, dark canopy, teal water.
+   Base = Devin palette; slight satellite refine (not mud-brown, not lawn-carpet). */
 const LAND = {
-  residential: { c: 0x9aa486, y: 0.05 }, commercial: { c: 0xa9a59c, y: 0.05 }, industrial: { c: 0x9d988c, y: 0.05 },
-  farm: { c: 0xa9a477, y: 0.04 }, cemetery: { c: 0x7f9a62, y: 0.06 }, grass: { c: 0x73894f, y: 0.07 },
-  pitch: { c: 0x638a45, y: 0.08 }, golf: { c: 0x628f47, y: 0.07 }, park: { c: 0x5f7f44, y: 0.08 },
-  scrub: { c: 0x76804e, y: 0.07 }, wood: { c: 0x3f5a2e, y: 0.09 }, wetland: { c: 0x6a7e58, y: 0.08 },
-  parking: { c: 0x8a8b8c, y: 0.11 }, water: { c: 0x3a6f8a, y: 0.12 },
+  residential: { c: 0x8f9b72, y: 0.05 }, /* soft yard sage under tree canopy */
+  commercial: { c: 0xa8a49c, y: 0.05 }, industrial: { c: 0x9a958a, y: 0.05 },
+  farm: { c: 0xa8a070, y: 0.04 }, /* coastal prairie / pasture */
+  cemetery: { c: 0x7a9660, y: 0.06 }, grass: { c: 0x70884c, y: 0.07 },
+  pitch: { c: 0x5f8842, y: 0.08 }, golf: { c: 0x5c8e44, y: 0.07 }, park: { c: 0x587c40, y: 0.08 },
+  scrub: { c: 0x73804c, y: 0.07 }, wood: { c: 0x3a562a, y: 0.09 }, wetland: { c: 0x667c56, y: 0.08 },
+  parking: { c: 0x88898a, y: 0.11 }, water: { c: 0x3a6f8a, y: 0.12 },
 };
 const ORDER = ['farm', 'residential', 'commercial', 'industrial', 'cemetery', 'grass', 'golf', 'pitch', 'park', 'scrub', 'wetland', 'wood', 'parking', 'water'];
-const TREE_DENS = { wood: 1 / 90, park: 1 / 700, golf: 1 / 900, cemetery: 1 / 500, wetland: 1 / 400, residential: 0, scrub: 1 / 260 };
-/* land uses where no house may stand (most Houston suburbs have no landuse=residential polygon) */
-const NO_HOUSE = { commercial: 1, industrial: 1, parking: 1, park: 1, wood: 1, water: 1, wetland: 1, golf: 1, cemetery: 1, pitch: 1 };
-const HOUSE_COLS = [0xcfc4ad, 0xbfae90, 0xd8d0c0, 0xa9aeb0, 0xb48c70, 0xc9bfa6, 0xe0d8c8, 0x9c8f80];
-const ROOF_COLS = [0x55504a, 0x6a5848, 0x4c5056, 0x6f655a, 0x3f4245];
-/* Houston canopy: dark glossy live oak, loblolly pine, yaupon/wax myrtle, crepe myrtle (lighter), water oak */
+const TREE_DENS = { wood: 1 / 90, park: 1 / 650, golf: 1 / 900, cemetery: 1 / 500, wetland: 1 / 400, residential: 1 / 2800, scrub: 1 / 260 };
+/* Keep houses off parks/water — commercial left open (Sugar Land / Midtown OSM tags). */
+const NO_HOUSE = { industrial: 1, parking: 1, park: 1, wood: 1, water: 1, wetland: 1, golf: 1, cemetery: 1, pitch: 1 };
+const HOUSE_COLS = [0xd4c8b0, 0xc6b698, 0xe2d9c8, 0xb2b6b8, 0xbc8e6e, 0xd0c6aa, 0xe8e0d4, 0xa09080];
+/* Lighter roofs so suburbs read at city zoom (Google satellite roofs are pale gray) */
+const ROOF_COLS = [0x8a8680, 0x9a8a7a, 0x7a8088, 0xa09080, 0x6e7278, 0xb0a898];
 const TREE_COLS = [0x2f4824, 0x37522a, 0x2a3f22, 0x41592e, 0x4b6533, 0x334a2a];
 
-/* airfields (houston-airports.js) stay clear of trees and houses */
-const inField = (x, z) => !!(globalThis.HTS_AIRPORTS2 && globalThis.HTS_AIRPORTS2.inAerodrome(x, z));
 function hash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); n ^= n >>> 15; return (n >>> 0) / 4294967296; }
 function rng(seed) { let s = seed >>> 0 || 1; return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296); }
 
@@ -83,10 +85,21 @@ function makeTreeGeos() {
 export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offset = 60, slice = 16, radius = 12000, detailRadius = 5200, onHouse = null }) {
   const root = new THREE.Group(); root.name = 'houston-land'; parent.add(root);
   const X = (x) => (x - offset) * k + offset;
+  /* Keep trees/houses off IAH/HOU/etc — OSM aerodrome when ready, else AIRFIELDS circles (world space) */
+  const inField = (x, z) => {
+    if (globalThis.HTS_AIRPORTS2 && globalThis.HTS_AIRPORTS2.inAerodrome(x, z)) return true;
+    const wx = X(x), wz = X(z);
+    const fields = (typeof window !== 'undefined' && window.AIRFIELDS) || [];
+    for (let i = 0; i < fields.length; i++) {
+      const a = fields[i], dx = wx - a.x, dz = wz - a.z, r = a.r || 300;
+      if (dx * dx + dz * dz < r * r) return true;
+    }
+    return false;
+  };
   const geos = makeTreeGeos();
   const mats = {
     land: new THREE.MeshLambertMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
-    water: new THREE.MeshLambertMaterial({ color: LAND.water.c, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
+    water: new THREE.MeshLambertMaterial({ color: 0x3a6f8a, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
     crown: new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true }),
     trunk: new THREE.MeshLambertMaterial({ color: 0x5a4632 }),
     body: new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffc27a, emissiveIntensity: 0, emissiveMap: (() => {
@@ -188,6 +201,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     return m;
   }
 
+  const _win = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
   function instanced(geo, mat, list, shadow) {
     if (!list.length) return null;
     const im = new THREE.InstancedMesh(geo, mat, list.length);
@@ -197,14 +211,16 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       m4.compose(t, q, s); im.setMatrixAt(i, m4);
       if (o.c != null) im.setColorAt(i, c.setHex(o.c));
     });
-    im.castShadow = !!shadow; im.receiveShadow = true; im.computeBoundingSphere();
+    /* Windows: skip house/tree shadow casting — biggest FPS win with thousands of instances */
+    im.castShadow = !!shadow && !_win; im.receiveShadow = true; im.computeBoundingSphere();
     return im;
   }
 
   const yieldIf = async (st) => { if (performance.now() - st.t > slice) { await new Promise((r) => setTimeout(r, 0)); st.t = performance.now(); } };
-  const MAX_TREES = 3200, MAX_HOUSES = 2400;
+  /* Dense enough for Sugar Land plats; capped so Windows stays smooth */
+  const MAX_TREES = _win ? 2000 : 3600, MAX_HOUSES = _win ? 2400 : 4500;
   const TREE_SCALE = 1;
-  const HOUSE_STEP = 17;
+  const HOUSE_STEP = 11;
 
   /** Base layer: land-use polygons, water, bayous, rail. Cheap; kept for the whole 12 km ring. */
   async function buildTile(key) {
@@ -213,7 +229,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     const g = new THREE.Group();
     const P = [], C = [], I = [], WP = [], WI = [], RP = [], RI = [];
     const col = new THREE.Color(), st = { t: performance.now() };
-    const resid = new PolyGrid(250), block = new PolyGrid(250), water = new PolyGrid(250), treeAreas = [];
+    const resid = new PolyGrid(250), block = new PolyGrid(250), water = new PolyGrid(250), treeAreas = [], commercial = [], residPolys = [];
     for (const cls of ORDER) {
       const multis = d.classes[cls]; if (!multis) continue;
       const spec = LAND[cls];
@@ -223,10 +239,13 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
           if (isSpuriousWater(poly[0])) continue; /* Magnolia Park / East End flood fix */
           polyTris(poly, spec.y * k, col.setHex(spec.c), WP, [], WI); water.add(poly);
         } else {
-          col.setHex(spec.c).offsetHSL(0, 0, (hash(poly[0].length * 977 + (poly[0][0] | 0)) - 0.5) * 0.06);
+          /* Soft per-parcel variation (lawn patches / clay soil) — keep contrast low so suburbs read continuous */
+          const h = hash(poly[0].length * 977 + (poly[0][0] | 0));
+          col.setHex(spec.c).offsetHSL((h - 0.5) * 0.02, (h - 0.5) * 0.04, (h - 0.5) * 0.05);
           polyTris(poly, spec.y * k, col, P, C, I);
         }
-        if (cls === 'residential') resid.add(poly);
+        if (cls === 'residential') { resid.add(poly); residPolys.push(poly); }
+        else if (cls === 'commercial') commercial.push(poly);
         else if (NO_HOUSE[cls]) block.add(poly);
         if (TREE_DENS[cls]) treeAreas.push([cls, poly]);
         await yieldIf(st);
@@ -248,7 +267,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     }
     for (const rl of d.rail || []) ribbon(rl.p, 3.4, 0.13 * k, RP, RI);
     for (const m of [mesh(P, I, mats.land, C), mesh(WP, WI, mats.water), mesh(RP, RI, mats.rail)]) if (m) g.add(m);
-    return { g, resid, block, water, treeAreas };
+    return { g, resid, block, water, treeAreas, commercial, residPolys };
   }
 
   /** Detail layer (trees, bushes, houses): built lazily only for tiles near the camera. */
@@ -261,7 +280,8 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
   }
   async function buildDetail(key, t) {
     const seed = key.split('_').reduce((a, v) => a * 131 + (+v + 997), 7), rnd = rng(seed), st = { t: performance.now() };
-    const trees = [], bushes = [], houses = [], roofs = [], flats = [], garages = [];
+    const trees = [], bushes = [], houses = [], roofs = [], flats = [], garages = [], shops = [];
+    const SHOP_COLS = [0xb9b5ad, 0xa8a49c, 0xc6c2ba, 0x9ea2a8, 0xd0cbc2];
     for (const [cls, poly] of t.treeAreas) {
       const area = Math.abs(ringArea(poly[0])), n = Math.min(cls === 'wood' ? 700 : 200, Math.floor(area * TREE_DENS[cls] * TREE_SCALE));
       const [x0, z0, x1, z1] = bbox(poly[0]);
@@ -313,35 +333,56 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
         return true; };
       const free = (x, z) => { for (const ox of [-6, 0, 6]) for (const oz of [-6, 0, 6]) if (occ.has(ck(Math.floor((x + ox) / cell), Math.floor((z + oz) / cell)))) return false; return true; };
       outer: for (const r of (lr && lr.roads) || []) {
-        if (r.h !== 'residential' && r.h !== 'living_street' && r.h !== 'unclassified') continue;
-        const p = r.p, setback = r.w / 2 + 18;
-        let acc = 6 + rnd() * 8;
+        /* Midtown / Montrose / Heights use tertiary + secondary as neighborhood streets */
+        const arterialish = r.h === 'tertiary' || r.h === 'secondary';
+        const localish = r.h === 'residential' || r.h === 'living_street' || r.h === 'unclassified' || r.h === 'service';
+        if (!arterialish && !localish) continue;
+        const p = r.p, setback = r.w / 2 + (arterialish ? 20 : 17);
+        let acc = 5 + rnd() * 6;
         for (let i = 2; i < p.length; i += 2) {
           const ax = p[i - 2], az = p[i - 1], dx = p[i] - ax, dz = p[i + 1] - az, L = Math.hypot(dx, dz);
           if (L < 1) continue;
           const ux = dx / L, uz = dz / L, ang = Math.atan2(ux, uz);
-          for (; acc < L - 6; acc += HOUSE_STEP + rnd() * 6) {
+          for (; acc < L - 5; acc += HOUSE_STEP + rnd() * 4) {
             for (const sd of [-1, 1]) {
               const x = ax + ux * acc - uz * setback * sd, z = az + uz * acc + ux * setback * sd;
-              if (rnd() < 0.08 || t.block.hit(x, z) || !free(x, z) || inField(x, z) || (window.HTS_HOUSE_EXCL && window.HTS_HOUSE_EXCL(X(x), X(z)))) continue;
-              const w = 11 + rnd() * 5, dep = 12 + rnd() * 6, h = rnd() < 0.25 ? 6.8 + rnd() * 1.4 : 3.6 + rnd() * 1.2;
-              /* also test the live Houston road network (freeways/arterials/ramps streamed by the road renderer) */
-              if (!clearLot(x, z, w, dep, ang) || (window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x), X(z), X(Math.max(w, dep) * 0.6) - X(0)))) continue;
-              houses.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0] });
-              roofs.push({ x, z, y: h * k, sx: w * 1.06, sy: 3 + rnd() * 1.5, sz: dep * 1.06, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });
-              /* front garage + driveway to the kerb, backyard fence, sometimes a pool (common in Houston) */
+              if (rnd() < 0.04 || t.block.hit(x, z) || !free(x, z) || inField(x, z) || (window.HTS_HOUSE_EXCL && window.HTS_HOUSE_EXCL(X(x), X(z)))) continue;
+              if (r.h === 'service' && !t.resid.hit(x, z)) continue;
+              const w = 10 + rnd() * 5, dep = 11 + rnd() * 5.5, h = rnd() < 0.22 ? 6.5 + rnd() * 1.4 : 3.5 + rnd() * 1.3;
+              if (!clearLot(x, z, w, dep, ang) || (window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x), X(z), X(Math.max(w, dep) * 0.55) - X(0)))) continue;
+              const hc = HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0];
+              houses.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: hc });
+              roofs.push({ x, z, y: h * k, sx: w * 1.06, sy: 2.8 + rnd() * 1.4, sz: dep * 1.06, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });
               const px = -uz * sd, pz = ux * sd, gs = rnd() < 0.5 ? -1 : 1, ga = gs * (dep / 2 - 3.2);
               const gFront = setback - w / 2 - 6, dLen = Math.max(1.5, gFront - r.w / 2);
-              if (rnd() < 0.7) {
+              if (rnd() < 0.65) {
                 const gd = setback - w / 2 - 3;
-                garages.push({ x: ax + ux * (acc + ga) + px * gd, z: az + uz * (acc + ga) + pz * gd, sx: 6, sy: 3.1, sz: 6.3, r: ang, c: houses[houses.length - 1].c });
+                garages.push({ x: ax + ux * (acc + ga) + px * gd, z: az + uz * (acc + ga) + pz * gd, sx: 6, sy: 3.1, sz: 6.3, r: ang, c: hc });
               }
               const dd = r.w / 2 + dLen / 2;
-              flats.push({ x: ax + ux * (acc + ga) + px * dd, z: az + uz * (acc + ga) + pz * dd, y: 0.1 * k, sx: dLen + 0.4, sy: 0.08, sz: 5, r: ang, c: 0xb9b6ae });
+              flats.push({ x: ax + ux * (acc + ga) + px * dd, z: az + uz * (acc + ga) + pz * dd, y: 0.1 * k, sx: dLen + 0.4, sy: 0.08, sz: 5, r: ang, c: 0xb4b0a8 });
               const back = setback + w / 2 + 10;
-              flats.push({ x: ax + ux * acc + px * back, z: az + uz * acc + pz * back, y: 0, sx: 0.12, sy: 1.8, sz: 20, r: ang, c: 0x86705a });
-              if (rnd() < 0.14) { const pd = setback + w / 2 + 4.5; flats.push({ x: ax + ux * (acc - ga * 0.4) + px * pd, z: az + uz * (acc - ga * 0.4) + pz * pd, y: 0.1 * k, sx: 4.2, sy: 0.06, sz: 8, r: ang, c: 0x3fa6cc }); }
-              if (rnd() < 0.6 && trees.length < MAX_TREES * 1.4) { const th = 6 + rnd() * 7; trees.push({ x: x - uz * sd * (dep * 0.5 + 6) + ux * (rnd() - 0.5) * 10, z: z + ux * sd * (dep * 0.5 + 6) + uz * (rnd() - 0.5) * 10, sx: th * 0.42, sy: th * 0.5, sz: th * 0.42, r: rnd() * 6.28, c: TREE_COLS[(rnd() * TREE_COLS.length) | 0] }); }
+              flats.push({ x: ax + ux * acc + px * back, z: az + uz * acc + pz * back, y: 0, sx: 0.12, sy: 1.8, sz: 18, r: ang, c: 0x86705a });
+              if (rnd() < 0.12) { const pd = setback + w / 2 + 4.5; flats.push({ x: ax + ux * (acc - ga * 0.4) + px * pd, z: az + uz * (acc - ga * 0.4) + pz * pd, y: 0.1 * k, sx: 4.2, sy: 0.06, sz: 8, r: ang, c: 0x3a8aaa }); }
+              /* occasional deep-lot house (Sugar Land plats) — rare so FPS stays up */
+              if (rnd() < 0.28 && houses.length < MAX_HOUSES) {
+                const x2 = x + px * (dep + 16 + rnd() * 5), z2 = z + pz * (dep + 16 + rnd() * 5);
+                if (!t.block.hit(x2, z2) && free(x2, z2) && !inField(x2, z2) && clearLot(x2, z2, w * 0.9, dep * 0.9, ang)
+                  && !(window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x2), X(z2), 12))
+                  && !(window.HTS_HOUSE_EXCL && window.HTS_HOUSE_EXCL(X(x2), X(z2)))) {
+                  const h2 = 3.4 + rnd() * 1.4, w2 = 9 + rnd() * 5, d2 = 10 + rnd() * 5;
+                  houses.push({ x: x2, z: z2, sx: w2, sy: h2, sz: d2, r: ang, c: HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0] });
+                  roofs.push({ x: x2, z: z2, y: h2 * k, sx: w2 * 1.05, sy: 2.5 + rnd(), sz: d2 * 1.05, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });
+                }
+              }
+              if (rnd() < 0.55 && trees.length < MAX_TREES) {
+                const tx = x - uz * sd * (dep * 0.5 + 5) + ux * (rnd() - 0.5) * 8;
+                const tz = z + ux * sd * (dep * 0.5 + 5) + uz * (rnd() - 0.5) * 8;
+                if (!inField(tx, tz)) {
+                  const th = 6 + rnd() * 7;
+                  trees.push({ x: tx, z: tz, sx: th * 0.42, sy: th * 0.5, sz: th * 0.42, r: rnd() * 6.28, c: TREE_COLS[(rnd() * TREE_COLS.length) | 0] });
+                }
+              }
               if (onHouse) onHouse(x, z);
               if (houses.length >= MAX_HOUSES) break outer;
             }
@@ -350,16 +391,55 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
           await yieldIf(st);
         }
       }
+      if (t.residPolys && t.residPolys.length && houses.length < MAX_HOUSES) {
+        for (const poly of t.residPolys) {
+          const [x0, z0, x1, z1] = bbox(poly[0]);
+          const area = Math.abs(ringArea(poly[0]));
+          if (area < 500) continue;
+          const n = Math.min(10, Math.max(1, Math.floor(area / 2800)));
+          for (let i = 0, tries = 0; i < n && tries < n * 10 && houses.length < MAX_HOUSES; tries++) {
+            const x = x0 + 7 + rnd() * Math.max(4, x1 - x0 - 14), z = z0 + 7 + rnd() * Math.max(4, z1 - z0 - 14);
+            if (!inRing(poly[0], x, z) || !free(x, z) || t.block.hit(x, z) || inField(x, z)) continue;
+            if (!clearLot(x, z, 11, 12, 0) || (window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x), X(z), 12))) continue;
+            if (window.HTS_HOUSE_EXCL && window.HTS_HOUSE_EXCL(X(x), X(z))) continue;
+            i++;
+            const w = 9 + rnd() * 5, dep = 10 + rnd() * 5.5, h = 3.4 + rnd() * 1.8, ang = (rnd() * 4 | 0) * (Math.PI / 2);
+            houses.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0] });
+            roofs.push({ x, z, y: h * k, sx: w * 1.05, sy: 2.5 + rnd(), sz: dep * 1.05, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });
+          }
+        }
+        await yieldIf(st);
+      }
+    }
+    /* Strip / low commercial pads — empty beige commercial landuse gets real storefronts */
+    if (t.commercial && t.commercial.length) {
+      for (const poly of t.commercial) {
+        const [x0, z0, x1, z1] = bbox(poly[0]);
+        const area = Math.abs(ringArea(poly[0]));
+        if (area < 900) continue;
+        const n = Math.min(10, Math.max(2, Math.floor(area / 2800)));
+        for (let i = 0, tries = 0; i < n && tries < n * 8 && shops.length < 900; tries++) {
+          const x = x0 + 12 + rnd() * Math.max(4, x1 - x0 - 24), z = z0 + 12 + rnd() * Math.max(4, z1 - z0 - 24);
+          if (!inRing(poly[0], x, z) || t.block.hit(x, z) || inField(x, z)) continue;
+          if (window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x), X(z), 10)) continue;
+          i++;
+          const w = 14 + rnd() * 18, dep = 12 + rnd() * 14, h = 4.5 + rnd() * 5.5;
+          const ang = (rnd() * 4 | 0) * (Math.PI / 2);
+          shops.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: SHOP_COLS[(rnd() * SHOP_COLS.length) | 0] });
+          roofs.push({ x, z, y: h * k, sx: w * 1.04, sy: 1.6 + rnd(), sz: dep * 1.04, r: ang, c: 0x555a60 });
+        }
+        await yieldIf(st);
+      }
     }
     const detail = new THREE.Group();
     for (const im of [
       instanced(geos.crown, mats.crown, trees.concat(bushes), true),
       instanced(geos.trunk, mats.trunk, trees.map((o) => ({ x: o.x, z: o.z, sx: o.sx, sy: o.sy * 2.2, sz: o.sx, r: 0 })), false),
-      instanced(geos.body, mats.body, houses.concat(garages), true),
+      instanced(geos.body, mats.body, houses.concat(garages, shops), true),
       instanced(geos.roof, mats.roof, roofs, true),
       instanced(geos.body, mats.body, flats, false),
     ]) if (im) detail.add(im);
-    stats.trees += trees.length + bushes.length; stats.houses += houses.length;
+    stats.trees += trees.length + bushes.length; stats.houses += houses.length + shops.length;
     return detail;
   }
 
@@ -375,27 +455,32 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       lastCam = [camX, camZ];
       const moving = moved > 120 * k;
       const mx = (camX - offset) / k + offset, mz = (camZ - offset) / k + offset, T = index.tile;
-      const showDetail = camDist < 9000 * k;
+      const showDetail = camDist < 16000 * k;
       const dist = (key) => { const [ax, az] = key.split('_').map(Number); return Math.hypot((ax + 0.5) * T - mx, (az + 0.5) * T - mz); };
-      /* detail: show/hide, drop far ones, build at most one nearby per tick */
-      let nextDetail = null;
+      /* detail: show/hide, drop far ones, build a couple nearby tiles per tick once the camera settles */
+      const wantDetails = [];
       for (const [key, t] of tiles) {
         if (!t.base) continue;
         const dd = dist(key), near = showDetail && dd < detailRadius + T * 0.7;
         if (t.detail) {
           t.detail.visible = near;
-          if (dd > detailRadius * 1.8 + T) { disposeGroup(t.detail); t.base.g.remove(t.detail); t.detail = null; }
-        } else if (near && (!nextDetail || dd < nextDetail[0])) nextDetail = [dd, key, t];
+          if (dd > detailRadius * 2.1 + T) { disposeGroup(t.detail); t.base.g.remove(t.detail); t.detail = null; }
+        } else if (near) wantDetails.push([dd, key, t]);
       }
-      let built = false;
-      if (nextDetail && !moving) { const [, key, t] = nextDetail; t.detail = await buildDetail(key, t.base); t.base.g.add(t.detail); built = true; }
+      wantDetails.sort((a, b) => a[0] - b[0]);
+      let built = 0;
+      if (!moving) {
+        for (const [, key, t] of wantDetails.slice(0, 2)) {
+          t.detail = await buildDetail(key, t.base); t.base.g.add(t.detail); built++;
+        }
+      }
       const r = Math.ceil(radius / T), tx0 = Math.floor(mx / T), tz0 = Math.floor(mz / T), want = [];
       for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
         const key = (tx0 + dx) + '_' + (tz0 + dz), dd = dist(key);
         if (dd < radius + T * 0.7 && index.land.has(key) && !tiles.has(key)) want.push([dd, key]);
       }
       want.sort((a, b) => a[0] - b[0]);
-      for (const [, key] of want.slice(0, built ? 0 : 1)) {
+      for (const [, key] of want.slice(0, built ? 0 : 2)) {
         const t = { base: null, detail: null }; tiles.set(key, t);
         t.base = await buildTile(key);
         if (t.base) { root.add(t.base.g); stats.tiles++; }

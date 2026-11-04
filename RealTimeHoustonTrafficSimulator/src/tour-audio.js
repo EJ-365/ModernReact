@@ -210,6 +210,27 @@ export function createTourAudio() {
     } else if (name === 'start') {
       beep(262, 0.1, 'sine', 0.08);
       setTimeout(() => beep(330, 0.12, 'sine', 0.07), 90);
+    } else if (name === 'fail') {
+      beep(160, 0.35, 'sawtooth', 0.16);
+      setTimeout(() => beep(110, 0.55, 'triangle', 0.12), 160);
+    } else if (name === 'crash') {
+      /* low boom + grit — educational sim cue, not a sample library */
+      beep(55, 0.55, 'sawtooth', 0.28);
+      setTimeout(() => beep(38, 0.9, 'triangle', 0.22), 40);
+      setTimeout(() => beep(90, 0.35, 'square', 0.1), 120);
+      if (ctx && cueGain && !muted) {
+        const t = ctx.currentTime;
+        const src = ctx.createBufferSource();
+        src.buffer = makeNoiseBuffer(true);
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'lowpass'; bp.frequency.value = 280; bp.Q.value = 0.6;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.35, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
+        src.connect(bp); bp.connect(g); g.connect(cueGain);
+        src.start(t); src.stop(t + 1.5);
+      }
     }
   }
 

@@ -113,11 +113,11 @@ export const DALLAS_CAM_EXTRAS = [{ id:'arlington', lat:32.7473, lng:-97.0945, r
 
 /* World height ≈ real feet / 3.16 · coords from Wikipedia / SkyscraperCenter */
 export const DALLAS_SKYLINE = [
-  { n:'Bank of America Plaza', lat:32.77997, lng:-96.80397, w:38, d:36, h:291, s:1, info:'921 ft · tallest in Dallas', spire:28 },
-  { n:'Renaissance Tower', lat:32.78119, lng:-96.80183, w:36, d:34, h:280, s:0, info:'886 ft · twin antennas' },
-  { n:'Comerica Bank Tower', lat:32.7815, lng:-96.7964, w:34, d:34, h:249, s:2, info:'787 ft · 60 floors' },
+  { n:'Bank of America Plaza', lat:32.77997, lng:-96.80397, w:38, d:36, h:291, s:1, info:'921 ft · tallest in Dallas', kind:'needle', spire:28 },
+  { n:'Renaissance Tower', lat:32.78119, lng:-96.80183, w:36, d:34, h:280, s:0, info:'886 ft · twin antennas', kind:'needle', spire:40 },
+  { n:'Comerica Bank Tower', lat:32.7815, lng:-96.7964, w:34, d:34, h:249, s:2, info:'787 ft · 60 floors', kind:'stepped' },
   { n:'Dallas Arts Tower', lat:32.7878, lng:-96.7966, w:32, d:30, h:233, s:1, info:'738 ft · JPMorgan Chase' },
-  { n:'Fountain Place', lat:32.7846, lng:-96.8025, w:34, d:34, h:228, s:3, info:'720 ft prism' },
+  { n:'Fountain Place', lat:32.7846, lng:-96.8025, w:34, d:34, h:228, s:3, info:'720 ft prism', kind:'pyramid' },
   { n:'Trammell Crow Center', lat:32.7875, lng:-96.7988, w:30, d:28, h:217, s:2, info:'686 ft · 2001 Ross' },
   { n:'1700 Pacific', lat:32.7830, lng:-96.7978, w:30, d:28, h:209, s:0, info:'660 ft' },
   { n:'Santander Tower', lat:32.7825, lng:-96.7960, w:28, d:26, h:204, s:1, info:'645 ft · Thanksgiving Tower' },
@@ -126,8 +126,8 @@ export const DALLAS_SKYLINE = [
   { n:'Energy Plaza', lat:32.7840, lng:-96.7998, w:30, d:28, h:191, s:2, info:'627 ft' },
   { n:'Museum Tower', lat:32.7885, lng:-96.8005, w:26, d:26, h:170, s:1, info:'560 ft · Arts District' },
   { n:'Cityplace Tower', lat:32.8055, lng:-96.7925, w:34, d:32, h:170, s:0, info:'560 ft · North Central' },
-  { n:'Reunion Tower', lat:32.7752, lng:-96.8091, w:16, d:16, h:140, s:0, info:'561 ft observation sphere', cyl:true, spire:38 },
-  { n:'Burnett Plaza', lat:32.7558, lng:-97.3312, w:34, d:32, h:205, s:1, info:'873 ft · Fort Worth tallest' },
+  { n:'Reunion Tower', lat:32.7752, lng:-96.8091, w:16, d:16, h:140, s:0, info:'561 ft observation sphere', cyl:true, kind:'sphere', spire:38 },
+  { n:'Burnett Plaza', lat:32.7558, lng:-97.3312, w:34, d:32, h:205, s:1, info:'873 ft · Fort Worth tallest', kind:'stepped' },
   { n:'Wells Fargo Tower FTW', lat:32.7552, lng:-97.3320, w:30, d:28, h:168, s:2, info:'546 ft · Fort Worth' },
   { n:'Frost Tower FTW', lat:32.7515, lng:-97.3308, w:28, d:26, h:155, s:3, info:'518 ft · Fort Worth' },
 ];

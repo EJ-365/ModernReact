@@ -35,7 +35,7 @@ export function createRainSystem(deps) {
   const rain = new THREE.LineSegments(
     rainGeo,
     new THREE.LineBasicMaterial({
-      color: 0x9fadba,
+      color: 0xb8c8d4,
       transparent: true,
       opacity: 0,
       depthWrite: false,
