@@ -1548,6 +1548,9 @@ function icRealLeft(x, z, t) {
     }
   }
   async function begin(kind, mode, dest, origin, opts = {}) {
+    /* crash sim sets S._ownMove so stepPlane will not integrate position. A new trip must release that,
+       or the next free flight / tour climbs in place and never moves across the map. */
+    if (crashSim) crashSim.clear();
     stopFollow && stopFollow();
     clearObj();
     window._followOff = { x: 0, z: 0 };
