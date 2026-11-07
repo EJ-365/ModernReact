@@ -1,7 +1,27 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.109.0** — landing callouts, crash-sim cockpit warnings, smoother camera and better live planes in world cities. Previous: **v10.108.0** — 8-point compass with true bearing, military helicopters, true-size sun/moon with real moon phase, more suburban houses, water towers at true size, 14 new songs.
+**Current build:** **v10.113.0** — Boeing 747 rebuilt: lofted upper-deck hump with the flight deck on its forehead, 37.5° wing sweep, raked tips. Previous: **v10.112.0** — smooth airliner nose radome. Before: **v10.111.0** — cloud deck between cities, delayed windshear crashes, dynamic resolution. Before: **v10.110.0** — survived crash-sim flights fly a circuit and land; new scenarios; ocean waves, military helicopters, true-size sun/moon with real moon phase, more suburban houses, water towers at true size, 14 new songs.
+
+### v10.113.0
+- 747-8: the ellipsoid hump (which sat behind a low main-deck cockpit) is replaced by `loftGeo`, a lofted upper-deck lobe nearly as wide as the fuselage, running from a rounded forehead over the nose (windscreen and posts on it, cockpit camera raised to match) back to a long fairing ahead of the wing root; toward the radome it sinks into the nose surface. Upper-deck windows follow the lobe.
+- Wing sweep is now per type (`sw`, default 0.42 rad); the 747 uses 0.62 rad (~37.5°, per Boeing) with span kept, and raked wingtips like the 747-8 instead of canted winglets.
+
+### v10.112.0
+- Airliner and business-jet noses: the scaled-sphere nose (which left a visible ring where it met the barrel) and the livery nose cap are replaced by `airNoseGeo`, a parametric shell with zero slope at the barrel joint, a drooping centreline toward a low radome tip (Boeing more pointed, Airbus blunter), welded seam normals and a rounded tip normal.
+- Windscreen panes and thin painted posts are strips of the same surface, so they sit flush. Concorde is unchanged.
+
+### v10.111.0
+- Clouds between cities: the intercity cloud deck is back beyond ~80 km from Houston (fades in), with each puff drawn as 3 stacked layers (grey base, bright top). Puffs near the camera shrink away and a white-out fades in while the camera is inside one, so the plane flies through cloud instead of past a flat sheet.
+- Crash sim: delayed windshear response lowers the nose to save airspeed (Delta 191) and crashes short; textbook still escapes, circuits and lands.
+- Speed: dynamic resolution lowers the pixel ratio (to 60% of normal, min 0.7) while FPS stays under 28 and restores it above 52; the post-processing composer follows the new ratio.
+
+### v10.110.0
+- Crash sim: after a successful recovery (go-around, windshear escape, stall or upset recovery, engine shutdown, emergency descent) the aircraft flies a real traffic pattern (upwind, crosswind, downwind 4.5 km abeam, base, final), slows to approach speed with gear down, and lands on the same runway; if still high on base it flies another descending lap (hold). Result: "Survived and landed".
+- New scenarios: High-altitude upset in icing (Learjet 60 N722BD, Palm Beach County, 1 Nov 2026; flown in the Learjet 75 model; NTSB investigation open, no cause stated), Kegworth wrong-engine shutdown (BM 92), Asiana 214 low-speed approach with engine spool-up lag, cabin depressurisation (Helios 522 / Southwest 1380) with CABIN ALT warning. Icing raises stall speed; compressibility drag caps dive speed.
+- Wet-runway overrun textbook second approach flies normal speed with reversers and autobrake.
+- Ocean between cities: animated swell normals, Fresnel sky reflection and a sun glitter path.
+- Route planner: big ETA with arrival clock time, colour for traffic delay, fastest vs alternate comparison, and a Swap From/To button.
 
 ### v10.109.0
 - Landing callouts: radio-altimeter voice on the way down for every fixed-wing aircraft (1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10; "twenty, retard" on Airbus, "ten, retard" on Boeing and others). Browser speech, follows the tour Sound toggle.

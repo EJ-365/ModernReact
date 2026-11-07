@@ -483,7 +483,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   function note(t) { const n = $('tourNote'); if (n) n.textContent = t; }
   /* ---------- crash simulator: real accident scenarios at any airport, any fixed-wing aircraft ---------- */
   function startCrash(scn, wrong) {
-    const sel = $('tourAc'); if (sel && !sel.value) sel.value = 'b737';
+    const sel = $('tourAc'); if (sel && (!sel.value || scn === 'lj60')) sel.value = scn === 'lj60' ? 'lj75' : 'b737';
     if (!chooseAircraft()) return;
     if (S.planeStyle === 'heli') { note('Pick a fixed-wing aircraft for the crash simulator.'); return; }
     const code = ($('crashApt') || {}).value || (aptList()[0] || {}).code;

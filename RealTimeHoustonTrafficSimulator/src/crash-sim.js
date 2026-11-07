@@ -21,7 +21,7 @@ export const CRASH_SCENARIOS = [
   { id: 'windshear', n: 'Microburst windshear on final', real: 'Delta 191, Dallas/Fort Worth, 2 Aug 1985',
     what: 'A thunderstorm downburst first gave a headwind gain, then a strong downdraft and tailwind. Airspeed dropped about 40 kt while the aircraft sank toward the ground.',
     avoid: ['Do not fly an approach under or next to a thunderstorm; wait or divert.', 'Windshear escape: full thrust, pitch about 15 degrees, wings level, ride the stick shaker and do not change configuration.', 'Doppler weather radar and predictive windshear warnings now give crews a minute of notice.'],
-    late: 'Delayed: the crew keeps trying to land for 6 s before starting the escape manoeuvre.' },
+    late: 'Delayed: the crew keeps trying to land for 8 s, then lowers the nose to save airspeed instead of holding the escape pitch, and the downdraft drives the jet into the ground short of the runway (as on Delta 191).' },
   { id: 'gearup', n: 'Gear-up belly landing', real: 'LOT 16, Warsaw, 1 Nov 2011',
     what: 'A hydraulic leak and a tripped circuit breaker left the 767 landing gear up. The crew circled to burn fuel and landed on the belly; the aircraft slid to a stop on foam-free runway with only sparks and smoke.',
     avoid: ['Run every alternate gear-extension method and check every circuit breaker.', 'Burn or dump fuel, land at the slowest safe speed with a gentle sink rate and shut down the engines just before touchdown.', 'Have fire crews standing by along the runway.'],
@@ -30,6 +30,22 @@ export const CRASH_SCENARIOS = [
     what: 'The A340 landed fast and long in heavy rain, touching down about 1,200 m along a 2,700 m runway. It could not stop and ran into a ravine.',
     avoid: ['Fly a stabilised approach; if fast, high or touching down long, go around.', 'Check the landing distance for a wet or contaminated runway before the approach.', 'Engineered arresting systems (EMAS) at runway ends stop overruns safely.'],
     late: 'Pressing on: the pilot lands long and fast instead of going around and runs off the end into the grass.' },
+  { id: 'lj60', n: 'High-altitude upset in icing (Learjet 60)', real: 'Learjet 60 N722BD, Palm Beach County, Florida, 1 Nov 2026 (NTSB investigation open)',
+    what: 'Cruising east at 35,000 ft from Austin to the Bahamas, the crew reported turbulence, altitude swings of about 700 ft, icing and -47 °C, and asked to climb to 37,000 ft. Soon after, the jet entered a steep dive of more than 30,000 ft per minute and fell from 35,250 ft to 8,750 ft in about a minute. All nine on board died. The cause is still under investigation.',
+    avoid: ['Near the ceiling the gap between stall speed and maximum speed is small ("coffin corner"); ice and turbulence shrink it further. Descend, do not climb, when you pick up ice up high.', 'Turn on engine and wing anti-ice early and leave the weather; ask ATC for a lower level or a deviation.', 'Upset recovery: unload (push to reduce the angle of attack), roll wings level, set thrust, then recover gently to level flight.', 'In severe turbulence fly the turbulence speed and let the altitude wander; chasing altitude with pitch loads the wing toward a stall.'],
+    late: 'Wrong response: the crew climbs and keeps pulling as the iced wing stalls, and the jet rolls into a steep spiral dive.' },
+  { id: 'kegworth', n: 'Engine failure: wrong engine shut down', real: 'British Midland 92 (Kegworth), East Midlands, 8 Jan 1989',
+    what: 'A fan blade broke in the left engine of a Boeing 737-400 climbing through 28,300 ft. Smoke and vibration followed; the crew believed the right engine was at fault and shut down the healthy one. On the approach the damaged left engine failed completely and the aircraft struck the M1 motorway embankment short of the runway.',
+    avoid: ['Identify before you act: confirm the failed engine with the vibration and engine gauges (both pilots agree) before closing a thrust lever.', 'A symptom that goes away when you throttle back does not prove you picked the right engine.', 'Listen to what the cabin crew and passengers report (they saw flames on the left).', 'Fly the airplane, then return and land on the good engine with a normal circuit.'],
+    late: 'Wrong response: the crew shuts down the good engine; the damaged one fails on final and the restart comes too late.' },
+  { id: 'asiana', n: 'Low-speed approach, thrust left at idle', real: 'Asiana 214, San Francisco, 6 Jul 2013',
+    what: 'On a visual approach the Boeing 777 autothrottle was left in a mode that did not hold speed. Thrust stayed at idle and the speed decayed 30 kt below the target. The crew noticed below 200 ft and called go-around too late; the tail hit the seawall.',
+    avoid: ['Monitor airspeed on every approach; call out a speed 5 kt below target.', 'Be stable by 500 ft (on speed, on path, thrust set) or go around.', 'Know your automation modes: if thrust is not responding, fly it by hand.', 'Jet engines take about 6 s to spool up from idle: go around early, not at 100 ft.'],
+    late: 'Delayed: nobody notices the speed decay until about 100 ft.' },
+  { id: 'depress', n: 'Cabin depressurisation at cruise', real: 'Helios 522, Greece, 14 Aug 2005 (and Southwest 1380, 2018)',
+    what: 'The cabin lost pressure at high altitude. On Helios 522 the pressurisation switch was left in manual; the crew misread the warning horn, became hypoxic and passed out. The Boeing 737 flew on autopilot until the fuel ran out and it crashed into hills. On Southwest 1380 an engine failure broke a window and the crew made a textbook emergency descent and landing.',
+    avoid: ['On any cabin-altitude warning: oxygen masks on first, then talk.', 'Emergency descent at once to 10,000 ft (about 6,000 ft per minute, speed brakes out) where the air is breathable.', 'Check the pressurisation panel on the before-takeoff checks; do not reset a warning you do not understand.', 'Divert and land at the nearest suitable airport.'],
+    late: 'Wrong response: the crew mistakes the horn for another warning, does not put masks on and loses consciousness.' },
   { id: 'fuel', n: 'Fuel exhaustion glide', real: 'Air Canada 143 "Gimli Glider", 23 Jul 1983',
     what: 'A fuel-quantity error left the 767 with no fuel at 41,000 ft. Both engines stopped and the crew glided to a former air force runway, side-slipping to lose height.',
     avoid: ['Cross-check fuel on board by two independent methods before every flight.', 'At once fly best-glide speed and work out how far you can glide.', 'If high on the glide, add drag (side-slip, gear) rather than flying slow.'],
@@ -155,11 +171,11 @@ export function createCrashSim({ scene, S, note }) {
   }
   function annunciate(dt) {
     warnT += dt; if (warnT < 0.15) return; warnT = 0;
-    const agl = cr.agl ?? S.p.y, fire = cr.fire.some((f) => f > 0), engOut = cr.eng.some((e) => e === 0);
+    const agl = cr.agl ?? S.p.y, fire = cr.fire.some((f) => f > 0), engOut = !cr.stopped && cr.eng.some((e) => e === 0), cabin = !!cr.cabin && S.p.y > 10500 * FT;
     const pull = !cr.ground && !cr.crashed && agl < 2500 * FT && S.vy < -8, ws = cr.wsT != null && cr.t - cr.wsT < 34 && !cr.ground;
     const gear = !cr.gear && !cr.ground && agl < 1000 * FT && /approach|final|flare|glide/.test(cr.mode);
-    const L = [['MASTER WARNING', fire || cr.stall || pull || ws || cr.crashed, 'w'], ['MASTER CAUTION', engOut || gear || cr.offEnd, 'c'],
-      ['STALL', cr.stall, 'w'], ['PULL UP', pull, 'w'], ['WINDSHEAR', ws, 'w'], ['ENG FIRE', fire, 'w'], ['ENG FAIL', engOut, 'c'], ['GEAR', gear, 'c'], ['OVERRUN', !!cr.offEnd, 'c']];
+    const L = [['MASTER WARNING', fire || cr.stall || pull || ws || cabin || cr.crashed, 'w'], ['MASTER CAUTION', engOut || gear || cr.offEnd, 'c'],
+      ['STALL', cr.stall, 'w'], ['PULL UP', pull, 'w'], ['WINDSHEAR', ws, 'w'], ['ENG FIRE', fire, 'w'], ['ENG FAIL', engOut, 'c'], ['GEAR', gear, 'c'], ['CABIN ALT', cabin, 'w'], ['OVERRUN', !!cr.offEnd, 'c']];
     const html = L.map(([n, on, k]) => '<b class="' + (on ? k : '') + '">' + n + '</b>').join('');
     const el = warnPanel(); if (el._h !== html) { el._h = html; el.innerHTML = html; }
     const master = L[0][1] && !cr.stopped;
@@ -183,6 +199,10 @@ export function createCrashSim({ scene, S, note }) {
     else if (ac.id === 'windshear') { put(-5600, 5600 * Math.tan(gs) + 15, A.vref + 5 * KT); }
     else if (ac.id === 'gearup') { put(-6000, 6000 * Math.tan(gs) + 15, A.vref); cr.gear = false; }
     else if (ac.id === 'overrun') { put(-6000, 6000 * Math.tan(gs) + 15, A.vref + 22 * KT); }
+    else if (ac.id === 'lj60') { put(-80000, 35000 * FT, 430 * KT); cr.mode = 'cruise'; cr.gear = false; cr.thr = 0.75; cr.targetY = 35000 * FT; cr.vT = 430 * KT; }
+    else if (ac.id === 'kegworth') { put(rw.len + 3000, 3200 * FT, 230 * KT); cr.mode = 'climb'; cr.gamma = 5 * DEG; cr.thr = 0.9; cr.gear = false; }
+    else if (ac.id === 'asiana') { put(-6000, 6000 * Math.tan(gs) + 15, A.vref); cr.spool = 6; cr.pwr = 0.45; }
+    else if (ac.id === 'depress') { put(-110000, 37000 * FT, 450 * KT); cr.mode = 'cruise'; cr.gear = false; cr.thr = 0.8; cr.targetY = 37000 * FT; cr.vT = 450 * KT; }
     else if (ac.id === 'fuel') { put(-17000, 4300 * FT, A.vmd); cr.mode = 'glide'; cr.gear = false; cr.eng.fill(0); cr.thr = 0; }
     if (!cr.ground) cr.gamma = cr.mode === 'approach' ? -gs : cr.gamma;
     S.pitch = cr.gamma; S.phase = 'crash';
@@ -200,7 +220,7 @@ export function createCrashSim({ scene, S, note }) {
     let gCmd = cr.gamma, nMax = 1.6, thr = cr.thr, wantRoll = 0;
     const alive = cr.eng.reduce((a, b) => a + b, 0) / A.eng;
     /* stay on the extended centreline: bank toward it */
-    if (!cr.ground && Math.abs(along) < 30000 && cr.mode !== 'climb' && cr.mode !== 'glideFree') {
+    if (!cr.ground && Math.abs(along) < 30000 && !/^(climb|glideFree|circuit|cruise)$/.test(cr.mode)) {
       let hErr = rw.hd - S.hd; while (hErr > Math.PI) hErr -= 2 * Math.PI; while (hErr < -Math.PI) hErr += 2 * Math.PI;
       wantRoll = Math.max(-0.35, Math.min(0.35, -(hErr * 1.2 - xt * 0.004)));
     }
@@ -208,7 +228,8 @@ export function createCrashSim({ scene, S, note }) {
       case 'climb': gCmd = 5 * DEG; thr = 0.9; break;
       case 'approach': case 'final': {
         gCmd = Math.max(-6 * DEG, Math.min(2 * DEG, -Math.atan2(agl, Math.max(50, dAim)) * 1.0 + (-3 * DEG - (-Math.atan2(agl, Math.max(50, dAim)))) * 0.0));
-        if (alive > 0) thr = Math.max(0, Math.min(1, cr.thr + ((A.vref + (ac.id === 'overrun' ? 22 * KT : 0)) - S.v) * 0.04 * dt + 0.0));
+        if (alive > 0) thr = Math.max(0, Math.min(1, cr.thr + ((A.vref + (ac.id === 'overrun' && !cr.survived ? 22 * KT : 0)) - S.v) * 0.04 * dt + 0.0));
+        if (cr.survived) cr.brake = S.v > A.vref + 8 * KT ? 1 : 0; /* speed brakes / flaps to get back on speed */
         if (agl < 15) cr.mode = 'flare';
         break;
       }
@@ -226,12 +247,41 @@ export function createCrashSim({ scene, S, note }) {
       case 'glideFree': gCmd = glideLaw(A.vmd); thr = 0; if (agl < 28) cr.mode = 'flare'; break;
       case 'hold': gCmd = 8 * DEG; nMax = 2.2; thr = cr.thr; break; /* holding the nose up: speed bleeds off */
       case 'pullup': gCmd = 15 * DEG; nMax = 2.5; thr = cr.wrongThr ?? 0.2; break;
-      case 'recover': gCmd = S.v < A.vsC * 1.3 ? -4 * DEG : 6 * DEG; thr = alive ? 1 : 0; wantRoll = 0; if (S.v > A.vsC * 1.35 && cr.gamma > 0) { cr.mode = 'goaround'; } break;
-      case 'escape': gCmd = 12 * DEG; nMax = 2.5; thr = 1; wantRoll = 0; break;
-      case 'goaround': gCmd = 6 * DEG; thr = 1; cr.gear = false; if (agl > 450) { cr.done = true; cr.out = 'Survived: go-around flown, climbing away to try again.'; cr.mode = 'climb'; } break;
+      case 'recover': { const vsI = A.vsC * (1 + 1.9 * (cr.ice || 0)); gCmd = S.v < vsI * 1.3 ? -4 * DEG : 6 * DEG; thr = alive ? 1 : 0; wantRoll = 0;
+        if (S.v > vsI * 1.35 && cr.gamma > 0) {
+          if (ac.id === 'lj60') { cr.mode = 'circuit'; cr.wp = 0; cr.survived = 1; log('Recovered: anti-ice on, upset recovery flown. Descending out of the icing to land at the nearest airport.'); }
+          else cr.mode = 'goaround';
+        } break; }
+      case 'escape': gCmd = (cr.wrong ? 1.5 : 12) * DEG; /* delayed crew lowers the nose to save airspeed, as on Delta 191 */ nMax = 2.5; thr = 1; wantRoll = 0; break;
+      case 'goaround': gCmd = 6 * DEG; thr = 1; cr.gear = false; cr.wind = 0; cr.wDown = 0; cr.done = false; cr.out = '';
+        if (agl > 300) { cr.mode = 'circuit'; cr.wp = 0; cr.survived = 1; log('Climbing away. Flying a circuit to land on runway ' + (rw.name || '') + '.'); } break;
+      case 'circuit': {
+        /* real traffic pattern flown as heading legs: upwind, crosswind, downwind 4.5 km abeam, base, then intercept final.
+           Too high on base? fly another descending lap (a hold) before turning final. */
+        const lat = (S.p.x - rw.tx) * cr.uz - (S.p.z - rw.tz) * cr.ux, legHd = cr.wp === 4 ? rw.hd - Math.max(-0.6, Math.min(0.6, lat * 0.0012)) : [rw.hd, rw.hd + Math.PI / 2, rw.hd + Math.PI, rw.hd - Math.PI / 2][cr.wp];
+        let hE = legHd - S.hd; while (hE > Math.PI) hE -= 2 * Math.PI; while (hE < -Math.PI) hE += 2 * Math.PI;
+        wantRoll = -Math.max(-0.44, Math.min(0.44, hE * 1.3));
+        const hi = S.p.y > 3000;
+        gCmd = Math.max((hi ? -7 : -4) * DEG, Math.min(5 * DEG, (1500 * FT - S.p.y) * 0.002));
+        const vT = hi ? 280 * KT : cr.wp >= 3 ? A.vref + 10 * KT : cr.wp === 2 ? A.vref + 25 * KT : 200 * KT; thr = Math.max(hi ? 0 : 0.15, Math.min(1, 0.5 + (vT - S.v) * 0.04)); cr.thr = thr;
+        if (cr.wp === 0 && along > rw.len + 1500) { cr.wp = 1; log('Crosswind turn.'); }
+        else if (cr.wp === 1 && lat > 4500) { cr.wp = 2; log('Downwind, ' + Math.round(S.p.y / FT).toLocaleString() + ' ft.'); }
+        else if (cr.wp === 2 && along < -7000) { cr.wp = 3; if (S.p.y <= 2300 * FT) { cr.gear = ac.id !== 'gearup'; log('Base turn, gear down.'); say('Gear down'); } else log('Base turn.'); }
+        else if (cr.wp === 3 && lat < 2600) {
+          if (S.p.y > 2300 * FT) { cr.wp = 0; cr.gear = false; log('Still high: one more lap of the hold to lose height.'); }
+          else { cr.wp = 4; log('Turning final.'); }
+        } else if (cr.wp === 4 && Math.abs(lat) < 120 && Math.abs(hE) < 0.12) {
+          { cr.mode = 'approach'; cr.gear = ac.id !== 'gearup'; cr.out = ''; cr.done = false; log('Turning final, gear down. Landing on runway ' + (rw.name || '') + '.'); say('Gear down, landing checklist'); }
+        }
+        break;
+      }
+      case 'nopilot': gCmd = -12 * DEG; wantRoll = 0.25; thr = 0; break;
+      case 'lowspd': gCmd = Math.max(-6 * DEG, Math.min(2 * DEG, -Math.atan2(agl, Math.max(50, dAim)))); thr = 0; cr.thr = 0; if (agl < 15) cr.mode = 'flare'; break;
+      case 'cruise': gCmd = Math.max((cr.emerg ? -9 : -4) * DEG, Math.min(3 * DEG, (cr.targetY - S.p.y) * 0.0015)); thr = Math.max(0, Math.min(1, cr.thr + (cr.vT - S.v) * 0.05 * dt)); break;
       default: break;
     }
     cr.thr += (thr - cr.thr) * Math.min(1, dt * 1.2);
+    if (cr.spiral) { wantRoll = 1.35; gCmd = 15 * DEG; }
     cr.gCmd = gCmd; cr.nMax = nMax; cr.wantRoll = wantRoll; cr.along = along; cr.agl = agl;
   }
 
@@ -253,12 +303,12 @@ export function createCrashSim({ scene, S, note }) {
       if (S.v < A.vs * 1.12 && event('shaker', () => { shaker(); say('Stall, stall'); log('Stick shaker!'); cr.mode = W ? 'pullup' : 'recover'; if (!W) log('Push: nose down, wings level, full thrust.'); else log('Pilot pulls back against the shaker…'); })) { /* */ }
     } else if (ac.id === 'windshear') {
       if (agl < 800 * FT && !cr.ev.ws) { cr.ev.ws = 1; cr.wsT = t; log('Entering a microburst: headwind gain…'); }
-      if (cr.wsT != null) {
+      if (cr.wsT != null && !cr.survived) {
         const k = t - cr.wsT;
         cr.wind = k < 6 ? 15 * KT * Math.sin(k / 6 * Math.PI / 2) : Math.max(-40 * KT, 15 * KT - (k - 6) * 6 * KT);
-        cr.wDown = k > 4 && k < 30 ? Math.min(11, (k - 4) * 2.5) : 0;
+        cr.wDown = k > 4 && k < 30 ? Math.min(W ? 13 : 11, (k - 4) * 2.5) : 0;
         if (k > 6 && event('wsw', () => { say('Windshear, windshear, windshear'); chime(); })) { /* */ }
-        if (k > (W ? 12 : 6.5) && event('esc', () => { cr.mode = 'escape'; log((W ? 'Late ' : '') + 'windshear escape: full thrust, pitch 15°, ride the shaker.'); })) { /* */ }
+        if (k > (W ? 14 : 6.5) && event('esc', () => { cr.mode = 'escape'; log((W ? 'Late ' : '') + 'windshear escape: full thrust, pitch 15°, ride the shaker.'); })) { /* */ }
         if (k > 34 && cr.mode === 'escape' && !cr.crashed && event('out', () => { cr.done = true; cr.out = 'Survived: the escape manoeuvre flew out of the downburst.'; cr.mode = 'goaround'; })) { /* */ }
       }
     } else if (ac.id === 'gearup') {
@@ -268,6 +318,29 @@ export function createCrashSim({ scene, S, note }) {
       if (t > 2 && event('fast', () => log('Heavy rain, 22 kt fast on final. Wet runway.'))) { /* */ }
       if (!W && agl < 60 * FT && event('ga', () => { cr.mode = 'goaround'; log('Go around! Too fast and floating; a wet runway will not stop us.'); say('Go around'); })) { /* */ }
     }
+    if (ac.id === 'kegworth') {
+      if (t > 4 && event('bang', () => { cr.eng[0] = 0.6; noise(0.6, 1, 700); chime(); log('BANG: heavy vibration, smoke smell in the cockpit. Engine 1 vibration gauge at maximum.'); say('Engine failure'); })) { /* */ }
+      if (t > 9 && event('id', () => {
+        if (W) { cr.eng[1] = 0; log('Crew believes it is engine 2 and shuts it down. The vibration eases (by chance).'); }
+        else { cr.eng[0] = 0; cr.fire[0] = 0; log('Engine 1 identified on the vibration gauge and confirmed by both pilots: shut down. Returning to land on engine 2.'); cr.survived = 1; }
+        cr.mode = 'circuit'; cr.wp = 0; })) { /* */ }
+      if (W && cr.mode === 'approach' && agl < 900 * FT && event('fail2', () => { cr.eng[0] = 0; cr.fire[0] = 1; bell(); log('Engine 1 fails completely on final. Engine 2 restart attempted, too late.'); say('Engine fire'); })) { /* */ }
+    } else if (ac.id === 'asiana') {
+      if (t > 2 && event('idle', () => { cr.mode = 'lowspd'; log('Autothrottle not holding speed: thrust stays at idle.'); })) { /* */ }
+      if (cr.mode === 'lowspd' && (W ? agl < 110 * FT : S.v < A.vref - 8 * KT) && event('ga', () => { cr.mode = 'goaround'; log((W ? 'Late: ' : '') + 'Speed! Go around, TOGA thrust (the engines take ~6 s to spool up).'); say('Go around'); if (!W) cr.survived = 1; })) { /* */ }
+    } else if (ac.id === 'depress') {
+      if (t > 5 && event('dec', () => { cr.cabin = 1; noise(0.5, 1, 1200); chime(); log('Cabin altitude warning horn: the cabin is losing pressure. Masks drop in the cabin.'); say('Cabin altitude'); })) { /* */ }
+      if (!W && t > 9 && event('masks', () => { cr.emerg = true; cr.targetY = 10000 * FT; cr.vT = 330 * KT; cr.thr = 0; log('Masks on. Emergency descent to 10,000 ft, speed brakes out.'); say('Emergency descent'); })) { /* */ }
+      if (!W && cr.emerg && S.p.y < 10600 * FT && event('lvl', () => { cr.emerg = false; cr.mode = 'circuit'; cr.wp = 0; cr.survived = 1; log('Level at 10,000 ft, the air is breathable. Diverting to land.'); })) { /* */ }
+      if (W && t > 35 && event('hyp', () => log('Crew hypoxic and unresponsive; the autopilot flies on.'))) { /* */ }
+      if (W && t > 80 && event('fuel', () => { cr.eng.fill(0); cr.mode = 'nopilot'; log('Fuel exhausted. Both engines flame out with nobody at the controls.'); })) { /* */ }
+    }
+    if (ac.id === 'lj60') {
+      if (t > 4 && event('turb', () => { log('Turbulence, altitude swings of 700 ft, icing, -47 °C.'); say("I've got turbulence, I've got ice"); })) cr.iceT = t;
+      if (cr.iceT != null) { cr.ice = cr.antiIce ? Math.max(0, (cr.ice || 0) - 0.01) : Math.min(1, (t - cr.iceT) / 22); cr.wDown = cr.ground ? 0 : Math.sin(t * 1.3) * 3 + Math.sin(t * 3.1) * 1.5; }
+      if (t > 10 && event('climb', () => { cr.targetY = 37000 * FT; log('ATC: climb and maintain flight level 370.'); })) { /* */ }
+      if (S.v < A.vsC * (1 + 1.9 * (cr.ice || 0)) * 1.1 && event('shake', () => { shaker(); say('Stall, stall'); log('Stick shaker at ' + Math.round(S.p.y / FT).toLocaleString() + ' ft!'); cr.mode = W ? 'pullup' : 'recover'; if (W) { cr.spiral = true; cr.wrongThr = 0.9; log('The iced wing stalls and drops; the jet rolls into a steep spiral dive.'); } if (!W) { cr.antiIce = true; log('Unload, wings level, anti-ice on.'); } })) { /* */ }
+    }
     if (!cr.ground && !cr.crashed && agl < 500 * FT && S.vy < -9 && event('gpws', () => say('Terrain, terrain, pull up'))) { /* */ }
   }
 
@@ -275,13 +348,13 @@ export function createCrashSim({ scene, S, note }) {
   function step(dt) {
     if (!cr) return;
     cr.t += dt;
-    if (!cr.crashed && !cr.done || cr.mode === 'goaround' || cr.mode === 'climb') crew(dt);
+    if (!cr.crashed && (!cr.done || /^(goaround|climb|circuit|cruise)$/.test(cr.mode))) crew(dt);
     script();
     const alive = cr.eng.reduce((a, b) => a + b, 0) / A.eng;
-    cr.pwr = cr.thr * alive;
+    cr.pwr = cr.spool ? (cr.pwr ?? 0) + (cr.thr * alive - (cr.pwr ?? 0)) * Math.min(1, dt / cr.spool) : cr.thr * alive;
     if (cr.ground) groundRoll(dt, alive);
     else {
-      const vAir = Math.max(15, S.v + cr.wind), vs = cr.gear || cr.mode === 'flare' || /approach|final|glide/.test(cr.mode) ? A.vs : A.vsC;
+      const vAir = Math.max(15, S.v + cr.wind), vs = (cr.gear || cr.mode === 'flare' || /approach|final|glide/.test(cr.mode) ? A.vs : A.vsC) * (1 + 1.9 * (cr.ice || 0));
       const nLim = Math.pow(vAir / vs, 2) * 1.0;
       const nCmd = Math.cos(cr.gamma) + (cr.gCmd - cr.gamma) * vAir / G * 1.2;
       cr.stall = nCmd > nLim && vAir < vs * 1.05;
@@ -291,6 +364,7 @@ export function createCrashSim({ scene, S, note }) {
       if (cr.stall) { cr.shake += dt; if (cr.shake > 0.9) { cr.shake = 0; shaker(); } cr.wantRoll += Math.sin(cr.t * 1.7) * (cr.wrong ? 0.9 : 0.3); }
       const dr = 1 / (2 * A.ld) * (Math.pow(vAir / A.vmd, 2) + Math.pow(A.vmd / vAir, 2)) * (cr.gear ? 1.25 : 1) * (1 + (cr.brake || 0) * 0.5) * (cr.mode === 'flare' || /approach/.test(cr.mode) ? 1.35 : 1);
       S.v += G * (A.tw * cr.pwr - dr - Math.sin(cr.gamma)) * dt;
+      if (S.v > 470 * KT) S.v -= (S.v - 470 * KT) * 0.6 * dt; /* compressibility drag near Mach 1 */
       cr.gamma += G * (n * Math.cos(S.roll) - Math.cos(cr.gamma)) / vAir * dt;
       cr.gamma = Math.max(-80 * DEG, Math.min(25 * DEG, cr.gamma));
       S.roll += (cr.wantRoll - S.roll) * Math.min(1, dt * (cr.stall ? 0.8 : 1.4));
@@ -339,7 +413,7 @@ export function createCrashSim({ scene, S, note }) {
     if (cr.mode === 'takeoff') S.v += G * (A.tw * cr.pwr - 0.02) * dt;
     else {
       const wet = ac.id === 'overrun', mu = cr.crashed ? 0.55 : cr.slide ? 0.35 : !onRw ? 0.3 : (wet ? 0.09 : 0.32) + (S.v > 30 ? 0.04 : 0);
-      dec = G * mu + (alive && !cr.slide && cr.mode === 'rto' ? 1.2 : 0);
+      dec = G * mu + (alive && !cr.slide && cr.mode === 'rto' ? 1.2 : 0) + (cr.survived && alive && !cr.slide ? 1.0 : 0);
       if (cr.mode !== 'rto' && !cr.crashed && !cr.slide && cr.t > 0) cr.thr = 0;
       S.v = Math.max(0, S.v - dec * dt);
     }
@@ -351,6 +425,7 @@ export function createCrashSim({ scene, S, note }) {
     if (S.v < 0.3 && cr.mode !== 'takeoff' && !cr.stopped) {
       cr.stopped = true; cr.done = true;
       if (!cr.out) cr.out = !cr.onRw && cr.tdAlong < 0 && cr.tdAlong > -8000 ? 'Landed ' + Math.round(-cr.tdAlong) + ' m short of the runway. ' + (cr.wrong ? ac.late : '') : cr.offEnd ? 'Overran the runway. ' + (cr.wrong ? ac.late : '') : cr.slide ? 'Stopped on the belly ' + (cr.onRw ? 'on the runway' : 'off the airport') + ': survivable.' : cr.onRw || ac.id === 'efire' ? 'Stopped on the runway: survivable.' : 'Forced landing done: survivable.';
+      if (cr.survived && !cr.crashed && !cr.offEnd && !cr.slide && cr.onRw) cr.out = 'Survived and landed: emergency handled, circuit flown and the aircraft stopped safely on runway ' + (cr.rw.name || '') + '.';
       log(cr.out); if (!cr.crashed) say(cr.fire.some((f) => f > 0) ? 'Evacuate, evacuate' : 'Aircraft stopped');
     }
   }

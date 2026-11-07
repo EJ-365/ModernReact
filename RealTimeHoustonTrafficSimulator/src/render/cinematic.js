@@ -201,6 +201,7 @@ export function createCinematic(opts) {
   }
 
   function resize(w, h) {
+    if (composer && composer.setPixelRatio) composer.setPixelRatio(renderer.getPixelRatio());
     if (composer) composer.setSize(w, h);
     if (ssaoPass) ssaoPass.setSize(w, h);
   }

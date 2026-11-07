@@ -36,10 +36,10 @@ export function tourAirport(city) {
 export function realKm(a, b) { return gcDist(a, b); }
 
 /* cloud deck between cities: world-fixed puffs wrapped around the camera, so you see them slide past below */
-let clouds = null, cloudSeed = null;
-const CN = 180, CR = 48000;
+let clouds = null, cloudSeed = null, sunRef = null, cloudFog = null;
+const CN = 170, CL = 3, CR = 48000;
 function ensureClouds(scene) {
-  if (clouds) { if (!clouds.parent) scene.add(clouds); return; }
+  if (clouds) { if (!clouds.parent) scene.add(clouds); if (cloudFog && !cloudFog.parent) scene.add(cloudFog); return; }
   const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
   for (let i = 0; i < 16; i++) {
     const x = 28 + Math.random() * 72, y = 34 + Math.random() * 60, r = 16 + Math.random() * 26, gr = g.createRadialGradient(x, y, 0, x, y, r);
@@ -47,25 +47,49 @@ function ensureClouds(scene) {
   }
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
   const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, fog: true });
-  clouds = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), m, CN);
+  /* each puff is 3 stacked layers (grey base, bright top) so it reads as a volume from the side and above */
+  clouds = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), m, CN * CL);
+  for (let i = 0; i < CN * CL; i++) { const l = i % CL; clouds.setColorAt(i, new THREE.Color().setScalar(0.72 + 0.14 * l)); }
+  /* inside a cloud: white-out that fades in as the camera enters a puff */
+  cloudFog = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    uniforms: { k: { value: 0 }, c: { value: new THREE.Color(1, 1, 1) } }, transparent: true, depthTest: false, depthWrite: false,
+    vertexShader: 'varying vec2 vU; void main(){ vU=position.xy; gl_Position=vec4(position.xy,0.0,1.0); }',
+    fragmentShader: 'uniform float k; uniform vec3 c; varying vec2 vU; void main(){ gl_FragColor=vec4(c,k*(0.75+0.25*length(vU)*0.7)); }',
+  }));
+  cloudFog.frustumCulled = false; cloudFog.renderOrder = 999; cloudFog.visible = false; cloudFog.name = 'intercityCloudFog';
+  scene.add(cloudFog);
   clouds.frustumCulled = false; clouds.name = 'intercityClouds'; clouds.visible = false;
   cloudSeed = Array.from({ length: CN }, (_, i) => [Math.random() * 2 * CR, Math.random() * 2 * CR, i % 4 === 0 ? 9200 + Math.random() * 2600 : 1700 + Math.random() * 2600, 2200 + Math.random() * 6000, Math.random() * 6.28]);
   scene.add(clouds);
 }
+let cloudK = 0, cloudIn = 0;
 const _cm = new THREE.Matrix4(), _cq = new THREE.Quaternion(), _cs = new THREE.Vector3(), _cp = new THREE.Vector3(), _cy = new THREE.Vector3(0, 1, 0);
 function updateClouds(camera, light) {
   if (!clouds) return;
   const cx = camera.position.x, cz = camera.position.z, cy = camera.position.y;
-  /* between cities there is no cloud deck: Houston's own sky supplies the clouds near home */
-  clouds.visible = false;
-  if (!clouds.visible) return;
+  /* near home Houston's own sky supplies the clouds; the deck fades in beyond ~80 km */
+  const far = Math.hypot(cx - 60, cz - 60);
+  cloudK += ((far > 80000 ? 1 : 0) - cloudK) * 0.03;
+  clouds.visible = cloudK > 0.02; clouds.material.opacity = cloudK;
+  if (!clouds.visible) { if (cloudFog) cloudFog.visible = false; cloudIn = 0; return; }
   const W = 2 * CR, wrap = (s, c) => c + ((((s - c) % W) + W * 1.5) % W) - CR;
+  let inK = 0;
   for (let i = 0; i < CN; i++) {
-    const q = cloudSeed[i];
-    _cp.set(wrap(q[0], cx), q[2], wrap(q[1], cz)); _cq.setFromAxisAngle(_cy, q[4]); _cs.set(q[3], 1, q[3] * 0.7);
-    clouds.setMatrixAt(i, _cm.compose(_cp, _cq, _cs));
+    const q = cloudSeed[i], px = wrap(q[0], cx), pz = wrap(q[1], cz), sz = q[3], th = sz * 0.09;
+    /* puffs close to the camera shrink away (no pop) while the white-out takes over */
+    const dx = (px - cx) / (sz * 0.5), dz = (pz - cz) / (sz * 0.35), dh = Math.hypot(dx, dz), dy = cy - q[2];
+    if (dh < 1 && dy > -th * 0.4 && dy < th * 1.4) inK = Math.max(inK, (1 - dh) * 1.6);
+    const near = Math.min(1, Math.max(0.05, Math.hypot(px - cx, q[2] + th * 0.5 - cy, pz - cz) / (sz * 0.6)));
+    _cq.setFromAxisAngle(_cy, q[4]);
+    for (let l = 0; l < CL; l++) {
+      const f = (1 - l * 0.22) * near;
+      _cp.set(px + l * 60, q[2] + l * th * 0.5, pz - l * 40); _cs.set(sz * f, 1, sz * 0.7 * f);
+      clouds.setMatrixAt(i * CL + l, _cm.compose(_cp, _cq, _cs));
+    }
   }
   clouds.instanceMatrix.needsUpdate = true;
+  cloudIn += (Math.min(1, inK) * cloudK - cloudIn) * 0.12;
+  if (cloudFog) { cloudFog.visible = cloudIn > 0.01; cloudFog.material.uniforms.k.value = cloudIn * 0.92; if (light) cloudFog.material.uniforms.c.value.copy(light).multiplyScalar(0.95); }
   if (light) { const C = clouds.material.color.copy(light).multiplyScalar(1.05); C.r = Math.max(C.r, 0.2); C.g = Math.max(C.g, 0.22); C.b = Math.max(C.b, 0.28); }
 }
 
@@ -80,7 +104,7 @@ async function ensureGround(scene) {
   /* real satellite land/sea colour and night lights (NASA, public domain) replace the painted stand-ins */
   loadNasaTex(mobile ? '2k' : '4k', 4096, (d, n) => { U.map.value = d; U.nmap.value = n; tex.dispose(); ntex.dispose(); tex = d; });
   U = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-    map: { value: null }, nmap: { value: null }, nightK: { value: 0 }, camY: { value: 0 }, light: { value: new THREE.Color(1, 1, 1) },
+    map: { value: null }, nmap: { value: null }, nightK: { value: 0 }, uT: { value: 0 }, sunD: { value: new THREE.Vector3(0, 1, 0) }, camY: { value: 0 }, light: { value: new THREE.Color(1, 1, 1) },
     cW: { value: Array.from({ length: MAXC }, () => new THREE.Vector2(1e12, 1e12)) },
     cLL: { value: Array.from({ length: MAXC }, () => new THREE.Vector2()) },
     cK: { value: Array.from({ length: MAXC }, () => new THREE.Vector2(1, 1)) },
@@ -91,7 +115,7 @@ async function ensureGround(scene) {
     /* fog is computed per pixel: this ground is one 1,200 km quad, so per-vertex fog depth painted it all fog-white */
     vertexShader: `varying vec3 vW;
       void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }`,
-    fragmentShader: `uniform sampler2D map; uniform sampler2D nmap; uniform float nightK; uniform float camY; uniform vec3 light; uniform vec2 cW[${MAXC}]; uniform vec2 cLL[${MAXC}]; uniform vec2 cK[${MAXC}]; varying vec3 vW; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
+    fragmentShader: `uniform sampler2D map; uniform sampler2D nmap; uniform float nightK; uniform float uT; uniform vec3 sunD; uniform float camY; uniform vec3 light; uniform vec2 cW[${MAXC}]; uniform vec2 cLL[${MAXC}]; uniform vec2 cK[${MAXC}]; varying vec3 vW; uniform vec3 fogColor; uniform float fogNear; uniform float fogFar;
       void main(){
         float lng=(vW.x-60.0)/${KX.toFixed(3)}+${LNG0.toFixed(4)}, lat=${LAT0.toFixed(4)}-(vW.z-60.0)/${KZ.toFixed(3)};
         for(int i=0;i<${MAXC};i++){ vec2 d=vW.xz-cW[i]; float r=length(d); float k=1.0-smoothstep(60000.0,140000.0,r);
@@ -110,8 +134,20 @@ async function ensureGround(scene) {
         c*=mix(vec3(1.0),crop*(1.0-0.3*edge),lowK);
         /* moonlight floor, ocean swell texture (so you can see it slide by) and city lights at night */
         vec3 lit=c*max(light,vec3(0.07,0.085,0.12));
-        float wv=fract(sin(dot(floor(vW.xz/700.0),vec2(7.13,3.71)))*9631.7), wv2=fract(sin(dot(floor(vW.xz/2300.0),vec2(1.7,9.2)))*4231.3);
-        lit+=(1.0-land)*(0.25+0.75*wv*wv2)*mix(vec3(0.05,0.07,0.09)*light,vec3(0.02,0.03,0.05),nightK);
+        /* open ocean: wind swell normals, Fresnel sky reflection and the sun's glitter path */
+        if(land<0.5){
+          vec2 p=vW.xz; float dist=length(vW-cameraPosition), fade=1.0-smoothstep(4000.0,60000.0,dist);
+          vec2 g=vec2(0.0);
+          g+=vec2(0.8,0.6)*cos(dot(p,vec2(0.8,0.6))*0.012+uT*0.9)*0.5;
+          g+=vec2(-0.4,0.9)*cos(dot(p,vec2(-0.4,0.9))*0.027+uT*1.4)*0.3;
+          g+=vec2(0.95,-0.3)*cos(dot(p,vec2(0.95,-0.3))*0.061+uT*2.1)*0.18;
+          g+=vec2(0.2,0.98)*cos(dot(p,vec2(0.2,0.98))*0.13+uT*3.0)*0.1;
+          vec3 n=normalize(vec3(-g.x*0.35*fade,1.0,-g.y*0.35*fade));
+          vec3 v=normalize(cameraPosition-vW); float fr=0.02+0.98*pow(1.0-max(dot(n,v),0.0),5.0);
+          vec3 deep=vec3(0.015,0.07,0.11)*max(light,vec3(0.05,0.06,0.09)), sky=mix(fogColor,vec3(0.32,0.5,0.72)*light,0.35);
+          vec3 r=reflect(-v,n); float sp=pow(max(dot(r,normalize(sunD)),0.0),380.0)*8.0+pow(max(dot(r,normalize(sunD)),0.0),24.0)*0.12;
+          lit=mix(mix(lit,deep,0.65),sky,clamp(fr,0.0,0.85))+vec3(1.0,0.93,0.8)*sp*(1.0-nightK)*step(0.0,sunD.y);
+        }
         lit+=texture2D(nmap,uv).rgb*nightK*0.9*smoothstep(1500.0,9000.0,camY); /* city-light glow is for the view from altitude; low down it painted the ground tan */
         gl_FragColor=vec4(lit,1.0);
         #include <colorspace_fragment>
@@ -190,7 +226,7 @@ export function active() { return embeds.size > 0 || !!hwy; }
 
 /** Per frame: far ground under the camera, lit like the Houston scene; embedded cities stream their buildings. */
 export function update(dt, camera, sceneLight) {
-  if (!embeds.size && !hwy) { if (clouds) clouds.visible = false; return; }
+  if (!embeds.size && !hwy) { if (clouds) clouds.visible = false; if (cloudFog) cloudFog.visible = false; return; }
   updateClouds(camera, sceneLight);
   if (ground && ground.parent) {
     ground.position.x = camera.position.x; ground.position.z = camera.position.z;
@@ -199,6 +235,9 @@ export function update(dt, camera, sceneLight) {
     let inCity = false;
     for (const r of embeds.values()) if (Math.abs(camera.position.x - r.w.x) < 70000 && Math.abs(camera.position.z - r.w.z) < 70000) { inCity = true; break; }
     ground.position.y = !inCity && camera.position.y < 450 && Math.hypot(camera.position.x - 60, camera.position.z - 60) > 90000 ? -0.35 : -12;
+    U.uT.value += dt;
+    if (!sunRef || !sunRef.parent) sunRef = ground.parent.children.find((o) => o.isDirectionalLight) || null;
+    if (sunRef) U.sunD.value.subVectors(sunRef.position, sunRef.target.position).normalize();
     if (sceneLight) { U.light.value.copy(sceneLight); U.camY.value = camera.position.y; const lum = sceneLight.r * 0.3 + sceneLight.g * 0.55 + sceneLight.b * 0.15; U.nightK.value = 1 - Math.min(1, Math.max(0, (lum - 0.18) / 0.35)); }
     let i = 0;
     for (const r of embeds.values()) {

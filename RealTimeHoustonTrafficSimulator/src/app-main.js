@@ -4025,7 +4025,7 @@ function addNavLights(g,span,tailZ,tipZ=0,tipY=0,landZ=null){
 /* airliner families, scaled from the 737-800 base model by real length / span / fuselage diameter ratios */
 const AIRLINER_TYPES={
   b737:{n:'Boeing 737-800',lK:1,sK:1,dK:1,eng:2,eK:1,tip:'winglet',nose:1.7},
-  b747:{n:'Boeing 747-8',lK:1.93,sK:1.91,dK:1.73,eng:4,eK:0.85,tip:'canted',nose:1.7,hump:1},
+  b747:{n:'Boeing 747-8',lK:1.93,sK:1.91,dK:1.73,eng:4,eK:0.85,tip:'raked',nose:1.7,hump:1,sw:0.62},
   b777:{n:'Boeing 777-300ER',lK:1.87,sK:1.81,dK:1.65,eng:2,eK:1.22,tip:'raked',nose:1.75},
   b787:{n:'Boeing 787-9 Dreamliner',lK:1.59,sK:1.68,dK:1.53,eng:2,eK:1.1,tip:'raked',nose:1.95},
   a320:{n:'Airbus A320neo',lK:0.95,sK:1,dK:1.05,eng:2,eK:1.08,tip:'sharklet',nose:1.5},
@@ -4085,25 +4085,42 @@ function makeAirliner(finCol,liv,type){
   add(new THREE.CylinderGeometry(R,R,Lc,24),white,0,yc,0,Math.PI/2).scale.z=Y;
   /* Boeing: tapered, pointed nose with the tip dropped low; Airbus: fuller, rounder, blunt nose (see type references) */
   const boeing=/^b7/.test(type||'b737')||!!T.biz,droop=boeing?0.12:0.04;
-  const nose=add(noseShape(new THREE.SphereGeometry(R,32,20),R,boeing),white,0,yc-0.12*dK,zF);nose.scale.set(1,0.95*Y,T.nose);
+  /* nose: one lathe-like shell tangent to the barrel (no seam), drooping toward a low radome tip like real airliners */
+  const NL=T.nose*R,nose=add(airNoseGeo(R,NL,boeing,Y,yc,zF),white,0,0,0);
   /* face: dark wrap-around cockpit windscreen band on the upper nose, split by a centre post, plus a grey radome tip */
   const wsM=new THREE.MeshPhongMaterial({color:0x0b1118,specular:0x8899aa,shininess:90});
   wsM.polygonOffset=true;wsM.polygonOffsetFactor=-3;wsM.polygonOffsetUnits=-6;
-  const ws=add(noseShape(new THREE.SphereGeometry(R*1.02,24,4,Math.PI/2-0.95,1.9,Math.PI*0.29,Math.PI*0.1),R*1.02,boeing),wsM,0,nose.position.y,zF);ws.scale.copy(nose.scale);ws.renderOrder=2;
-  /* window frame posts across the windscreen */
+  /* windscreen: panes follow the nose surface (front pair + side windows) with thin painted posts between panes */
+  const wu0=boeing?0.5:0.54,wu1=boeing?0.68:0.72;
+  const postM=new THREE.MeshLambertMaterial({color:LV[0],emissive:0x2a2826,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8});
+  /* 747 upper deck: one lofted lobe, nearly full fuselage width so its sides blend into the body, running from a rounded
+     forehead over the nose back to a long fairing ahead of the wing root. The flight deck sits on top of it, so the
+     windscreen is on the forehead; toward the radome the lobe sinks into the nose instead of ending in a point */
+  const hH=1.4*R,hW=0.86*R,hB=0.2*R,hUf=0.85,hZr=zF-Lc*0.32,hLr=Lc*0.12;
+  const hs=z=>{
+    if(z>=zF){const u=(z-zF)/NL,P=noseProf(u,R,boeing),nt=P.dy+P.r,f=1-1.35*Math.pow(u/hUf,2.2);
+      return [hW*P.r/R,nt+(hH-nt)*f,P.dy+hB*P.r/R];}
+    if(z>hZr+hLr)return [hW,hH,hB];
+    const e=Math.sin(Math.max(0,(z-hZr)/hLr)*Math.PI/2);return [hW*Math.sqrt(e),R+(hH-R)*e,hB];
+  };
+  if(T.hump){
+    add(loftGeo(hs,hZr,zF+hUf*NL,-1.9,1.9,0,56,22),white,0,yc,0);
+    const z0=zF+0.42*NL,z1=zF+0.58*NL;
+    add(loftGeo(hs,z0,z1,-1.1,1.1,0.008,8,22),wsM,0,yc,0).renderOrder=2;
+    for(const a of [0,0.48,-0.48,0.9,-0.9])add(loftGeo(hs,z0-0.01*NL,z1+0.01*NL,a-0.03,a+0.03,0.012,8,2),postM,0,yc,0).renderOrder=3;
+  }else{
+    const ws=add(airNoseGeo(R*1.006,NL,boeing,Y,yc,zF,-1.15,1.15,wu0,wu1,R),wsM,0,0,0);ws.renderOrder=2;
+    for(const a of [0,0.5,-0.5,0.92,-0.92])add(airNoseGeo(R*1.01,NL,boeing,Y,yc,zF,a-0.025,a+0.025,wu0-0.01,wu1+0.01,R),postM,0,0,0).renderOrder=3;
+  }
   /* nose is one smooth shell: no separate radome ball or frame posts sticking out (they read as bumps) */
   add(new THREE.CylinderGeometry(R,0.7*dK,3.83*R,18),white,0,yc,zB-1.915*R,Math.PI/2).scale.z=Y;
   add(new THREE.CylinderGeometry(R*1.004,R*1.004,Lc*0.94,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB,0,yc,0,Math.PI/2).scale.z=Y;
-  if(T.hump){
-    /* 747 upper deck */
-    const hr=0.78*R,h=add(new THREE.SphereGeometry(hr,18,12),white,0,yc+0.42*R,zF-Lc*0.12);h.scale.set(1,1,Lc*0.2/hr);
-  }
   /* swept low wings, tip devices per type, engines on pylons */
-  const Lw=21*T.sK,ch=6.4*Math.sqrt(T.lK*T.sK),wy=-0.43*R,wz=0.2*T.lK,tx=0.9565*Lw,tz=wz-0.204*Lw,ty=wy+0.03*Lw;
-  const zc=(x)=>wz-(x-Lw/2)*0.446;
+  const sw=T.sw||0.42,Lw=21*T.sK/Math.cos(sw)*Math.cos(0.42),ch=6.4*Math.sqrt(T.lK*T.sK),wy=-0.43*R,wz=0.2*T.lK,tx=Lw/2*(1+Math.cos(sw)),tz=wz-Math.sin(sw)*Lw/2,ty=wy+0.03*Lw;
+  const zc=(x)=>wz-(x-Lw/2)*Math.tan(sw);
   for(const sd of [1,-1]){
-    add(new THREE.BoxGeometry(Lw,0.55*Math.sqrt(dK),ch),white,sd*Lw/2,wy,wz,0,sd*0.42,sd*0.06);
-    if(T.tip==='raked')add(new THREE.BoxGeometry(3.4*T.sK,0.3*dK,ch*0.3),white,sd*(tx+1.3*T.sK),ty+0.1*dK,tz-1.3*T.sK,0,sd*0.95,sd*0.06);
+    add(new THREE.BoxGeometry(Lw,0.55*Math.sqrt(dK),ch),white,sd*Lw/2,wy,wz,0,sd*sw,sd*0.06);
+    if(T.tip==='raked'){const ra=sw+0.53,hl=1.7*T.sK;add(new THREE.BoxGeometry(3.4*T.sK,0.3*dK,ch*0.3),white,sd*(tx+hl*Math.cos(ra)),ty+0.1*dK,tz-hl*Math.sin(ra),0,sd*ra,sd*0.06);}
     else if(T.tip==='fence')add(new THREE.BoxGeometry(0.4*dK,2.6*dK,2.2*dK),finM,sd*tx,ty,tz+0.4*dK);
     else{
       const P={winglet:[3.2,0,0],sharklet:[2.7,0.22,-0.3],curved:[3.4,0.45,-0.45],canted:[2.4,0.55,-0.2]}[T.tip]||[3.2,0,0];
@@ -4143,9 +4160,9 @@ function makeAirliner(finCol,liv,type){
       for(let z=zF-4.5*dK;z>zB+(T.rear?1.2*R:1.5*dK);z-=sp)win(sd*xr,yc+ry*R*Y,z);
     }
     /* 747 upper deck: each window sits on the hump's own surface (it tapers at both ends) and tilts with it */
-    if(T.hump){const hr=0.78*R,hz=zF-Lc*0.12,ha=Lc*0.2,th=1.15;
-      for(let z=zF-2.2*dK;z>zF-Lc*0.3;z-=sp){const u=(z-hz)/ha,f=Math.sqrt(Math.max(0,1-u*u));if(f<0.82)continue;
-        const x=sd*(hr*f*Math.sin(th)+0.03*dK),y=yc+0.42*R+hr*f*Math.cos(th),rz=sd*(Math.PI/2-th);
+    if(T.hump){const th=1.0;
+      for(let z=zF-1.5*dK;z>hZr+hLr*0.55;z-=sp){const [w,h,yb]=hs(z);
+        const ph=Math.atan2(Math.sin(th)/w,Math.cos(th)/(h-yb)),x=sd*(w*Math.sin(th)+0.03*dK),y=yc+yb+(h-yb)*Math.cos(th),rz=sd*(Math.PI/2-ph);
         add(new THREE.BoxGeometry(0.12,0.5*wk,0.75*wk),winFrame,x,y,z,0,0,rz);add(new THREE.BoxGeometry(0.08,0.38*wk,0.52*wk),winGlass,x+Math.sign(x)*0.05,y+0.02,z,0,0,rz);}}
   }
   /* landing gear (toggled by flight phase); widebodies get tandem main wheels, 747/A380 extra body gear */
@@ -4171,21 +4188,42 @@ function makeAirliner(finCol,liv,type){
   const beacon=new THREE.Sprite(navGlowMat(0xff3626));
   beacon.scale.set(4,4,1);beacon.position.set(0,yc+R*Y+1.05*dK,-2);g.add(beacon);
   g.userData={strobe:strobe.material,beacon:beacon.material,nav:addNavLights(g,tx,zB-3.83*R),gear,gearDrop:R+2.9*dK,
-    acType:type&&AIRLINER_TYPES[type]?type:'b737',ckZ:zF+0.4*T.nose*R,ckY:yc+0.38*R*Y,sideD:Math.max(15,tx*0.95+6),dims:{R,Lc,zF,yc,Y,nose:T.nose}};
+    acType:type&&AIRLINER_TYPES[type]?type:'b737',ckZ:zF+(T.hump?0.36:0.4)*T.nose*R,ckY:yc+(T.hump?1.18:0.38)*R*Y,sideD:Math.max(15,tx*0.95+6),dims:{R,Lc,zF,yc,Y,nose:T.nose}};
   /* static parts → one draw per material (windows, frames, skin…); gear group and light sprites stay separate */
   batchStaticChildren(g,{cell:1e6});
   return g;
 }
-function noseShape(geo,R,boeing,fwdY){
-  /* taper the front half of a nose sphere (local +z forward, or +y when fwdY for caps rotated onto the nose) */
-  const p=geo.attributes.position,d=boeing?0.12:0.04;
-  for(let i=0;i<p.count;i++){
-    const f=fwdY?p.getY(i):p.getZ(i);if(f<=0)continue;
-    const t=f/R,k=boeing?1-0.3*t*t:1-0.06*t*t*t;
-    p.setX(i,p.getX(i)*k);
-    if(fwdY)p.setZ(i,p.getZ(i)*k+d*R*t*t);else p.setY(i,p.getY(i)*k-d*R*t*t);
+function noseProf(u,R,boeing){
+  const pw=boeing?2.1:2.8,ex=boeing?0.56:0.5,dr=boeing?0.3:0.16;
+  return {r:R*Math.pow(Math.max(0,1-Math.pow(u,pw)),ex),dy:-dr*R*u*u};
+}
+function loftGeo(st,z0,z1,t0,t1,g=0,nz=40,nt=20){
+  /* lofted upper lobe: st(z) -> [half-width, top height, base height]; t=0 is the crown, |t|>PI/2 tucks into the body */
+  const pos=[],idx=[];
+  for(let i=0;i<=nz;i++){const z=z0+(z1-z0)*i/nz,[w,h,yb]=st(z);
+    for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt;pos.push(w*(1+g)*Math.sin(t),yb+(h-yb)*(1+g)*Math.cos(t),z);}}
+  for(let i=0;i<nz;i++)for(let j=0;j<nt;j++){const a=i*(nt+1)+j,b=a+nt+1;idx.push(a,b,a+1,a+1,b,b+1);}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();return geo;
+}
+function airNoseGeo(R,L,boeing,Y,yc,z0,t0=-Math.PI,t1=Math.PI,u0=0,u1=1,Rb=R){
+  /* parametric airliner nose: u along the nose (0 = barrel joint, 1 = tip), t around it (0 = top). Profile has zero slope at
+     the joint so it blends into the fuselage; the centreline drops toward the tip so the crown slopes down to the windscreen
+     and the chin stays fuller. Boeing: more pointed, more droop; Airbus: blunter, rounder. */
+  const full=t1-t0>6.28,nu=18,nt=full?24:Math.max(4,Math.round((t1-t0)/(Math.PI*2)*48)),pos=[],idx=[];
+  const k=R/Rb;
+  for(let i=0;i<=nu;i++){
+    const u=u0+(u1-u0)*i/nu,P=noseProf(u,Rb,boeing),r=P.r*k,dy=P.dy;
+    for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt;
+      pos.push(r*Math.sin(t),yc+Y*(dy+r*Math.cos(t)),z0+u*L);}
   }
-  geo.computeVertexNormals();return geo;
+  for(let i=0;i<nu;i++)for(let j=0;j<nt;j++){const a=i*(nt+1)+j,b=a+nt+1;idx.push(a,b,a+1,a+1,b,b+1);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  /* weld the normals across the bottom seam and round off the radome tip so neither shows as a line or a dimple */
+  const nn=g.attributes.normal;
+  if(full)for(let i=0;i<=nu;i++){const a=i*(nt+1),b=a+nt;for(let c=0;c<3;c++){const m=(nn.getComponent(a,c)+nn.getComponent(b,c))/2;nn.setComponent(a,c,m);nn.setComponent(b,c,m);}}
+  if(u1>=1)for(let j=0;j<=nt;j++)nn.setXYZ(nu*(nt+1)+j,0,-0.25,0.97);
+  if(u0<=0)for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt,x=Math.sin(t),y=Math.cos(t)/Y,h=Math.hypot(x,y);nn.setXYZ(j,x/h,y/h,0);}
+  return g;
 }
 function makeConcorde(finCol,liv){
   /* Aérospatiale/BAC Concorde: slim 2.9 m fuselage, long drooped needle nose, ogee delta wing, 4 Olympus engines
@@ -4249,7 +4287,6 @@ function tourJet(c,a,type){
   const g=makeAirliner(c,[c,c,a,a],type),D=g.userData.dims;
   const m=new THREE.MeshLambertMaterial({color:a});
   for(const sd of [1,-1]){const st=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.42*D.R/2.35,D.Lc*1.03),m);st.position.set(sd*(D.R+0.01),D.yc+0.02,0.5);g.add(st);}
-  const crown=new THREE.Mesh(noseShape(new THREE.SphereGeometry(D.R*1.008,18,12,0,Math.PI*2,0,Math.PI*0.16),D.R*1.008,/^b7/.test(type||'b737'),true),m);crown.rotation.x=Math.PI/2;crown.position.set(0,D.yc,D.zF);crown.scale.set(1,D.nose,D.Y);g.add(crown);
   return g;
 }
 /* military helicopters at real dimensions (metres): Sikorsky UH-60 Black Hawk, Boeing AH-64 Apache, Boeing CH-47 Chinook */
@@ -14364,7 +14401,14 @@ function frame(now){
     const tTarget=inOSM?0:clamp((cam.radius-4200*WS)/(3200*WS),0,1);
     mapT+=(tTarget-mapT)*0.07;
     _fpsN++;_fpsDt+=dt;
-    if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;}
+    if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;
+      /* dynamic resolution: render fewer pixels while frames are slow, restore when there is headroom */
+      if(!window._drBase)window._drBase=renderer.getPixelRatio();
+      const pr=renderer.getPixelRatio(),lo=Math.max(0.7,window._drBase*0.6);
+      window._drLow=_fpsAvg<28?(window._drLow||0)+1:0;window._drHi=_fpsAvg>52?(window._drHi||0)+1:0;
+      let np=pr;if(window._drLow>=2&&pr>lo)np=Math.max(lo,pr-0.15);else if(window._drHi>=5&&pr<window._drBase)np=Math.min(window._drBase,pr+0.1);
+      if(np!==pr){window._drLow=window._drHi=0;renderer.setPixelRatio(np);renderer.setSize(innerWidth,innerHeight);if(window.HTS_CINEMATIC&&HTS_CINEMATIC.resize)HTS_CINEMATIC.resize(innerWidth,innerHeight);}
+    }
     const perfBinary=_fpsAvg<(_isWin?48:42)&&totalVeh>(_isWin?1400:2200);
     if(mapT<=0.3||perfBinary){
       vehFade=mapT>0.78?0:1;

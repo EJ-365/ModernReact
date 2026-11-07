@@ -245,8 +245,20 @@ export function createRoutePlanner({
     }
     const snap = (state.from.snap ? ' from ' + state.from.snap : '')
       + (state.to.snap ? ' to ' + state.to.snap : '');
-    setStatus(mode + ' · ' + eta.miles.toFixed(1) + ' mi · ' + fmtMin(eta.minutes) + delay + via
-      + ' · ' + state.from.n + ' → ' + state.to.n + snap + jam);
+    const el = $('routeEta');
+    if (!el) return;
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const arrive = new Date(Date.now() + eta.minutes * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const other = state.useAlt ? state.eta : state.altEta;
+    const cmp = other ? (state.useAlt ? 'Fastest: ' : 'Alternate: ') + fmtMin(other.minutes) + ', ' + other.miles.toFixed(1) + ' mi' : '';
+    const col = eta.delayMin >= 8 ? '#ff6b5b' : eta.delayMin >= 2 ? '#f5b642' : '#5fd38a';
+    el.innerHTML = '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">'
+      + '<b style="font-size:20px;color:' + col + '">' + esc(fmtMin(eta.minutes)) + '</b>'
+      + '<span>' + eta.miles.toFixed(1) + ' mi</span><span style="opacity:.8">arrive ' + esc(arrive) + '</span></div>'
+      + '<div style="margin-top:2px">' + esc(mode + via + delay) + '</div>'
+      + '<div style="margin-top:2px;opacity:.85">' + esc(state.from.n + ' → ' + state.to.n + snap) + '</div>'
+      + (cmp ? '<div style="margin-top:2px;opacity:.7">' + esc(cmp) + '</div>' : '')
+      + (jam ? '<div style="margin-top:2px;color:#f5b642">' + esc(jam.replace(/^ · /, '')) + '</div>' : '');
   }
 
   async function plan() {
@@ -367,6 +379,16 @@ export function createRoutePlanner({
 
   const planBtn = $('routePlan');
   if (planBtn) planBtn.addEventListener('click', () => { plan(); });
+  const swapBtn = $('routeSwap');
+  if (swapBtn) swapBtn.addEventListener('click', () => {
+    const f = $('routeFrom'), t = $('routeTo');
+    if (!f || !t) return;
+    const fv = f.value, tv = t.value;
+    if (![...f.options].some((o) => o.value === tv) || ![...t.options].some((o) => o.value === fv)) return;
+    f.value = tv; t.value = fv;
+    f.dispatchEvent(new Event('change', { bubbles: true })); t.dispatchEvent(new Event('change', { bubbles: true }));
+    if (state.path) plan();
+  });
   const clearBtn = $('routeClear');
   if (clearBtn) clearBtn.addEventListener('click', () => clear());
   const driveBtn = $('routeDrive');
