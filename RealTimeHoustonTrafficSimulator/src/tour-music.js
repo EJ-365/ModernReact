@@ -693,6 +693,45 @@ const ALL = (() => {
   return out;
 })();
 
+function trackLabel(t) {
+  if (!t) return '';
+  const who = t.artist || t.a || '';
+  const title = t.title || '';
+  if (who && title && !title.toLowerCase().includes(String(who).toLowerCase())) return who + ' — ' + title;
+  return title || who || 'Untitled';
+}
+
+function trackHay(t) {
+  return ((t.title || '') + ' ' + (t.artist || '') + ' ' + (t.a || '') + ' ' + (t.g || '')).toLowerCase();
+}
+
+/** Ranked matches for the search box (prefix hits first). */
+function searchTracks(q, limit) {
+  const raw = String(q || '').trim().toLowerCase();
+  if (!raw) return [];
+  const lim = Math.max(1, limit || 8);
+  const words = raw.split(/\s+/).filter(Boolean);
+  const scored = [];
+  for (let i = 0; i < ALL.length; i++) {
+    const t = ALL[i];
+    const hay = trackHay(t);
+    const label = trackLabel(t).toLowerCase();
+    if (!words.every((w) => hay.includes(w))) continue;
+    let score = 0;
+    if (label.startsWith(raw)) score += 40;
+    else if (hay.startsWith(raw)) score += 30;
+    if (label.includes(raw)) score += 12;
+    for (const w of words) {
+      if (label.startsWith(w)) score += 8;
+      else if ((' ' + label).includes(' ' + w)) score += 5;
+      else score += 2;
+    }
+    scored.push({ i, score, label: trackLabel(t), g: t.g || '' });
+  }
+  scored.sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+  return scored.slice(0, lim);
+}
+
 const GENRES = [['all', 'All'], ['pop', 'Pop'], ['hiphop', 'Hip-hop / Rap'], ['rock', 'Rock'], ['electronic', 'Electronic'], ['latin', 'Latin'], ['afrobeat', 'Afrobeat'], ['gospel', 'Gospel'], ['country', 'Country'], ['soul', 'Soul / R&B'], ['classics', 'Classics'], ['movies', 'Movie soundtracks']];
 const BED = { bpm: 110, root: 110, pattern: [1, 0, 0.5, 0, 1, 0, 0.35, 0.2], wave: 'triangle' };
 
@@ -759,8 +798,11 @@ export function createTourMusic() {
   let ytOk = false;
   const listeners = new Set();
   let genre = 'all';
+  /* empty = All; otherwise union of selected genre ids (multi-select) */
+  let activeGenres = new Set();
   let order = ALL.map((_, i) => i);
   shuffle(order);
+  let searchBound = false;
 
   let actx = null, master = null, bedNodes = [], bedTimer = 0, bedStep = 0, bedOn = false;
 
@@ -870,6 +912,7 @@ export function createTourMusic() {
 
   function applyPos() {
     if (!wrap || driverMode) return;
+    injectSearchBar();
     if (pos.x == null || pos.y == null) {
       wrap.classList.remove('placed');
       wrap.style.left = ''; wrap.style.top = ''; wrap.style.right = ''; wrap.style.bottom = '';
@@ -891,11 +934,43 @@ export function createTourMusic() {
     autoBtn.title = autoNext ? 'Autoplay next: on' : 'Autoplay next: off';
   }
 
+  function genreFootLabel() {
+    if (!activeGenres.size) return 'All';
+    const names = GENRES.filter(([k]) => k !== 'all' && activeGenres.has(k)).map(([, n]) => n);
+    if (!names.length) return 'All';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return names[0] + ' + ' + names[1];
+    return names.length + ' genres';
+  }
+
   function syncFoot() {
     if (!foot) return;
-    const i = idx >= 0 ? (idx + 1) + ' / ' + ALL.length : ALL.length + ' songs';
+    const pool = order.length || ALL.length;
+    const i = idx >= 0 ? (idx + 1) + ' / ' + pool : pool + ' songs';
     const src = !on ? 'off' : (ytOk ? 'YouTube' : 'audio bed');
-    foot.textContent = 'Shuffle · ' + i + ' · ' + src;
+    foot.textContent = genreFootLabel() + ' · ' + i + ' · ' + src;
+  }
+
+  function syncGenreButtons() {
+    if (!wrap) return;
+    wrap.querySelectorAll('[data-yt-genre]').forEach((b) => {
+      const g = b.getAttribute('data-yt-genre');
+      const onBtn = g === 'all' ? !activeGenres.size : activeGenres.has(g);
+      b.style.background = onBtn ? '#1f6f43' : '#1b232c';
+      b.classList.toggle('on', onBtn);
+      b.setAttribute('aria-pressed', onBtn ? 'true' : 'false');
+    });
+  }
+
+  function rebuildOrderFromGenres() {
+    if (!activeGenres.size) {
+      order = ALL.map((_, i) => i);
+    } else {
+      order = ALL.map((t, i) => (activeGenres.has(t.g) ? i : -1)).filter((i) => i >= 0);
+    }
+    if (!order.length) order = ALL.map((_, i) => i);
+    shuffle(order);
+    shuffleCursor = 0;
   }
 
   function setMinimized(m) {
@@ -922,10 +997,54 @@ export function createTourMusic() {
     emit();
   }
 
+  function searchCssText() {
+    return '#tourYt .ytSearchWrap{position:relative;flex:0 0 auto;z-index:8;order:-1;margin:2px 0 4px}'
+      + '#tourYt .ytSearch{width:100%;box-sizing:border-box;background:rgba(8,8,10,.92);border:1px solid rgba(232,168,56,.55);border-radius:8px;color:#f3ebe0;font:12px/1.3 Overpass,system-ui,sans-serif;padding:8px 10px;outline:none}'
+      + '#tourYt .ytSearch::placeholder{color:#8a7e70}#tourYt .ytSearch:focus{border-color:rgba(232,168,56,.95);box-shadow:0 0 0 2px rgba(232,168,56,.22)}'
+      + '#tourYt .ytSuggest{display:none;position:absolute;left:0;right:0;top:calc(100% + 3px);max-height:180px;overflow:auto;z-index:9;'
+      + 'background:#16120e;border:1px solid rgba(232,168,56,.45);border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.55)}'
+      + '#tourYt .ytSuggest.on{display:block}'
+      + '#tourYt .ytSuggest button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid rgba(255,236,210,.06);border-radius:0;background:transparent;color:#f3ebe0;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer}'
+      + '#tourYt .ytSuggest button:last-child{border-bottom:0}'
+      + '#tourYt .ytSuggest button:hover,#tourYt .ytSuggest button.active{background:rgba(232,168,56,.16)}'
+      + '#tourYt .ytSuggest .sg{display:block;color:#e8c49a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '#tourYt .ytSuggest .sgG{display:block;color:#8a7e70;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}'
+      + '#tourYt.dashEmbed .ytSearch{font-size:11px;padding:6px 8px}#tourYt.dashEmbed .ytSuggest{max-height:120px}'
+      + '#tourYt.min .ytSearchWrap{display:none}'
+      + '#tourYt .gen button.on{background:#1f6f43!important;border-color:#2d8f58}';
+  }
+
+  function injectSearchBar() {
+    if (!wrap) return;
+    if (!document.getElementById('htsYtSearchCss')) {
+      const css = document.createElement('style');
+      css.id = 'htsYtSearchCss';
+      css.textContent = searchCssText();
+      document.head.appendChild(css);
+    }
+    if (!wrap.querySelector('[data-yt-search]')) {
+      const bar = document.createElement('div');
+      bar.className = 'ytSearchWrap';
+      bar.innerHTML = '<input class="ytSearch" type="search" data-yt-search="1" placeholder="Search songs or artists…" autocomplete="off" spellcheck="false" aria-label="Search songs" aria-autocomplete="list"/>'
+        + '<div class="ytSuggest" data-yt-suggest="1" role="listbox" hidden></div>';
+      const hd = wrap.querySelector('.hd');
+      const body = wrap.querySelector('.body');
+      /* Prefer right under MUSIC header so it is never buried under the video */
+      if (hd && hd.parentNode === wrap) wrap.insertBefore(bar, hd.nextSibling);
+      else if (body) wrap.insertBefore(bar, body);
+      else wrap.insertBefore(bar, wrap.firstChild);
+    }
+    if (!searchBound) bindSearch();
+  }
+
   function ensureUi() {
-    if (wrap) return;
+    if (wrap) {
+      injectSearchBar();
+      return;
+    }
     const css = document.createElement('style');
-    css.textContent = '#tourYt{position:fixed;left:14px;bottom:14px;z-index:41;display:none;flex-direction:column;gap:6px;width:min(300px,56vw);background:rgba(14,12,10,.92);border:1px solid rgba(232,168,56,.3);border-radius:12px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);font:11px/1.3 Overpass,system-ui,sans-serif;color:#f3ebe0;touch-action:none}'
+    css.id = 'htsYtSearchCss';
+    css.textContent = '#tourYt{position:fixed;left:14px;bottom:14px;z-index:41;display:none;flex-direction:column;gap:6px;width:min(340px,70vw);background:rgba(14,12,10,.92);border:1px solid rgba(232,168,56,.3);border-radius:12px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);font:11px/1.3 Overpass,system-ui,sans-serif;color:#f3ebe0;touch-action:none}'
       + '#tourYt.on{display:flex}#tourYt.placed{left:0;bottom:auto;right:auto}'
       /* Driver: fixed overlay docked in the passenger media bay (#dMediaSlot). Never reparent — moving the YT iframe restarts audio. */
       + '#tourYt.dashEmbed{position:fixed!important;z-index:42!important;display:flex!important;max-width:none!important;'
@@ -964,8 +1083,9 @@ export function createTourMusic() {
       + '#tourYt .foot{color:#8a7e70;font-size:10px}'
       + '#tourYt .gen{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:2px 0!important}#tourYt .gen::-webkit-scrollbar{display:none}'
       + '#tourYt .gen button{flex:0 0 auto;white-space:nowrap}#tourYt .hd .acts button{min-width:30px;padding:5px 7px}'
-      + '#tourYt.dashEmbed .foot{display:none}#tourYt.dashEmbed .gen{order:-1}'
-      + '#tourYt.dashEmbed{font-size:12px;gap:6px}#tourYt.dashEmbed button{font-size:12px;padding:5px 8px;border-radius:8px}#tourYt.dashEmbed .hd .acts button{min-width:34px;padding:5px 8px}#tourYt.dashEmbed .hdLabel{font-size:12px}';
+      + '#tourYt.dashEmbed .foot{display:none}#tourYt.dashEmbed .gen{order:0}'
+      + '#tourYt.dashEmbed{font-size:12px;gap:6px}#tourYt.dashEmbed button{font-size:12px;padding:5px 8px;border-radius:8px}#tourYt.dashEmbed .hd .acts button{min-width:34px;padding:5px 8px}#tourYt.dashEmbed .hdLabel{font-size:12px}'
+      + searchCssText();
     document.head.appendChild(css);
     wrap = document.createElement('div');
     wrap.id = 'tourYt';
@@ -983,12 +1103,16 @@ export function createTourMusic() {
       + '<button type="button" data-yt-spot="1" title="Spotify player (free embed — full songs if you are logged in to Spotify in this browser, 30-second previews otherwise)">Spotify</button>'
       + '<button type="button" data-yt-off="1" title="Stop music">■</button>'
       + '</span></div>'
+      + '<div class="ytSearchWrap">'
+      + '<input class="ytSearch" type="search" data-yt-search="1" placeholder="Search songs or artists…" autocomplete="off" spellcheck="false" aria-label="Search songs" aria-autocomplete="list"/>'
+      + '<div class="ytSuggest" data-yt-suggest="1" role="listbox" hidden></div>'
+      + '</div>'
       + '<div class="body">'
       + '<div class="host"><div id="tourYtMount"></div></div>'
       + '<div class="row"><span class="ttl" id="tourYtTitle">Music off</span></div>'
       + '</div>'
-      + '<div class="row gen" style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 8px">' + GENRES.map(([k, n]) => '<button type="button" data-yt-genre="' + k + '" style="font-size:11px;padding:3px 7px;border-radius:10px;border:1px solid #34404c;background:' + (k === genre ? '#1f6f43' : '#1b232c') + ';color:#dbe6f0">' + n + '</button>').join('') + '</div>'
-      + '<div class="foot" id="tourYtFoot">Shuffle · ' + ALL.length + ' songs</div>'
+      + '<div class="row gen" style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 8px" title="Tap genres to filter — pick more than one">' + GENRES.map(([k, n]) => '<button type="button" data-yt-genre="' + k + '" aria-pressed="' + (k === 'all' ? 'true' : 'false') + '" style="font-size:11px;padding:3px 7px;border-radius:10px;border:1px solid #34404c;background:' + (k === 'all' ? '#1f6f43' : '#1b232c') + ';color:#dbe6f0">' + n + '</button>').join('') + '</div>'
+      + '<div class="foot" id="tourYtFoot">All · ' + ALL.length + ' songs</div>'
       + '<div class="ytResize" data-yt-resize="1" title="Drag to resize"></div>';
     document.body.appendChild(wrap);
     mount = wrap.querySelector('#tourYtMount');
@@ -1099,7 +1223,10 @@ export function createTourMusic() {
       });
       offBtn2.addEventListener('click', close);
     }
-    wrap.querySelectorAll('[data-yt-genre]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); setGenre(b.getAttribute('data-yt-genre')); }));
+    wrap.querySelectorAll('[data-yt-genre]').forEach((b) => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleGenre(b.getAttribute('data-yt-genre'));
+    }));
     wrap.querySelector('[data-yt-prev]').addEventListener('click', (e) => { e.stopPropagation(); playPrev(); });
     wrap.querySelector('[data-yt-next]').addEventListener('click', (e) => { e.stopPropagation(); playNext(); });
     wrap.querySelector('[data-yt-off]').addEventListener('click', (e) => { e.stopPropagation(); setOn(false); });
@@ -1111,11 +1238,119 @@ export function createTourMusic() {
       e.stopPropagation();
       setAutoNext(!autoNext);
     });
+    bindSearch();
     bindDrag();
+    syncGenreButtons();
     syncAutoBtn();
     syncFoot();
     if (pos.min) setMinimized(true);
     applyPos();
+  }
+
+  function bindSearch() {
+    const input = wrap.querySelector('[data-yt-search]');
+    const box = wrap.querySelector('[data-yt-suggest]');
+    if (!input || !box || searchBound) return;
+    searchBound = true;
+    let hits = [];
+    let active = -1;
+    let timer = 0;
+
+    const hide = () => {
+      hits = [];
+      active = -1;
+      box.classList.remove('on');
+      box.hidden = true;
+      box.innerHTML = '';
+    };
+
+    const paint = () => {
+      box.querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === active));
+    };
+
+    const show = (list) => {
+      hits = list;
+      active = list.length ? 0 : -1;
+      if (!list.length) {
+        hide();
+        return;
+      }
+      box.innerHTML = list.map((h, i) => (
+        '<button type="button" role="option" data-yt-hit="' + h.i + '"' + (i === 0 ? ' class="active"' : '') + '>'
+        + '<span class="sg">' + h.label.replace(/</g, '&lt;') + '</span>'
+        + (h.g ? '<span class="sgG">' + h.g + '</span>' : '')
+        + '</button>'
+      )).join('');
+      box.hidden = false;
+      box.classList.add('on');
+    };
+
+    const pick = (listIdx) => {
+      if (listIdx == null || listIdx < 0) return;
+      const t = ALL[listIdx];
+      if (!t) return;
+      try { if (window.HTS_RADIO && window.HTS_RADIO.on) window.HTS_RADIO.stop(); } catch (e) { /* ignore */ }
+      if (wrap._spotClose) wrap._spotClose();
+      input.value = trackLabel(t);
+      hide();
+      playAt(listIdx);
+      try { input.blur(); } catch (e) { /* ignore */ }
+    };
+
+    const refresh = () => {
+      const q = input.value;
+      if (!String(q || '').trim()) { hide(); return; }
+      show(searchTracks(q, 8));
+    };
+
+    input.addEventListener('pointerdown', (e) => e.stopPropagation());
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(refresh, 60);
+    });
+    input.addEventListener('focus', () => {
+      if (String(input.value || '').trim()) refresh();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hide();
+        input.blur();
+        e.preventDefault();
+        return;
+      }
+      if (!hits.length) {
+        if (e.key === 'Enter') {
+          const list = searchTracks(input.value, 1);
+          if (list[0]) { e.preventDefault(); pick(list[0].i); }
+        }
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        active = (active + 1) % hits.length;
+        paint();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        active = (active - 1 + hits.length) % hits.length;
+        paint();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const hit = hits[active >= 0 ? active : 0];
+        if (hit) pick(hit.i);
+      }
+    });
+    box.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = e.target.closest('[data-yt-hit]');
+      if (!btn) return;
+      pick(+btn.getAttribute('data-yt-hit'));
+    });
+    document.addEventListener('pointerdown', (e) => {
+      if (!wrap || !wrap.contains(e.target)) hide();
+      else if (!e.target.closest('.ytSearchWrap')) hide();
+    });
   }
 
   function bindDrag() {
@@ -1560,17 +1795,37 @@ export function createTourMusic() {
     emit();
   }
 
-  /* Keep API stable for tour.js (genre APIs become no-ops) */
-  /* genre: shuffle only that genre's songs and start one straight away */
-  function setGenre(g) {
-    genre = GENRES.some(([k]) => k === g) ? g : 'all';
-    order = ALL.map((t, i) => (genre === 'all' || t.g === genre ? i : -1)).filter((i) => i >= 0);
-    if (!order.length) order = ALL.map((_, i) => i);
-    shuffle(order); shuffleCursor = 0;
+  /** Toggle a genre chip (multi-select). "All" clears the filter. */
+  function toggleGenre(g) {
+    ensureUi();
+    if (g === 'all' || !g) {
+      activeGenres.clear();
+      genre = 'all';
+    } else if (GENRES.some(([k]) => k === g)) {
+      if (activeGenres.has(g)) activeGenres.delete(g);
+      else activeGenres.add(g);
+      genre = activeGenres.size === 1 ? [...activeGenres][0] : (activeGenres.size ? 'mixed' : 'all');
+    }
     history.length = hpos + 1;
-    if (wrap) wrap.querySelectorAll('[data-yt-genre]').forEach((b) => { b.style.background = b.getAttribute('data-yt-genre') === genre ? '#1f6f43' : '#1b232c'; });
-    if (foot) foot.textContent = 'Shuffle · ' + (GENRES.find(([k]) => k === genre) || [0, 'All'])[1] + ' · ' + order.length + ' songs';
-    if (!on) setOn(true); else playNext();
+    rebuildOrderFromGenres();
+    syncGenreButtons();
+    syncFoot();
+    if (!on) setOn(true);
+    else playNext();
+  }
+
+  /* API: select one genre (or all) — used by older callers */
+  function setGenre(g) {
+    ensureUi();
+    activeGenres.clear();
+    if (g && g !== 'all' && GENRES.some(([k]) => k === g)) activeGenres.add(g);
+    genre = activeGenres.size ? [...activeGenres][0] : 'all';
+    history.length = hpos + 1;
+    rebuildOrderFromGenres();
+    syncGenreButtons();
+    syncFoot();
+    if (!on) setOn(true);
+    else playNext();
   }
 
   function subscribe(fn) {
