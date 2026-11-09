@@ -1,6 +1,6 @@
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./components/dashboard";
 import Footer from "./components/Footer";
-import Header from "./components/Header";
+import Header from "./components/header";
 import { FuelProvider } from "./context/FuelProvider";
 function App() {
   return (
