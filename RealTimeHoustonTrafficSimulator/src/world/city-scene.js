@@ -3,7 +3,7 @@
  * lit by the city's real sun position and its live Open-Meteo weather. Units: metres.
  */
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeAirportBuildings } from './merge-airport-buildings.js';
 import { loadOsmCity } from '../render/osm-city.js';
 import { subSolar, llToVec } from './globe.js';
 
@@ -404,7 +404,7 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
       try { const s = shapeOf([ring], dl, q, kx, kz); const g = new THREE.ExtrudeGeometry(s, { depth: Math.min(h, 22), bevelEnabled: false }); g.rotateX(-Math.PI / 2); geoms.push(g); } catch (e) { /* skip */ }
     }
     void shapes;
-    const merged = geoms.length ? mergeGeometries(geoms, true) : null;
+    const merged = mergeAirportBuildings(geoms);
     for (const g of geoms) g.dispose();
     if (merged) { const m = new THREE.Mesh(merged, aptBldMat); m.matrixAutoUpdate = false; m.castShadow = true; scene.add(m); }
   }
