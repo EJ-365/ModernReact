@@ -1,7 +1,50 @@
 # Progress log — Live Traffic Simulator
 
 **Author:** Ejay Gabriel  
-**Current build:** **v10.113.0** — Boeing 747 rebuilt: lofted upper-deck hump with the flight deck on its forehead, 37.5° wing sweep, raked tips. Previous: **v10.112.0** — smooth airliner nose radome. Before: **v10.111.0** — cloud deck between cities, delayed windshear crashes, dynamic resolution. Before: **v10.110.0** — survived crash-sim flights fly a circuit and land; new scenarios; ocean waves, military helicopters, true-size sun/moon with real moon phase, more suburban houses, water towers at true size, 14 new songs.
+**Current build:** **v10.116.0** — tour cars rebuilt from extruded side profiles with wheel arches (sedan, SUV, pickup, coupe, van) plus new Sports car and Supercar; rounded motorbike bodywork; taxi routes join exit taxiways on the runway and finish on the taxi network; 4 songs. Previous: **v10.115.0** — airport ground ops and lighting: rebuilt FOLLOW ME truck, jointed marshaller with ICAO signals, pushback tug with tow bar, cones; taxiway edge lines, hold-short markings, stop bars, blue/green taxiway lights, approach lights and PAPI. Previous: **v10.114.0** — airliners get tapered airfoil wings, lofted winglets, turbofan nacelles, upswept tail cones, swept fins and real window pitch; helicopters (Bell 206, UH-60, AH-64, CH-47) rebuilt with lofted bodies; sharper rendering; crash-sim live instruments; 9 songs. Previous: **v10.113.0** — Boeing 747 upper deck. Before: **v10.112.0** — smooth airliner nose radome. Before: **v10.111.0** — cloud deck between cities, delayed windshear crashes, dynamic resolution. Before: **v10.110.0** — survived crash-sim flights fly a circuit and land; new scenarios; ocean waves, military helicopters, true-size sun/moon with real moon phase, more suburban houses, water towers at true size, 14 new songs.
+
+### v10.122.0
+- Traffic lamps: detailed traffic uses its own two lamp lenses per end (instanced colour: clear lens by day, bright at night or with DRLs; tail dim/night/brake) plus additive glow cards in front of each lamp. The old box glow quads are hidden for detailed vehicles (still used by motorbikes).
+- Driver view music player is bigger: it grows past the dash slot (up to 360 px wide / 40% of screen height), larger buttons and text; compact fallback 340x150-196.
+- Debug: `HTS_DEBUG.trafficAt` returns the car nearest the map origin (for probes).
+
+### v10.121.0
+- All traffic cars, SUVs, pickups, vans, taxis, sports cars, buses, box trucks and 18-wheelers use their detailed models at every distance (no near-camera LOD). `src/render/traffic-detailed.js` merges each type's model per material once into InstancedMeshes (per-instance paint/trailer colour, update ranges limited to the used instances), so detail costs one draw call per type and material. Motorbikes/bikes keep their instanced shapes.
+- Music Prev/Next: played songs are kept in order; Prev steps back and Next steps forward through them before shuffling a new song. Changing genre drops the forward part.
+
+### v10.120.0
+- Near-camera buses, box trucks and 18-wheelers join the traffic LOD pool with detailed models from `src/render/traffic-heavy.js` (`makeTrafficHeavy`): geometry built once per type and merged per material (~8 draw calls each). 18-wheelers: long-nose tractor, sleeper, stacks, fuel tanks, 18 wheels, trailer in `v.tcol`; their instanced rig wheels are hidden via `v._rig`.
+
+### v10.119.0
+- Traffic LOD: the nearest cars/taxis/sports cars/SUVs/pickups/vans (14, or 8/4 when FPS < 45/30, within 220 m) are drawn with the detailed `makeTourCar(..., detail=false)` model in their own paint; their instanced body/cab/extras/wheels are zero-scaled. Models come from a fixed pool of 40 (`lodPool`), reused every frame.
+- Tour car wheel colour (`S.wheelColor`, 8 colours, saved in prefs) via a Wheels row in the tour panel; `makeTourCar` takes `rimCol`.
+- Own Driver-view dashboards for the Sports car (yellow RS sport gauges) and Supercar (teal V12 digital).
+
+### v10.118.0
+- Traffic: new `sport` type (3%, bright paint, low set-back greenhouse); twin corner head/tail lamps (`glowGeo` = 2 merged boxes); 18-wheelers get a steer axle plus two dual-tyre tandems (`rigWheels`, 8 tyres per instance, tractor drive + trailer rear = 18 wheels), drawn in one extra instanced mesh.
+
+### v10.117.0
+- Road traffic: the shared instanced body is now a re-shaped box (rounded plan corners and shoulders, hood sloping to the nose) and the greenhouse tapers with raked windscreen/rear window, for every traffic type (cars, SUVs, pickups, vans, taxis, buses, box trucks, semi trailers). Same draw calls and instance counts.
+
+### v10.116.1
+- Tour car head/tail lamps, lens glows and spotlights moved ~10-18 cm forward/back so they sit outside the bevelled body skin (they were buried inside the rounded nose and tail in v10.116.0).
+
+### v10.116.0
+- Tour cars (`makeTourCar`): per-style side-profile stations (`PS`) extruded with bevels into one smooth body with wheel-arch cut-outs, a narrower tinted greenhouse, painted roof and pillars, door seams, mirrors, grille, underbody, spoked rims; new `sport` (spoiler, calipers) and `super` (side intakes) styles. Driver eye drops to 0.95/0.9 m in them; the interior scales under low roofs.
+- Motorbike: rounded tank, seat, tail cowl and front fairing.
+- Taxi routing: entries must be taxiway vertices within 35 m of the runway centreline (then 110 m, then anywhere within 700 m), and the off-network last leg to the stand costs 4x, so the route ends on the taxi network near the stand.
+- Music: Side To Side, positions, Physical, Say You Won't Let Go.
+
+### v10.115.0
+- Ground crew (`tour.js` `buildGround`): FOLLOW ME pickup with chequered band, lit roof board facing the aircraft and flashing amber bar; marshaller with hi-vis vest + reflective bands, ear defenders, cap and jointed arms holding lit wands (`signal`: idle / move ahead / stop, wands crossed); pushback tug with raised cab, big tyres, flashing beacon and an A-frame tow bar, parked facing the nose; 4 safety cones at nose, tail and wingtips.
+- Houston airports (`houston-airports.js`): wider taxiway centrelines, double yellow edge lines on taxiways 14 m+, runway holding positions (2 solid + 2 dashed bars, red stop bar, amber guard lights) where taxiways cross 45 m from a runway edge, blue taxiway edge lights (50 m) and green centreline lights (30 m), approach light bars to 720 m with a 300 m crossbar, and a PAPI at each end of runways 40 m+ wide. All lights use the shared night-lighting materials.
+
+### v10.114.0
+- Airliners/business jets: `wingSurf` lofts NACA-thickness sections, so wings taper (root chord 1.55x, tip 0.42x) with an unswept inboard trailing edge, stabilisers and the fin are swept/tapered surfaces, and winglets/sharklets are lofted up from the tip (thickness direction per section). Raked tips extend the wing itself. `nacelleGeo` turbofans (inlet lip, fan face, spinner, core nozzle + plug) hang ahead of the leading edge; `tailConeGeo` sweeps the belly up; wing-to-body fairing; windows at ~1 m pitch; door outlines; windscreen band edges sweep back around the nose.
+- Helicopters: `seLoft` (Catmull-Rom superellipse stations) builds seamless bodies with flush glass panels. Bell 206 cabin/fairing, UH-60 (cabin, roof engines, canted tail pylon, stabilator), AH-64 (stepped tandem canopies, TADS/PNVS, M230, cheeks, stub wings with Hellfires and rocket pods, Longbow dome, X tail rotor), CH-47 (glazed nose, fore/aft pylons, aft engines, fuel pods).
+- Rendering: pixel ratio up to 1.25 on phones/Windows (was 1); dynamic resolution never drops below 1 device-independent pixel (was 0.7).
+- Crash sim: live ALT/IAS/V/S/thrust/stall-margin strip (wing ice % on the Learjet) and an event timeline (log keeps 12).
+- Music: Ava Max, David Guetta, Alan Walker (2-3 each) and Jung Kook's Seven, oEmbed-verified and de-duplicated.
 
 ### v10.113.0
 - 747-8: the ellipsoid hump (which sat behind a low main-deck cockpit) is replaced by `loftGeo`, a lofted upper-deck lobe nearly as wide as the fuselage, running from a rounded forehead over the nose (windscreen and posts on it, cockpit camera raised to match) back to a long fairing ahead of the wing root; toward the radome it sinks into the nose surface. Upper-deck windows follow the lobe.

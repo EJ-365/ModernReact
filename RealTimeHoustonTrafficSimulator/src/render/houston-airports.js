@@ -273,6 +273,94 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
   }
   /** runway lighting: white edge lights every 60 m, centreline lights every 30 m, green threshold bars at both ends.
    *  Each set is one InstancedMesh whose material joins the app's night-lighting list (bright at night, faint by day). */
+  function lightSet(pts, color, rad, y) {
+    if (!pts.length) return;
+    const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0 });
+    const im = new THREE.InstancedMesh(new THREE.SphereGeometry(rad, 6, 4), m, pts.length / 2);
+    const o = new THREE.Object3D();
+    for (let i = 0; i < pts.length; i += 2) { o.position.set(X(pts[i]), y * k, X(pts[i + 1])); o.updateMatrix(); im.setMatrixAt(i / 2, o.matrix); }
+    root.add(im);
+    if (nightMats) nightMats.push(m);
+  }
+  function offsetLine(p, off) {
+    const out = [], n = p.length;
+    for (let i = 0; i < n; i += 2) {
+      const a = Math.max(0, i - 2), b = Math.min(n - 2, i + 2), dx = p[b] - p[a], dz = p[b + 1] - p[a + 1], l = Math.hypot(dx, dz) || 1;
+      out.push(p[i] - dz / l * off, p[i + 1] + dx / l * off);
+    }
+    return out;
+  }
+  function segDist(p, x, z) {
+    let best = 1e9;
+    for (let i = 2; i < p.length; i += 2) {
+      const ax = p[i - 2], az = p[i - 1], dx = p[i] - ax, dz = p[i + 1] - az, L2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
+      best = Math.min(best, Math.hypot(ax + dx * t - x, az + dz * t - z));
+    }
+    return best;
+  }
+  /** taxiway lighting like the real airfield: blue edge lights every 50 m, green centreline lights every 30 m */
+  function taxiLights(tws) {
+    const edge = [], cl = [];
+    for (const t of tws) {
+      const hw = t.w / 2 + 0.8;
+      for (let i = 2; i < t.p.length; i += 2) {
+        const ax = t.p[i - 2], az = t.p[i - 1], dx = t.p[i] - ax, dz = t.p[i + 1] - az, L = Math.hypot(dx, dz);
+        if (L < 1) continue;
+        for (let s2 = 0; s2 < L; s2 += 50) for (const sd of [-1, 1]) edge.push(ax + dx * s2 / L - dz / L * hw * sd, az + dz * s2 / L + dx / L * hw * sd);
+        for (let s2 = 10; s2 < L; s2 += 30) cl.push(ax + dx * s2 / L, az + dz * s2 / L);
+      }
+    }
+    lightSet(edge, 0x2f6bff, 0.55, 0.6);
+    lightSet(cl, 0x3dff6a, 0.4, 0.32);
+  }
+  /** runway holding positions where a taxiway meets a runway: 2 solid + 2 dashed yellow bars (dashes on the runway side),
+   *  a red stop bar across the taxiway and amber runway guard lights at the sides */
+  function holdLines(tws, rws, L) {
+    const red = [], amber = [];
+    for (const t of tws) {
+      const p = t.p;
+      for (let i = 2; i < p.length; i += 2) {
+        const ax = p[i - 2], az = p[i - 1], bx = p[i], bz = p[i + 1];
+        for (const r of rws) {
+          const lim = r.w / 2 + 45, da = segDist(r.p, ax, az), db = segDist(r.p, bx, bz);
+          if ((da > lim) === (db > lim)) continue;
+          const f = (da - lim) / ((da - db) || 1), hx = ax + (bx - ax) * f, hz = az + (bz - az) * f;
+          let ux = bx - ax, uz = bz - az; const l = Math.hypot(ux, uz) || 1; ux /= l; uz /= l;
+          if (db > da) { ux = -ux; uz = -uz; } /* u points toward the runway */
+          const hw = t.w / 2, nx = -uz, nz = ux;
+          [0, 0.6, 1.2, 1.8].forEach((o, q) => {
+            const cx = hx + ux * o, cz = hz + uz * o;
+            ribbon([cx - nx * hw, cz - nz * hw, cx + nx * hw, cz + nz * hw], 0.3, 0.27 * k, ...L.yellow, q < 2 ? null : [0.9, 0.9]);
+          });
+          for (let o = -hw + 1; o <= hw - 1 + 0.01; o += 3) red.push(hx - ux * 1.2 + nx * o, hz - uz * 1.2 + nz * o);
+          for (const sd of [-1, 1]) amber.push(hx - ux * 1.2 + nx * (hw + 3) * sd, hz - uz * 1.2 + nz * (hw + 3) * sd);
+        }
+      }
+    }
+    lightSet(red, 0xff2a1a, 0.45, 0.4);
+    lightSet(amber, 0xffb020, 0.6, 0.9);
+  }
+  /** approach lights (ALSF-style) on the extended centreline of each main runway end: a bar every 30 m out to 720 m with a
+   *  wide crossbar at 300 m, plus a PAPI (4 lights, 2 red + 2 white = on slope) beside each touchdown zone */
+  function approachLights(rws) {
+    const bars = [], red = [], white = [];
+    for (const r of rws) {
+      if (r.w < 40 || r.p.length < 4) continue;
+      const n = r.p.length;
+      for (const e of [0, 1]) {
+        const i = e ? n - 2 : 0, j = e ? n - 4 : 2, dx = r.p[j] - r.p[i], dz = r.p[j + 1] - r.p[i + 1], l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l, nx = -uz, nz = ux;
+        for (let d = 30; d <= 720; d += 30) {
+          const cx = r.p[i] - ux * d, cz = r.p[i + 1] - uz * d, half = d === 300 ? 15 : 2.1;
+          for (let o = -half; o <= half + 0.01; o += (d === 300 ? 1.5 : 1.05)) bars.push(cx + nx * o, cz + nz * o);
+        }
+        for (let q = 0; q < 4; q++) { const o = r.w / 2 + 15 + q * 9, cx = r.p[i] + ux * 300 - nx * o, cz = r.p[i + 1] + uz * 300 - nz * o; (q < 2 ? white : red).push(cx, cz); }
+      }
+    }
+    lightSet(bars, 0xfff6e0, 0.8, 1.2);
+    lightSet(red, 0xff2a1a, 1.0, 0.9);
+    lightSet(white, 0xffffff, 1.0, 0.9);
+  }
   function runwayLights(rws) {
     const edge = [], cl = [], thr = [];
     for (const r of rws) {
@@ -289,15 +377,7 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
         for (let o = -hw; o <= hw + 0.1; o += 3.2) thr.push(r.p[i] - dz / l * o, r.p[i + 1] + dx / l * o);
       }
     }
-    const set = (pts, color, rad, y) => {
-      if (!pts.length) return;
-      const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0 });
-      const im = new THREE.InstancedMesh(new THREE.SphereGeometry(rad, 6, 4), m, pts.length / 2);
-      const o = new THREE.Object3D();
-      for (let i = 0; i < pts.length; i += 2) { o.position.set(X(pts[i]), y * k, X(pts[i + 1])); o.updateMatrix(); im.setMatrixAt(i / 2, o.matrix); }
-      root.add(im);
-      if (nightMats) nightMats.push(m);
-    };
+    const set = lightSet;
     set(edge, 0xfff2d0, 1.1, 0.9);
     set(cl, 0xe8f0ff, 0.7, 0.45);
     set(thr, 0x3dff6a, 1.0, 0.8);
@@ -367,7 +447,11 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
       if (!inRing(a.r, cx, cz)) { cx = (cx + a.r[0]) / 2; cz = (cz + a.r[1]) / 2; if (!inRing(a.r, cx, cz)) continue; }
       spots.push({ x: X(cx), z: X(cz) });
     }
-    for (const t of d.taxiways) { ribbon(t.p, t.w, 0.23 * k, ...L.taxi); ribbon(t.p, 0.35, 0.25 * k, ...L.yellow); }
+    for (const t of d.taxiways) {
+      ribbon(t.p, t.w, 0.23 * k, ...L.taxi); ribbon(t.p, 0.45, 0.25 * k, ...L.yellow);
+      if (t.w >= 14) for (const sd of [-1, 1]) for (const o of [0, 0.5]) ribbon(offsetLine(t.p, sd * (t.w / 2 - 0.6 - o)), 0.18, 0.25 * k, ...L.yellow);
+    }
+    holdLines(d.taxiways, d.runways, L);
     for (const t of d.taxiways) {
       const q = t.p.map(X); let cx = 0, cz = 0, r = 0;
       for (let i = 0; i < q.length; i += 2) { cx += q[i]; cz += q[i + 1]; }
@@ -404,6 +488,8 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
     const parked = parkPlanes(d);
     const towers = buildTowers(d);
     runwayLights(d.runways);
+    taxiLights(d.taxiways);
+    approachLights(d.runways);
     runwayNumbers(d.runways);
     return { parked, towers, bridges: (d.bridges || []).length, aerodromes: d.aerodromes.length, runways: d.runways.length, taxiways: d.taxiways.length, terminals: d.terminals.length, hangars: d.hangars.length };
   });
@@ -465,17 +551,19 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
     /* entries: taxiway vertices on/next to the runway ahead (roll along the runway, then turn off at the exit);
        only if none exist fall back to anything within 700 m */
     const entry = new Float64Array(N);
-    const seed = (wide) => {
+    /* prefer exit taxiways that actually join the runway (vertex within ~35 m of the centreline), so the plane turns
+       off onto a taxiway instead of cutting across the grass to one beside the runway */
+    const seed = (wide, latMax = 35) => {
       let any = false;
       for (let i = 0; i < N; i++) {
         const dx = nodes[2 * i] - x, dz = nodes[2 * i + 1] - z, along = dx * sx + dz * sz, lat = Math.abs(dx * sz - dz * sx);
-        if (wide ? Math.hypot(dx, dz) > 700 : along < -40 || along > 2500 || lat > 110) continue;
+        if (wide ? Math.hypot(dx, dz) > 700 : along < -40 || along > 2500 || lat > latMax) continue;
         const c = wide ? Math.hypot(dx, dz) * 1.5 + (along < 0 ? -along * 4 : 0) : Math.max(0, along) + lat * 6;
         if (c < g[i]) { g[i] = c; entry[i] = wide ? 0 : Math.max(0, along); push(i, c); any = true; }
       }
       return any;
     };
-    if (!seed(wide) && !wide) seed(true);
+    if (!seed(wide) && !wide && !seed(false, 110)) seed(true);
     let goal = -1, bestT = Infinity;
     while (heap.length) {
       const [c, i] = pop();
@@ -483,7 +571,8 @@ export function createHoustonAirports({ parent, k = 1, offset = 60, url = '/data
       if (c >= bestT) break;
       done[i] = 1;
       const fd = Math.hypot(nodes[2 * i] - spot.x, nodes[2 * i + 1] - spot.z);
-      if (fd < 400 && c + fd * 1.3 < bestT) { bestT = c + fd * 1.3; goal = i; }
+      /* finish on the taxi network as close to the stand as possible (the last leg off the network is costly) */
+      if (fd < 400 && c + fd * 4 < bestT) { bestT = c + fd * 4; goal = i; }
       const a = adj[i];
       for (let k2 = 0; k2 < a.length; k2 += 2) {
         const j = a[k2], cj = c + a[k2 + 1];

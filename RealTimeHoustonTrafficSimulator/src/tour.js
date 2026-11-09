@@ -54,7 +54,7 @@ const DEST_BLURB = {
 };
 const VIEWS = { car: [['chase', 'Chase'], ['driver', 'Driver'], ['side', 'Side'], ['top', 'Top'], ['orbit', 'Free look']],
   plane: [['chase', 'Chase'], ['cockpit', 'Cockpit'], ['window', 'Window'], ['wing', 'Wing'], ['top', 'Top'], ['orbit', 'Free look']] };
-const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van'], ['moto', 'Motorbike']];
+const CAR_STYLES = [['sedan', 'Sedan'], ['suv', 'SUV'], ['pickup', 'Pickup'], ['coupe', 'Coupe'], ['van', 'Van'], ['sport', 'Sports car'], ['super', 'Supercar'], ['moto', 'Motorbike']];
 const PLANE_STYLES = [['prop', 'Cessna'], ['jet', 'Jet'], ['heli', 'Helicopter'], ['fighter', 'F-16 fighter'], ['b2', 'B-2 Spirit'], ['c130', 'C-130 Hercules']];
 /* tour aircraft picker: [id, name, family]; family drives physics/cockpit/audio, id picks the airliner model */
 const AIRCRAFT = [['b737', 'Boeing 737-800', 'jet'], ['b747', 'Boeing 747-8', 'jet'], ['b777', 'Boeing 777-300ER', 'jet'], ['b787', 'Boeing 787-9 Dreamliner', 'jet'],
@@ -67,6 +67,7 @@ const AIRCRAFT = [['b737', 'Boeing 737-800', 'jet'], ['b747', 'Boeing 747-8', 'j
   ['uh60', 'Sikorsky UH-60 Black Hawk (military helicopter)', 'heli'], ['ah64', 'Boeing AH-64 Apache (military helicopter)', 'heli'], ['ch47', 'Boeing CH-47 Chinook (military helicopter)', 'heli']];
 /* minimum runway (m) each type may depart from / land on — widebodies only fit IAH-class runways */
 const RWY_NEED = { b737: 2000, a320: 2000, b757: 1900, b767: 2500, a321: 2100, a330: 2700, a220: 1500, e175: 1400, g650: 1800, gl75: 1800, c68a: 1100, lj75: 1400, e55p: 1000, b787: 2700, a350: 2700, b777: 2900, b747: 3000, a380: 3000, conc: 3200, c130: 1200, fighter: 1500, prop: 0, heli: 0 };
+const WHEEL_COLORS = [0xc8ccd0, 0x1a1c1f, 0x4a5058, 0xc9a23a, 0x8a5a2b, 0xf2f2f2, 0xc0202a, 0x2a5ab8];
 const CAR_COLORS = [0xb3202a, 0x1e4d8c, 0x22262c, 0xe8e8ea, 0xd4a017, 0x2f7a4a, 0x6b3d8c, 0xc45a2a, 0x14a3a3, 0x5bb8ff, 0xd94f8a, 0x8cc63f, 0x9aa3ad, 0x6e1f2b];
 /* accent palette (cheat-line, tail, nose, engines); -1 = none */
 const PLANE_ACCENTS = [0xc23a2c, 0x5bb8ff, 0x2b5ea8, 0x1b2a4a, 0xd9a441, 0xe6c34a, 0xf3f4f6, 0x9aa3ad, 0x1a1c22, 0x1a6b4a, 0xff7a1a, 0xd94f8a, 0x5a2d7a, 0x14a3a3];
@@ -78,6 +79,7 @@ function loadPrefs() {
     return {
       carColor: CAR_COLORS.includes(+j.carColor) ? +j.carColor : CAR_COLORS[0],
       carStyle: CAR_STYLES.some((s) => s[0] === j.carStyle) ? j.carStyle : 'sedan',
+      wheelColor: WHEEL_COLORS.includes(+j.wheelColor) ? +j.wheelColor : WHEEL_COLORS[0],
       planeColor: PLANE_COLORS.includes(+j.planeColor) ? +j.planeColor : PLANE_COLORS[0],
       planeAccent: PLANE_ACCENTS.includes(+j.planeAccent) ? +j.planeAccent : -1,
       planeStyle: PLANE_STYLES.some((s) => s[0] === j.planeStyle) ? j.planeStyle : 'prop',
@@ -94,7 +96,7 @@ function loadPrefs() {
       musicOn: !!j.musicOn,
     };
   } catch (e) {
-    return { carColor: CAR_COLORS[0], carStyle: 'sedan', planeColor: PLANE_COLORS[0], planeAccent: -1, planeStyle: 'prop', jetModel: 'b737', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
+    return { carColor: CAR_COLORS[0], carStyle: 'sedan', wheelColor: WHEEL_COLORS[0], planeColor: PLANE_COLORS[0], planeAccent: -1, planeStyle: 'prop', jetModel: 'b737', hudX: null, hudY: null, cpX: null, cpY: null, cpW: null, cpH: null, soundOn: true, soundVol: 0.45, radioOn: true, musicOn: false };
   }
 }
 function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) { /* ignore */ } }
@@ -117,11 +119,12 @@ function makeTourMoto(color, detail = true) {
     add(new THREE.CylinderGeometry(0.13, 0.13, 0.07, 10), engM, 0.06, wr, z, 0, 0, Math.PI / 2); /* brake disc */
   }
   box(0.2, 0.08, 1.1, engM, 0, 0.5, -0.05, 0.12);                                   /* frame spine */
-  box(0.34, 0.24, 0.55, paint, 0, 0.86, 0.22, -0.12);                              /* fuel tank */
-  box(0.3, 0.09, 0.62, black, 0, 0.86, -0.34, 0.05);                               /* seat */
-  box(0.24, 0.16, 0.48, paint, 0, 0.82, -0.75, -0.18);                             /* tail cowl */
+  add(new THREE.SphereGeometry(0.2, 18, 12), paint, 0, 0.87, 0.2).scale.set(0.95, 0.72, 1.5);   /* fuel tank */
+  add(new THREE.CapsuleGeometry(0.13, 0.42, 4, 12), black, 0, 0.9, -0.33, Math.PI / 2 + 0.06).scale.set(1.1, 1, 0.5); /* seat */
+  add(new THREE.ConeGeometry(0.15, 0.6, 14), paint, 0, 0.87, -0.8, -Math.PI / 2 + 0.22).scale.set(1, 1, 0.62); /* tail cowl */
   box(0.36, 0.3, 0.42, engM, 0, 0.5, 0.12);                                         /* engine */
-  box(0.4, 0.2, 0.3, paint, 0, 0.62, 0.48, 0.3);                                    /* side fairing */
+  add(new THREE.SphereGeometry(0.24, 18, 12), paint, 0, 0.72, 0.5).scale.set(0.95, 0.9, 1.25); /* front fairing */
+  add(new THREE.ConeGeometry(0.15, 0.32, 14), paint, 0, 0.92, 0.72, Math.PI / 2 - 0.3).scale.set(1.2, 1, 0.8); /* fairing nose */
   add(new THREE.CylinderGeometry(0.045, 0.06, 0.8, 8), chrome, 0.16, 0.34, -0.4, Math.PI / 2 - 0.2); /* exhaust */
   for (const sd of [-1, 1]) add(new THREE.CylinderGeometry(0.025, 0.025, 0.72, 6), chrome, sd * 0.1, 0.68, 0.62, -0.42); /* forks */
   box(0.68, 0.035, 0.035, black, 0, 1.06, 0.48);                                    /* handlebar */
@@ -171,7 +174,7 @@ function makeTourMoto(color, detail = true) {
   return g;
 }
 
-export function makeTourCar(color, style, detail = true) {
+export function makeTourCar(color, style, detail = true, rimCol = null) {
   if (style === 'moto') return makeTourMoto(color, detail);
   const g = new THREE.Group();
   /* clear-coated metallic paint, tinted glass and real chrome (PBR) so the tour car reads like a real car, not a toy */
@@ -184,6 +187,8 @@ export function makeTourCar(color, style, detail = true) {
     color: 0x141c24, metalness: 0.5, roughness: 0.08, transparent: true, opacity: 0.66, depthWrite: false, side: THREE.DoubleSide,
   });
   const chrome = new THREE.MeshStandardMaterial({ color: 0xe2e6ea, metalness: 1, roughness: 0.18 });
+  const rimM = rimCol != null ? new THREE.MeshStandardMaterial({ color: rimCol, metalness: 0.8, roughness: 0.3 }) : chrome;
+  g.userData.paint = paint;
   const black = new THREE.MeshLambertMaterial({ color: 0x141618 });
   const tyre = new THREE.MeshStandardMaterial({ color: 0x121416, roughness: 0.92, metalness: 0 });
   const leather = new THREE.MeshLambertMaterial({ color: 0x2a2420 });
@@ -193,42 +198,57 @@ export function makeTourCar(color, style, detail = true) {
     const me = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), m);
     me.position.set(x, y, z); me.rotation.set(rx, ry, rz); g.add(me); return me;
   };
-  const suv = style === 'suv', pick = style === 'pickup', coupe = style === 'coupe', van = style === 'van';
-  const bodyW = suv || van ? 1.98 : pick ? 1.92 : coupe ? 1.86 : 1.88;
-  const bodyH = suv ? 0.78 : van ? 0.95 : pick ? 0.64 : coupe ? 0.56 : 0.62;
-  const bodyL = pick ? 3.15 : van ? 5.05 : coupe ? 4.45 : suv ? 4.75 : 4.65;
-  const cabinH = suv ? 0.92 : van ? 1.15 : pick ? 0.62 : coupe ? 0.52 : 0.58;
-  const cabinL = pick ? 1.65 : van ? 3.4 : coupe ? 1.85 : suv ? 2.65 : 2.35;
-  const cabinZ = pick ? 0.72 : van ? -0.15 : coupe ? -0.15 : suv ? -0.12 : -0.22;
-  const roofY = bodyH + cabinH * 0.55 + 0.08;
-  box(bodyW, bodyH, bodyL, paint, 0, bodyH * 0.55 + 0.12, pick ? 0.5 : 0);
-  box(bodyW * 0.98, 0.12, bodyL * 0.96, darkPaint, 0, 0.22, pick ? 0.5 : 0);
-  const zNose = pick ? 2.08 : van ? 2.45 : coupe ? 2.28 : 2.35;
-  box(bodyW * 0.92, 0.14, pick ? 1.1 : 1.35, paint, 0, bodyH + 0.115, zNose - 0.55, 0.08, 0, 0); /* hood sits clear of the body top (no z-fight shimmer) */
-  box(bodyW * 0.88, cabinH, cabinL, glass, 0, bodyH + cabinH * 0.55 + 0.1, cabinZ);
-  box(bodyW * 0.82, 0.07, cabinL * 0.88, paint, 0, roofY + cabinH * 0.35, cabinZ + (coupe ? 0.08 : 0));
-  if (pick) box(bodyW * 0.96, 0.52, 1.95, paint, 0, 0.78, -1.42);
-  if (van) box(bodyW * 0.9, cabinH * 0.85, 1.1, tint, 0, bodyH + cabinH * 0.5, -1.85);
-  for (const sd of [-1, 1]) {
-    box(0.08, cabinH * 0.95, 0.12, black, sd * bodyW * 0.42, bodyH + cabinH * 0.5 + 0.1, cabinZ + cabinL * 0.42);
-    if (detail && !coupe) box(0.08, cabinH * 0.85, 0.12, black, sd * bodyW * 0.42, bodyH + cabinH * 0.48 + 0.1, cabinZ - cabinL * 0.4);
-  }
-  box(bodyW * 0.78, cabinH * 0.85, 0.06, glass, 0, bodyH + cabinH * 0.55 + 0.12, cabinZ + cabinL * 0.48, -0.35, 0, 0);
-  box(bodyW * 0.72, cabinH * 0.7, 0.05, tint, 0, bodyH + cabinH * 0.5 + 0.1, cabinZ - cabinL * 0.48, 0.28, 0, 0);
-  if (detail) {
+  const pick = style === 'pickup', coupe = style === 'coupe' || style === 'sport' || style === 'super', sporty = style === 'sport' || style === 'super';
+  /* side-profile stations (m): nose/tail overhang, ground clearance, beltline, hood/trunk height, windscreen base, roof front/back,
+     rear-window base, roof height, width, axle positions and wheel radius — based on real sedans, SUVs, pickups, vans and GT/supercars */
+  const PS = {
+    sedan: { Lf: 2.35, Lr: 2.35, gc: 0.18, belt: 0.9, hood: 0.8, trunk: 0.92, wsB: 0.85, rf: 0.05, rb: -0.95, rwB: -1.65, roof: 1.45, W: 1.85, zF: 1.42, zR: -1.42, r: 0.34 },
+    suv: { Lf: 2.4, Lr: 2.4, gc: 0.25, belt: 1.12, hood: 1.0, trunk: 1.12, wsB: 1.0, rf: 0.3, rb: -2.1, rwB: -2.3, roof: 1.8, W: 1.95, zF: 1.48, zR: -1.45, r: 0.4 },
+    pickup: { Lf: 2.75, Lr: 2.75, gc: 0.28, belt: 1.15, hood: 1.1, trunk: 1.15, wsB: 1.05, rf: 0.38, rb: -0.72, rwB: -0.82, roof: 1.88, W: 1.98, zF: 1.85, zR: -1.55, r: 0.42 },
+    coupe: { Lf: 2.25, Lr: 2.2, gc: 0.15, belt: 0.86, hood: 0.76, trunk: 0.88, wsB: 0.75, rf: -0.05, rb: -0.75, rwB: -1.55, roof: 1.32, W: 1.86, zF: 1.36, zR: -1.33, r: 0.34 },
+    van: { Lf: 2.55, Lr: 2.55, gc: 0.22, belt: 1.15, hood: 1.02, trunk: 1.9, wsB: 1.6, rf: 1.0, rb: -2.42, rwB: -2.5, roof: 2.1, W: 2.0, zF: 1.75, zR: -1.6, r: 0.38 },
+    sport: { Lf: 2.3, Lr: 2.2, gc: 0.12, belt: 0.8, hood: 0.66, trunk: 0.84, wsB: 0.95, rf: 0.05, rb: -0.55, rwB: -1.6, roof: 1.18, W: 1.98, zF: 1.38, zR: -1.38, r: 0.36 },
+    super: { Lf: 2.35, Lr: 2.3, gc: 0.1, belt: 0.74, hood: 0.54, trunk: 0.84, wsB: 1.15, rf: 0.2, rb: -0.4, rwB: -1.9, roof: 1.12, W: 2.05, zF: 1.45, zR: -1.4, r: 0.36 },
+  };
+  const P = PS[style] || PS.sedan, { Lf, Lr, gc, belt, hood, trunk, wsB, rf, rb, rwB, roof, W, zF, zR, r } = P, ar = r + 0.12;
+  const bodyW = W, cabinL = wsB - rwB, cabinZ = (wsB + rwB) / 2, zNose = Lf, zTail = -Lr, hY = hood - 0.13, tY = Math.min(trunk, belt + 0.1) - 0.12;
+  const ext = (sh, depth, m, bt, bs) => { const geo = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: bt, bevelSize: bs, bevelSegments: detail ? 3 : 1, curveSegments: detail ? 12 : 6 }); geo.translate(0, 0, -depth / 2); geo.rotateY(-Math.PI / 2); const me = new THREE.Mesh(geo, m); g.add(me); return me; };
+  {
+    const sh = new THREE.Shape();
+    sh.moveTo(-Lr + 0.15, gc + 0.04);
+    sh.quadraticCurveTo(-Lr - 0.02, gc + 0.06, -Lr, gc + 0.35);
+    sh.lineTo(-Lr + 0.02, trunk - 0.14); sh.quadraticCurveTo(-Lr + 0.04, trunk, -Lr + 0.3, trunk);
+    sh.lineTo(rwB, Math.max(belt, Math.min(trunk, belt + 0.06)));
+    sh.lineTo(wsB, belt);
+    sh.quadraticCurveTo((wsB + Lf) / 2 + 0.2, belt - 0.02, Lf - 0.35, hood);
+    sh.quadraticCurveTo(Lf, hood - 0.03, Lf + 0.03, hood - 0.3);
+    sh.lineTo(Lf, gc + 0.14); sh.quadraticCurveTo(Lf - 0.04, gc, Lf - 0.28, gc);
+    sh.lineTo(zF + ar, gc); sh.lineTo(zF + ar, r); sh.absarc(zF, r, ar, 0, Math.PI, false); sh.lineTo(zF - ar, gc);
+    sh.lineTo(zR + ar, gc); sh.lineTo(zR + ar, r); sh.absarc(zR, r, ar, 0, Math.PI, false); sh.lineTo(zR - ar, gc);
+    sh.lineTo(-Lr + 0.15, gc + 0.04);
+    ext(sh, W - 0.18, paint, 0.09, 0.07);
+    /* tinted greenhouse narrower than the body (tumblehome), painted roof, pillars */
+    const gh = new THREE.Shape();
+    gh.moveTo(rwB, belt - 0.03); gh.quadraticCurveTo(rwB + (rb - rwB) * 0.45, roof - 0.02, rb, roof);
+    gh.lineTo(rf, roof); gh.quadraticCurveTo(rf + (wsB - rf) * 0.3, roof - 0.01, wsB, belt - 0.03); gh.lineTo(rwB, belt - 0.03);
+    ext(gh, W * 0.78 - 0.1, tint, 0.05, 0.04);
+    const rs = new THREE.Shape(); rs.moveTo(rb + 0.06, roof - 0.05); rs.lineTo(rb + 0.1, roof + 0.02); rs.lineTo(rf - 0.08, roof + 0.02); rs.lineTo(rf - 0.04, roof - 0.05); rs.lineTo(rb + 0.06, roof - 0.05);
+    ext(rs, W * 0.78 - 0.06, paint, 0.03, 0.02);
+    const pillar = (z0, y0, z1, y1, x) => { const L = Math.hypot(z1 - z0, y1 - y0), me = box(0.07, 0.06, L, paint, x, (y0 + y1) / 2, (z0 + z1) / 2); me.rotation.x = Math.atan2(-(y1 - y0), z1 - z0); };
     for (const sd of [-1, 1]) {
-      box(0.04, cabinH * 0.55, cabinL * 0.38, tint, sd * bodyW * 0.45, bodyH + cabinH * 0.55 + 0.12, cabinZ + cabinL * 0.12);
+      const px = sd * (W * 0.39 - 0.02);
+      pillar(rf, roof, wsB, belt, px); pillar(rb, roof, rwB, belt, px);
+      if (!sporty && style !== 'van') box(0.07, roof - belt, 0.09, paint, px, (roof + belt) / 2, (rf + rb) / 2 - 0.05);
+      box(0.012, belt - gc - 0.2, 0.015, black, sd * (W / 2 + 0.004), (belt + gc) / 2 + 0.04, wsB - 0.12);   /* door seams */
+      box(0.012, belt - gc - 0.2, 0.015, black, sd * (W / 2 + 0.004), (belt + gc) / 2 + 0.04, sporty ? rb + 0.1 : rb - 0.15);
+      box(0.2, 0.1, 0.13, paint, sd * (W / 2 + 0.07), belt + 0.1, wsB - 0.18);                              /* mirrors */
+      if (style === 'super') box(0.05, 0.3, 0.7, black, sd * (W / 2 - 0.01), belt - 0.3, rb - 0.45);       /* side air intakes */
     }
   }
-  box(bodyW * 0.7, 0.28, 0.08, black, 0, 0.55, zNose);
-  box(bodyW * 1.02, 0.18, 0.22, darkPaint, 0, 0.28, zNose + 0.05);
-  const zTail = pick ? -2.38 : van ? -2.55 : -2.35;
-  box(bodyW * 1.02, 0.16, 0.2, darkPaint, 0, 0.3, zTail);
-  if (detail) {
-    for (const sd of [-1, 1]) {
-      box(0.22, 0.1, 0.14, paint, sd * (bodyW * 0.52 + 0.08), bodyH + 0.45, cabinZ + cabinL * 0.35);
-    }
-  }
+  box(W * 0.9, 0.07, Lf + Lr - 0.7, black, 0, gc + 0.04, (Lf - Lr) / 2);
+  box(W * (sporty ? 0.72 : 0.55), sporty ? 0.2 : 0.24, 0.05, black, 0, gc + (sporty ? 0.2 : 0.34), Lf - 0.01);                  /* grille / intake */
+  if (pick) box(W * 0.84, 0.06, 1.75, plastic, 0, belt - 0.05, (rwB - Lr) / 2 + 0.05);                                       /* bed floor */
+  if (style === 'sport') { box(W * 0.86, 0.04, 0.3, black, 0, trunk + 0.16, -Lr + 0.28); for (const sd of [-1, 1]) box(0.04, 0.16, 0.08, black, sd * W * 0.3, trunk + 0.08, -Lr + 0.3); }
   /* Cabin interior — player only (escorts skip for draw-call cost) */
   if (detail) {
     const cabin = new THREE.Group(); cabin.name = 'cabin'; g.add(cabin);
@@ -249,26 +269,26 @@ export function makeTourCar(color, style, detail = true) {
     cbox(0.28, 0.22, 0.45, plastic, 0, 0.78, cabinZ + 0.2);
     const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.028, 6, 12), black);
     wheel.position.set(0.38, 1.05, cabinZ + cabinL * 0.28); wheel.rotation.x = Math.PI / 2.4; cabin.add(wheel);
+    cabin.scale.y = Math.min(1, (roof - 0.12) / 1.35); /* low sports cars: seats and dash stay under the roof */
     g.userData.cabin = cabin;
   }
-  const wr = suv || van ? 0.4 : 0.35;
-  const zFront = pick ? 1.35 : coupe ? 1.38 : 1.45;
-  const zRear = pick ? -1.55 : coupe ? -1.32 : -1.4;
-  const wheelSeg = detail ? 12 : 8;
-  for (const [x, z] of [[-bodyW * 0.46, zFront], [bodyW * 0.46, zFront], [-bodyW * 0.46, zRear], [bodyW * 0.46, zRear]]) {
-    const tire = new THREE.Mesh(new THREE.CylinderGeometry(wr, wr, 0.26, wheelSeg), tyre);
-    tire.rotation.z = Math.PI / 2; tire.position.set(x, wr, z); g.add(tire);
+  const wheelSeg = detail ? 20 : 10;
+  for (const [x, z] of [[-(W / 2 - 0.15), zF], [W / 2 - 0.15, zF], [-(W / 2 - 0.15), zR], [W / 2 - 0.15, zR]]) {
+    const tire = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.27, wheelSeg), tyre); tire.rotation.z = Math.PI / 2; tire.position.set(x, r, z); g.add(tire);
     if (detail) {
-      const rim = new THREE.Mesh(new THREE.CylinderGeometry(wr * 0.62, wr * 0.62, 0.14, 8), chrome);
-      rim.rotation.z = Math.PI / 2; rim.position.set(x, wr, z); g.add(rim);
+      const sd = Math.sign(x), rim = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.68, r * 0.68, 0.06, 20), rimM); rim.rotation.z = Math.PI / 2; rim.position.set(x + sd * 0.11, r, z); g.add(rim);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, 0.07, 16), black); hub.rotation.z = Math.PI / 2; hub.position.set(x + sd * 0.115, r, z); g.add(hub);
+      for (let k = 0; k < 5; k++) { const sp = box(0.03, r * 1.1, 0.07, rimM, x + sd * 0.135, r, z); sp.rotation.x = k * Math.PI * 2 / 5; }
+      if (sporty) box(0.05, 0.16, 0.12, new THREE.MeshLambertMaterial({ color: 0xd0201a }), x + sd * 0.07, r + r * 0.42, z - 0.05);   /* brake caliper */
     }
   }
   const head = new THREE.MeshBasicMaterial({ color: 0xfff2c8, transparent: true, opacity: 1 });
   const tail = new THREE.MeshBasicMaterial({ color: 0xd0141c, transparent: true, opacity: 1 });
-  const headX = [-0.62, 0.62];
+  const headX = [-(bodyW / 2 - 0.34), bodyW / 2 - 0.34];
   for (const x of headX) {
-    box(0.42, 0.16, 0.06, head, x, 0.72, zNose);
-    box(0.44, 0.14, 0.05, tail, x, 0.78, zTail);
+    /* lamps sit proud of the rounded nose/tail (the bevelled body skin reaches ~7 cm past the profile) */
+    box(0.44, 0.11, 0.08, head, x, hY, zNose + 0.1);
+    box(0.46, 0.11, 0.08, tail, x, tY, zTail - 0.1);
   }
   /*
    * Player headlights: glowing lenses + soft road pools + SpotLights.
@@ -314,7 +334,7 @@ export function makeTourCar(color, style, detail = true) {
         blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide,
       });
       const lens = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.55), lensMat);
-      lens.position.set(x, 0.72, zNose + 0.08);
+      lens.position.set(x, hY, zNose + 0.15);
       lens.renderOrder = 6;
       g.add(lens);
       lensMats.push(lensMat);
@@ -334,7 +354,7 @@ export function makeTourCar(color, style, detail = true) {
       /* SpotLights are expensive on Windows — lenses + road pools are enough */
       if (!_isWin) {
         const spot = new THREE.SpotLight(0xeef4ff, 0, 42, Math.PI / 7.5, 0.58, 1.25);
-        spot.position.set(x, 0.78, zNose + 0.05);
+        spot.position.set(x, hY, zNose + 0.18);
         spot.target.position.set(x * 1.2, -0.35, zNose + 24);
         spot.castShadow = false;
         spot.userData.lit = spot.target.userData.lit = true;
@@ -344,7 +364,7 @@ export function makeTourCar(color, style, detail = true) {
       }
     }
   }
-  g.userData.paint = paint;
+  g.userData.paint = paint; g.userData.lampHead = head; g.userData.lampTail = tail;
   g.userData.carLights = {
     head, tail,
     pools: poolMats, lenses: lensMats, spots,
@@ -360,7 +380,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const music = createTourMusic();
   const S = { mode: null, kind: 'car', view: 'chase', speedX: 1, obj: null, p: new THREE.Vector3(), hd: 0, v: 0, pitch: 0, roll: 0,
     route: null, s: 0, dest: null, phase: '', keys: {}, info: '', roadName: '', hudT: 0, orbitR: 900, runways: null, cruise: 0, odo: 0, yawRate: 0, th0: 0, ph0: 1, limit: 0, sm: null,
-    carColor: prefs.carColor, carStyle: prefs.carStyle, planeColor: prefs.planeColor, planeAccent: prefs.planeAccent, planeStyle: prefs.planeStyle, jetModel: prefs.jetModel, acClass: 'prop',
+    carColor: prefs.carColor, carStyle: prefs.carStyle, wheelColor: prefs.wheelColor, planeColor: prefs.planeColor, planeAccent: prefs.planeAccent, planeStyle: prefs.planeStyle, jetModel: prefs.jetModel, acClass: 'prop',
     soundOn: prefs.soundOn !== false, soundVol: Number.isFinite(prefs.soundVol) ? prefs.soundVol : 0.45,
     radioOn: prefs.radioOn !== false, musicOn: !!prefs.musicOn };
   const dests = [];
@@ -624,6 +644,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     coupe: { ring: '#b3202a', face: '#050505', nd: '#ff2a2a', rp: '#ff2a2a', acc: '#ff5a3a', badge: 'GT', lay: 'sport' },
     moto: { ring: '#e8742a', face: '#050505', nd: '#ff7a1a', rp: '#ff7a1a', acc: '#ffa040', badge: 'MOTO', lay: 'sport' },
     van: { ring: '#56606a', face: '#0a0c0e', nd: '#ffffff', rp: '#31d06a', acc: '#9aa3ab', badge: 'VAN', lay: 'digital' },
+    sport: { ring: '#e8c020', face: '#050505', nd: '#ffd21a', rp: '#ffd21a', acc: '#ffe066', badge: 'RS', lay: 'sport' },
+    super: { ring: '#18d6b8', face: '#020405', nd: '#18f0c8', rp: '#ff3a6a', acc: '#6af5dc', badge: 'V12', lay: 'digital' },
   };
   const ndl = (id, cx, cy, r, max, col, w) => '<line id="' + id + '" data-c="' + cx + ',' + cy + ',' + r + ',' + max + '" x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (cy - r) + '" stroke="' + col + '" stroke-width="' + w + '" stroke-linecap="round"/>';
   const arcP = (cx, cy, r, f0, f1) => { const A = (f) => (135 + f * 270) * Math.PI / 180, p0 = [cx + Math.cos(A(f0)) * r, cy + Math.sin(A(f0)) * r], p1 = [cx + Math.cos(A(f1)) * r, cy + Math.sin(A(f1)) * r]; return 'M' + p0[0].toFixed(1) + ',' + p0[1].toFixed(1) + ' A' + r + ',' + r + ' 0 ' + ((f1 - f0) * 270 > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(1) + ',' + p1[1].toFixed(1); };
@@ -1054,7 +1076,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   const key = (...c) => c.some((k) => S.keys[k]);
 
   function persistVeh() {
-    prefs.carColor = S.carColor; prefs.carStyle = S.carStyle; prefs.planeColor = S.planeColor; prefs.planeAccent = S.planeAccent; prefs.planeStyle = S.planeStyle; prefs.jetModel = S.jetModel;
+    prefs.carColor = S.carColor; prefs.carStyle = S.carStyle; prefs.wheelColor = S.wheelColor; prefs.planeColor = S.planeColor; prefs.planeAccent = S.planeAccent; prefs.planeStyle = S.planeStyle; prefs.jetModel = S.jetModel;
     prefs.soundOn = S.soundOn; prefs.soundVol = S.soundVol;
     prefs.radioOn = S.radioOn; prefs.musicOn = S.musicOn;
     savePrefs(prefs);
@@ -1118,7 +1140,7 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     const pos = S.p.clone(), hd = S.hd, pitch = S.pitch, roll = S.roll;
     if (S.obj) { disposeGroup(S.obj); S.obj = null; }
     if (S.kind === 'car') {
-      S.obj = makeTourCar(S.carColor, S.carStyle); S.acClass = 'car';
+      S.obj = makeTourCar(S.carColor, S.carStyle, true, S.wheelColor); S.acClass = 'car';
     } else {
       const jet = S.planeStyle === 'jet' && typeof makeJet === 'function';
       const heli = S.planeStyle === 'heli' && typeof makeHeli === 'function';
@@ -1157,7 +1179,8 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
       const on = (S.kind === 'car' ? S.carColor : S.planeColor) === c;
       return '<button type="button" class="sw' + (on ? ' on' : '') + '" data-col="' + c + '" style="background:#' + c.toString(16).padStart(6, '0') + '" title="' + (S.kind === 'car' ? 'Paint' : 'Main colour') + '"></button>';
     }).join('');
-    const accs = S.kind === 'car' ? '' : '<span style="flex-basis:100%;height:0"></span><span style="color:#8a96a3">Accent</span>'
+    const accs = S.kind === 'car' ? (S.carStyle === 'moto' ? '' : '<span style="flex-basis:100%;height:0"></span><span style="color:#8a96a3">Wheels</span>'
+      + WHEEL_COLORS.map((c) => '<button type="button" class="sw' + (S.wheelColor === c ? ' on' : '') + '" data-whl="' + c + '" style="background:#' + c.toString(16).padStart(6, '0') + '" title="Wheel colour"></button>').join('')) : '<span style="flex-basis:100%;height:0"></span><span style="color:#8a96a3">Accent</span>'
       + '<button type="button" class="sw none' + (S.planeAccent < 0 ? ' on' : '') + '" data-acc="-1" title="No accent — one solid colour"></button>'
       + PLANE_ACCENTS.map((c) => '<button type="button" class="sw' + (S.planeAccent === c ? ' on' : '') + '" data-acc="' + c + '" style="background:#' + c.toString(16).padStart(6, '0') + '" title="Accent: stripe, tail, nose, engines"></button>').join('');
     hud.innerHTML = '<div class="tt"><span><span class="drag" title="Drag panel">⠿</span><span id="tourTitle"></span></span>'
@@ -1258,6 +1281,10 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
     hud.querySelectorAll('[data-col]').forEach((b) => b.addEventListener('click', () => {
       const c = +b.getAttribute('data-col');
       if (S.kind === 'car') S.carColor = c; else S.planeColor = c;
+      persistVeh(); spawnVehicle(); renderHud();
+    }));
+    hud.querySelectorAll('[data-whl]').forEach((b) => b.addEventListener('click', () => {
+      S.wheelColor = +b.getAttribute('data-whl');
       persistVeh(); spawnVehicle(); renderHud();
     }));
     hud.querySelectorAll('[data-acc]').forEach((b) => b.addEventListener('click', () => {
@@ -1683,44 +1710,93 @@ function icRealLeft(x, z, t) {
   const ground = { g: null, car: null, man: null, tug: null, t: 0 };
   function groundMat(c, e) { return new THREE.MeshLambertMaterial({ color: c, emissive: e || 0x000000 }); }
   function buildGround() {
-    const g = new THREE.Group();
+    const g = new THREE.Group(), M = groundMat;
+    const box = (p, w, h, d, m, x, y, z) => { const me = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); me.position.set(x, y, z); p.add(me); return me; };
+    const tyreM = M(0x141414), rimM = M(0x9aa0a6);
+    const wheels = (p, xs, zs, r, w) => { for (const wx of xs) for (const wz of zs) for (const [rr, m, ww] of [[r, tyreM, w], [r * 0.55, rimM, w + 0.02]]) { const t = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, ww, 16), m); t.rotation.z = Math.PI / 2; t.position.set(wx, r, wz); p.add(t); } };
+    /* FOLLOW ME: yellow airside pickup with a black/yellow chequered band, lit roof board facing the aircraft behind it, amber light bar */
     const car = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.9, 4.4), groundMat(0xf2c200)); body.position.y = 0.75; car.add(body);
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 2.2), groundMat(0x22262c)); cab.position.set(0, 1.5, -0.3); car.add(cab);
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 0.12), groundMat(0x111111, 0x222200)); sign.position.set(0, 2.1, -0.6); car.add(sign);
-    const c2 = document.createElement('canvas'); c2.width = 128; c2.height = 40; const x = c2.getContext('2d');
-    x.fillStyle = '#111'; x.fillRect(0, 0, 128, 40); x.fillStyle = '#ffd400'; x.font = 'bold 22px sans-serif'; x.textAlign = 'center'; x.fillText('FOLLOW ME', 64, 28);
+    const yel = M(0xf2c200), glassM = M(0x1b2630, 0x05080a), blk = M(0x18191b);
+    const cq = document.createElement('canvas'); cq.width = 128; cq.height = 16; { const q = cq.getContext('2d'); for (let i = 0; i < 16; i++) for (let j = 0; j < 2; j++) { q.fillStyle = (i + j) % 2 ? '#111' : '#f2c200'; q.fillRect(i * 8, j * 8, 8, 8); } }
+    const cqTex = new THREE.CanvasTexture(cq); cqTex.magFilter = THREE.NearestFilter;
+    box(car, 2.0, 0.75, 5.3, yel, 0, 0.78, 0);
+    box(car, 1.9, 0.72, 2.2, glassM, 0, 1.5, 0.55);
+    box(car, 1.94, 0.08, 2.0, yel, 0, 1.9, 0.5);
+    for (const sx of [-1, 1]) { box(car, 0.08, 0.35, 2.4, yel, sx * 0.96, 1.32, -1.45); const band = new THREE.Mesh(new THREE.PlaneGeometry(5.1, 0.28), new THREE.MeshLambertMaterial({ map: cqTex })); band.position.set(sx * 1.005, 0.92, 0); band.rotation.y = sx * Math.PI / 2; car.add(band); }
+    box(car, 2.04, 0.22, 0.2, blk, 0, 0.5, 2.66); box(car, 2.04, 0.22, 0.2, blk, 0, 0.5, -2.66);
+    for (const sx of [-0.7, 0.7]) { box(car, 0.36, 0.16, 0.06, new THREE.MeshBasicMaterial({ color: 0xfff4d6 }), sx, 0.95, 2.66); box(car, 0.3, 0.14, 0.06, new THREE.MeshBasicMaterial({ color: 0xc0201a }), sx, 0.95, -2.66); }
+    wheels(car, [-0.95, 0.95], [1.6, -1.6], 0.38, 0.28);
+    box(car, 0.08, 0.35, 0.08, blk, -0.7, 2.1, -0.1); box(car, 0.08, 0.35, 0.08, blk, 0.7, 2.1, -0.1);
+    box(car, 1.75, 0.55, 0.1, blk, 0, 2.5, -0.1);
+    const c2 = document.createElement('canvas'); c2.width = 256; c2.height = 72; const x = c2.getContext('2d');
+    x.fillStyle = '#0c0c0c'; x.fillRect(0, 0, 256, 72); x.fillStyle = '#ffd400'; x.font = 'bold 44px Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('FOLLOW ME', 128, 38);
     const sTex = new THREE.CanvasTexture(c2);
-    for (const zz of [-0.67, -0.53]) { const f = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.45), new THREE.MeshBasicMaterial({ map: sTex })); f.position.set(0, 2.1, zz); if (zz > -0.6) f.rotation.y = Math.PI; car.add(f); }
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.18, 0.3), new THREE.MeshBasicMaterial({ color: 0xffa000 })); bar.position.set(0, 1.95, 0.5); car.add(bar);
+    for (const zz of [-0.16, -0.04]) { const f = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.48), new THREE.MeshBasicMaterial({ map: sTex })); f.position.set(0, 2.5, zz); if (zz < -0.1) f.rotation.y = Math.PI; car.add(f); }
+    const bar = box(car, 1.3, 0.14, 0.28, new THREE.MeshBasicMaterial({ color: 0xffa000 }), 0, 2.0, 1.25);
     car.userData.bar = bar; g.add(car);
+    /* marshaller: hi-vis vest with reflective bands, ear defenders, lit orange wands; jointed arms for the ICAO signals */
     const man = new THREE.Group();
-    const vest = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.8, 0.3), groundMat(0xff7a00)); vest.position.y = 1.2; man.add(vest);
-    const legs = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.8, 0.25), groundMat(0x223040)); legs.position.y = 0.4; man.add(legs);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), groundMat(0x7a5236)); head.position.y = 1.78; man.add(head);
-    const muffs = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.14), groundMat(0x111111)); muffs.position.y = 1.8; man.add(muffs);
-    const wandMat = new THREE.MeshBasicMaterial({ color: 0xff5a1a });
+    const navy = M(0x1f2a3a), vestM = M(0xff6a00, 0x331100), refl = M(0xe8eef2, 0x333333), skin = M(0x8a5a3c);
+    for (const sx of [-1, 1]) { box(man, 0.17, 0.86, 0.2, navy, sx * 0.11, 0.47, 0); box(man, 0.19, 0.1, 0.3, blk, sx * 0.11, 0.05, 0.04); }
+    box(man, 0.44, 0.3, 0.24, navy, 0, 0.98, 0);
+    box(man, 0.48, 0.58, 0.27, vestM, 0, 1.3, 0);
+    for (const yy of [1.14, 1.32]) box(man, 0.49, 0.05, 0.28, refl, 0, yy, 0);
+    box(man, 0.12, 0.1, 0.12, skin, 0, 1.63, 0);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), skin); head.position.y = 1.76; man.add(head);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), navy); cap.position.y = 1.78; man.add(cap);
+    box(man, 0.2, 0.03, 0.12, navy, 0, 1.79, 0.13);
+    for (const sx of [-1, 1]) { const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), M(0xd81e1e)); ear.rotation.z = Math.PI / 2; ear.position.set(sx * 0.13, 1.76, 0); man.add(ear); }
+    box(man, 0.28, 0.03, 0.04, blk, 0, 1.9, 0);
+    const wandMat = new THREE.MeshBasicMaterial({ color: 0xff5a14 });
     man.userData.arms = [];
     for (const sx of [-1, 1]) {
-      const arm = new THREE.Group(); arm.position.set(sx * 0.33, 1.55, 0);
-      const a = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, 0.12), groundMat(0xff7a00)); a.position.y = 0.3; arm.add(a);
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.5, 6), wandMat); w.position.y = 0.82; arm.add(w);
-      man.add(arm); man.userData.arms.push(arm);
+      const sh = new THREE.Group(); sh.position.set(sx * 0.29, 1.52, 0); man.add(sh);
+      box(sh, 0.1, 0.32, 0.11, vestM, 0, -0.16, 0);
+      const el = new THREE.Group(); el.position.y = -0.32; sh.add(el);
+      box(el, 0.09, 0.28, 0.09, navy, 0, -0.14, 0);
+      box(el, 0.09, 0.08, 0.09, skin, 0, -0.31, 0);
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.5, 8), wandMat); w.position.y = -0.58; el.add(w);
+      man.userData.arms.push({ sh, el, sx });
     }
     man.visible = false; g.add(man);
+    /* pushback tug: low heavy chassis, raised cab at the back, big tyres, amber beacon, A-frame tow bar to the nose gear */
     const tug = new THREE.Group();
-    const tb = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 5.2), groundMat(0xe8e8e2)); tb.position.y = 0.7; tug.add(tb);
-    const tc = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.9, 1.1), groundMat(0x1d2228)); tc.position.set(0.5, 1.55, 1.6); tug.add(tc);
-    const bar2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 5), groundMat(0x333333)); bar2.position.set(0, 0.5, -4.6); tug.add(bar2);
+    const tugM = M(0xf0b400), grey = M(0x3a3d42);
+    box(tug, 2.7, 0.75, 6.0, tugM, 0, 0.85, 0);
+    box(tug, 2.5, 0.35, 2.2, tugM, 0, 1.38, 1.4);
+    box(tug, 2.8, 0.3, 0.3, blk, 0, 0.6, 3.1); box(tug, 2.8, 0.3, 0.3, blk, 0, 0.6, -3.1);
+    for (const px of [-0.85, 0.85]) for (const pz of [-1.2, -2.6]) box(tug, 0.08, 1.15, 0.08, blk, px, 1.85, pz);
+    box(tug, 1.75, 1.05, 1.35, new THREE.MeshLambertMaterial({ color: 0x1a2731, transparent: true, opacity: 0.55, depthWrite: false }), 0, 1.82, -1.9);
+    box(tug, 1.9, 0.1, 1.6, tugM, 0, 2.45, -1.9);
+    const beacon = box(tug, 0.18, 0.16, 0.18, new THREE.MeshBasicMaterial({ color: 0xffa000 }), 0, 2.58, -1.9);
+    for (const sx of [-0.95, 0.95]) box(tug, 0.3, 0.18, 0.06, new THREE.MeshBasicMaterial({ color: 0xfff4d6 }), sx, 1.05, 3.02);
+    wheels(tug, [-1.15, 1.15], [2.0, -2.0], 0.55, 0.5);
+    for (const sx of [-1, 1]) { const rb = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 5.1, 8), grey); rb.position.set(sx * 0.32, 0.55, 5.55); rb.rotation.x = Math.PI / 2; rb.rotation.y = -sx * 0.06; tug.add(rb); }
+    box(tug, 0.2, 0.2, 0.4, grey, 0, 0.55, 8.1);
+    tug.userData.beacon = beacon;
     tug.visible = false; g.add(tug);
+    /* safety cones placed round the parked aircraft (nose and wingtips) */
+    const cones = new THREE.Group(), coneM = M(0xff5a10), coneW = M(0xf2f2f2);
+    for (let i = 0; i < 4; i++) { const c = new THREE.Group(); const k = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.5, 12), coneM); k.position.y = 0.27; c.add(k); const bnd = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.115, 0.07, 12), coneW); bnd.position.y = 0.33; c.add(bnd); box(c, 0.38, 0.03, 0.38, coneM, 0, 0.015, 0); cones.add(c); }
+    cones.visible = false; g.add(cones);
     scene.add(g);
-    Object.assign(ground, { g, car, man, tug, t: 0 });
+    Object.assign(ground, { g, car, man, tug, cones, t: 0 });
+  }
+  /* ICAO marshalling signals: 'ahead' = wands up, bent at the elbow, beckoning back toward the head; 'stop' = wands crossed over the head */
+  function signal(man, mode, t) {
+    for (const A of man.userData.arms) {
+      let th, ph;
+      if (mode === 'ahead') { th = 1.55; ph = 1.25 + 0.6 * Math.sin(t * 4.2); }
+      else if (mode === 'stop') { th = 2.7; ph = 1.05; }
+      else { th = 0.12; ph = 0.15; }
+      A.sh.rotation.z += (A.sx * th - A.sh.rotation.z) * 0.25; A.el.rotation.z += (A.sx * ph - A.el.rotation.z) * 0.25;
+    }
   }
   function clearGround() {
     if (!ground.g) return;
     scene.remove(ground.g);
     ground.g.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
-    ground.g = ground.car = ground.man = ground.tug = null;
+    ground.g = ground.car = ground.man = ground.tug = ground.cones = null;
   }
   /* point `ahead` metres further along the taxi path from the plane */
   function alongPath(P, i, px, pz, ahead) {
@@ -1755,17 +1831,21 @@ function icRealLeft(x, z, t) {
       ground.man.visible = standD < 400;
       ground.man.position.set(end.x + Math.sin(hEnd) * (jet ? 26 : 12), 0.2, end.z + Math.cos(hEnd) * (jet ? 26 : 12));
       ground.man.rotation.y = hEnd + Math.PI;
-      /* "come ahead" signal: both wands sweep up and back */
-      const sw = 1.2 + Math.sin(ground.t * 4) * 0.9;
-      ground.man.userData.arms[0].rotation.z = sw; ground.man.userData.arms[1].rotation.z = -sw;
+      /* "move ahead" until the nose reaches the stop mark, then "stop" */
+      signal(ground.man, standD < (jet ? 40 : 18) ? 'stop' : standD < 260 ? 'ahead' : 'idle', ground.t);
     } else if (S.phase === 'parked') {
       /* "stop" (wands crossed), then the follow-me car leaves and the tug hooks up at the nose */
-      ground.man.userData.arms[0].rotation.z = 2.6; ground.man.userData.arms[1].rotation.z = -2.6;
+      signal(ground.man, 'stop', ground.t);
+      ground.tug.userData.beacon.material.color.setHex(Math.sin(ground.t * 7) > 0.2 ? 0xffb000 : 0x442a00);
       if (!ground.tug.visible) {
         ground.tug.visible = true; ground.parkT = ground.t;
-        const jet = S.planeStyle === 'jet' || S.planeStyle === 'c130' || S.planeStyle === 'b2';
-        ground.tug.position.set(S.p.x + Math.sin(S.hd) * (jet ? 30 : 9), 0.2, S.p.z + Math.cos(S.hd) * (jet ? 30 : 9));
-        ground.tug.rotation.y = S.hd;
+        const jet = S.planeStyle === 'jet' || S.planeStyle === 'c130' || S.planeStyle === 'b2', fx = Math.sin(S.hd), fz = Math.cos(S.hd), rx = Math.cos(S.hd), rz = -Math.sin(S.hd);
+        /* tug faces the aircraft with its tow bar reaching back to the nose gear */
+        ground.tug.position.set(S.p.x + fx * (jet ? 33 : 12), 0.2, S.p.z + fz * (jet ? 33 : 12));
+        ground.tug.rotation.y = S.hd + Math.PI;
+        const span = jet ? 18 : 6, nose = jet ? 22 : 6;
+        [[0, nose + 1.5], [0, -nose * 0.9], [span, -2], [-span, -2]].forEach(([l, f], i) => { const c = ground.cones.children[i]; c.position.set(S.p.x + rx * l + fx * f, 0.2, S.p.z + rz * l + fz * f); });
+        ground.cones.visible = true;
       }
       car.position.x += Math.sin(car.rotation.y) * 9 * dt; car.position.z += Math.cos(car.rotation.y) * 9 * dt;
       if (ground.t - ground.parkT > 25) car.visible = false;
@@ -2463,7 +2543,7 @@ function icRealLeft(x, z, t) {
         camera.up.set(0, 1, 0).applyQuaternion(ob.quaternion);
         ob.visible = true;
       } else if (car) {
-        camera.position.copy(L(0.38, 1.22, 0.22));
+        camera.position.copy(L(0.38, S.carStyle === 'super' ? 0.9 : S.carStyle === 'sport' ? 0.95 : 1.22, 0.22));
         look.copy(L(Math.sin(-ly) * 30 + 0.38, 1.12 + Math.sin(lp) * 30, Math.cos(ly) * 30 + 0.5));
         /* the dashboard overlay is the cabin; hide the exterior so SUV/pickup/van hoods never block the road ahead,
            but keep the headlight pools/spots so the road ahead is lit at night */

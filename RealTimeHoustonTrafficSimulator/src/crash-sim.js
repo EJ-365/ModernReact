@@ -181,7 +181,7 @@ export function createCrashSim({ scene, S, note }) {
     const master = L[0][1] && !cr.stopped;
     chimeT -= 0.15; if (master && chimeT <= 0) { chimeT = 1.25; tone(1400, 0.16, 'square', 0.07); setTimeout(() => tone(1050, 0.16, 'square', 0.07), 190); }
   }
-  function log(t) { cr.log.unshift(t); cr.log.length = Math.min(cr.log.length, 4); note(t); cr.dirty = true; }
+  function log(t) { cr.log.unshift(t); cr.log.length = Math.min(cr.log.length, 12); note(t); cr.dirty = true; }
   function event(key, fn) { if (cr.ev[key]) return false; cr.ev[key] = 1; fn(); return true; }
 
   /* ---------- scenario setup ---------- */
@@ -448,12 +448,30 @@ export function createCrashSim({ scene, S, note }) {
       + '<b style="color:#ffb08a">' + ac.n + '</b><div style="color:#c9b8ae">Real case: ' + ac.real + '</div>'
       + '<div id="crashLog" style="margin:4px 0;color:#fff">' + (cr.log[0] && cr.log[0] !== cr.out ? cr.log[0] : '') + '</div>'
       + '<div id="crashOut" style="color:#ffd27a;font-weight:600">' + (cr.out || '') + '</div>'
+      + '<div id="crashData" style="margin:4px 0;font:11px/1.35 ui-monospace,Menlo,Consolas,monospace;color:#e8ddd6;display:grid;grid-template-columns:repeat(3,auto);gap:1px 10px"></div>'
+      + '<details style="margin-top:2px"><summary style="cursor:pointer;color:#ffb08a">Event timeline</summary><ol id="crashTl" style="margin:2px 0;padding-left:18px;color:#ddd"></ol></details>'
       + '<details style="margin-top:4px"><summary style="cursor:pointer;color:#ffb08a">What happened and how pilots avoid it</summary><p style="margin:4px 0">' + ac.what + '</p><ul style="margin:0;padding-left:16px">' + ac.avoid.map((a) => '<li>' + a + '</li>').join('') + '</ul><p style="margin:4px 0;color:#c9b8ae">' + ac.late + '</p></details>'
       + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><select data-crscn style="max-width:220px">' + sel + '</select>'
       + '<button type="button" data-crwrong="1" class="' + (cr.wrong ? 'on' : '') + '" title="Fly it the way the crew in the real accident did, or late">' + (cr.wrong ? 'Response: delayed / wrong' : 'Response: textbook') + '</button>'
       + '<button type="button" data-crreplay="1" class="on">Replay</button></div></div>';
   }
+  function flightData(hud) {
+    /* live instrument strip: altitude, speed, vertical speed, thrust, stall margin (+ wing ice on the Learjet) */
+    const el = hud.querySelector('#crashData'); if (!el || cr.t - (cr.fdT || -1) < 0.25) return; cr.fdT = cr.t;
+    const ice = cr.ice || 0, vsI = (cr.gear ? A.vs : A.vsC) * (1 + 1.9 * ice), marg = (S.v - vsI) / KT;
+    const c = (v, bad, warn) => '<span style="color:' + (bad ? '#ff6b5a' : warn ? '#ffd27a' : '#9fe0a8') + '">' + v + '</span>';
+    const vs = S.vy / FT * 60, alt = Math.max(0, S.p.y / FT);
+    el.innerHTML = '<span>ALT ' + c(Math.round(alt).toLocaleString() + ' ft', alt < 500 && vs < -1500, false) + '</span>'
+      + '<span>IAS ' + c(Math.round(S.v / KT) + ' kt', marg < 5, marg < 20) + '</span>'
+      + '<span>V/S ' + c((vs > 0 ? '+' : '') + Math.round(vs / 50) * 50 + ' fpm', vs < -6000 || (alt < 1000 && vs < -1500), vs < -3000) + '</span>'
+      + '<span>THR ' + c(Math.round((cr.pwr || 0) * 100) + '%', false, (cr.pwr || 0) < 0.2 && !cr.ground) + '</span>'
+      + '<span>STALL ' + c((marg >= 0 ? '+' : '') + Math.round(marg) + ' kt', marg < 5, marg < 20) + '</span>'
+      + (ac.id === 'lj60' ? '<span>ICE ' + c(Math.round(ice * 100) + '%' + (cr.antiIce ? ' A/I' : ''), ice > 0.5, ice > 0.15) + '</span>' : '<span>GEAR ' + c(cr.gear ? 'DOWN' : 'UP', false, false) + '</span>');
+    const tl = hud.querySelector('#crashTl');
+    if (tl && tl.childElementCount !== cr.log.length) tl.innerHTML = cr.log.slice(0, 12).map((m) => '<li>' + String(m).replace(/</g, '&lt;') + '</li>').join('');
+  }
   function refresh(hud) {
+    if (cr && hud) flightData(hud);
     if (!cr || !cr.dirty || !hud) return; cr.dirty = false;
     const l = hud.querySelector('#crashLog'), o = hud.querySelector('#crashOut');
     if (l) l.textContent = cr.log[0] && cr.log[0] !== cr.out ? cr.log[0] : ''; if (o) o.textContent = cr.out || '';

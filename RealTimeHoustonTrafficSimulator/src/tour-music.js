@@ -496,6 +496,20 @@ const TRACKS = [
   { g: 'afrobeat', id: 'tupb4xV-15w', title: 'Zanku (Legwork)', artist: 'Zlatan' },
   { g: 'electronic', id: '93ASUImTedo', title: 'Latch', artist: 'Disclosure ft. Sam Smith' },
   { g: 'soul', id: 'hKgl5-lkT8U', title: 'Best Part', artist: 'Daniel Caesar ft. H.E.R.' },
+  /* v10.114: requested artists (Ava Max, David Guetta, Alan Walker) + more popular picks — oEmbed-verified, not already listed */
+  { g: 'pop', id: 'WXBHCQYxwr0', title: 'Sweet but Psycho', artist: 'Ava Max' },
+  { g: 'pop', id: 'jH1RNk8954Q', title: 'Kings & Queens', artist: 'Ava Max' },
+  { g: 'electronic', id: 'uO59tfQ2TbA', title: 'Hey Mama', artist: 'David Guetta ft. Nicki Minaj, Bebe Rexha & Afrojack' },
+  { g: 'electronic', id: '90RLzVUuXe4', title: "I'm Good (Blue)", artist: 'David Guetta & Bebe Rexha' },
+  { g: 'electronic', id: 'NUVCQXMUVnI', title: 'Memories', artist: 'David Guetta ft. Kid Cudi' },
+  { g: 'electronic', id: '1-xGerv5FOk', title: 'Alone', artist: 'Alan Walker' },
+  { g: 'electronic', id: 'M-P4QBt-FWw', title: 'Darkside', artist: 'Alan Walker ft. Au/Ra & Tomine Harket' },
+  { g: 'electronic', id: 'dhYOPzcsbGM', title: 'On My Way', artist: 'Alan Walker, Sabrina Carpenter & Farruko' },
+  { g: 'pop', id: 'QU9c0053UAU', title: 'Seven', artist: 'Jung Kook ft. Latto' },
+  { g: 'pop', id: 'SXiSVQZLje8', title: 'Side To Side', artist: 'Ariana Grande ft. Nicki Minaj' },
+  { g: 'pop', id: 'tcYodQoapMg', title: 'positions', artist: 'Ariana Grande' },
+  { g: 'pop', id: '9HDEHj2yzew', title: 'Physical', artist: 'Dua Lipa' },
+  { g: 'pop', id: '0yW7w8F2TVA', title: "Say You Won't Let Go", artist: 'James Arthur' },
   /* popular hits + Lukas Graham / LG Malique — official uploads, oEmbed-verified */
   { g: 'pop', id: 'kffacxfA7G4', title: 'Baby', artist: 'Justin Bieber ft. Ludacris' },
   { g: 'pop', id: 'tt2k8PGm-TI', title: 'Dusk Till Dawn', artist: 'ZAYN ft. Sia' },
@@ -692,9 +706,15 @@ function loadPos() {
       y: Number.isFinite(+j.y) ? +j.y : null,
       min: !!j.min,
       autoNext: j.autoNext !== false,
+      /* driver-mode free place (drag/resize away from the dash media bay) */
+      dashFree: !!j.dashFree,
+      dashX: Number.isFinite(+j.dashX) ? +j.dashX : null,
+      dashY: Number.isFinite(+j.dashY) ? +j.dashY : null,
+      dashW: Number.isFinite(+j.dashW) ? +j.dashW : null,
+      dashH: Number.isFinite(+j.dashH) ? +j.dashH : null,
     };
   } catch (e) {
-    return { x: null, y: null, min: false, autoNext: true };
+    return { x: null, y: null, min: false, autoNext: true, dashFree: false, dashX: null, dashY: null, dashW: null, dashH: null };
   }
 }
 
@@ -728,7 +748,9 @@ export function createTourMusic() {
   let wrap = null, mount = null, label = null, miniLabel = null, autoBtn = null, foot = null;
   let on = false, track = null, idx = -1, minimized = false;
   let player = null, playerReady = false, pendingId = null, wantId = null, verifyTimer = 0;
-  let history = [];
+  /* songs played, in order; hpos = the one playing. Prev/Next walk this list before Next shuffles a new song */
+  const history = [];
+  let hpos = -1;
   let pos = loadPos();
   let autoNext = pos.autoNext !== false;
   let advancing = false;
@@ -905,20 +927,27 @@ export function createTourMusic() {
     const css = document.createElement('style');
     css.textContent = '#tourYt{position:fixed;left:14px;bottom:14px;z-index:41;display:none;flex-direction:column;gap:6px;width:min(300px,56vw);background:rgba(14,12,10,.92);border:1px solid rgba(232,168,56,.3);border-radius:12px;padding:8px;box-shadow:0 10px 28px rgba(0,0,0,.45);font:11px/1.3 Overpass,system-ui,sans-serif;color:#f3ebe0;touch-action:none}'
       + '#tourYt.on{display:flex}#tourYt.placed{left:0;bottom:auto;right:auto}'
-      /* Driver look: stay on body (fixed overlay). Never reparent — moving the YT iframe restarts audio. */
+      /* Driver: fixed overlay docked in the passenger media bay (#dMediaSlot). Never reparent — moving the YT iframe restarts audio. */
       + '#tourYt.dashEmbed{position:fixed!important;z-index:42!important;display:flex!important;max-width:none!important;'
-      + 'border:2px solid #e8a838;border-radius:14px;box-shadow:0 8px 22px rgba(0,0,0,.45);margin:0;padding:8px 10px;'
-      + 'pointer-events:auto!important;touch-action:auto;box-sizing:border-box;background:linear-gradient(165deg,#2a2218,#14100c)}'
-      + '#tourYt.dashEmbed .hd .drag,#tourYt.dashEmbed [data-yt-min]{display:none!important}'
-      + '#tourYt.dashEmbed .hd{cursor:default;border-bottom-color:rgba(232,168,56,.25)}'
+      + 'border:1px solid rgba(232,168,56,.55);border-radius:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 6px 16px rgba(0,0,0,.35);margin:0;padding:6px 8px;'
+      + 'pointer-events:auto!important;touch-action:none;box-sizing:border-box;background:linear-gradient(165deg,#2a2218,#14100c);overflow:hidden}'
+      + '#tourYt.dashEmbed [data-yt-min]{display:none!important}'
+      + '#tourYt.dashEmbed .hd{cursor:grab;border-bottom-color:rgba(232,168,56,.25)}'
+      + '#tourYt.dashEmbed .hd:active{cursor:grabbing}'
+      + '#tourYt.dashEmbed .ytResize{display:block}'
+      + '#tourYt.dashEmbed [data-yt-dock]{display:inline-flex}'
+      + '#tourYt .ytResize{display:none;position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;z-index:3;'
+      + 'background:linear-gradient(135deg,transparent 55%,rgba(232,168,56,.55) 55%,rgba(232,168,56,.55) 70%,transparent 70%),'
+      + 'linear-gradient(135deg,transparent 70%,rgba(232,168,56,.85) 70%);border-radius:0 0 8px 0}'
+      + '#tourYt [data-yt-dock]{display:none}'
       + '#tourYt .hd{display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;padding:2px 0 4px;border-bottom:1px solid rgba(255,236,210,.08);margin-bottom:2px}'
       + '#tourYt .hd:active{cursor:grabbing}#tourYt .hd .drag{color:#8a7e70;font-size:11px}'
       + '#tourYt .hd .acts{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}'
       + '#tourYt .host{display:none;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#111;flex:1;min-height:72px}'
       + '#tourYt.yt-ready .host,#tourYt.dashEmbed .host{display:block}'
-      + '#tourYt.dashEmbed{flex-direction:column;overflow:hidden}#tourYt.dashEmbed .host{aspect-ratio:auto;flex:1 1 0;height:auto;min-height:60px;max-height:none;width:100%;align-self:stretch}'
+      + '#tourYt.dashEmbed{flex-direction:column}#tourYt.dashEmbed .host{aspect-ratio:auto;flex:1 1 0;height:auto;min-height:48px;max-height:none;width:100%;align-self:stretch}'
       + '#tourYt .host iframe{width:100%;height:100%;border:0;display:block}'
-      + '#tourYt.spot,#tourYt.radio{display:flex}#tourYt.radio .host{display:none!important}#tourYt.spot .host{display:none!important}#tourYt.dashEmbed .spotFrame{height:80px!important;flex:none}#tourYt.spot.dashEmbed .gen{display:none!important}#tourYt .spotFrame iframe{width:100%!important;height:100%!important;border:0}'
+      + '#tourYt.spot,#tourYt.radio{display:flex}#tourYt.radio .host{display:none!important}#tourYt.spot .host{display:none!important}#tourYt.dashEmbed .spotFrame{height:72px!important;flex:none}#tourYt.spot.dashEmbed .gen{display:none!important}#tourYt .spotFrame iframe{width:100%!important;height:100%!important;border:0}'
       + '#tourYt .body{display:flex;flex-direction:column;gap:6px;flex:1;min-height:0}'
       + '#tourYt.min{width:auto;max-width:min(340px,82vw);padding:6px 8px}'
       + '#tourYt.min .body,#tourYt.min .foot{display:none}'
@@ -935,7 +964,8 @@ export function createTourMusic() {
       + '#tourYt .foot{color:#8a7e70;font-size:10px}'
       + '#tourYt .gen{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;padding:2px 0!important}#tourYt .gen::-webkit-scrollbar{display:none}'
       + '#tourYt .gen button{flex:0 0 auto;white-space:nowrap}#tourYt .hd .acts button{min-width:30px;padding:5px 7px}'
-      + '#tourYt.dashEmbed .foot{display:none}#tourYt.dashEmbed .gen{order:-1}';
+      + '#tourYt.dashEmbed .foot{display:none}#tourYt.dashEmbed .gen{order:-1}'
+      + '#tourYt.dashEmbed{font-size:12px;gap:6px}#tourYt.dashEmbed button{font-size:12px;padding:5px 8px;border-radius:8px}#tourYt.dashEmbed .hd .acts button{min-width:34px;padding:5px 8px}#tourYt.dashEmbed .hdLabel{font-size:12px}';
     document.head.appendChild(css);
     wrap = document.createElement('div');
     wrap.id = 'tourYt';
@@ -944,6 +974,7 @@ export function createTourMusic() {
       + '<span class="hdLabel">MUSIC</span>'
       + '<span class="miniTtl" id="tourYtMiniTitle">Music</span>'
       + '<span class="acts">'
+      + '<button type="button" data-yt-dock="1" title="Dock back into the dash media bay">Dock</button>'
       + '<button type="button" data-yt-min="1" title="Minimize">—</button>'
       + '<button type="button" data-yt-prev="1" title="Previous">⏮</button>'
       + '<button type="button" data-yt-next="1" title="Next">⏭</button>'
@@ -957,7 +988,8 @@ export function createTourMusic() {
       + '<div class="row"><span class="ttl" id="tourYtTitle">Music off</span></div>'
       + '</div>'
       + '<div class="row gen" style="display:flex;flex-wrap:wrap;gap:4px;padding:4px 8px">' + GENRES.map(([k, n]) => '<button type="button" data-yt-genre="' + k + '" style="font-size:11px;padding:3px 7px;border-radius:10px;border:1px solid #34404c;background:' + (k === genre ? '#1f6f43' : '#1b232c') + ';color:#dbe6f0">' + n + '</button>').join('') + '</div>'
-      + '<div class="foot" id="tourYtFoot">Shuffle · ' + ALL.length + ' songs</div>';
+      + '<div class="foot" id="tourYtFoot">Shuffle · ' + ALL.length + ' songs</div>'
+      + '<div class="ytResize" data-yt-resize="1" title="Drag to resize"></div>';
     document.body.appendChild(wrap);
     mount = wrap.querySelector('#tourYtMount');
     label = wrap.querySelector('#tourYtTitle');
@@ -1088,27 +1120,76 @@ export function createTourMusic() {
 
   function bindDrag() {
     let drag = null;
+    let resize = null;
+    const dockBtn = wrap.querySelector('[data-yt-dock]');
+    if (dockBtn) {
+      dockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pos.dashFree = false;
+        pos.dashX = null; pos.dashY = null; pos.dashW = null; pos.dashH = null;
+        savePos(pos);
+        if (driverMode) placeDashOverlay();
+      });
+    }
     wrap.addEventListener('pointerdown', (e) => {
-      if (driverMode) return;
-      const handle = e.target.closest('[data-yt-drag]');
-      if (!handle || e.target.closest('button,a,iframe,input,select')) return;
+      if (e.target.closest('button,a,iframe,input,select')) return;
       const r = wrap.getBoundingClientRect();
-      if (!wrap.classList.contains('placed')) {
+      const rz = e.target.closest('[data-yt-resize]');
+      if (rz && driverMode) {
+        resize = { x0: e.clientX, y0: e.clientY, w0: r.width, h0: r.height, id: e.pointerId };
+        try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        e.preventDefault();
+        return;
+      }
+      const handle = e.target.closest('[data-yt-drag]');
+      if (!handle) return;
+      if (!driverMode && !wrap.classList.contains('placed')) {
         pos.x = r.left; pos.y = r.top;
         applyPos();
       }
-      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId };
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, id: e.pointerId, driver: !!driverMode };
       try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       e.preventDefault();
     });
     wrap.addEventListener('pointermove', (e) => {
-      if (!drag || e.pointerId !== drag.id || driverMode) return;
+      if (resize && e.pointerId === resize.id) {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const w = Math.max(180, Math.min(vw - 16, resize.w0 + (e.clientX - resize.x0)));
+        const h = Math.max(120, Math.min(vh - 16, resize.h0 + (e.clientY - resize.y0)));
+        const left = Math.max(4, Math.min(vw - w - 4, wrap.getBoundingClientRect().left));
+        const top = Math.max(4, Math.min(vh - h - 4, wrap.getBoundingClientRect().top));
+        wrap.style.width = Math.round(w) + 'px';
+        wrap.style.height = Math.round(h) + 'px';
+        wrap.style.left = Math.round(left) + 'px';
+        wrap.style.top = Math.round(top) + 'px';
+        pos.dashFree = true;
+        pos.dashW = w; pos.dashH = h; pos.dashX = left; pos.dashY = top;
+        return;
+      }
+      if (!drag || e.pointerId !== drag.id) return;
+      if (drag.driver) {
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const w = wrap.offsetWidth || 220, h = wrap.offsetHeight || 160;
+        const x = Math.max(4, Math.min(vw - w - 4, e.clientX - drag.dx));
+        const y = Math.max(4, Math.min(vh - h - 4, e.clientY - drag.dy));
+        wrap.style.left = Math.round(x) + 'px';
+        wrap.style.top = Math.round(y) + 'px';
+        pos.dashFree = true;
+        pos.dashX = x; pos.dashY = y;
+        pos.dashW = w; pos.dashH = h;
+        return;
+      }
       const c = clampPos(e.clientX - drag.dx, e.clientY - drag.dy);
       pos.x = c.x; pos.y = c.y;
       wrap.style.left = c.x + 'px';
       wrap.style.top = c.y + 'px';
     });
     const end = (e) => {
+      if (resize && (!e || e.pointerId === resize.id)) {
+        resize = null;
+        savePos(pos);
+        return;
+      }
       if (!drag || (e && e.pointerId !== drag.id)) return;
       drag = null;
       savePos(pos);
@@ -1269,8 +1350,11 @@ export function createTourMusic() {
     ensureUi();
     if (!ALL.length) return;
     const next = ((listIdx % ALL.length) + ALL.length) % ALL.length;
-    if (!opts.fromHistory && idx >= 0 && idx !== next) history.push(idx);
-    if (history.length > 80) history.splice(0, history.length - 80);
+    if (!opts.fromHistory) {
+      if (history[hpos] !== next) { history.length = hpos + 1; history.push(next); }
+      if (history.length > 80) history.splice(0, history.length - 80);
+      hpos = history.length - 1;
+    }
     idx = next;
     track = ALL[idx];
     syncTitles();
@@ -1283,6 +1367,7 @@ export function createTourMusic() {
   let shuffleCursor = 0;
   function playNext() {
     if (!ALL.length) return;
+    if (hpos >= 0 && hpos < history.length - 1) { hpos++; playAt(history[hpos], { fromHistory: true }); return; }
     if (shuffleCursor >= order.length) {
       shuffle(order);
       shuffleCursor = 0;
@@ -1296,46 +1381,65 @@ export function createTourMusic() {
   }
 
   function playPrev() {
-    if (history.length) {
-      playAt(history.pop(), { fromHistory: true });
-      return;
-    }
-    playAt(idx <= 0 ? ALL.length - 1 : idx - 1, { fromHistory: true });
+    if (hpos > 0) { hpos--; playAt(history[hpos], { fromHistory: true }); return; }
+    if (idx >= 0) loadVideo(ALL[idx].id);
   }
 
   function playRandom() { playNext(); }
 
-  /** Visually pin over the driver dash (left of RPM) without moving the DOM node. */
+  /** Dock into the passenger media bay (#dMediaSlot) — never grow over NAV / gauges. */
   function placeDashOverlay() {
     const dashEl = document.getElementById('tourDash');
     if (!wrap || !dashEl || !dashEl.classList.contains('on')) return;
     const r = dashEl.getBoundingClientRect();
     if (r.width < 8 || r.height < 8) return;
+    const vw = window.innerWidth, vh = window.innerHeight;
     const put = (l, t, w2, h2) => {
       wrap.style.left = Math.round(l) + 'px'; wrap.style.top = Math.round(t) + 'px';
       wrap.style.width = Math.round(w2) + 'px'; wrap.style.height = Math.round(h2) + 'px';
       wrap.style.right = 'auto'; wrap.style.bottom = 'auto';
     };
+    /* User dragged/resized away from the bay — keep their place until Dock */
+    if (pos.dashFree && Number.isFinite(pos.dashX) && Number.isFinite(pos.dashY)) {
+      const w2 = Math.max(180, Math.min(vw - 12, pos.dashW || 240));
+      const h2 = Math.max(120, Math.min(vh - 12, pos.dashH || 180));
+      put(
+        Math.max(4, Math.min(vw - w2 - 4, pos.dashX)),
+        Math.max(4, Math.min(vh - h2 - 4, pos.dashY)),
+        w2, h2,
+      );
+      return;
+    }
     const gen = wrap.querySelector('.row.gen'); if (gen) gen.style.display = 'flex';
-    /* car dashes reserve a free panel on the passenger side (#dMediaSlot): the player fills it when it is on screen,
-       otherwise (narrow phones crop the dash) it sits as a compact bar just above the dash, clear of the gauges */
     const slot = dashEl.querySelector('#dMediaSlot');
     if (slot) {
-      const b = slot.getBoundingClientRect(), vw = window.innerWidth;
-      const l = Math.max(6, b.left), rr = Math.min(vw - 6, b.right);
-      if (rr - l >= 180 && b.height >= 100) { put(l, b.top, rr - l, b.height); return; }
-      /* slot cropped (iPad portrait, phones): compact player (no genre chips) docked on the lower passenger dash,
-         so the windshield stays clear */
+      const b = slot.getBoundingClientRect();
+      const pad = 3;
+      const l = Math.max(4, b.left + pad);
+      const t = Math.max(4, b.top + pad);
+      const rr = Math.min(vw - 4, b.right - pad);
+      const bb = Math.min(vh - 4, b.bottom - pad);
+      /* bay visible: stay strictly inside it so NAV / gauges stay clear */
+      if (rr - l >= 110 && bb - t >= 90) {
+        put(l, t, rr - l, bb - t);
+        return;
+      }
+      /* bay cropped (phones): compact strip on the lower passenger side, still clear of left gauges */
       if (gen) gen.style.display = 'none';
-      const w2 = Math.min(300, vw - 16), h2 = Math.min(140, Math.max(104, r.height * 0.4));
-      put(Math.max(4, Math.min(vw - w2 - 8, rr - w2)), Math.max(r.top + 4, r.bottom - h2 - 6), w2, h2); return;
+      const w2 = Math.min(280, Math.max(160, vw * 0.34));
+      const h2 = Math.min(150, Math.max(110, r.height * 0.38));
+      put(
+        Math.max(4, Math.min(vw - w2 - 8, b.right - w2)),
+        Math.max(r.top + 4, Math.min(vh - h2 - 8, r.bottom - h2 - 8)),
+        w2, h2,
+      );
+      return;
     }
-    let w = Math.min(r.width * 0.24, 268, window.innerWidth * 0.24);
-    let h = Math.min(r.height * 0.58, 210, window.innerHeight * 0.28);
+    /* no bay (older dash): leave a gap left of the gauge cluster — never cover it */
+    let w = Math.min(r.width * 0.2, 220, vw * 0.2);
+    let h = Math.min(r.height * 0.48, 170, vh * 0.24);
     let left = r.left + r.width * 0.016;
     let top = r.bottom - r.height * 0.14 - h;
-    /* Car dashes: never cover the left gauge cluster (pickup fuel/temp dials, SUV/van screens).
-       Sit in the gap left of it when there is room, otherwise just above it. */
     let gl = 1e9, gt = 1e9, gr = -1e9;
     dashEl.querySelectorAll('.dLeft').forEach((el) => {
       const b = el.getBoundingClientRect();
@@ -1343,20 +1447,15 @@ export function createTourMusic() {
     });
     if (gr > gl) {
       const room = gl - r.left - 14;
-      if (room >= 170) {
+      if (room >= 150) {
         w = Math.min(w, room - 4); left = r.left + 8;
       } else {
-        w = Math.max(170, Math.min(w, gr - Math.max(4, r.left + 8)));
-        h = Math.min(h, 150, Math.max(110, gt - 10));
+        w = Math.max(150, Math.min(w, gr - Math.max(4, r.left + 8)));
+        h = Math.min(h, 130, Math.max(100, gt - 10));
         left = r.left + 8; top = gt - h - 10;
       }
     }
-    wrap.style.left = Math.max(4, left) + 'px';
-    wrap.style.top = Math.max(4, top) + 'px';
-    wrap.style.width = Math.max(160, w) + 'px';
-    wrap.style.height = Math.max(120, h) + 'px';
-    wrap.style.right = 'auto';
-    wrap.style.bottom = 'auto';
+    put(Math.max(4, left), Math.max(4, top), Math.max(150, w), Math.max(110, h));
   }
 
   window.addEventListener('resize', () => { if (driverMode) placeDashOverlay(); });
@@ -1468,6 +1567,7 @@ export function createTourMusic() {
     order = ALL.map((t, i) => (genre === 'all' || t.g === genre ? i : -1)).filter((i) => i >= 0);
     if (!order.length) order = ALL.map((_, i) => i);
     shuffle(order); shuffleCursor = 0;
+    history.length = hpos + 1;
     if (wrap) wrap.querySelectorAll('[data-yt-genre]').forEach((b) => { b.style.background = b.getAttribute('data-yt-genre') === genre ? '#1f6f43' : '#1b232c'; });
     if (foot) foot.textContent = 'Shuffle · ' + (GENRES.find(([k]) => k === genre) || [0, 'All'])[1] + ' · ' + order.length + ' songs';
     if (!on) setOn(true); else playNext();

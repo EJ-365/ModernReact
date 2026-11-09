@@ -6,7 +6,9 @@ import { createHoustonLand } from './render/houston-land.js';
 import { createHoustonSigns } from './render/houston-signs.js';
 import { createHoustonTolls } from './render/houston-tolls.js';
 import { createHoustonTollRoads } from './render/houston-toll-roads.js';
-import { createTour } from './tour.js';
+import { createTour, makeTourCar } from './tour.js';
+import { makeTrafficHeavy } from './render/traffic-heavy.js';
+import { createDetailedTraffic } from './render/traffic-detailed.js';
 import { createAmbient, AMBIENT_SCENES } from './ambient.js';
 import { createRoutePlanner } from './route/route-planner.js';
 import { attachPlaceSearch } from './ui/place-search.js';
@@ -1066,7 +1068,7 @@ function htsNoWebgl(){
     l.style.opacity='1';
   }catch(_e){}
 }
-renderer.setPixelRatio(HTS_PEEK||_lowGpu?1:Math.min(window.devicePixelRatio,innerWidth<900?1:(_isWin?1:1.5)));
+renderer.setPixelRatio(HTS_PEEK||_lowGpu?1:Math.min(window.devicePixelRatio,innerWidth<900?1.25:(_isWin?1.25:1.5)));
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=(THREE.SRGBColorSpace||THREE.sRGBEncoding);
 /* shader error checks (getProgramInfoLog/getShaderInfoLog per program) only in ?debug; three.js recommends this off in production */
@@ -4091,7 +4093,6 @@ function makeAirliner(finCol,liv,type){
   const wsM=new THREE.MeshPhongMaterial({color:0x0b1118,specular:0x8899aa,shininess:90});
   wsM.polygonOffset=true;wsM.polygonOffsetFactor=-3;wsM.polygonOffsetUnits=-6;
   /* windscreen: panes follow the nose surface (front pair + side windows) with thin painted posts between panes */
-  const wu0=boeing?0.5:0.54,wu1=boeing?0.68:0.72;
   const postM=new THREE.MeshLambertMaterial({color:LV[0],emissive:0x2a2826,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8});
   /* 747 upper deck: one lofted lobe, nearly full fuselage width so its sides blend into the body, running from a rounded
      forehead over the nose back to a long fairing ahead of the wing root. The flight deck sits on top of it, so the
@@ -4109,55 +4110,80 @@ function makeAirliner(finCol,liv,type){
     add(loftGeo(hs,z0,z1,-1.1,1.1,0.008,8,22),wsM,0,yc,0).renderOrder=2;
     for(const a of [0,0.48,-0.48,0.9,-0.9])add(loftGeo(hs,z0-0.01*NL,z1+0.01*NL,a-0.03,a+0.03,0.012,8,2),postM,0,yc,0).renderOrder=3;
   }else{
-    const ws=add(airNoseGeo(R*1.006,NL,boeing,Y,yc,zF,-1.15,1.15,wu0,wu1,R),wsM,0,0,0);ws.renderOrder=2;
-    for(const a of [0,0.5,-0.5,0.92,-0.92])add(airNoseGeo(R*1.01,NL,boeing,Y,yc,zF,a-0.025,a+0.025,wu0-0.01,wu1+0.01,R),postM,0,0,0).renderOrder=3;
+    const WT=0.95,hiF=t=>(boeing?0.45:0.42)-(boeing?0.15:0.13)*Math.abs(t)/WT,loF=t=>(boeing?0.7:0.66)-(boeing?0.3:0.26)*Math.abs(t)/WT;
+    const ws=add(airNoseGeo(R*1.006,NL,boeing,Y,yc,zF,-WT,WT,hiF,loF,R),wsM,0,0,0);ws.renderOrder=2;
+    for(const a of [0,0.46,-0.46])add(airNoseGeo(R*1.01,NL,boeing,Y,yc,zF,a-0.03,a+0.03,t=>hiF(t)-0.01,t=>loF(t)+0.01,R),postM,0,0,0).renderOrder=3;
   }
   /* nose is one smooth shell: no separate radome ball or frame posts sticking out (they read as bumps) */
-  add(new THREE.CylinderGeometry(R,0.7*dK,3.83*R,18),white,0,yc,zB-1.915*R,Math.PI/2).scale.z=Y;
+  add(tailConeGeo(R,3.83*R,Y,yc,zB),white,0,0,0);
+  add(new THREE.CircleGeometry(0.17*R,14),new THREE.MeshLambertMaterial({color:0x2a2d31}),0,yc+Y*0.42*R,zB-3.83*R-0.02,0,Math.PI,0); /* APU exhaust */
   add(new THREE.CylinderGeometry(R*1.004,R*1.004,Lc*0.94,12,1,false,Math.PI*0.7,Math.PI*0.6),grayB,0,yc,0,Math.PI/2).scale.z=Y;
+  const coreM=new THREE.MeshLambertMaterial({color:0x6f747a}),spinM=new THREE.MeshLambertMaterial({color:0x3a3e44});
+  const engine=(x,y,z,eR,eL)=>{ /* turbofan: lathe nacelle with a rounded inlet lip, fan face + spinner, core nozzle and plug */
+    add(nacelleGeo(eR,eL),engM,x,y,z);
+    add(new THREE.CircleGeometry(eR*0.8,20),intakeM,x,y,z+0.3*eL);
+    add(new THREE.ConeGeometry(eR*0.24,eR*0.5,14),spinM,x,y,z+0.3*eL+eR*0.25,Math.PI/2);
+    add(new THREE.CylinderGeometry(eR*0.55,eR*0.45,0.22*eL,16,1,true),coreM,x,y,z-0.6*eL,Math.PI/2);
+    add(new THREE.ConeGeometry(eR*0.36,0.28*eL,14),coreM,x,y,z-0.84*eL,-Math.PI/2);
+  };
   /* swept low wings, tip devices per type, engines on pylons */
   const sw=T.sw||0.42,Lw=21*T.sK/Math.cos(sw)*Math.cos(0.42),ch=6.4*Math.sqrt(T.lK*T.sK),wy=-0.43*R,wz=0.2*T.lK,tx=Lw/2*(1+Math.cos(sw)),tz=wz-Math.sin(sw)*Lw/2,ty=wy+0.03*Lw;
   const zc=(x)=>wz-(x-Lw/2)*Math.tan(sw);
+  const x0=0.3*R,cr=ch*1.55,ct=ch*0.42,xk=x0+0.33*(tx-x0),le0=zc(x0)+cr/2,leT=zc(tx)+ct/2,teK=le0-cr;
+  const leZ=x=>le0+(leT-le0)*(x-x0)/(tx-x0),wyAt=x=>wy+(ty-wy)*(x-x0)/(tx-x0);
+  const wSec=[{x:x0,le:le0,te:teK},{x:xk,le:leZ(xk),te:teK},{x:tx,le:leT,te:zc(tx)-ct/2}].map(o=>({...o,y:wyAt(o.x),th:(o.le-o.te)*(0.135-0.035*(o.x-x0)/(tx-x0))}));
+  /* wing-to-body fairing under the centre section */
+  add(new THREE.SphereGeometry(1,24,14),white,0,-0.6*R,(le0+teK)/2-0.1*cr).scale.set(0.9*R,0.45*R,cr*0.85);
+  const fh=8.4*dK,fSw=T.tt?0.8:0.68,crF=7.2*dK,ctF=(T.tt?3.2:2.6)*dK,fy0=yc+R*Y-1.95*dK,fLe0=zB-2.34*R+0.05*fh+crF/2,fLeT=fLe0-fh*Math.tan(fSw);
+  if(T.tip==='raked'){const xr=tx+3.4*T.sK,lr=leT-3.4*T.sK*1.5;wSec.push({x:xr,y:ty+0.12*dK,le:lr,te:lr-0.7*dK,th:0.12*dK});}
+  const wlet=(sd,h,cant,curve)=>{ /* winglet/sharklet: lofted from the tip chord, curving up and canting outward, tapering and swept */
+    const tS=wSec[2],c0=tS.le-tS.te,secs=[{...tS,x:tS.x-0.2*dK}];
+    const ang=[curve?0.75:1.35,Math.PI/2-cant],hs=[curve?0.28:0.12,1];
+    let px=tS.x,py=tS.y;
+    for(let i=0;i<2;i++){const a=ang[i],hh=h*hs[i]-(i?h*hs[0]:0);px+=hh*Math.cos(a);py+=hh*Math.sin(a);
+      const k=i?0.38:0.8,le=tS.le-h*hs[i]*0.85;secs.push({x:px,y:py,le,te:le-c0*k,th:c0*k*0.09,nx:Math.sin(a),ny:-Math.cos(a)});}
+    add(wingSurf(secs,sd),finM,0,0,0);};
   for(const sd of [1,-1]){
-    add(new THREE.BoxGeometry(Lw,0.55*Math.sqrt(dK),ch),white,sd*Lw/2,wy,wz,0,sd*sw,sd*0.06);
-    if(T.tip==='raked'){const ra=sw+0.53,hl=1.7*T.sK;add(new THREE.BoxGeometry(3.4*T.sK,0.3*dK,ch*0.3),white,sd*(tx+hl*Math.cos(ra)),ty+0.1*dK,tz-hl*Math.sin(ra),0,sd*ra,sd*0.06);}
-    else if(T.tip==='fence')add(new THREE.BoxGeometry(0.4*dK,2.6*dK,2.2*dK),finM,sd*tx,ty,tz+0.4*dK);
-    else{
-      const P={winglet:[3.2,0,0],sharklet:[2.7,0.22,-0.3],curved:[3.4,0.45,-0.45],canted:[2.4,0.55,-0.2]}[T.tip]||[3.2,0,0];
-      add(new THREE.BoxGeometry(0.5*dK,P[0]*dK,2.6*dK),finM,sd*(tx+P[0]*dK*0.5*Math.sin(P[1])),ty+P[0]*dK*0.5*Math.cos(P[1]),tz+0.7*dK,P[2],0,-sd*P[1]);
+    add(wingSurf(wSec,sd),white,0,0,0);
+    if(T.tip==='fence')add(new THREE.BoxGeometry(0.25*dK,2.6*dK,2.2*dK),finM,sd*tx,ty,tz+0.4*dK);
+    else if(T.tip!=='raked'){
+      const P={winglet:[3.2,0.08,0],sharklet:[2.6,0.2,1],curved:[3.4,0.4,1],canted:[2.4,0.5,0]}[T.tip]||[3.2,0.08,0];
+      wlet(sd,P[0]*dK,P[1],!!P[2]);
     }
     const eR=1.5*dK*T.eK,eL=3.1*eR;
     for(const f of (T.rear?[]:T.eng===4?[0.3,0.62]:[0.36])){
-      const ex=f*tx,ez=zc(ex)+0.376*eL,ey=wy-eR*0.95;
-      add(new THREE.CylinderGeometry(eR,eR*0.88,eL,16),engM,sd*ex,ey,ez,Math.PI/2);
-      add(new THREE.CircleGeometry(eR*0.87,18),intakeM,sd*ex,ey,ez+eL/2+0.02);
-      add(new THREE.BoxGeometry(0.3*dK,eR*0.9,eL*0.7),white,sd*ex,wy-eR*0.45,ez-eL*0.2);
+      const ex=f*tx,ez=leZ(ex)+0.1*eL,ey=wyAt(ex)-eR*1.02;
+      engine(sd*ex,ey,ez,eR,eL);
+      add(new THREE.BoxGeometry(0.3*dK,eR*0.75,eL*0.8),white,sd*ex,ey+eR*0.85,ez-eL*0.12);
     }
     if(T.rear){ /* aft-fuselage nacelles on short horizontal pylons, just ahead of the tail cone */
       const ex=R+eR*1.05+0.2*dK,ez=zB+0.2*R,ey=yc+0.32*R;
-      add(new THREE.CylinderGeometry(eR,eR*0.85,eL,16),engM,sd*ex,ey,ez,Math.PI/2);
-      add(new THREE.CircleGeometry(eR*0.86,18),intakeM,sd*ex,ey,ez+eL/2+0.02);
+      engine(sd*ex,ey,ez,eR,eL);
       add(new THREE.BoxGeometry(ex-R*0.7,0.28*dK,eL*0.5),white,sd*(ex+R*0.7)/2,ey,ez-eL*0.1);
     }
-    if(T.tt){ /* T-tail: the stabiliser sits on top of the fin */
-      const ls=6.2*T.sK,fh=8.4*dK;
-      add(new THREE.BoxGeometry(ls,0.38*dK,3.2*dK),white,sd*ls/2,yc+R*Y-1.95*dK+fh*0.96,zB-2.34*R-0.138*fh-1.2*dK,0,sd*0.5);
-    }else{
-    const ls=8.6*T.sK*0.95;
-    add(new THREE.BoxGeometry(ls,0.45*dK,3.6*dK),white,sd*(ls/2+0.3*dK),yc+1.6*dK,zB-2.13*R,0,sd*0.5);
+    { /* horizontal tail: on top of the fin for T-tails, on the tail cone otherwise; swept ~30 deg and tapered */
+      const tt=!!T.tt,ls=tt?6.2*T.sK:8.6*T.sK*0.95,c0=(tt?3.4:4.4)*dK,c1=(tt?1.5:1.6)*dK,r0=tt?0:0.25*R;
+      const y0=tt?fy0+fh*0.97:yc+1.6*dK,l0=tt?fLeT+0.2*dK:zB-2.13*R+c0/2,l1=l0-(ls-r0)*Math.tan(0.56);
+      add(wingSurf([{x:r0,y:y0,le:l0,te:l0-c0,th:c0*0.1},{x:ls,y:y0+(tt?0.02:0.1)*ls,le:l1,te:l1-c1,th:c1*0.09}],sd),white,0,0,0);
     }
   }
-  const fh=8.4*dK;
-  add(new THREE.BoxGeometry(0.7*dK,fh,5.6*dK),finM,0,yc+R*Y-1.95*dK+fh/2,zB-2.34*R,-0.28);
+  /* swept, tapered fin (span built along x, stood up on the fuselage) */
+  {const fg=wingSurf([{x:0,y:0,le:fLe0,te:fLe0-crF,th:crF*0.11},{x:fh,y:0,le:fLeT,te:fLeT-ctF,th:ctF*0.1}],1,true);fg.rotateZ(Math.PI/2);add(fg,finM,0,fy0,0);}
   /* passenger windows — shared mats (batched below); A380 gets two decks, 747 an upper-deck row on the hump */
   const winGlass=new THREE.MeshLambertMaterial({color:0x5a82a0,transparent:true,opacity:0.55,depthWrite:false});
   const winFrame=new THREE.MeshLambertMaterial({color:0x1a1e24});
-  const wk=(1+(dK-1)*0.4)*(T.biz?1.3:1),sp=1.7*wk*(T.biz?1.25:1),rows=Y>1?[-0.12,0.5]:[0.32];
-  const win=(x,y,z)=>{add(new THREE.BoxGeometry(0.12,0.58*wk,0.85*wk),winFrame,x,y,z);add(new THREE.BoxGeometry(0.08,0.44*wk,0.6*wk),winGlass,x+Math.sign(x)*0.06,y,z);};
+  const wk=(1+(dK-1)*0.4)*(T.biz?1.3:1),sp=(T.biz?1.6:1.0)*wk,rows=Y>1?[-0.12,0.5]:[0.32];
+  const win=(x,y,z)=>{add(new THREE.BoxGeometry(0.1,0.52*wk,0.4*wk),winFrame,x,y,z);add(new THREE.BoxGeometry(0.07,0.42*wk,0.3*wk),winGlass,x+Math.sign(x)*0.05,y,z);};
+  /* passenger doors: thin dark outlines on the skin (front and rear; business jets get the forward airstair door) */
+  const dH=0.82*R*Y/Y,dW=0.36*R,doors=T.biz?[zF-0.9*dK]:[zF-0.9*dK,zB+1.3*dK];
+  for(const sd of (T.biz?[-1]:[1,-1]))for(const dz of doors){const x=sd*(R+0.02),y=yc+0.05*R;
+    for(const zz of [dz-dW/2,dz+dW/2])add(new THREE.BoxGeometry(0.05,dH,0.06),winFrame,x,y,zz);
+    for(const yy of [y-dH/2,y+dH/2])add(new THREE.BoxGeometry(0.05,0.06,dW),winFrame,x,yy,dz);}
+  const nearDoor=z=>doors.some(d=>Math.abs(z-d)<dW/2+0.45*wk);
   for(const sd of [1,-1]){
     for(const ry of rows){
       const xr=R*Math.sqrt(1-ry*ry)+0.04*dK;
-      for(let z=zF-4.5*dK;z>zB+(T.rear?1.2*R:1.5*dK);z-=sp)win(sd*xr,yc+ry*R*Y,z);
+      for(let z=zF-2.4*dK;z>zB+(T.rear?1.2*R:2.2*dK);z-=sp)if(!nearDoor(z))win(sd*xr,yc+ry*R*Y,z);
     }
     /* 747 upper deck: each window sits on the hump's own surface (it tapers at both ends) and tilts with it */
     if(T.hump){const th=1.0;
@@ -4193,6 +4219,36 @@ function makeAirliner(finCol,liv,type){
   batchStaticChildren(g,{cell:1e6});
   return g;
 }
+function wingSurf(sec,sd=1,sym=false){
+  /* lifting surface lofted through airfoil sections {x,y,le,te,th} (root to tip, x mirrored by sd), tip closed */
+  const nf=9,F=[],ring=[],pos=[],idx=[];
+  for(let i=0;i<=nf;i++)F.push(0.5-0.5*Math.cos(Math.PI*i/nf));
+  for(let i=0;i<=nf;i++)ring.push([F[i],1]);for(let i=nf-1;i>=1;i--)ring.push([F[i],-1]);
+  const M=ring.length,yt=f=>5*(0.2969*Math.sqrt(f)-0.126*f-0.3516*f*f+0.2843*f*f*f-0.1036*f*f*f*f);
+  for(const S of sec)for(const [f,u] of ring){const o=u*(sym?1:(u>0?1.15:0.85))*S.th*yt(f),nx=S.nx||0,ny=S.ny==null?1:S.ny;pos.push(sd*(S.x+o*nx),S.y+o*ny,S.le+(S.te-S.le)*f);}
+  const fl=sd<0,tri=(a,b,c)=>fl?idx.push(a,c,b):idx.push(a,b,c);
+  for(let k=0;k<sec.length-1;k++)for(let m=0;m<M;m++){const a=k*M+m,b=k*M+(m+1)%M;tri(a,b,a+M);tri(b,b+M,a+M);}
+  const T=sec[sec.length-1],c=pos.length/3;pos.push(sd*T.x,T.y,(T.le+T.te)/2);
+  for(let m=0;m<M;m++){const a=(sec.length-1)*M+m,b=(sec.length-1)*M+(m+1)%M;tri(a,c,b);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g;
+}
+function nacelleGeo(eR,eL){
+  /* turbofan nacelle profile (radius, axial) from the nozzle forward to the inlet lip and back into the intake */
+  const P=[[0.6,-0.5],[0.8,-0.42],[0.96,-0.15],[1.0,0.12],[0.98,0.36],[0.93,0.47],[0.86,0.505],[0.81,0.48],[0.8,0.3]];
+  const g=new THREE.LatheGeometry(P.map(([r,y])=>new THREE.Vector2(r*eR,y*eL)),28);g.rotateX(Math.PI/2);return g;
+}
+function tailConeGeo(R,L,Y,yc,z0){
+  /* upswept tail cone: zero slope at the barrel, centreline rising so the belly sweeps up and the crown stays level */
+  const nu=14,nt=24,pos=[],idx=[];
+  for(let i=0;i<=nu;i++){const u=i/nu,r=R*(1-0.72*Math.pow(u,1.25)),dy=0.42*R*Math.pow(u,1.7);
+    for(let j=0;j<=nt;j++){const t=-Math.PI+TAU*j/nt;pos.push(r*Math.sin(t),yc+Y*(dy+r*Math.cos(t)),z0-u*L);}}
+  for(let i=0;i<nu;i++)for(let j=0;j<nt;j++){const a=i*(nt+1)+j,b=a+nt+1;idx.push(a,a+1,b,a+1,b+1,b);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  const nn=g.attributes.normal;
+  for(let i=0;i<=nu;i++){const a=i*(nt+1),b=a+nt;for(let c=0;c<3;c++){const m=(nn.getComponent(a,c)+nn.getComponent(b,c))/2;nn.setComponent(a,c,m);nn.setComponent(b,c,m);}}
+  for(let j=0;j<=nt;j++){const t=-Math.PI+TAU*j/nt,x=Math.sin(t),y=Math.cos(t)/Y,h=Math.hypot(x,y);nn.setXYZ(j,x/h,y/h,0);}
+  return g;
+}
 function noseProf(u,R,boeing){
   const pw=boeing?2.1:2.8,ex=boeing?0.56:0.5,dr=boeing?0.3:0.16;
   return {r:R*Math.pow(Math.max(0,1-Math.pow(u,pw)),ex),dy:-dr*R*u*u};
@@ -4211,18 +4267,18 @@ function airNoseGeo(R,L,boeing,Y,yc,z0,t0=-Math.PI,t1=Math.PI,u0=0,u1=1,Rb=R){
      and the chin stays fuller. Boeing: more pointed, more droop; Airbus: blunter, rounder. */
   const full=t1-t0>6.28,nu=18,nt=full?24:Math.max(4,Math.round((t1-t0)/(Math.PI*2)*48)),pos=[],idx=[];
   const k=R/Rb;
-  for(let i=0;i<=nu;i++){
-    const u=u0+(u1-u0)*i/nu,P=noseProf(u,Rb,boeing),r=P.r*k,dy=P.dy;
-    for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt;
-      pos.push(r*Math.sin(t),yc+Y*(dy+r*Math.cos(t)),z0+u*L);}
+  const U0=typeof u0==='function'?u0:()=>u0,U1=typeof u1==='function'?u1:()=>u1;
+  for(let i=0;i<=nu;i++)for(let j=0;j<=nt;j++){
+    const t=t0+(t1-t0)*j/nt,a=U0(t),u=a+(U1(t)-a)*i/nu,P=noseProf(u,Rb,boeing),r=P.r*k;
+    pos.push(r*Math.sin(t),yc+Y*(P.dy+r*Math.cos(t)),z0+u*L);
   }
   for(let i=0;i<nu;i++)for(let j=0;j<nt;j++){const a=i*(nt+1)+j,b=a+nt+1;idx.push(a,b,a+1,a+1,b,b+1);}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
   /* weld the normals across the bottom seam and round off the radome tip so neither shows as a line or a dimple */
   const nn=g.attributes.normal;
   if(full)for(let i=0;i<=nu;i++){const a=i*(nt+1),b=a+nt;for(let c=0;c<3;c++){const m=(nn.getComponent(a,c)+nn.getComponent(b,c))/2;nn.setComponent(a,c,m);nn.setComponent(b,c,m);}}
-  if(u1>=1)for(let j=0;j<=nt;j++)nn.setXYZ(nu*(nt+1)+j,0,-0.25,0.97);
-  if(u0<=0)for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt,x=Math.sin(t),y=Math.cos(t)/Y,h=Math.hypot(x,y);nn.setXYZ(j,x/h,y/h,0);}
+  if(typeof u1!=='function'&&u1>=1)for(let j=0;j<=nt;j++)nn.setXYZ(nu*(nt+1)+j,0,-0.25,0.97);
+  if(typeof u0!=='function'&&u0<=0)for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt,x=Math.sin(t),y=Math.cos(t)/Y,h=Math.hypot(x,y);nn.setXYZ(j,x/h,y/h,0);}
   return g;
 }
 function makeConcorde(finCol,liv){
@@ -4291,6 +4347,22 @@ function tourJet(c,a,type){
 }
 /* military helicopters at real dimensions (metres): Sikorsky UH-60 Black Hawk, Boeing AH-64 Apache, Boeing CH-47 Chinook */
 const MIL_HELI={uh60:1,ah64:1,ch47:1};
+function seInterp(st,z){ /* Catmull-Rom through body stations [z, half-width, top, bottom, squareness] sorted by z */
+  const n=st.length;let i=0;while(i<n-2&&z>st[i+1][0])i++;
+  const p0=st[Math.max(0,i-1)],p1=st[i],p2=st[i+1],p3=st[Math.min(n-1,i+2)],u=Math.max(0,Math.min(1,(z-p1[0])/((p2[0]-p1[0])||1))),u2=u*u,u3=u2*u,o=[];
+  for(let k=1;k<5;k++){const a=p0[k],b=p1[k],c=p2[k],d=p3[k];o.push((2*u3-3*u2+1)*b+(u3-2*u2+u)*(c-a)/2+(-2*u3+3*u2)*c+(u3-u2)*(d-b)/2);}
+  return o;
+}
+function seLoft(st,z0,z1,t0=-Math.PI,t1=Math.PI,grow=0,nz=48,nt=28,off=0){
+  /* smooth fuselage skin: superellipse sections (t=0 is the top) lofted along z; a sub-range of t/z gives a flush panel (glass, paint) */
+  st=[...st].sort((a,b)=>a[0]-b[0]);const pos=[],idx=[],full=t1-t0>6.28;
+  for(let i=0;i<=nz;i++){const z=z0+(z1-z0)*i/nz,[w0,top,bot,e]=seInterp(st,z),w=Math.max(0.002,w0)*(1+grow)+off,c=(top+bot)/2,hh=Math.max(0.002,(top-bot)/2)*(1+grow)+off,pe=2/Math.max(2,e);
+    for(let j=0;j<=nt;j++){const t=t0+(t1-t0)*j/nt,sn=Math.sin(t),cs=Math.cos(t);pos.push(w*Math.sign(sn)*Math.pow(Math.abs(sn),pe),c+hh*Math.sign(cs)*Math.pow(Math.abs(cs),pe),z);}}
+  for(let i=0;i<nz;i++)for(let j=0;j<nt;j++){const a=i*(nt+1)+j,b=a+nt+1;idx.push(a,b,a+1,a+1,b,b+1);}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();
+  if(full){const nn=g.attributes.normal;for(let i=0;i<=nz;i++){const a=i*(nt+1),b=a+nt;for(let k=0;k<3;k++){const m=(nn.getComponent(a,k)+nn.getComponent(b,k))/2;nn.setComponent(a,k,m);nn.setComponent(b,k,m);}}}
+  return g;
+}
 function makeMilHeli(kind){
   const g=new THREE.Group();
   const olive=new THREE.MeshPhongMaterial({color:kind==='ah64'?0x3b3f2e:kind==='ch47'?0x4a4f3b:0x40472f,specular:0x1c1c1c,shininess:10});
@@ -4306,65 +4378,98 @@ function makeMilHeli(kind){
     for(let i=0;i<nb;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(chord,0.06,r).translate(0,0.1,r/2),bladeM);b.rotation.y=i*TAU/nb;rg.add(b);}
     const d=new THREE.Mesh(new THREE.CircleGeometry(r,48),new THREE.MeshBasicMaterial({color:0x22262a,transparent:true,opacity:0.12,side:THREE.DoubleSide,depthWrite:false}));
     d.rotation.x=-Math.PI/2;d.position.y=0.1;rg.add(d);discs.push(d);return rg;};
-  const tailRotor=(r,nb,x,y,z)=>{const tg=new THREE.Group();tg.position.set(x,y,z);g.add(tg);
+  const tailRotor=(r,nb,x,y,z,angs)=>{const tg=new THREE.Group();tg.position.set(x,y,z);g.add(tg);
     tg.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.2,8).rotateZ(Math.PI/2),dark));
-    for(let i=0;i<nb;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.04,r,0.22).translate(0,r/2,0),dark);b.rotation.x=i*TAU/nb;tg.add(b);}
+    for(let i=0;i<nb;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(0.04,r,0.22).translate(0,r/2,0),dark);b.rotation.x=angs?angs[i]:i*TAU/nb;tg.add(b);}
     return tg;};
   const wheel=(x,y,z,r)=>{add(new THREE.CylinderGeometry(r,r,0.3,16),tyre,x,y,z,0,0,Math.PI/2);add(new THREE.CylinderGeometry(0.06,0.06,0.7,6),metal,x*0.85,y+0.35,z,0,0,x>0?0.4:-0.4);};
   let rotor,rotor2=null,prop,navW=1.3,tailZ=-9;
+  const body=(st,m=olive)=>{const z=st.map(q=>q[0]);return add(seLoft(st,Math.min(...z),Math.max(...z)),m,0,0,0);};
+  const panel=(st,z0,z1,t0,t1,m,gr=0.012)=>add(seLoft(st,z0,z1,t0,t1,gr,12,Math.max(2,Math.round((t1-t0)*8))),m,0,0,0);
+  const fin=(sec,y,m=olive)=>{const fg=wingSurf(sec,1,true);fg.rotateZ(Math.PI/2);return add(fg,m,0,y,0);};
+  const surf=(sec)=>{for(const sd of [1,-1])add(wingSurf(sec,sd),olive,0,0,0);};
+  const strut=(x,y0,y1,z)=>add(new THREE.CylinderGeometry(0.07,0.07,y1-y0,6),metal,x,(y0+y1)/2,z);
   if(kind==='ch47'){
-    /* 15.9 m box fuselage, rear loading ramp, side fuel pods, two 3-blade rotors (18.3 m) on fore and aft pylons */
-    add(new THREE.BoxGeometry(3.7,3.2,15.2),olive,0,2.0,0);
-    const nose=add(new THREE.SphereGeometry(1.85,20,14,0,TAU,0,Math.PI/2),olive,0,1.55,7.55,Math.PI/2);nose.scale.set(1,0.75,0.95);
-    add(new THREE.BoxGeometry(3.0,1.1,0.08),glass,0,3.05,7.95,-0.55);
-    for(const sd of [1,-1]){add(new THREE.BoxGeometry(0.08,1.0,1.5),glass,sd*1.86,2.6,6.9);add(new THREE.BoxGeometry(0.7,1.0,9.0),olive,sd*2.15,0.95,-0.4);
-      for(let k=0;k<6;k++)add(new THREE.BoxGeometry(0.05,0.45,0.45),glass,sd*1.86,2.75,4.8-k*1.9);}
-    add(new THREE.BoxGeometry(1.5,1.3,3.4),olive,0,4.15,5.6);
-    add(new THREE.BoxGeometry(1.8,2.4,4.2),olive,0,4.6,-5.6);
-    for(const sd of [1,-1])add(new THREE.CapsuleGeometry(0.55,2.4,6,10),olive,sd*1.45,4.4,-6.2,Math.PI/2);
-    add(new THREE.BoxGeometry(3.5,0.15,2.6),olive,0,0.55,-8.4,-0.25); /* ramp */
-    for(const z of [4.6,-4.4])for(const sd of [1,-1])wheel(sd*1.7,0.15,z,0.4);
-    rotor=rotorAt(9.15,3,4.95,6.1,0.65);rotor2=rotorAt(9.15,3,6.0,-6.3,0.65);prop=new THREE.Group();g.add(prop);navW=2.1;tailZ=-7.6;
+    /* CH-47F: 15.5 m squared-off fuselage, glazed nose, short forward and tall aft rotor pylons, aft engines,
+       long side fuel pods, upswept rear ramp, four wheels, two 3-blade 18.3 m rotors */
+    const st=[[8.25,0.05,2.3,1.5,2],[8.0,0.9,2.85,0.8,2.4],[7.3,1.6,3.35,0.42,3],[6.3,1.85,3.6,0.32,3.8],[4.5,1.9,3.7,0.3,4.5],[-4.0,1.9,3.7,0.3,4.5],[-5.6,1.88,3.7,0.6,4.5],[-7.4,1.8,3.68,1.6,4.2],[-8.0,1.7,3.6,2.3,4],[-8.2,0.05,3.4,2.6,2]];
+    body(st);
+    panel(st,6.6,8.08,-1.3,1.3,glass);for(const sd of [1,-1])panel(st,7.2,8.1,sd>0?1.85:-2.45,sd>0?2.45:-1.85,glass);
+    for(const a of [0,0.62,-0.62])panel(st,6.58,8.1,a-0.035,a+0.035,olive,0.02);
+    body([[7.4,0.05,3.75,3.4,2],[6.9,0.6,4.35,3.4,2.6],[5.4,0.72,4.6,3.4,3],[4.2,0.55,4.3,3.4,2.6],[3.4,0.05,3.8,3.5,2]]);
+    body([[-1.2,0.05,3.75,3.5,2],[-2.6,0.6,4.3,3.4,2.6],[-4.6,0.95,5.3,3.4,3.2],[-6.8,0.95,5.75,3.4,3.2],[-7.9,0.7,5.5,3.4,3],[-8.4,0.05,5.0,3.5,2]]);
+    add(new THREE.CylinderGeometry(0.22,0.28,0.5,10),dark,0,4.75,6.1);add(new THREE.CylinderGeometry(0.22,0.28,0.4,10),dark,0,5.8,-6.3);
+    for(const sd of [1,-1]){
+      add(new THREE.BoxGeometry(0.05,0.85,1.0),glass,sd*1.87,2.95,6.15);
+      for(let k=0;k<6;k++)add(new THREE.BoxGeometry(0.05,0.45,0.5),glass,sd*1.92,2.65,4.6-k*1.65);
+      add(new THREE.BoxGeometry(0.05,1.7,0.9),dark,sd*1.915,1.6,5.2).scale.set(1,1,1);  /* crew door outline */
+      const pod=add(new THREE.CapsuleGeometry(0.55,7.0,6,12),olive,sd*2.02,0.95,-0.3,Math.PI/2);pod.scale.set(0.72,1,1);
+      const en=add(new THREE.CapsuleGeometry(0.55,2.4,6,12),olive,sd*1.62,4.15,-6.5,Math.PI/2);void en;
+      add(new THREE.CircleGeometry(0.4,14),dark,sd*1.62,4.15,-5.18);
+      add(new THREE.CylinderGeometry(0.36,0.42,0.4,12,1,true),dark,sd*1.62,4.15,-7.95,Math.PI/2);
+      add(new THREE.BoxGeometry(0.45,0.3,0.9),olive,sd*1.25,3.95,-6.3);
+    }
+    for(const z of [4.6,-4.4])for(const sd of [1,-1])wheel(sd*1.75,0.15,z,0.4);
+    rotor=rotorAt(9.15,3,4.95,6.1,0.64);rotor2=rotorAt(9.15,3,6.0,-6.3,0.64);prop=new THREE.Group();g.add(prop);navW=2.1;tailZ=-8.2;
   }else if(kind==='ah64'){
-    /* AH-64: slim 1 m fuselage, tandem stepped canopies, TADS nose turret, chin gun, stub wings with rocket pods and Hellfires */
-    add(new THREE.BoxGeometry(1.05,1.45,6.6),olive,0,1.45,0.6);
-    const nz=add(new THREE.SphereGeometry(0.7,16,12),olive,0,1.25,3.9);nz.scale.set(0.8,1,1.4);
-    add(new THREE.CylinderGeometry(0.36,0.36,0.6,14),dark,0,0.95,4.75);
-    add(new THREE.CylinderGeometry(0.05,0.05,1.4,6),metal,0,0.55,3.6,Math.PI/2);
-    const c1=add(new THREE.BoxGeometry(0.95,0.7,1.5),glass,0,2.25,2.75,-0.25);void c1;
-    add(new THREE.BoxGeometry(0.95,0.75,1.5),glass,0,2.6,1.35,-0.2);
+    /* AH-64E: narrow fuselage with avionics cheeks, stepped tandem canopies (gunner low in front, pilot high behind),
+       TADS/PNVS nose turret, chin M230 gun, side engine nacelles, stub wings with Hellfire racks and rocket pods,
+       Longbow mast radar, swept fin with an X-shaped (scissor) tail rotor and a low stabilator */
+    const st=[[5.15,0.05,1.3,1.1,2],[4.85,0.42,1.65,0.85,2.2],[4.0,0.55,2.0,0.7,2.6],[2.6,0.62,2.25,0.62,2.8],[1.0,0.7,2.5,0.62,3],[-0.8,0.72,2.6,0.75,3],[-2.2,0.55,2.45,1.15,2.6],[-3.4,0.32,2.2,1.55,2.3],[-8.0,0.22,2.1,1.72,2.2],[-9.0,0.2,2.25,1.8,2.2],[-9.6,0.04,2.2,2.0,2]];
+    body(st);
+    const cg=new THREE.MeshPhongMaterial({color:0x0e171e,specular:0xc8d8e8,shininess:150,transparent:true,opacity:0.82});
+    const c1=[[4.15,0.03,2.0,1.9,2],[3.8,0.5,2.42,1.85,2.4],[3.0,0.56,2.6,1.85,2.6],[2.45,0.55,2.62,1.85,2.6],[2.3,0.05,2.6,1.9,2]];
+    const c2=[[2.75,0.03,2.6,2.5,2],[2.45,0.5,2.95,2.3,2.4],[1.6,0.6,3.1,2.3,2.6],[0.9,0.55,3.05,2.35,2.6],[0.7,0.05,2.95,2.45,2]];
+    add(seLoft(c1,2.3,4.15,-1.7,1.7,0,24,16),cg,0,0,0);add(seLoft(c2,0.7,2.75,-1.7,1.7,0,24,16),cg,0,0,0);
+    for(const [c,z0,z1] of [[c1,2.3,4.15],[c2,0.7,2.75]])panel(c,z0,z1,-0.03,0.03,olive,0.02);
     for(const sd of [1,-1]){
-      add(new THREE.CapsuleGeometry(0.42,1.7,6,10),olive,sd*0.9,2.15,-0.2,Math.PI/2);
-      add(new THREE.CylinderGeometry(0.3,0.3,1.7,10),dark,sd*1.55,1.25,0.5,Math.PI/2);
-      for(const yy of [1.05,1.45])add(new THREE.BoxGeometry(0.24,0.24,1.5),metal,sd*2.25,yy,0.5);
+      const ck=add(new THREE.CapsuleGeometry(0.36,2.6,6,12),olive,sd*0.6,1.0,1.7,Math.PI/2);ck.scale.set(0.9,1,1);   /* avionics cheek */
+      const nc=add(new THREE.CapsuleGeometry(0.44,1.7,6,12),olive,sd*0.98,2.3,-0.55,Math.PI/2);void nc;            /* engine nacelle */
+      add(new THREE.CircleGeometry(0.3,12),dark,sd*0.98,2.3,0.86);
+      add(new THREE.BoxGeometry(0.5,0.4,0.6),dark,sd*1.15,2.35,-1.75,0,sd*0.5,0);                                  /* IR-suppressed exhaust */
+      for(const xx of [1.45,2.3]){add(new THREE.BoxGeometry(0.1,0.32,0.6),olive,sd*xx,1.72,0.5);}
+      add(new THREE.CylinderGeometry(0.21,0.21,1.6,12),olive,sd*1.45,1.36,0.5,Math.PI/2);                            /* rocket pod */
+      add(new THREE.CircleGeometry(0.19,12),dark,sd*1.45,1.36,1.31);
+      for(const dx of [-0.12,0.12])for(const yy of [1.48,1.24]){add(new THREE.CylinderGeometry(0.09,0.09,1.5,8),metal,sd*2.3+dx,yy,0.45,Math.PI/2);add(new THREE.ConeGeometry(0.09,0.22,8),dark,sd*2.3+dx,yy,1.31,Math.PI/2);}
     }
-    add(new THREE.BoxGeometry(5.0,0.12,1.0),olive,0,1.8,0.5);
-    add(new THREE.CylinderGeometry(0.2,0.48,6.2,10),olive,0,1.75,-5.6,Math.PI/2-0.02);
-    add(new THREE.BoxGeometry(0.12,2.1,1.1),olive,0,2.7,-8.95,-0.3);
-    add(new THREE.BoxGeometry(3.3,0.08,0.85),olive,0,1.65,-9.0);
-    prop=tailRotor(1.4,4,-0.22,3.1,-9.25);
-    for(const sd of [1,-1])wheel(sd*1.05,0.15,1.9,0.4);
-    wheel(0.01,0.0,-8.4,0.25);
-    rotor=rotorAt(7.3,4,3.3,0.4,0.55);navW=2.5;tailZ=-9.2;
+    surf([{x:0.6,y:1.95,le:1.0,te:0.0,th:0.12},{x:2.6,y:1.9,le:0.9,te:0.1,th:0.1}]);
+    body([[1.2,0.05,2.75,2.55,2],[0.8,0.45,3.0,2.5,3],[-1.4,0.5,3.0,2.5,3],[-2.4,0.2,2.7,2.4,2],[-2.8,0.04,2.5,2.4,2]]);
+    add(new THREE.CylinderGeometry(0.36,0.36,0.6,16),dark,0,1.0,5.2);                         /* TADS turret */
+    add(new THREE.BoxGeometry(0.5,0.22,0.08),glass,0,1.05,5.55);
+    add(new THREE.SphereGeometry(0.17,12,8),dark,0,1.66,4.95);                                 /* PNVS */
+    add(new THREE.SphereGeometry(0.2,12,8),dark,0,0.45,3.1);add(new THREE.CylinderGeometry(0.045,0.045,1.7,6),metal,0,0.42,3.95,Math.PI/2); /* M230 */
+    fin([{x:0,y:0,le:-8.2,te:-9.5,th:0.18},{x:1.9,y:0,le:-9.2,te:-10.0,th:0.12}],2.05);
+    surf([{x:0.15,y:1.85,le:-9.1,te:-9.95,th:0.08},{x:1.7,y:1.85,le:-9.15,te:-9.9,th:0.06}]);
+    prop=tailRotor(1.4,4,-0.24,3.55,-9.65,[0,55*Math.PI/180,Math.PI,Math.PI+55*Math.PI/180]);
+    for(const sd of [1,-1]){wheel(sd*1.05,0.15,2.2,0.4);strut(sd*0.8,0.3,0.9,2.2);}
+    wheel(0.01,0.0,-8.6,0.25);strut(0,0.2,1.75,-8.6);
+    add(new THREE.CylinderGeometry(0.12,0.12,0.55,8),dark,0,3.65,0.2);
+    add(new THREE.SphereGeometry(0.5,16,10),olive,0,3.98,0.2).scale.set(1,0.42,1);                 /* Longbow radar dome */
+    rotor=rotorAt(7.3,4,3.3,0.2,0.53);navW=2.6;tailZ=-9.6;
   }else{
-    /* UH-60: 2.4 m wide cabin, sloped nose, twin engines on the roof, long boom, canted tail rotor on the right, stabilator, 4-blade 16.4 m rotor */
-    add(new THREE.BoxGeometry(2.4,1.95,5.8),olive,0,1.4,0.3);
-    const nz=add(new THREE.SphereGeometry(1.2,20,14),olive,0,1.3,3.25);nz.scale.set(1,0.85,1.25);
-    const wsd=add(new THREE.SphereGeometry(1.22,20,12,-Math.PI*0.45,Math.PI*0.9,Math.PI*0.18,Math.PI*0.3),glass,0,1.32,3.3);wsd.scale.set(1,0.85,1.25);
+    /* UH-60M: 2.4 m cabin with flat sides, sloping glazed nose, twin roof engines, long boom, canted tail pylon with the
+       tail rotor on the right, big stabilator, wheels forward and a tail wheel, 4-blade 16.4 m rotor */
+    const st=[[5.0,0.05,1.3,1.05,2],[4.75,0.55,1.75,0.65,2.2],[4.2,0.95,2.15,0.45,2.6],[3.4,1.15,2.45,0.38,3.2],[2.4,1.2,2.55,0.36,3.6],[-1.2,1.2,2.55,0.4,3.6],[-2.4,1.05,2.5,0.8,3.2],[-3.6,0.62,2.4,1.45,2.6],[-5.0,0.42,2.3,1.72,2.3],[-8.2,0.3,2.3,1.85,2.2],[-9.3,0.26,2.45,1.9,2.2],[-9.9,0.04,2.4,2.1,2]];
+    body(st);
+    panel(st,3.35,4.72,-1.25,1.25,glass);for(const sd of [1,-1])panel(st,4.15,4.85,sd>0?1.9:-2.5,sd>0?2.5:-1.9,glass);
+    for(const a of [0,0.62,-0.62])panel(st,3.33,4.74,a-0.035,a+0.035,olive,0.02);
     for(const sd of [1,-1]){
-      add(new THREE.BoxGeometry(0.05,0.8,1.0),glass,sd*1.21,1.75,2.2);
-      add(new THREE.BoxGeometry(0.05,0.7,0.6),glass,sd*1.21,1.75,0.4);
-      add(new THREE.BoxGeometry(0.05,0.7,0.6),glass,sd*1.21,1.75,-0.6);
-      add(new THREE.CapsuleGeometry(0.42,2.0,6,10),olive,sd*0.6,2.6,-0.2,Math.PI/2);
+      add(new THREE.BoxGeometry(0.05,0.75,0.95),glass,sd*1.21,1.85,2.85);
+      for(const z of [0.95,-0.25])add(new THREE.BoxGeometry(0.05,0.6,0.65),glass,sd*1.215,1.8,z);
+      for(const z of [1.75,-0.95])add(new THREE.BoxGeometry(0.05,1.6,0.05),dark,sd*1.215,1.4,z);    /* sliding door edges */
+      const en=add(new THREE.CapsuleGeometry(0.42,2.0,6,12),olive,sd*0.66,2.78,-0.4,Math.PI/2);void en;
+      add(new THREE.CircleGeometry(0.3,12),dark,sd*0.66,2.78,1.03);
+      add(new THREE.CylinderGeometry(0.22,0.26,0.5,10,1,true),dark,sd*0.82,2.85,-1.75,Math.PI/2,0,0).rotation.y=sd*0.6;
+      strut(sd*1.4,0.3,0.75,2.3);
     }
-    add(new THREE.BoxGeometry(1.5,0.7,2.6),olive,0,2.55,0.6);
-    add(new THREE.CylinderGeometry(0.25,0.6,7.0,12),olive,0,1.85,-5.8,Math.PI/2-0.04);
-    add(new THREE.BoxGeometry(0.16,2.3,1.3),olive,0,3.0,-9.6,-0.3);
-    add(new THREE.BoxGeometry(4.4,0.08,1.0),olive,0,1.55,-9.3);
-    prop=tailRotor(1.7,4,0.25,3.5,-9.95);prop.rotation.z=-0.35;
-    for(const sd of [1,-1])wheel(sd*1.3,0.15,2.0,0.4);
-    wheel(0.01,0.0,-8.0,0.25);
-    rotor=rotorAt(8.18,4,3.15,0.3,0.55);navW=1.4;tailZ=-9.6;
+    body([[1.8,0.05,2.6,2.45,2],[1.2,0.7,2.98,2.4,3],[-1.6,0.75,2.98,2.4,3],[-2.6,0.3,2.75,2.4,2],[-3.0,0.05,2.55,2.4,2]]);
+    add(new THREE.CylinderGeometry(0.16,0.2,0.3,10),dark,0,3.05,0.3);
+    fin([{x:0,y:0,le:-8.5,te:-9.85,th:0.2},{x:2.1,y:0,le:-9.55,te:-10.3,th:0.14}],2.2);
+    surf([{x:0.2,y:1.95,le:-8.7,te:-9.75,th:0.1},{x:2.2,y:1.98,le:-8.85,te:-9.7,th:0.08}]);
+    prop=tailRotor(1.68,4,0.28,3.55,-9.95);prop.rotation.z=-0.35;
+    for(const sd of [1,-1])wheel(sd*1.45,0.15,2.3,0.4);
+    wheel(0.01,0.0,-8.1,0.25);strut(0,0.2,1.85,-8.1);
+    rotor=rotorAt(8.18,4,3.15,0.3,0.53);navW=1.45;tailZ=-9.9;
   }
   add(new THREE.CircleGeometry(0.14,14),new THREE.MeshBasicMaterial({color:0xfff6dc}),0,0.55,kind==='ch47'?7.2:3.6,0.6,0,0);
   const beacon=add(new THREE.SphereGeometry(0.13,8,6),new THREE.MeshBasicMaterial({color:0xff3030,transparent:true,opacity:0.4}),0,kind==='ch47'?3.65:2.95,kind==='ch47'?-2:-2.2);
@@ -4384,22 +4489,21 @@ function makeTourHeli(col,acc,model){
   const metal=new THREE.MeshPhongMaterial({color:0xb4bac0,specular:0x999999,shininess:80});
   const glass=new THREE.MeshPhongMaterial({color:0x14222e,specular:0xcfe0ee,shininess:140,transparent:true,opacity:0.62,depthWrite:false,side:THREE.DoubleSide});
   const add=(geo,m,x,y,z,rx=0,ry=0,rz=0)=>{const me=new THREE.Mesh(geo,m);me.position.set(x,y,z);me.rotation.set(rx,ry,rz);g.add(me);return me;};
-  /* cabin: lathe egg along z (blunt rounded nose, tapering into the boom at the back) */
-  const prof=[[0,-2.0],[0.42,-1.85],[0.78,-1.35],[0.95,-0.5],[1.0,0.4],[0.95,1.2],[0.78,1.8],[0.48,2.2],[0,2.35]].map(([r,y])=>new THREE.Vector2(r,y));
-  const cab=add(new THREE.LatheGeometry(prof,24),paint,0,1.05,0.35,Math.PI/2);cab.scale.set(0.92,1,1.05);
-  /* white lower belly band (like the red/white JetRanger livery) */
-  const bel=add(new THREE.LatheGeometry(prof.map((v)=>new THREE.Vector2(v.x*1.012,v.y)),24,Math.PI*1.62,Math.PI*0.76),belly,0,1.05,0.35,Math.PI/2);bel.scale.set(0.92,1,1.05);
-  /* big wrap-around glass nose: upper front of the egg, plus lower chin windows */
-  const can=add(new THREE.SphereGeometry(1,24,16,-Math.PI*0.48,Math.PI*0.96,Math.PI*0.12,Math.PI*0.42),glass,0,1.12,1.45);can.scale.set(0.9,0.95,1.05);
+  /* cabin: one lofted shell (rounded nose, flat floor, tapering into the boom), glazed nose, chin windows, white belly */
+  const st=[[2.5,0.05,1.2,0.95,2],[2.25,0.55,1.7,0.42,2.2],[1.75,0.82,2.0,0.25,2.4],[0.9,0.9,2.08,0.2,2.8],[-0.3,0.9,2.05,0.22,3],[-1.1,0.82,2.0,0.4,3],[-1.7,0.55,1.92,0.95,2.6],[-2.15,0.26,1.72,1.25,2.2],[-2.4,0.05,1.6,1.35,2]];
+  add(seLoft(st,-2.4,2.5),paint,0,0,0);
+  add(seLoft(st,-1.9,2.45,1.75,TAU-1.75,0.006,36,14),belly,0,0,0);
+  add(seLoft(st,0.95,2.5,-1.3,1.3,0,18,20,0.012),glass,0,0,0);
+  for(const sd of [1,-1])add(seLoft(st,1.55,2.46,sd>0?1.78:-2.4,sd>0?2.4:-1.78,0,10,6,0.014),glass,0,0,0);
+  add(seLoft(st,0.93,2.5,-0.035,0.035,0,18,2,0.022),paint,0,0,0);                                 /* centre windshield post */
   for(const sd of [1,-1]){
-    const ch=add(new THREE.SphereGeometry(0.34,14,10),glass,sd*0.38,0.62,2.2);ch.scale.set(1,0.7,0.8);           /* chin window */
-    add(new THREE.BoxGeometry(0.03,0.5,0.75),glass,sd*0.86,1.32,0.85);                                         /* front door window */
-    add(new THREE.BoxGeometry(0.03,0.45,0.6),glass,sd*0.86,1.32,0.0);                                          /* rear door window */
-    add(new THREE.BoxGeometry(0.035,0.05,1.7),dark,sd*0.88,1.04,0.45);                                         /* door sill line */
+    add(new THREE.BoxGeometry(0.03,0.5,0.75),glass,sd*0.91,1.32,0.85);                           /* front door window */
+    add(new THREE.BoxGeometry(0.03,0.45,0.6),glass,sd*0.91,1.32,0.0);                            /* rear door window */
+    add(new THREE.BoxGeometry(0.035,0.05,1.7),dark,sd*0.915,1.04,0.45);                          /* door sill line */
+    for(const z of [1.3,0.42,-0.42])add(new THREE.BoxGeometry(0.035,0.95,0.035),dark,sd*0.915,1.3,z);  /* door edges */
   }
-  add(new THREE.BoxGeometry(0.035,0.9,0.035),dark,0,1.5,2.0,-0.7);                                             /* thin centre windshield post */
   /* engine/transmission fairing behind the mast, exhaust stack, rotor mast */
-  const cowl=add(new THREE.CapsuleGeometry(0.42,1.5,6,12),paint,0,1.98,-0.55,Math.PI/2);cowl.scale.set(1.15,0.85,1);
+  add(seLoft([[1.0,0.05,2.12,2.0,2],[0.6,0.5,2.45,1.95,3],[-0.9,0.52,2.5,1.95,3],[-1.9,0.34,2.3,1.8,2.6],[-2.5,0.08,2.0,1.65,2]],-2.5,1.0),paint,0,0,0);
   add(new THREE.CylinderGeometry(0.13,0.15,0.3,10),dark,0,2.25,-1.35,-0.6);                                  /* exhaust */
   add(new THREE.CylinderGeometry(0.09,0.14,0.55,10),dark,0,2.55,0.15);                                       /* mast */
   /* slim tail boom rising slightly to the fins, horizontal stabiliser with endplates, upper + lower vertical fin */
@@ -6889,7 +6993,8 @@ window.updateRail=function(dt){
 })();
 /* ---------------- vehicles ---------------- */
 const VEH_TYPES=[
- {id:'car',   w:2.3,h:1.42,len:4.8, wr:0.42, ffk:1.0,  p:0.38},
+ {id:'car',   w:2.3,h:1.42,len:4.8, wr:0.42, ffk:1.0,  p:0.35},
+ {id:'sport', w:2.35,h:1.2,len:4.6, wr:0.43, ffk:1.08, p:0.03},  /* low sports coupes */
  {id:'suv',   w:2.5,h:1.85,len:5.2, wr:0.48, ffk:1.0,  p:0.12},
  {id:'pickup',w:2.5,h:1.95,len:5.9, wr:0.50, ffk:1.0,  p:0.14},  /* it's Texas */
  {id:'van',   w:2.4,h:2.15,len:5.4, wr:0.46, ffk:0.96, p:0.05},
@@ -6908,6 +7013,7 @@ const VEH_COLORS=(function(){const mix=[[25,[0xf2f3f5,0xe8e8ea,0xfafafa,0xdedfe0
   const out=[];for(const [w,cs] of mix)for(let i=0;i<w*2;i++)out.push(cs[i%cs.length]);return out;})();
 const TRAILER_COLS=[0xe9eaec,0xdadde0,0xc4c8cc,0xd8d2c4];
 const TAXI_YELLOW=0xf5c542;
+const SPORT_COLS=[0xc8141c,0xe8e8ea,0x111215,0xf2c200,0x1d4fb8,0xe86a10,0x2a8a4a,0xb9bec4];
 function pickType(){let r=rand();for(const t of VEH_TYPES){if(r<t.p)return t;r-=t.p;}return VEH_TYPES[0];}
 
 const MPH=WS!==1?0.44704:0.338; /* world u/s per mph — WS!==1 is the metre-scale world, which runs real time (1 mph = 0.447 m/s) */
@@ -6933,7 +7039,14 @@ const bodyTex=(function(){const c=document.createElement('canvas');c.width=16;c.
   x.fillStyle=g;x.fillRect(0,0,16,32);
   return new THREE.CanvasTexture(c);})();
 
-const bodyGeo=new THREE.BoxGeometry(1,1,1);bodyGeo.translate(0,0.5,0);
+/* traffic body: unit box re-shaped into a car body (rounded plan corners, rounded shoulders, hood sloping to the nose) */
+const bodyGeo=(function(){const g=new THREE.BoxGeometry(1,1,1,6,4,10),p=g.attributes.position;
+  for(let i=0;i<p.count;i++){let x=p.getX(i)*2,y=p.getY(i)*2,z=p.getZ(i)*2;
+    const rp=Math.pow(Math.pow(Math.abs(x),6)+Math.pow(Math.abs(z),6),1/6);if(rp>1){x/=rp;z/=rp;}
+    if(y>0){const rv=Math.pow(Math.pow(Math.abs(x),5)+Math.pow(y,5),1/5);if(rv>1){x/=rv;y/=rv;}}
+    let Y=(y+1)/2;if(z>0.3)Y-=Y*0.22*(z-0.3)/0.7;if(z<-0.75)Y-=Y*0.08*(-z-0.75)/0.25;
+    p.setXYZ(i,x/2,Y,z/2);}
+  g.computeVertexNormals();return g;})();
 const bodyMat=new THREE.MeshLambertMaterial({map:bodyTex,transparent:true});
 const bodies=new THREE.InstancedMesh(bodyGeo,bodyMat,MAX_INST);
 bodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -6941,7 +7054,10 @@ const _white=new THREE.Color(0xffffff);
 for(let i=0;i<MAX_INST;i++)bodies.setColorAt(i,_white);
 scene.add(bodies);
 
-const cabGeo=new THREE.BoxGeometry(1,1,1);cabGeo.translate(0,0.5,0);
+/* greenhouse: narrower at the roof (tumblehome), raked windscreen and rear window */
+const cabGeo=(function(){const g=new THREE.BoxGeometry(1,1,1,1,1,1);g.translate(0,0.5,0);const p=g.attributes.position;
+  for(let i=0;i<p.count;i++)if(p.getY(i)>0.5){p.setX(i,p.getX(i)*0.8);const z=p.getZ(i);p.setZ(i,z>0?z-0.2:z+0.12);}
+  g.computeVertexNormals();return g;})();
 const cabMat=new THREE.MeshLambertMaterial({map:glassTex,color:0xffffff,transparent:true});
 const cabs=new THREE.InstancedMesh(cabGeo,cabMat,MAX_INST);
 cabs.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -6957,10 +7073,19 @@ for(let i=0;i<MAX_INST;i++)extras.setColorAt(i,new THREE.Color(0xffffff));
 scene.add(extras);
 const wheelGeo=new THREE.CylinderGeometry(0.5,0.5,0.36,10);wheelGeo.rotateZ(Math.PI/2);
 const wheelMat=new THREE.MeshLambertMaterial({color:0x14161a,transparent:true});
+/* 18-wheeler tandems: 2 axles x dual tyres each side (8 tyres) per instance; x in half-widths, y/z in wheel units */
+const rigGeo=mergeNI([].concat(...[-0.56,0.56].map((z)=>[-1,-0.8,0.8,1].map((x)=>{const c=new THREE.CylinderGeometry(0.5,0.5,0.17,12).toNonIndexed();c.rotateZ(Math.PI/2);c.translate(x*0.94,0,z);return c;}))));
+const RIG_MAX=Math.ceil(MAX_INST*0.2);let rigN=0;
+const rigWheels=new THREE.InstancedMesh(rigGeo,wheelMat,RIG_MAX);rigWheels.instanceMatrix.setUsage(THREE.DynamicDrawUsage);rigWheels.count=0;rigWheels.frustumCulled=false;scene.add(rigWheels);
 const wheels=new THREE.InstancedMesh(wheelGeo,wheelMat,MAX_INST*4);
 wheels.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(wheels);
 
-const glowGeo=new THREE.BoxGeometry(1,1,1);
+/* merge non-indexed geometries (position + normal) into one */
+function mergeNI(gs){let n=0;for(const g of gs)n+=g.attributes.position.count;const P=new Float32Array(n*3),Nn=new Float32Array(n*3);let o=0;
+  for(const g of gs){P.set(g.attributes.position.array,o);Nn.set(g.attributes.normal.array,o);o+=g.attributes.position.array.length;}
+  const m=new THREE.BufferGeometry();m.setAttribute('position',new THREE.BufferAttribute(P,3));m.setAttribute('normal',new THREE.BufferAttribute(Nn,3));return m;}
+/* twin head/tail lamps at the corners instead of one full-width bar */
+const glowGeo=mergeNI([-0.36,0.36].map((x)=>{const b=new THREE.BoxGeometry(0.26,1,1).toNonIndexed();b.translate(x,0,0);return b;}));
 const headMat2=new THREE.MeshBasicMaterial({color:0xfff4c8,transparent:true,opacity:0});
 const tailMat=new THREE.MeshBasicMaterial({color:0xff2418,transparent:true,opacity:0.9});
 const heads2=new THREE.InstancedMesh(glowGeo,headMat2,MAX_INST);
@@ -7009,7 +7134,7 @@ for(let i=0;i<MAX_INST;i++)pools.setColorAt(i,_white);
 for(const m of [bodies,cabs,extras,wheels,heads2,tails,pools])m.frustumCulled=false;
 scene.add(pools);
 let totalVeh=0,speedSum=0;
-if(window.HTS_DEBUG)Object.defineProperties(window.HTS_DEBUG,{veh:{get:()=>totalVeh},flights:{get:()=>window.LIVE_FLIGHTS?window.LIVE_FLIGHTS.size:-1}});
+if(window.HTS_DEBUG)Object.defineProperties(window.HTS_DEBUG,{veh:{get:()=>totalVeh},trafficDetail:{get:()=>DT.stats()},trafficAt:{get:()=>{let b=null;for(const v of vehRef){if(v&&v._px!=null&&v.type&&v.type.id==='car'&&(!b||v._px*v._px+v._pz*v._pz<b._px*b._px+b._pz*b._pz))b=v;}return b&&{x:b._px,y:b._py,z:b._pz,hd:b._hd};}},flights:{get:()=>window.LIVE_FLIGHTS?window.LIVE_FLIGHTS.size:-1}});
 const shareSum=ROAD_DEFS.reduce((a,d)=>a+d.share,0);
 const TOTAL_TARGET=2800;
 
@@ -7026,7 +7151,7 @@ function makeVehicle(road,s,speedMph){
     aggr:0.85+rand()*0.32, /* individual driving style */
     _laneI:0,_lcCd:0,
     hl:pickHeadlight(t),drl:rand()<0.3, /* ~30% run daytime running lights */
-    col:t.id==='taxi'?TAXI_YELLOW:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
+    col:t.id==='taxi'?TAXI_YELLOW:t.id==='sport'?SPORT_COLS[Math.floor(rand()*SPORT_COLS.length)]:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
   if(t.id==='semi')v.tcol=TRAILER_COLS[Math.floor(rand()*TRAILER_COLS.length)];
   if(t.id==='bike'||t.id==='scooter'||t.id==='moto')v.aggr=1.05+rand()*0.25;
   return v;
@@ -7040,7 +7165,7 @@ function mkCar2(h){
   if(!fw&&t.len>9&&rand()<0.75)t=VEH_TYPES[1];
   const v={type:t,len:t.len*VS,aggr:0.88+rand()*0.24,brake:false,v:0,
     hl:pickHeadlight(t),drl:rand()<0.3, /* ~30% run daytime running lights */
-    col:t.id==='taxi'?TAXI_YELLOW:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
+    col:t.id==='taxi'?TAXI_YELLOW:t.id==='sport'?SPORT_COLS[Math.floor(rand()*SPORT_COLS.length)]:VEH_COLORS[Math.floor(rand()*VEH_COLORS.length)]};
   if(t.id==='semi')v.tcol=TRAILER_COLS[Math.floor(rand()*TRAILER_COLS.length)];
   return v;
 }
@@ -12837,9 +12962,40 @@ function tryMerge(dir,li,lane,i,v){
   if(gp>0&&gn>0){lane.splice(i,1);tgt.splice(idx,0,v);v._laneI=ti;if(v.police)v._lane=tgt;return true;}
   return false;
 }
+/* every car, SUV, pickup, van, taxi, sports car, bus, box truck and 18-wheeler is drawn with its detailed model
+   (instanced per type and material); motorbikes/bikes keep their own instanced shapes */
+const LOD_STYLE={car:'sedan',taxi:'sedan',sport:'sport',suv:'suv',pickup:'pickup',van:'van',bus:'h_bus',box:'h_box',semi:'h_semi'};
+const LOD_LEN={sedan:4.7,suv:4.8,pickup:5.5,van:5.1,sport:4.5};
+const _lodZero=new THREE.Matrix4().makeScale(0,0,0),_lodM=new THREE.Matrix4(),_lodQ=new THREE.Quaternion(),_lodP=new THREE.Vector3(),_lodS=new THREE.Vector3(),_lodY=new THREE.Vector3(0,1,0);
+const DT=(function(){const p={};for(const t of VEH_TYPES){const st=LOD_STYLE[t.id];if(st)p[st]=(p[st]||0)+t.p;}
+  const defs={};for(const st in p)defs[st]={cap:Math.min(MAX_INST,Math.ceil(MAX_INST*p[st]*2.2)+48),
+    build:st.startsWith('h_')?()=>makeTrafficHeavy(st.slice(2)):()=>makeTourCar(0xffffff,st,false)};
+  return createDetailedTraffic(scene,defs);})();
+const _lamp={h:0,t:0,hg:0,tg:0};
+function detailedTraffic(n){
+  DT.begin();
+  const nf=window._htsNightF||0;
+  for(let i=0;i<n;i++){const v=vehRef[i];if(!v||!v.type||v._px==null)continue;const st=LOD_STYLE[v.type.id];if(!st)continue;
+    const s=(LOD_LEN[st]?v.type.len/LOD_LEN[st]:1)*VS*(v._sc||1);
+    _lodP.set(v._px,v._py,v._pz);_lodQ.setFromAxisAngle(_lodY,v._hd);_lodS.set(s,s,s);_lodM.compose(_lodP,_lodQ,_lodS);
+    const nl=nf>0.18,lit=nl||v.drl;
+    _lamp.h=lit?(nl?0xfff1cf:0xfffaf0):0x8d9196;
+    _lamp.t=v.brake?0xff2a1a:nl?0xd0180e:0x620d0b;
+    _lamp.hg=nl?0xffe4ae:v.drl?0x302c24:0;
+    _lamp.tg=v.brake?(nl?0xff2410:0x801208):nl?0x8a1408:0;
+    if(!DT.add(st,_lodM,v.police?0xf2f4f6:v.col,v.tcol,_lamp))continue;
+    heads2.setMatrixAt(i,_lodZero);tails.setMatrixAt(i,_lodZero);
+    bodies.setMatrixAt(i,_lodZero);cabs.setMatrixAt(i,_lodZero);
+    for(let w=0;w<4;w++)wheels.setMatrixAt(i*4+w,_lodZero);
+    if(v._rig>=0){rigWheels.setMatrixAt(v._rig,_lodZero);rigWheels.setMatrixAt(v._rig+1,_lodZero);}
+    if(v.police||v.type.id==='taxi'){extras.getMatrixAt(i,_lodM);_lodM.elements[13]=v._py+DT.sets[st].top*s+0.18;extras.setMatrixAt(i,_lodM);}
+    else extras.setMatrixAt(i,_lodZero);
+  }
+  DT.end();
+}
 const _col=new THREE.Color();
 function drawVeh(idx,v,px,pz,deckY,fx,fz,heading,sc,detail){
-  const t=v.type;
+  const t=v.type;if(idx===0)rigN=0;
   const isSemi=t.id==='semi',isTall=isSemi||t.id==='box'||t.id==='bus'||t.id==='van';
   const isTwoWheel=t.id==='moto'||t.id==='scooter'||t.id==='bike';
   if(isSemi){
@@ -12878,9 +13034,9 @@ function drawVeh(idx,v,px,pz,deckY,fx,fz,heading,sc,detail){
     dummy.scale.set(t.w*VS*0.94,t.h*VS*0.8,t.len*VS*0.2);
     _col.set(0x151b24);
   }else{
-    const front=t.id==='pickup'?0.1:0;
+    const front=t.id==='pickup'?0.1:t.id==='sport'?-0.06:0;
     dummy.position.set(px+fx*t.len*VS*front,deckY+t.h*VS*0.56,pz+fz*t.len*VS*front);
-    dummy.scale.set(t.w*VS*0.84,t.h*VS*0.5,t.len*VS*(t.id==='pickup'?0.34:0.52));
+    dummy.scale.set(t.w*VS*0.84,t.h*VS*(t.id==='sport'?0.42:0.5),t.len*VS*(t.id==='pickup'?0.34:t.id==='sport'?0.46:0.52));
     _col.setHex(v.police?0xf2f4f6:v.col);
   }
   dummy.rotation.set(0,heading,0);if(sc!==1)dummy.scale.multiplyScalar(sc);dummy.updateMatrix();
@@ -12927,14 +13083,22 @@ function drawVeh(idx,v,px,pz,deckY,fx,fz,heading,sc,detail){
     const rrx=fz,rrz=-fx;
     const halfW=isTwoWheel?0:t.w*VS*0.5-0.12;
     const axFront=(t.axf||0.31)*t.len*VS,axRear=(t.axr||0.31)*t.len*VS;
-    const nWheels=isTwoWheel?2:4;
+    const nWheels=isTwoWheel?2:isSemi?2:4;
+    v._rig=-1;
+    if(isSemi&&rigN<RIG_MAX-1){
+      v._rig=rigN;
+      for(const ax of [t.len*VS*0.24,-t.len*VS*0.36]){
+        dW.position.set(px+fx*ax,wy,pz+fz*ax);dW.rotation.set(0,heading,0);dW.scale.set(halfW,wsc,wsc);
+        if(sc!==1)dW.scale.multiplyScalar(sc);dW.updateMatrix();rigWheels.setMatrixAt(rigN++,dW.matrix);
+      }
+    }
     for(let wq=0;wq<4;wq++){
       if(wq>=nWheels){
         dW.position.set(0,-50,0);dW.scale.set(0.001,0.001,0.001);if(sc!==1)dW.scale.multiplyScalar(sc);dW.updateMatrix();
         wheels.setMatrixAt(idx*4+wq,dW.matrix);continue;
       }
-      const sx=isTwoWheel?0:((wq&1)?1:-1);
-      const sz=isTwoWheel?(wq?1:-1):((wq&2)?1:-1);
+      const sx=isTwoWheel?0:isSemi?(wq?1:-1):((wq&1)?1:-1);
+      const sz=isTwoWheel?(wq?1:-1):isSemi?1:((wq&2)?1:-1);
       const ax=sz>0?axFront:-axRear;
       dW.position.set(px+fx*ax+rrx*halfW*sx,wy,pz+fz*ax+rrz*halfW*sx);
       dW.rotation.set(0,heading,0);
@@ -13176,6 +13340,7 @@ function moveVehicles(dt,nightF){
       },dt,{cx:cam.target.x,cz:cam.target.z,r2:cullR*cullR});
     }
   }
+  detailedTraffic(idx);
   bodies.count=idx;cabs.count=idx;
   speedSum=renderedSpeedSum;totalVeh=renderedVeh;
   /* Soft fade only at very wide overview — freeways keep bright car lights */
@@ -13196,9 +13361,9 @@ function moveVehicles(dt,nightF){
     heads2.count=0;tails.count=0;pools.count=0;
   }
   if(vehLite){
-    wheels.count=0;extras.count=0;
+    wheels.count=0;extras.count=0;rigWheels.count=0;
   }else{
-    wheels.count=idx*4;extras.count=idx;
+    wheels.count=idx*4;extras.count=idx;rigWheels.count=idx?rigN:0;rigWheels.instanceMatrix.needsUpdate=true;
     extras.instanceMatrix.needsUpdate=true;
     if(extras.instanceColor)extras.instanceColor.needsUpdate=true;
     wheels.instanceMatrix.needsUpdate=true;
@@ -14404,7 +14569,7 @@ function frame(now){
     if(_fpsN>=36){_fpsAvg=36/_fpsDt;_fpsN=0;_fpsDt=0;
       /* dynamic resolution: render fewer pixels while frames are slow, restore when there is headroom */
       if(!window._drBase)window._drBase=renderer.getPixelRatio();
-      const pr=renderer.getPixelRatio(),lo=Math.max(0.7,window._drBase*0.6);
+      const pr=renderer.getPixelRatio(),lo=Math.min(window._drBase,Math.max(1,window._drBase*0.8));
       window._drLow=_fpsAvg<28?(window._drLow||0)+1:0;window._drHi=_fpsAvg>52?(window._drHi||0)+1:0;
       let np=pr;if(window._drLow>=2&&pr>lo)np=Math.max(lo,pr-0.15);else if(window._drHi>=5&&pr<window._drBase)np=Math.min(window._drBase,pr+0.1);
       if(np!==pr){window._drLow=window._drHi=0;renderer.setPixelRatio(np);renderer.setSize(innerWidth,innerHeight);if(window.HTS_CINEMATIC&&HTS_CINEMATIC.resize)HTS_CINEMATIC.resize(innerWidth,innerHeight);}
@@ -14581,7 +14746,7 @@ function frame(now){
   /* headlights/tails are one cheap instanced draw each — never drop them at night; daytime DRLs only when zoomed in */
   const showCarLights=vShow&&(nightF>0.18||cam.radius<(_isWin?2200:3200));
   const showPools=showCarLights&&nightF>0.22&&_fpsAvg>=(_isWin?48:40)&&cam.radius<(_isWin?1800:2800);
-  if(bodies.visible!==vShow){bodies.visible=vShow;cabs.visible=vShow;}
+  if(bodies.visible!==vShow){bodies.visible=vShow;cabs.visible=vShow;for(const k in DT.sets)for(const m of DT.sets[k].meshes)m.visible=vShow;}
   if(wheels.visible!==showParts){wheels.visible=showParts;extras.visible=showParts;}
   if(heads2.visible!==showCarLights){heads2.visible=showCarLights;tails.visible=showCarLights;}
   if(pools.visible!==showPools)pools.visible=showPools;
