@@ -95,3 +95,12 @@ export function createDetailedTraffic(scene, defs) {
     stats() { const o = {}; for (const k in sets) o[k] = sets[k].n; return o; },
   };
 }
+
+/* Detailed cars replace the shared instanced body (those matrices are scaled to 0 so the
+   simple mesh does not draw on top). Copy the pre-zero matrices into a pick mesh first —
+   clicks raycast that copy, because a 0-scale instance does not intersect. */
+export function copyInstanceMatrices(src, dst, count) {
+  const n = count | 0;
+  dst.count = n;
+  if (n > 0) dst.instanceMatrix.array.set(src.instanceMatrix.array.subarray(0, n * 16));
+}

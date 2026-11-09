@@ -8,7 +8,7 @@ import { createHoustonTolls } from './render/houston-tolls.js';
 import { createHoustonTollRoads } from './render/houston-toll-roads.js';
 import { createTour, makeTourCar } from './tour.js';
 import { makeTrafficHeavy } from './render/traffic-heavy.js';
-import { createDetailedTraffic } from './render/traffic-detailed.js';
+import { createDetailedTraffic, copyInstanceMatrices } from './render/traffic-detailed.js';
 import { createAmbient, AMBIENT_SCENES } from './ambient.js';
 import { createRoutePlanner } from './route/route-planner.js';
 import { attachPlaceSearch } from './ui/place-search.js';
@@ -7050,6 +7050,11 @@ const bodyGeo=(function(){const g=new THREE.BoxGeometry(1,1,1,6,4,10),p=g.attrib
 const bodyMat=new THREE.MeshLambertMaterial({map:bodyTex,transparent:true});
 const bodies=new THREE.InstancedMesh(bodyGeo,bodyMat,MAX_INST);
 bodies.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+/* CPU-only copy of body matrices before detailed cars are zeroed, so click-to-follow still hits them.
+   Not in the scene. A fixed sphere skips the stale per-frame bounds test inside InstancedMesh.raycast. */
+const pickBodies=new THREE.InstancedMesh(bodyGeo,bodyMat,MAX_INST);
+pickBodies.frustumCulled=false;pickBodies.count=0;pickBodies.visible=false;
+pickBodies.boundingSphere=new THREE.Sphere(new THREE.Vector3(),1e9);
 const _white=new THREE.Color(0xffffff);
 for(let i=0;i<MAX_INST;i++)bodies.setColorAt(i,_white);
 scene.add(bodies);
@@ -9205,8 +9210,9 @@ function tryPickVehicle(e){
   /* Empty map click — dismiss sticky place card */
   closePoiCard();
   if(!bodies.visible)return;
-  const hits=_ray.intersectObject(bodies,false);
-  if(hits.length&&hits[0].instanceId!=null&&hits[0].instanceId<bodies.count){
+  /* bodies matrices for cars/trucks are scale 0 (the detailed model draws them). pickBodies keeps the pre-zero boxes. */
+  const hits=_ray.intersectObject(pickBodies,false);
+  if(hits.length&&hits[0].instanceId!=null&&hits[0].instanceId<pickBodies.count){
     const v=vehRef[hits[0].instanceId];
     if(v){follow=v;followPlane=null;document.getElementById('followChip').style.display='flex';}
   }
@@ -12973,6 +12979,7 @@ const DT=(function(){const p={};for(const t of VEH_TYPES){const st=LOD_STYLE[t.i
   return createDetailedTraffic(scene,defs);})();
 const _lamp={h:0,t:0,hg:0,tg:0};
 function detailedTraffic(n){
+  copyInstanceMatrices(bodies,pickBodies,n);
   DT.begin();
   const nf=window._htsNightF||0;
   for(let i=0;i<n;i++){const v=vehRef[i];if(!v||!v.type||v._px==null)continue;const st=LOD_STYLE[v.type.id];if(!st)continue;
