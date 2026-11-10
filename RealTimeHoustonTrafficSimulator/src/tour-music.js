@@ -1317,25 +1317,29 @@ export function createTourMusic() {
         hide();
         input.blur();
         e.preventDefault();
+        e.stopPropagation();
         return;
       }
       if (!hits.length) {
         if (e.key === 'Enter') {
           const list = searchTracks(input.value, 1);
-          if (list[0]) { e.preventDefault(); pick(list[0].i); }
+          if (list[0]) { e.preventDefault(); e.stopPropagation(); pick(list[0].i); }
         }
         return;
       }
       if (e.key === 'ArrowDown') {
         e.preventDefault();
+        e.stopPropagation();
         active = (active + 1) % hits.length;
         paint();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
+        e.stopPropagation();
         active = (active - 1 + hits.length) % hits.length;
         paint();
       } else if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         const hit = hits[active >= 0 ? active : 0];
         if (hit) pick(hit.i);
       }

@@ -13,6 +13,7 @@ import { createTourMusic } from './tour-music.js';
 import { attachPlaceSearch } from './ui/place-search.js';
 import { clockTz } from './world/tz.js';
 import { createCrashSim, CRASH_SCENARIOS } from './crash-sim.js';
+import { tourEscapeAction } from './tour-keys.js';
 
 const MPH = 0.44704, KT = 0.514444, FT = 0.3048, G = 9.81;
 const _isWin = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent || '');
@@ -1059,9 +1060,11 @@ export function createTour({ scene, camera, cam, camGoal, geoToWorld, getTraffic
   });
   const FREE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyX', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight', 'Space']);
   addEventListener('keydown', (e) => {
-    if (!S.mode) return;
-    if (e.key === 'Escape') { stop(); return; }
-    if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    /* Capture phase runs before the music search box sees the key. Escape there
+       closes the suggestion list; a text field must not end the flight. */
+    const keyAct = tourEscapeAction(e, !!S.mode);
+    if (keyAct === 'ignore' || keyAct === 'field') return;
+    if (keyAct === 'exit') { stop(); return; }
     if (e.code === 'KeyH' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setHudHidden(!S.hudHid); e.preventDefault(); return;
     }
