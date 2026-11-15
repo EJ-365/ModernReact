@@ -1,0 +1,1554 @@
+diff --git a/.gitignore b/.gitignore
+index f3835cf..a78fdd4 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -2,3 +2,4 @@ node_modules
+ dist
+ *.zip
+ .DS_Store
++release
+diff --git a/README.md b/README.md
+index 169c70b..bfa08ed 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,17 @@ Turn typed text, Word, PDF and text files into handwriting that looks genuinely
+ 
+ - **Homepage** (`index.html`): live-rendered hero, try-it demo, font-vs-hand comparison, preset gallery, FAQ.
+ - **Studio** (`studio.html`): editor with live multi-page preview.
++- **Desktop app**: installable PWA (Chrome, Edge, Safari "Add to Dock", Android, iOS "Add to Home Screen"). Works offline once installed and can open .docx/.pdf/.txt files from the file manager.
++
++## Install on a desktop
++
++The release zip (`penwright-1.1.0.zip`, built with `npm run package`) contains `app/` (the built site), `source/` and launchers:
++
++- **Windows**: double-click `Start Penwright (Windows).bat`, then click **Install app** in Chrome or Edge.
++- **Mac**: right-click `Start Penwright (Mac).command` > Open, then **Install app** (Chrome/Edge) or File > Add to Dock (Safari).
++- **Linux**: `./start-penwright.sh`, then **Install app**.
++
++The launchers serve `app/` on `http://localhost:47815` (this computer only) because browsers only install apps from http(s). After installing, the app runs from its own icon without the launcher. Hosting `app/` on any static host works the same way.
+ 
+ ## Run
+ 
+@@ -12,6 +23,7 @@ npm install
+ npm run dev       # http://localhost:5190
+ npm run build     # static site in dist/ (host anywhere, works from a sub-folder)
+ npm run preview   # serve dist/ on http://localhost:5191
++npm run package   # build + one release zip in release/ (app, source, launchers)
+ ```
+ 
+ ## Features
+@@ -25,15 +37,18 @@ npm run preview   # serve dist/ on http://localhost:5191
+ | **Paper** | College / wide / A4 ruled, yellow legal pad, assignment sheet with Name/Date boxes, graph, dot grid, printer, cream laid, aged parchment, kraft, index card, sticky note, or your own image. Holes, torn spiral edge, US Letter / A4 / A5 / Legal. |
+ | **Realism** | Per-letter rotation, size, slant and glyph warp; baseline wobble; line slope; margin drift; pressure; hand fatigue; ragged right edge; mistakes crossed out and rewritten; smudges. Seeded, so a page is reproducible and "Re-roll" writes it again. |
+ | **Finish** | Digital, flatbed scan, photocopy, or phone photo on a desk (oak, walnut, white, slate, linen, concrete) with perspective, page curl, light falloff and hand shadow. |
++| **Layout** | Side panel can be hidden (click the open tab again, the Hide button, or `Ctrl/Cmd+B`), widened with one click, or dragged to any width (double-click the edge to reset). **Full editor** opens a full-screen text box for long documents. On phones the preview sits on top and the controls below. |
+ | **Header** | Name, date (today in 5 formats or custom), centered title, subject/class, page numbers. |
+ 
+-Shortcuts: `Ctrl/Cmd+E` download, `Ctrl/Cmd+O` import, `Ctrl/Cmd+P` print, `Alt+R` re-roll. Double-click a slider to reset it.
++Shortcuts: `Ctrl/Cmd+E` download, `Ctrl/Cmd+O` import, `Ctrl/Cmd+P` print, `Alt+R` re-roll, `Ctrl/Cmd+B` hide/show the side panel. Double-click a slider to reset it.
+ 
+ ## Code map
+ 
+ - `src/engine/` — rendering engine (no UI): `fonts.js` catalogue + glyph fallback, `paper.js` templates and textures, `layout.js` Markdown-lite parsing and line wrapping in millimetres, `render.js` ink simulation, `finish.js` scan/photocopy/photo effects, `rng.js` seeded noise.
+ - `src/studio/` — studio UI, importers, exporters.
+ - `src/home/` — homepage demos.
++- `src/pwa.js`, `public/sw.js`, `public/manifest.webmanifest` — install and offline support (the build writes the file list into `dist/sw.js`).
++- `desktop/` — launchers and the read-me that go into the release zip; `scripts/package.mjs` builds it.
+ 
+ Scanned PDFs (images only) contain no text to import; OCR them first. Legacy `.doc` must be re-saved as `.docx`.
+ 
+diff --git a/desktop/START HERE.txt b/desktop/START HERE.txt
+new file mode 100644
+index 0000000..1ff4373
+--- /dev/null
++++ b/desktop/START HERE.txt	
+@@ -0,0 +1,49 @@
++PENWRIGHT  -  text to realistic handwriting
++============================================
++
++What is in this folder
++----------------------
++  Start Penwright (Windows).bat   Opens Penwright on Windows
++  Start Penwright (Mac).command   Opens Penwright on a Mac
++  start-penwright.sh              Opens Penwright on Linux
++  app\                            The finished app (upload this folder to any web host)
++  source\                         The source code (npm install, then npm run dev)
++  changes.patch                   The full code change as a git patch
++
++
++Put Penwright on your desktop (works offline)
++---------------------------------------------
++Windows
++  1. Unzip this folder somewhere permanent, e.g. Documents\Penwright.
++  2. Double-click "Start Penwright (Windows).bat".
++     If Windows SmartScreen asks, click "More info" then "Run anyway".
++     A small black window opens and Penwright opens in your browser.
++  3. In Penwright click "Install app" (top right), then "Install".
++     Use Chrome or Edge for this step.
++  Penwright now has its own window, a Start menu entry and a desktop icon,
++  and it works with no internet. You only need the .bat file again if you
++  uninstall the app.
++
++Mac
++  1. Unzip this folder, e.g. into Documents.
++  2. Right-click "Start Penwright (Mac).command" and choose Open (the first time only).
++     It needs Python 3; macOS offers to install it if it is missing.
++  3. In Chrome or Edge click "Install app". In Safari choose File, then "Add to Dock".
++
++Linux
++  Run ./start-penwright.sh (needs python3), then click "Install app" in Chrome or Edge.
++
++Phone or tablet
++  Open Penwright from a web host (see below), then:
++  iPhone/iPad: Share, then "Add to Home Screen".  Android: menu, then "Install app".
++
++
++Put it online
++-------------
++Upload everything inside app\ to any static host (GitHub Pages, Netlify,
++Cloudflare Pages, Vercel). It works from a sub-folder too. No server code needed.
++
++
++Privacy
++-------
++Your text and files never leave your computer. There is no account and no server.
+diff --git a/desktop/Start Penwright (Mac).command b/desktop/Start Penwright (Mac).command
+new file mode 100755
+index 0000000..b12a59b
+--- /dev/null
++++ b/desktop/Start Penwright (Mac).command	
+@@ -0,0 +1,7 @@
++#!/bin/bash
++cd "$(dirname "$0")" || exit 1
++if command -v python3 >/dev/null 2>&1; then exec python3 serve.py; fi
++echo "Penwright needs Python 3 to start. macOS will offer to install it (Command Line Tools),"
++echo "or get it from https://www.python.org/downloads/ and double-click this file again."
++python3 --version >/dev/null 2>&1
++read -r -p "Press Enter to close."
+diff --git a/desktop/Start Penwright (Windows).bat b/desktop/Start Penwright (Windows).bat
+new file mode 100644
+index 0000000..305aebb
+--- /dev/null
++++ b/desktop/Start Penwright (Windows).bat	
+@@ -0,0 +1,5 @@
++@echo off
++title Penwright
++cd /d "%~dp0"
++powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0serve.ps1"
++if errorlevel 1 pause
+diff --git a/desktop/serve.ps1 b/desktop/serve.ps1
+new file mode 100644
+index 0000000..f7d4717
+--- /dev/null
++++ b/desktop/serve.ps1
+@@ -0,0 +1,46 @@
++# Penwright local launcher for Windows: serves the app folder on this computer only and opens it.
++$ErrorActionPreference = 'Stop'
++$port = 47815
++$root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'app'))
++$url = "http://localhost:$port/"
++$mime = @{
++  '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript'; '.mjs' = 'text/javascript'; '.css' = 'text/css'
++  '.svg' = 'image/svg+xml'; '.png' = 'image/png'; '.jpg' = 'image/jpeg'; '.ico' = 'image/x-icon'
++  '.woff2' = 'font/woff2'; '.woff' = 'font/woff'; '.json' = 'application/json'; '.webmanifest' = 'application/manifest+json'
++  '.txt' = 'text/plain; charset=utf-8'; '.wasm' = 'application/wasm'
++}
++$listener = New-Object System.Net.HttpListener
++$listener.Prefixes.Add($url)
++try { $listener.Start() } catch {
++  Write-Host "Penwright is already running (or port $port is in use). Opening it..."
++  Start-Process ($url + 'studio.html')
++  exit 0
++}
++Write-Host ''
++Write-Host "  Penwright is running at $url"
++Write-Host '  Keep this window open while you use it in the browser. Close it to stop.'
++Write-Host ''
++Write-Host '  Tip: click "Install app" in Penwright to get a desktop app with its own'
++Write-Host '  icon that works offline. After that you will not need this window.'
++Write-Host ''
++Start-Process ($url + 'studio.html')
++while ($listener.IsListening) {
++  try {
++    $ctx = $listener.GetContext()
++    $res = $ctx.Response
++    $rel = [Uri]::UnescapeDataString($ctx.Request.Url.AbsolutePath).TrimStart('/')
++    if ($rel -eq '' -or $rel.EndsWith('/')) { $rel = $rel + 'index.html' }
++    $path = [IO.Path]::GetFullPath((Join-Path $root $rel))
++    if ($path.StartsWith($root, [StringComparison]::OrdinalIgnoreCase) -and [IO.File]::Exists($path)) {
++      $bytes = [IO.File]::ReadAllBytes($path)
++      $ext = [IO.Path]::GetExtension($path).ToLower()
++      if ($mime.ContainsKey($ext)) { $res.ContentType = $mime[$ext] } else { $res.ContentType = 'application/octet-stream' }
++      if ($ext -eq '.html' -or $rel -eq 'sw.js' -or $ext -eq '.webmanifest') { $res.Headers.Add('Cache-Control', 'no-cache') }
++      $res.ContentLength64 = $bytes.Length
++      $res.OutputStream.Write($bytes, 0, $bytes.Length)
++    } else {
++      $res.StatusCode = 404
++    }
++    $res.OutputStream.Close()
++  } catch { }
++}
+diff --git a/desktop/serve.py b/desktop/serve.py
+new file mode 100644
+index 0000000..65443ff
+--- /dev/null
++++ b/desktop/serve.py
+@@ -0,0 +1,39 @@
++# Penwright local launcher for macOS / Linux: serves the app folder on this computer only.
++import http.server, os, socketserver, sys, threading, urllib.request, webbrowser
++
++PORT = 47815
++URL = f"http://localhost:{PORT}/studio.html"
++ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app")
++
++try:
++    urllib.request.urlopen(f"http://localhost:{PORT}/sw.js", timeout=1)
++    print("Penwright is already running. Opening it...")
++    webbrowser.open(URL)
++    sys.exit(0)
++except Exception:
++    pass
++
++class Handler(http.server.SimpleHTTPRequestHandler):
++    extensions_map = {**http.server.SimpleHTTPRequestHandler.extensions_map,
++                      ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css",
++                      ".svg": "image/svg+xml", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json",
++                      ".wasm": "application/wasm"}
++    def __init__(self, *a, **k):
++        super().__init__(*a, directory=ROOT, **k)
++    def end_headers(self):
++        if self.path.split("?")[0].endswith((".html", "/", "sw.js", ".webmanifest")):
++            self.send_header("Cache-Control", "no-cache")
++        super().end_headers()
++    def log_message(self, *a):
++        pass
++
++socketserver.TCPServer.allow_reuse_address = True
++with socketserver.ThreadingTCPServer(("127.0.0.1", PORT), Handler) as srv:
++    print(f"\n  Penwright is running at http://localhost:{PORT}/")
++    print("  Keep this window open while you use it in the browser. Press Ctrl+C or close it to stop.\n")
++    print('  Tip: click "Install app" in Penwright for a desktop app that works offline.\n')
++    threading.Timer(0.6, lambda: webbrowser.open(URL)).start()
++    try:
++        srv.serve_forever()
++    except KeyboardInterrupt:
++        pass
+diff --git a/desktop/start-penwright.sh b/desktop/start-penwright.sh
+new file mode 100755
+index 0000000..c03ae45
+--- /dev/null
++++ b/desktop/start-penwright.sh
+@@ -0,0 +1,3 @@
++#!/usr/bin/env bash
++cd "$(dirname "$0")" || exit 1
++exec python3 serve.py
+diff --git a/index.html b/index.html
+index 7ea3b3e..503dd63 100644
+--- a/index.html
++++ b/index.html
+@@ -8,6 +8,9 @@
+   <meta property="og:title" content="Penwright — Text to realistic handwriting" />
+   <meta property="og:description" content="Import Word, PDF or text. Pick a hand, pen and paper. Download PDF or PNG." />
+   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
++  <link rel="manifest" href="./manifest.webmanifest" />
++  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
++  <meta name="theme-color" content="#1d3a94" />
+ </head>
+ <body class="home">
+   <header class="nav" id="nav">
+@@ -19,6 +22,7 @@
+       <a href="#formats">Formats</a>
+       <a href="#faq">FAQ</a>
+     </nav>
++    <button class="btn ghost install-btn" id="installBtn" hidden title="Install Penwright as a desktop app that works offline"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H4zM9 20h6M12 16v4M12 7v6m0 0-2.5-2.5M12 13l2.5-2.5"/></svg><span>Install app</span></button>
+     <a class="btn primary" href="./studio.html">Open the studio <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+   </header>
+ 
+@@ -33,6 +37,7 @@
+       </div>
+       <ul class="ticks">
+         <li>28 handwriting styles + your own font</li>
++        <li>Installs as a desktop app · works offline</li>
+         <li>14 papers · 6 pens · 4 finishes</li>
+         <li>.docx · .pdf · .txt · .md · .odt · .rtf import</li>
+       </ul>
+@@ -144,6 +149,7 @@
+       <li><b>Read scanned pages.</b> Image-only PDFs and photos have no text inside. OCR them first.</li>
+       <li><b>Open old .doc files.</b> Re-save them as .docx in Word or Google Docs.</li>
+       <li><b>Copy your exact hand from a photo.</b> Turn your writing into a font with a free tool like Calligraphr, then upload it.</li>
++      <li><b>Install from Firefox.</b> Firefox on desktop can’t install web apps. Use Chrome, Edge or Safari, or keep using it in a tab.</li>
+       <li><b>Write every script.</b> The bundled hands cover Latin letters and accents. Arabic, CJK, Cyrillic and others need a custom font that includes them.</li>
+       <li><b>Keep tables, images or exact layout.</b> Imports bring in the words, headings and lists. Everything is rewritten onto ruled paper.</li>
+     </ul>
+@@ -153,6 +159,7 @@
+     <div class="sec-head"><p class="kicker">FAQ</p><h2>Questions, answered</h2></div>
+     <div class="faq">
+       <details open><summary>Is Penwright really free?</summary><p>Yes. There are no accounts, watermarks or page limits. Everything runs in your browser, so there’s nothing to pay for on our side.</p></details>
++      <details><summary>Can I install it on my computer or phone?</summary><p>Yes. Click <b>Install app</b> at the top of the page. In Chrome or Edge (Windows, Mac, Linux, ChromeOS, Android) Penwright installs in one click. On iPhone and iPad use Share, then Add to Home Screen; in Safari on a Mac use File, then Add to Dock. It opens in its own window with its own icon, and keeps working with no internet. You can also open Word, PDF and text files with it straight from your file manager.</p></details>
+       <details><summary>Can I use my own handwriting?</summary><p>Yes. Create a font from a photo of your handwriting with a free tool like Calligraphr, then upload the .ttf/.otf in the <em>Hand</em> tab. Penwright applies all the same natural variation to it, and remembers it on this device.</p></details>
+       <details><summary>Will it print at the right size?</summary><p>PDFs are generated at the exact paper size (US Letter, A4, A5, Legal, index card or sticky note). Choose “Digital” finish and print at 100% / actual size for the most natural result on real paper.</p></details>
+       <details><summary>Why did my PDF import come out empty?</summary><p>Scanned PDFs are pictures of text, so there’s no text inside to extract. Run them through OCR first (e.g. Google Drive → Open with Google Docs), or export the original document as .docx or .pdf.</p></details>
+diff --git a/package.json b/package.json
+index 23f01e8..1111789 100644
+--- a/package.json
++++ b/package.json
+@@ -1,10 +1,11 @@
+ {
+   "name": "penwright",
+-  "version": "1.0.0",
++  "version": "1.1.0",
+   "scripts": {
+     "dev": "vite",
+     "build": "vite build",
+-    "preview": "vite preview"
++    "preview": "vite preview",
++    "package": "vite build && node scripts/package.mjs"
+   },
+   "license": "MIT",
+   "description": "Turn text, Word, PDF and text files into realistic handwriting. Export PDF / PNG / JPG. Runs fully in the browser.",
+diff --git a/public/icons/apple-touch-icon.png b/public/icons/apple-touch-icon.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab36933d007d0de1da4283463a75ed2261a0b3ba
+GIT binary patch
+literal 2963
+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
+bW@;e;eZZgkdC-OOJw^axWp7z!;qmAnCug^p
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/icons/icon-192.png b/public/icons/icon-192.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..add6d130ca4ac9999891fc679e82ed0dbe3ccac9
+GIT binary patch
+literal 5440
+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
+D9e;ek
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/icons/icon-512.png b/public/icons/icon-512.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..eaae3cf201266cbbdd3cc4398a244b520acfcaff
+GIT binary patch
+literal 15807
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/icons/maskable-512.png b/public/icons/maskable-512.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..62188bf3c93d1dad5962f97a415fe061257d52dd
+GIT binary patch
+literal 8655
+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
+Re1uYfwuXUv#cjKY{{ggV@!bFb
+
+literal 0
+HcmV?d00001
+
+diff --git a/public/manifest.webmanifest b/public/manifest.webmanifest
+new file mode 100644
+index 0000000..f22fdea
+--- /dev/null
++++ b/public/manifest.webmanifest
+@@ -0,0 +1,85 @@
++{
++  "name": "Penwright - Text to Handwriting",
++  "short_name": "Penwright",
++  "description": "Turn typed text, Word, PDF and text files into realistic handwriting. Download PDF, PNG or JPG. Works offline.",
++  "id": "./studio.html",
++  "start_url": "./studio.html",
++  "scope": "./",
++  "display": "standalone",
++  "orientation": "any",
++  "background_color": "#f5f2ea",
++  "theme_color": "#1d3a94",
++  "categories": [
++    "productivity",
++    "education",
++    "utilities"
++  ],
++  "icons": [
++    {
++      "src": "./icons/icon-192.png",
++      "sizes": "192x192",
++      "type": "image/png"
++    },
++    {
++      "src": "./icons/icon-512.png",
++      "sizes": "512x512",
++      "type": "image/png"
++    },
++    {
++      "src": "./icons/maskable-512.png",
++      "sizes": "512x512",
++      "type": "image/png",
++      "purpose": "maskable"
++    },
++    {
++      "src": "./favicon.svg",
++      "sizes": "any",
++      "type": "image/svg+xml"
++    }
++  ],
++  "shortcuts": [
++    {
++      "name": "Open the studio",
++      "url": "./studio.html",
++      "icons": [
++        {
++          "src": "./icons/icon-192.png",
++          "sizes": "192x192"
++        }
++      ]
++    },
++    {
++      "name": "Homepage",
++      "url": "./index.html",
++      "icons": [
++        {
++          "src": "./icons/icon-192.png",
++          "sizes": "192x192"
++        }
++      ]
++    }
++  ],
++  "file_handlers": [
++    {
++      "action": "./studio.html",
++      "accept": {
++        "text/plain": [
++          ".txt",
++          ".md"
++        ],
++        "application/pdf": [
++          ".pdf"
++        ],
++        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
++          ".docx"
++        ],
++        "application/vnd.oasis.opendocument.text": [
++          ".odt"
++        ],
++        "application/rtf": [
++          ".rtf"
++        ]
++      }
++    }
++  ]
++}
+\ No newline at end of file
+diff --git a/public/sw.js b/public/sw.js
+new file mode 100644
+index 0000000..bb87f12
+--- /dev/null
++++ b/public/sw.js
+@@ -0,0 +1,34 @@
++const VERSION = '__VERSION__';
++const PRECACHE = self.__PRECACHE || [];
++const CACHE = 'penwright-' + VERSION;
++
++self.addEventListener('install', (e) => {
++  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
++});
++
++self.addEventListener('activate', (e) => {
++  e.waitUntil(
++    caches.keys()
++      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('penwright-') && k !== CACHE).map((k) => caches.delete(k))))
++      .then(() => self.clients.claim())
++  );
++});
++
++self.addEventListener('fetch', (e) => {
++  const req = e.request;
++  if (req.method !== 'GET') return;
++  const url = new URL(req.url);
++  if (url.origin !== location.origin) return;
++  const store = (res) => {
++    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
++    return res;
++  };
++  if (req.mode === 'navigate') {
++    // Pages: network first so updates show up, cached copy when offline.
++    e.respondWith(fetch(req).then(store).catch(() =>
++      caches.match(req, { ignoreSearch: true }).then((m) => m || caches.match('./studio.html'))));
++    return;
++  }
++  // Hashed assets and fonts never change: cache first.
++  e.respondWith(caches.match(req, { ignoreSearch: true }).then((m) => m || fetch(req).then(store)));
++});
+diff --git a/scripts/package.mjs b/scripts/package.mjs
+new file mode 100644
+index 0000000..e86eff8
+--- /dev/null
++++ b/scripts/package.mjs
+@@ -0,0 +1,32 @@
++// Builds release/penwright-<version>.zip: built app, source, desktop launchers and changes.patch.
++import JSZip from 'jszip';
++import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, existsSync } from 'node:fs';
++import { join, relative, resolve } from 'node:path';
++import { execSync } from 'node:child_process';
++
++const root = resolve(import.meta.dirname, '..');
++const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
++const top = `Penwright-${version}`;
++const zip = new JSZip();
++const skip = /^(node_modules|dist|release|\.git)(\/|$)/;
++
++const add = (dir, dest, filter = () => true) => {
++  for (const f of readdirSync(dir)) {
++    const full = join(dir, f);
++    const rel = relative(root, full).replaceAll('\\', '/');
++    if (!filter(rel)) continue;
++    if (statSync(full).isDirectory()) add(full, dest + f + '/', filter);
++    else zip.file(dest + f, readFileSync(full), { unixPermissions: statSync(full).mode });
++  }
++};
++
++add(join(root, 'dist'), `${top}/app/`);
++add(join(root, 'desktop'), `${top}/`);
++const tracked = new Set(execSync('git ls-files -co --exclude-standard', { cwd: root }).toString().split('\n').filter(Boolean));
++add(root, `${top}/source/`, (rel) => !skip.test(rel) && (statSync(join(root, rel)).isDirectory() || tracked.has(rel)));
++if (existsSync(join(root, 'release/changes.patch'))) zip.file(`${top}/changes.patch`, readFileSync(join(root, 'release/changes.patch')));
++
++mkdirSync(join(root, 'release'), { recursive: true });
++const out = join(root, 'release', `penwright-${version}.zip`);
++writeFileSync(out, await zip.generateAsync({ type: 'nodebuffer', platform: 'UNIX', compression: 'DEFLATE', compressionOptions: { level: 9 } }));
++console.log('wrote', relative(root, out));
+diff --git a/src/home/main.js b/src/home/main.js
+index 9c154db..38024f8 100644
+--- a/src/home/main.js
++++ b/src/home/main.js
+@@ -1,6 +1,10 @@
+ import '../styles/base.css';
+ import '../styles/home.css';
+ import { DEFAULTS, PRESETS, PENS, prepare, renderFinal, getFont, ensureFont } from '../engine/index.js';
++import { registerSW, setupInstall } from '../pwa.js';
++
++registerSW();
++setupInstall(document.getElementById('installBtn'));
+ 
+ const $ = (s) => document.querySelector(s);
+ 
+diff --git a/src/pwa.js b/src/pwa.js
+new file mode 100644
+index 0000000..ce04b12
+--- /dev/null
++++ b/src/pwa.js
+@@ -0,0 +1,55 @@
++// Install-as-app support shared by the homepage and the studio.
++let deferred = null;
++const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
++
++export const APP_VERSION = __APP_VERSION__;
++
++export function registerSW() {
++  if (!import.meta.env.PROD || !('serviceWorker' in navigator) || location.protocol === 'file:') return;
++  addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
++}
++
++export function setupInstall(btn) {
++  if (!btn) return;
++  if (isStandalone()) { btn.hidden = true; return; }
++  btn.hidden = false;
++  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; });
++  addEventListener('appinstalled', () => { deferred = null; btn.hidden = true; });
++  btn.addEventListener('click', async () => {
++    if (deferred) {
++      deferred.prompt();
++      const { outcome } = await deferred.userChoice;
++      deferred = null;
++      if (outcome === 'accepted') btn.hidden = true;
++      return;
++    }
++    showHelp();
++  });
++}
++
++function steps() {
++  const ua = navigator.userAgent;
++  const ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
++  if (location.protocol === 'file:') return ['Penwright has to be opened through its launcher to be installed.', 'Double-click "Start Penwright" in the Penwright folder, then click Install app again.'];
++  if (ios) return ['Tap the Share button in Safari.', 'Choose "Add to Home Screen", then tap Add.'];
++  if (/Android/.test(ua)) return ['Open the browser menu (three dots).', 'Tap "Install app" or "Add to Home screen".'];
++  if (/Firefox\//.test(ua)) return ['Firefox on desktop can\'t install web apps.', 'Open this page in Chrome or Edge, then click Install app.'];
++  if (/Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua)) return ['In the Safari menu bar choose File, then "Add to Dock".', 'Penwright appears in your Dock and Launchpad.'];
++  return ['Click the install icon at the right end of the address bar.', 'Or open the browser menu (three dots) and choose "Cast, save and share", then "Install page as app" (Chrome), or "Apps", then "Install this site as an app" (Edge).'];
++}
++
++function showHelp() {
++  let d = document.getElementById('installHelp');
++  if (!d) {
++    d = document.createElement('dialog');
++    d.id = 'installHelp';
++    d.className = 'pw-dlg';
++    document.body.append(d);
++    d.addEventListener('click', (e) => { if (e.target === d) d.close(); });
++  }
++  const list = steps().map((s) => `<li>${s}</li>`).join('');
++  d.innerHTML = `<form method="dialog"><h2>Install Penwright</h2>
++    <p>Get Penwright in its own window with a desktop or home-screen icon. It keeps working offline.</p>
++    <ol>${list}</ol><div class="pw-dlg-actions"><button class="btn primary" value="ok">Got it</button></div></form>`;
++  d.showModal();
++}
+diff --git a/src/studio/importers.js b/src/studio/importers.js
+index 3a8c20e..5f76e52 100644
+--- a/src/studio/importers.js
++++ b/src/studio/importers.js
+@@ -20,6 +20,15 @@ export function normalise(t) {
+ }
+ 
+ // HTML -> light markdown (headings, lists, paragraphs) so structure survives.
++const inlineText = (node) => {
++  let s = '';
++  for (const c of node.childNodes) {
++    if (c.nodeType === 3) s += c.textContent.replace(/\s+/g, ' ');
++    else if (c.nodeType === 1) s += c.tagName === 'BR' ? '\n' : inlineText(c);
++  }
++  return s;
++};
++
+ export function htmlToText(html) {
+   const doc = new DOMParser().parseFromString(html, 'text/html');
+   doc.querySelectorAll('script,style,noscript').forEach((n) => n.remove());
+@@ -38,8 +47,12 @@ export function htmlToText(html) {
+         continue;
+       }
+       if (tag === 'br') { out.push('\n'); continue; }
+-      if (tag === 'strong' || tag === 'b') { const t = n.textContent.trim(); if (t) out.push(' **' + t + '** '); continue; }
+-      if (tag === 'u') { const t = n.textContent.trim(); if (t) out.push(' _' + t + '_ '); continue; }
++      if (tag === 'strong' || tag === 'b' || tag === 'u') {
++        const m = tag === 'u' ? '_' : '**';
++        const t = inlineText(n).split('\n').map((s) => s.trim()).map((s) => (s ? m + s + m : '')).join('\n');
++        if (t.trim()) out.push(' ' + t + ' ');
++        continue;
++      }
+       if (tag === 'tr') { out.push('\n' + [...n.children].map((c) => c.textContent.trim()).join('   ')); continue; }
+       const block = /^(p|div|section|article|blockquote|pre|table|ul|ol|header|footer)$/.test(tag);
+       if (block) out.push('\n\n');
+diff --git a/src/studio/main.js b/src/studio/main.js
+index 021650b..1c87295 100644
+--- a/src/studio/main.js
++++ b/src/studio/main.js
+@@ -8,6 +8,7 @@ import {
+ import { importFile, ACCEPT } from './importers.js';
+ import { exportDocument, copyPage, printDocument } from './exporters.js';
+ import { idbGet, idbSet } from './store.js';
++import { registerSW, setupInstall, APP_VERSION } from '../pwa.js';
+ 
+ const $ = (s, r = document) => r.querySelector(s);
+ const h = (tag, attrs = {}, ...kids) => {
+@@ -52,6 +53,70 @@ const TABS = [
+   { id: 'finish', label: 'Finish', icon: 'M4 7h3l2-3h6l2 3h3v12H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+ ];
+ let activeTab = localStorage.getItem('penwright.tab') || 'write';
++let panelMode = localStorage.getItem('penwright.panel') || 'normal'; // 'min' | 'normal' | 'wide'
++let panelW = +localStorage.getItem('penwright.panelW') || 0;
++const wcText = (t) => `${(t.match(/\S+/g) || []).length} words · ${t.length} characters`;
++
++function setPanel(mode) {
++  panelMode = mode;
++  localStorage.setItem('penwright.panel', mode);
++  applyPanel();
++  buildTabs();
++}
++function applyPanel() {
++  const p = $('#panel');
++  p.classList.toggle('min', panelMode === 'min');
++  p.classList.toggle('wide', panelMode === 'wide');
++  p.style.setProperty('--panel-w', panelMode === 'wide' ? 'min(860px, 60vw)' : (panelW || 384) + 'px');
++}
++function setupResize() {
++  const p = $('#panel');
++  const grip = h('div', { class: 'panel-resize', role: 'separator', 'aria-orientation': 'vertical', 'aria-label': 'Resize panel', title: 'Drag to resize · double-click to reset' });
++  p.append(grip);
++  grip.addEventListener('pointerdown', (e) => {
++    e.preventDefault();
++    grip.setPointerCapture(e.pointerId);
++    document.body.classList.add('resizing');
++    const left = p.getBoundingClientRect().left;
++    let moved = false;
++    const move = (ev) => {
++      moved = true;
++      panelW = Math.round(Math.max(320, Math.min(innerWidth * 0.72, ev.clientX - left)));
++      p.classList.remove('wide');
++      p.style.setProperty('--panel-w', panelW + 'px');
++    };
++    const up = () => {
++      grip.removeEventListener('pointermove', move);
++      grip.removeEventListener('pointerup', up);
++      document.body.classList.remove('resizing');
++      if (moved) { localStorage.setItem('penwright.panelW', panelW); setPanel('normal'); }
++    };
++    grip.addEventListener('pointermove', move);
++    grip.addEventListener('pointerup', up);
++  });
++  grip.addEventListener('dblclick', () => { panelW = 0; localStorage.removeItem('penwright.panelW'); setPanel('normal'); });
++}
++
++function openEditor() {
++  let d = $('#editorDlg');
++  if (!d) {
++    const wc = h('small', { id: 'edWc', class: 'muted' });
++    const ta = h('textarea', { id: 'edText', spellcheck: 'true', 'aria-label': 'Your text',
++      placeholder: 'Paste your whole document here…\n\n# Headings, - bullets, **bold** and _underline_ are understood.',
++      oninput: (e) => { set({ text: e.target.value }, { delay: 500 }); wc.textContent = wcText(e.target.value); } });
++    d = h('dialog', { id: 'editorDlg', class: 'dialog editor-dlg' },
++      h('div', { class: 'ed-head' }, h('h2', {}, 'Your text'), wc,
++        h('button', { class: 'btn ghost', onclick: () => $('#fileInput').click() }, 'Import file'),
++        h('button', { class: 'btn primary', onclick: () => d.close() }, 'Done')),
++      ta);
++    d.addEventListener('close', () => { if (activeTab === 'write') buildBody(); });
++    document.body.append(d);
++  }
++  $('#edText').value = cfg.text;
++  $('#edWc').textContent = wcText(cfg.text);
++  d.showModal();
++  $('#edText').focus();
++}
+ 
+ function icon(d) {
+   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+@@ -63,8 +128,21 @@ function icon(d) {
+ function buildTabs() {
+   const nav = $('#tabs'); nav.innerHTML = '';
+   for (const t of TABS) {
+-    nav.append(h('button', { role: 'tab', class: 'tab' + (t.id === activeTab ? ' on' : ''), 'aria-selected': String(t.id === activeTab), onclick: () => { activeTab = t.id; localStorage.setItem('penwright.tab', t.id); buildTabs(); buildBody(); } }, icon(t.icon), h('span', {}, t.label)));
++    nav.append(h('button', { role: 'tab', class: 'tab' + (t.id === activeTab ? ' on' : ''), 'aria-selected': String(t.id === activeTab), title: t.id === activeTab && panelMode !== 'min' ? 'Click again to hide the panel' : t.label,
++      onclick: () => {
++        if (t.id === activeTab && panelMode !== 'min') return setPanel('min');
++        activeTab = t.id; localStorage.setItem('penwright.tab', t.id);
++        if (panelMode === 'min') setPanel('normal'); else buildTabs();
++        buildBody();
++      } }, icon(t.icon), h('span', {}, t.label)));
+   }
++  const wide = panelMode === 'wide', min = panelMode === 'min';
++  nav.append(h('div', { class: 'rail-foot' },
++    h('button', { class: 'tab rail-btn widen', title: wide ? 'Back to normal width' : 'Make the panel wider (more room for your text)', onclick: () => setPanel(wide ? 'normal' : 'wide') },
++      icon(wide ? 'M4 12h6M7 9l3 3-3 3M20 12h-6M17 9l-3 3 3 3' : 'M3 12h7M6 9l-3 3 3 3M21 12h-7M18 9l3 3-3 3'), h('span', {}, wide ? 'Narrow' : 'Widen')),
++    h('button', { class: 'tab rail-btn collapse', 'aria-expanded': String(!min), title: (min ? 'Show' : 'Hide') + ' the panel (Ctrl+B)', onclick: () => setPanel(min ? 'normal' : 'min') },
++      icon(min ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'), h('span', {}, min ? 'Show' : 'Hide')),
++    h('small', { class: 'ver', title: 'Penwright version' }, 'v' + APP_VERSION)));
+ }
+ 
+ /* ---------------- control helpers ---------------- */
+@@ -101,8 +179,7 @@ const mult = (v) => (v === 1 ? 'normal' : v.toFixed(2) + '×');
+ /* ---------------- panels ---------------- */
+ const PANELS = {
+   write() {
+-    const words = (cfg.text.match(/\S+/g) || []).length;
+-    const ta = h('textarea', { id: 'textIn', spellcheck: 'true', placeholder: 'Type or paste your text here…\n\n# Headings, - bullets, **bold** and _underline_ are understood.', oninput: (e) => { set({ text: e.target.value }, { delay: 380 }); $('#wc').textContent = `${(e.target.value.match(/\S+/g) || []).length} words · ${e.target.value.length} characters`; } });
++    const ta = h('textarea', { id: 'textIn', spellcheck: 'true', placeholder: 'Type or paste your text here…\n\n# Headings, - bullets, **bold** and _underline_ are understood.', oninput: (e) => { set({ text: e.target.value }, { delay: 380 }); $('#wc').textContent = wcText(e.target.value); } });
+     ta.value = cfg.text;
+     const drop = h('button', { class: 'dropzone', onclick: () => $('#fileInput').click() },
+       h('b', {}, 'Import a document'), h('span', {}, 'Word .docx · PDF · .txt · Markdown · .odt · .rtf · .html'), h('small', {}, 'or drag & drop anywhere — files never leave your device'));
+@@ -113,8 +190,9 @@ const PANELS = {
+     const exam = getPaper(cfg.paper).exam;
+     return [
+       section(null, drop),
+-      section('Your text', ta, h('div', { class: 'row-between' }, h('small', { id: 'wc', class: 'muted' }, `${words} words · ${cfg.text.length} characters`),
++      section('Your text', ta, h('div', { class: 'row-between' }, h('small', { id: 'wc', class: 'muted' }, wcText(cfg.text)),
+         h('div', { class: 'mini-actions' },
++          h('button', { class: 'link', title: 'Open a big editor for long documents', onclick: openEditor }, 'Full editor'),
+           h('button', { class: 'link', onclick: () => { cfg.text = DEFAULTS.text; save(); buildBody(); schedule(0); } }, 'Sample'),
+           h('button', { class: 'link', onclick: () => { cfg.text = ''; save(); buildBody(); schedule(0); $('#textIn').focus(); } }, 'Clear')))),
+       section('Page header',
+@@ -325,6 +403,7 @@ async function handleFile(file) {
+     const t = await importFile(file);
+     if (!t.trim()) throw new Error('No text found. If this PDF is a scan (an image of text), it has no selectable text to import.');
+     cfg.text = t; save();
++    if ($('#editorDlg')?.open) { $('#edText').value = t; $('#edWc').textContent = wcText(t); }
+     activeTab = 'write'; buildTabs(); buildBody();
+     curPage = 0; schedule(0);
+     toast(`Imported ${file.name} · ${(t.match(/\S+/g) || []).length} words`);
+@@ -434,13 +513,18 @@ async function init() {
+     else if (mod && e.key.toLowerCase() === 'o') { e.preventDefault(); $('#fileInput').click(); }
+     else if (mod && e.key.toLowerCase() === 'p') { e.preventDefault(); $('#printBtn').click(); }
+     else if (e.altKey && e.key.toLowerCase() === 'r') { e.preventDefault(); reroll(); }
++    else if (mod && e.key.toLowerCase() === 'b' && !/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) { e.preventDefault(); setPanel(panelMode === 'min' ? 'normal' : 'min'); }
+   });
+ 
++  registerSW();
++  setupInstall($('#installBtn'));
++  if ('launchQueue' in window) launchQueue.setConsumer(async (p) => { if (p.files?.length) handleFile(await p.files[0].getFile()); });
++  setupResize(); applyPanel();
+   buildTabs(); buildBody(); applyZoom();
+   await restoreFonts();
+   buildBody();
+   await render();
+   applyZoom();
+-  window.__pw = { get cfg() { return cfg; }, set, render, get pages() { return pageCount; } };
++  window.__pw = { get cfg() { return cfg; }, set, render, setPanel, openEditor, get pages() { return pageCount; } };
+ }
+ init();
+diff --git a/src/styles/base.css b/src/styles/base.css
+index 80a6150..a33589f 100644
+--- a/src/styles/base.css
++++ b/src/styles/base.css
+@@ -34,3 +34,12 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
+ .btn.block { width: 100%; }
+ .btn.lg { height: 48px; padding: 0 22px; font-size: 15px; border-radius: 12px; }
+ .btn:disabled { opacity: .55; cursor: default; }
++
++[hidden] { display: none !important; }
++.pw-dlg { border: 0; border-radius: 16px; padding: 0; width: min(460px, calc(100vw - 32px)); box-shadow: var(--shadow-lg); background: var(--surface); color: var(--text); }
++.pw-dlg::backdrop { background: rgba(20,18,12,.45); backdrop-filter: blur(3px); }
++.pw-dlg form { padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; }
++.pw-dlg h2 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 22px; }
++.pw-dlg p { margin: 0; color: var(--muted); line-height: 1.55; }
++.pw-dlg ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
++.pw-dlg-actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+diff --git a/src/styles/home.css b/src/styles/home.css
+index 40b9b4c..d358630 100644
+--- a/src/styles/home.css
++++ b/src/styles/home.css
+@@ -129,3 +129,12 @@ body.home { background: var(--bg); overflow-x: hidden; }
+ .limits li::before { content: '×'; position: absolute; left: 18px; top: 12px; color: #b4442f; font-size: 20px; font-weight: 700; }
+ .limits b { color: var(--text); }
+ .foot p a { color: var(--ink); }
++
++.nav .install-btn { margin-left: auto; background: transparent; border-color: var(--line-2); color: var(--text); }
++.nav .install-btn:hover { background: var(--surface); }
++.nav .install-btn:not([hidden]) + .btn { margin-left: -16px; }
++@media (max-width: 640px) {
++  .nav .install-btn span { display: none; }
++  .nav .install-btn { padding: 0 10px; }
++  .nav { gap: 20px; }
++}
+diff --git a/src/styles/studio.css b/src/styles/studio.css
+index b675c09..08a4ebf 100644
+--- a/src/styles/studio.css
++++ b/src/styles/studio.css
+@@ -11,7 +11,24 @@ body.studio { height: 100vh; overflow: hidden; display: flex; flex-direction: co
+ @keyframes spin { to { transform: rotate(360deg); } }
+ 
+ .workspace { flex: 1; display: flex; min-height: 0; }
+-.panel { width: 384px; flex: none; display: flex; background: var(--surface); border-right: 1px solid var(--line); min-height: 0; }
++.panel { position: relative; width: var(--panel-w, 384px); max-width: 72vw; flex: none; display: flex; background: var(--surface); border-right: 1px solid var(--line); min-height: 0; transition: width .18s ease; }
++.panel.min { width: 75px; }
++.panel.min .tab-body, .panel.min .panel-resize { display: none; }
++.panel.min .tab.on { background: transparent; color: var(--muted); }
++body.resizing { cursor: col-resize; user-select: none; }
++body.resizing .panel { transition: none; }
++.panel-resize { position: absolute; top: 0; right: -5px; width: 10px; height: 100%; cursor: col-resize; z-index: 4; touch-action: none; }
++.panel-resize::after { content: ''; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .15s; }
++.panel-resize:hover::after, body.resizing .panel-resize::after { background: rgba(29,58,148,.45); }
++.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 8px; border-top: 1px solid var(--line); }
++.ver { text-align: center; font-size: 10px; color: var(--muted); padding: 6px 0 2px; font-variant-numeric: tabular-nums; }
++.panel.wide textarea#textIn { font-size: 14.5px; min-height: clamp(320px, 60vh, 960px); }
++.dialog.editor-dlg { width: min(1100px, calc(100vw - 32px)); max-width: none; height: min(88vh, 1000px); max-height: none; }
++.editor-dlg[open] { display: flex; flex-direction: column; }
++.ed-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px 14px 22px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
++.ed-head h2 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: 20px; }
++.ed-head small { margin-right: auto; }
++#edText { flex: 1; width: 100%; border: 0; resize: none; padding: 22px 26px; font: 15.5px/1.7 var(--sans); color: var(--text); outline: none; background: #fff; border-radius: 0 0 16px 16px; }
+ .tabs { width: 74px; flex: none; border-right: 1px solid var(--line); padding: 10px 7px; display: flex; flex-direction: column; gap: 4px; background: var(--surface-2); }
+ .tab { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 2px 8px; border: 0; background: transparent; border-radius: 10px; color: var(--muted); font-size: 11.5px; font-weight: 600; }
+ .tab svg { width: 20px; height: 20px; }
+@@ -29,7 +46,7 @@ body.studio { height: 100vh; overflow: hidden; display: flex; flex-direction: co
+ .link { border: 0; background: none; padding: 0; color: var(--ink); font-weight: 600; font-size: 12.5px; }
+ .link:hover { text-decoration: underline; }
+ 
+-textarea#textIn { width: 100%; min-height: 260px; resize: vertical; padding: 12px 13px; border: 1px solid var(--line-2); border-radius: 10px; background: #fff; line-height: 1.55; font-size: 13.5px; outline: none; }
++textarea#textIn { width: 100%; min-height: clamp(260px, 46vh, 680px); resize: vertical; padding: 12px 13px; border: 1px solid var(--line-2); border-radius: 10px; background: #fff; line-height: 1.55; font-size: 13.5px; outline: none; }
+ textarea#textIn:focus, .field input:focus, .field select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px var(--ink-soft); }
+ .dropzone { display: flex; flex-direction: column; gap: 3px; align-items: center; text-align: center; padding: 18px 12px; border: 1.5px dashed var(--line-2); border-radius: 12px; background: repeating-linear-gradient(transparent 0 23px, #e9eef9 23px 24px), #fcfbf7; transition: border-color .15s, background-color .15s; }
+ .dropzone:hover { border-color: var(--ink); }
+@@ -121,7 +138,7 @@ code.seed { font: 600 12.5px ui-monospace, Menlo, monospace; background: var(--s
+ 
+ .stage { flex: 1; overflow: auto; position: relative; background: radial-gradient(circle at 50% 0, #e6e1d6, #d9d3c6 70%); min-width: 0; }
+ .stage-bar { position: sticky; top: 0; z-index: 3; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(229,224,213,.82); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,.06); }
+-.pager, .zoom, .stage-actions { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
++.pager, .zoom, .stage-actions { white-space: nowrap; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+ .zoom span { min-width: 44px; text-align: center; }
+ .icon { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(0,0,0,.1); background: rgba(255,255,255,.75); font-size: 17px; line-height: 1; display: grid; place-items: center; padding: 0; }
+ .icon:hover:not(:disabled) { background: #fff; }
+@@ -164,11 +181,25 @@ body.dragging .drop-hint { display: grid; }
+ @media (max-width: 900px) {
+   body.studio { height: auto; overflow: auto; }
+   .workspace { flex-direction: column-reverse; }
+-  .panel { width: 100%; border-right: 0; border-top: 1px solid var(--line); flex-direction: column; }
++  .panel, .panel.min { width: 100%; max-width: none; border-right: 0; border-top: 1px solid var(--line); flex-direction: column; transition: none; }
++  .panel-resize, .rail-btn.widen, .ver { display: none; }
++  .rail-foot { margin: 0; padding: 0 0 0 4px; border-top: 0; border-left: 1px solid var(--line); flex-direction: row; }
++  .rail-btn svg { transform: rotate(-90deg); }
++  textarea#textIn { min-height: 42vh; }
++  .dialog.editor-dlg { width: 100vw; height: 100dvh; border-radius: 0; margin: 0; }
++  #edText { border-radius: 0; padding: 18px; font-size: 16px; }
++  .ed-head { flex-wrap: nowrap; padding: 10px 12px 10px 16px; gap: 8px; }
++  .ed-head small { display: none; }
++  .ed-head h2 { margin-right: auto; }
++  .install-btn span { display: none; }
++  .install-btn { padding: 0 10px; }
+   .tabs { width: 100%; flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+-  .tab { flex: 1; min-width: 58px; }
++  .tab { flex: 1 1 0; min-width: 0; }
++  .rail-foot .tab { flex: none; width: 52px; }
+   .tab-body { overflow: visible; }
+-  .stage { overflow: visible; min-height: 70vh; }
++  .stage { flex: none; height: 60vh; height: 60dvh; overflow: auto; }
++  .panel.min + .stage { height: calc(100dvh - 190px); }
++  .tabs { position: sticky; top: 0; z-index: 4; }
+   .topbar { flex-wrap: wrap; height: auto; padding: 10px 12px; }
+   .topbar-mid { order: 3; width: 100%; margin: 0; }
+   .topbar-mid .btn span, .status { display: none; }
+@@ -180,3 +211,8 @@ body.dragging .drop-hint { display: grid; }
+   .page-no { display: none; }
+ }
+ .chip.on { background: var(--ink-soft); color: var(--ink); border-color: rgba(29,58,148,.3); }
++
++@media (max-width: 1200px) {
++  .topbar .status { display: none; }
++  .stage-bar { flex-wrap: wrap; row-gap: 6px; padding: 8px 12px; }
++}
+diff --git a/studio.html b/studio.html
+index de218d4..7a4ce68 100644
+--- a/studio.html
++++ b/studio.html
+@@ -6,6 +6,9 @@
+   <title>Penwright Studio — Text to realistic handwriting</title>
+   <meta name="description" content="Turn typed text, Word, PDF or text files into realistic handwriting. Export PDF, PNG or JPG. Runs entirely in your browser." />
+   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
++  <link rel="manifest" href="./manifest.webmanifest" />
++  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
++  <meta name="theme-color" content="#1d3a94" />
+ </head>
+ <body class="studio">
+   <header class="topbar">
+@@ -21,6 +24,7 @@
+     </div>
+     <div class="topbar-right">
+       <span class="status" id="status" aria-live="polite"></span>
++      <button class="btn ghost install-btn" id="installBtn" hidden title="Install Penwright as a desktop app that works offline"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H4zM9 20h6M12 16v4M12 7v6m0 0-2.5-2.5M12 13l2.5-2.5"/></svg><span>Install app</span></button>
+       <button class="btn primary" id="exportBtn" title="Download PDF / PNG / JPG (Ctrl+E)"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg><span>Download</span></button>
+     </div>
+   </header>
+diff --git a/vite.config.js b/vite.config.js
+index 5c635e3..945d68c 100644
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -1,8 +1,38 @@
+ import { defineConfig } from 'vite';
+-import { resolve } from 'node:path';
++import { resolve, join } from 'node:path';
++import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
++
++const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'));
++
++// Writes the version and the list of built files into dist/sw.js so the installed app works offline.
++function serviceWorkerManifest() {
++  return {
++    name: 'penwright-sw',
++    apply: 'build',
++    closeBundle() {
++      const dist = resolve(__dirname, 'dist');
++      const files = [];
++      const walk = (dir, prefix = '') => {
++        for (const f of readdirSync(dir)) {
++          const full = join(dir, f);
++          if (statSync(full).isDirectory()) walk(full, prefix + f + '/');
++          else files.push(prefix + f);
++        }
++      };
++      walk(dist);
++      const precache = ['./', ...files
++        .filter((f) => f !== 'sw.js' && !f.endsWith('.map') && !/-(cyrillic|greek|vietnamese|hebrew|math|symbols)(-ext)?-/.test(f))
++        .map((f) => './' + f)];
++      const sw = join(dist, 'sw.js');
++      writeFileSync(sw, readFileSync(sw, 'utf8').replace('__VERSION__', pkg.version).replace('self.__PRECACHE || []', JSON.stringify(precache)));
++    },
++  };
++}
+ 
+ export default defineConfig({
+   base: './',
++  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
++  plugins: [serviceWorkerManifest()],
+   build: {
+     target: 'es2022',
+     chunkSizeWarningLimit: 1500,

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Penwright — Turn text into realistic handwriting (PDF & PNG)</title>
+  <meta name="description" content="Penwright turns typed text, Word documents and PDFs into handwriting that looks genuinely written by hand: real pens, real paper, scanned or photographed. Free, private, in your browser." />
+  <meta property="og:title" content="Penwright — Text to realistic handwriting" />
+  <meta property="og:description" content="Import Word, PDF or text. Pick a hand, pen and paper. Download PDF or PNG." />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="theme-color" content="#1d3a94" />
+  <script type="module" crossorigin src="./assets/home-BhYeQjFQ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/pwa-Ctao2UhS.js">
+  <link rel="stylesheet" crossorigin href="./assets/pwa-BZksSz3L.css">
+  <link rel="stylesheet" crossorigin href="./assets/home-BNp5lDQz.css">
+</head>
+<body class="home">
+  <header class="nav" id="nav">
+    <a class="brand" href="./index.html"><img src="./favicon.svg" alt="" width="28" height="28" /><span>Penwright</span></a>
+    <nav class="nav-links">
+      <a href="#try">Try it</a>
+      <a href="#realism">Realism</a>
+      <a href="#styles">Styles</a>
+      <a href="#formats">Formats</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <button class="btn ghost install-btn" id="installBtn" hidden title="Install Penwright as a desktop app that works offline"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H4zM9 20h6M12 16v4M12 7v6m0 0-2.5-2.5M12 13l2.5-2.5"/></svg><span>Install app</span></button>
+    <a class="btn primary" href="./studio.html">Open the studio <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+  </header>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="dot"></span> Free · No sign-up · Runs entirely in your browser</p>
+      <h1>Typed text in.<br /><span class="hand-word">Real handwriting</span> out.</h1>
+      <p class="lede">Penwright writes your text the way a person would — every letter a little different, ink that pools and skips, lines that drift on real ruled paper. Import a Word doc or PDF and download it as a PDF or PNG in seconds.</p>
+      <div class="cta-row">
+        <a class="btn primary lg" href="./studio.html">Start writing — it’s free</a>
+        <a class="btn ghost lg" href="#try">Try it right here</a>
+      </div>
+      <ul class="ticks">
+        <li>28 handwriting styles + your own font</li>
+        <li>Installs as a desktop app · works offline</li>
+        <li>14 papers · 6 pens · 4 finishes</li>
+        <li>.docx · .pdf · .txt · .md · .odt · .rtf import</li>
+      </ul>
+    </div>
+    <div class="hero-art" aria-label="Examples rendered live by Penwright">
+      <div class="art art-main"><canvas id="heroMain"></canvas></div>
+      <div class="art art-note"><canvas id="heroNote"></canvas></div>
+      <div class="art art-card"><canvas id="heroCard"></canvas></div>
+      <p class="art-caption">Every image on this page is rendered live, right now, by the same engine you’ll use.</p>
+    </div>
+  </section>
+
+  <section class="strip">
+    <div><b>Students</b><span>Notes & assignments</span></div>
+    <div><b>Teachers</b><span>Worksheets & feedback</span></div>
+    <div><b>Designers</b><span>Mockups & social posts</span></div>
+    <div><b>Small business</b><span>Thank-you cards</span></div>
+    <div><b>Writers</b><span>Letters & journals</span></div>
+  </section>
+
+  <section class="section" id="try">
+    <div class="sec-head">
+      <p class="kicker">Live demo</p>
+      <h2>Type something. Watch it get written.</h2>
+      <p>Change the hand or pen and it re-writes instantly. Nothing you type leaves this page.</p>
+    </div>
+    <div class="try">
+      <div class="try-controls">
+        <label class="field"><span>Your words</span>
+          <textarea id="tryText" rows="4" maxlength="220">Thanks for everything this year — you made Mondays bearable. Coffee's on me next week!</textarea></label>
+        <div class="field"><span>Hand</span><div class="chips" id="tryFonts"></div></div>
+        <div class="field"><span>Pen</span><div class="chips" id="tryPens"></div></div>
+        <div class="field"><span>Paper</span><div class="chips" id="tryPapers"></div></div>
+        <a class="btn primary" id="tryOpen" href="./studio.html">Continue in the studio <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+      </div>
+      <div class="try-stage"><canvas id="tryCanvas"></canvas><button class="chip reroll" id="tryReroll" title="Write it again">↻ Write again</button></div>
+    </div>
+  </section>
+
+  <section class="section alt" id="realism">
+    <div class="sec-head">
+      <p class="kicker">Why it looks real</p>
+      <h2>Not a handwriting font. A hand.</h2>
+      <p>A font repeats the exact same “a” every time — that’s what gives fake handwriting away. Penwright simulates the writer, the pen, the paper and the camera.</p>
+    </div>
+    <div class="compare">
+      <figure><canvas id="cmpFont"></canvas><figcaption><b>Just a font</b> Identical letters, ruler-straight lines, flat colour.</figcaption></figure>
+      <figure><canvas id="cmpReal"></canvas><figcaption><b>Penwright</b> Same font, same words — written by hand.</figcaption></figure>
+    </div>
+    <div class="features">
+      <article><h3>No two letters alike</h3><p>Every glyph gets its own rotation, size, slant and subtle warp, so repeated letters never match.</p></article>
+      <article><h3>Lines that drift</h3><p>Baselines wobble, whole lines tilt, and the left margin wanders the way it does when you write freehand.</p></article>
+      <article><h3>Real ink behaviour</h3><p>Ballpoint skips and blobs, gel saturates, fountain ink pools at stroke ends, pencil catches the paper tooth.</p></article>
+      <article><h3>Pressure & fatigue</h3><p>Ink darkness varies stroke to stroke, and writing gets a little bigger and looser further down the page.</p></article>
+      <article><h3>Human mistakes</h3><p>Optional misspellings scribbled out and rewritten, plus faint smudges where a palm brushed the ink.</p></article>
+      <article><h3>Paper you can feel</h3><p>College, wide and A4 ruled, legal pads, graph, dot grid, index cards, parchment — with grain, holes and torn edges.</p></article>
+      <article><h3>Scanned or photographed</h3><p>Add flatbed scan skew, photocopy toner, or a phone photo on an oak desk with perspective, light and shadow.</p></article>
+      <article><h3>Reproducible</h3><p>Each page has a seed. Keep the one you like, or re-roll for a new “hand day” with the same text.</p></article>
+    </div>
+  </section>
+
+  <section class="section" id="styles">
+    <div class="sec-head">
+      <p class="kicker">Presets</p>
+      <h2>One click from blank page to finished look.</h2>
+      <p>Start from a preset, then tweak any detail. Click one to open it in the studio.</p>
+    </div>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <section class="section alt" id="how">
+    <div class="sec-head"><p class="kicker">How it works</p><h2>Three steps. About thirty seconds.</h2></div>
+    <ol class="steps">
+      <li><span class="num">1</span><h3>Bring your text</h3><p>Type, paste, or drop in a Word, PDF, text, Markdown, OpenDocument or RTF file. Headings, bullets and paragraphs carry over.</p></li>
+      <li><span class="num">2</span><h3>Choose the hand</h3><p>Pick a handwriting, pen, ink colour and paper. Add your name and date to the header like a real assignment.</p></li>
+      <li><span class="num">3</span><h3>Download</h3><p>Get a multi-page PDF, or PNG/JPG images (zipped for multiple pages) at up to 300 dpi — or print it directly.</p></li>
+    </ol>
+  </section>
+
+  <section class="section" id="formats">
+    <div class="formats">
+      <div class="fmt-col">
+        <p class="kicker">Import</p>
+        <h2>Bring any document</h2>
+        <ul class="fmt-list">
+          <li><b>.docx</b> Microsoft Word</li><li><b>.pdf</b> PDF with selectable text</li><li><b>.txt</b> Plain text</li>
+          <li><b>.md</b> Markdown</li><li><b>.odt</b> LibreOffice / OpenDocument</li><li><b>.rtf</b> Rich text</li><li><b>.html</b> Web pages</li>
+        </ul>
+      </div>
+      <div class="fmt-col">
+        <p class="kicker">Export</p>
+        <h2>Take it anywhere</h2>
+        <ul class="fmt-list">
+          <li><b>PDF</b> Multi-page, exact paper size</li><li><b>PNG</b> Lossless, ZIP for multi-page</li><li><b>JPG</b> Small, photo-like files</li>
+          <li><b>Print</b> Straight to your printer</li><li><b>Copy</b> Paste a page into any app</li><li><b>300 dpi</b> Print-shop resolution</li>
+        </ul>
+      </div>
+      <div class="fmt-col privacy">
+        <svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <h3>Private by design</h3>
+        <p>There is no server. Your documents are parsed and rendered on your own device and never uploaded anywhere.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="limits">
+    <div class="sec-head"><p class="kicker">Honest limits</p><h2>What Penwright can’t do</h2></div>
+    <ul class="limits">
+      <li><b>Read scanned pages.</b> Image-only PDFs and photos have no text inside. OCR them first.</li>
+      <li><b>Open old .doc files.</b> Re-save them as .docx in Word or Google Docs.</li>
+      <li><b>Copy your exact hand from a photo.</b> Turn your writing into a font with a free tool like Calligraphr, then upload it.</li>
+      <li><b>Install from Firefox.</b> Firefox on desktop can’t install web apps. Use Chrome, Edge or Safari, or keep using it in a tab.</li>
+      <li><b>Write every script.</b> The bundled hands cover Latin letters and accents. Arabic, CJK, Cyrillic and others need a custom font that includes them.</li>
+      <li><b>Keep tables, images or exact layout.</b> Imports bring in the words, headings and lists. Everything is rewritten onto ruled paper.</li>
+    </ul>
+  </section>
+
+  <section class="section alt" id="faq">
+    <div class="sec-head"><p class="kicker">FAQ</p><h2>Questions, answered</h2></div>
+    <div class="faq">
+      <details open><summary>Is Penwright really free?</summary><p>Yes. There are no accounts, watermarks or page limits. Everything runs in your browser, so there’s nothing to pay for on our side.</p></details>
+      <details><summary>Can I install it on my computer or phone?</summary><p>Yes. Click <b>Install app</b> at the top of the page. In Chrome or Edge (Windows, Mac, Linux, ChromeOS, Android) Penwright installs in one click. On iPhone and iPad use Share, then Add to Home Screen; in Safari on a Mac use File, then Add to Dock. It opens in its own window with its own icon, and keeps working with no internet. You can also open Word, PDF and text files with it straight from your file manager.</p></details>
+      <details><summary>Can I use my own handwriting?</summary><p>Yes. Create a font from a photo of your handwriting with a free tool like Calligraphr, then upload the .ttf/.otf in the <em>Hand</em> tab. Penwright applies all the same natural variation to it, and remembers it on this device.</p></details>
+      <details><summary>Will it print at the right size?</summary><p>PDFs are generated at the exact paper size (US Letter, A4, A5, Legal, index card or sticky note). Choose “Digital” finish and print at 100% / actual size for the most natural result on real paper.</p></details>
+      <details><summary>Why did my PDF import come out empty?</summary><p>Scanned PDFs are pictures of text, so there’s no text inside to extract. Run them through OCR first (e.g. Google Drive → Open with Google Docs), or export the original document as .docx or .pdf.</p></details>
+      <details><summary>Which languages and characters work?</summary><p>Latin-script languages including accents (é, ñ, ü, ø…) are supported. Characters a handwriting doesn’t include are swapped for close equivalents, like curly quotes to straight ones.</p></details>
+      <details><summary>Can I submit this as handwritten homework?</summary><p>Please don’t. If an assignment must be handwritten by you, submitting generated pages may break your school’s academic-integrity rules. Penwright is great for study notes, mockups, cards, worksheets and design work.</p></details>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <canvas id="ctaCanvas"></canvas>
+    <div><h2>Your next page is already half-written.</h2><a class="btn primary lg" href="./studio.html">Open the studio</a></div>
+  </section>
+
+  <footer class="foot">
+    <div class="brand"><img src="./favicon.svg" alt="" width="22" height="22" /><span>Penwright</span></div>
+    <p>Built by <a href="https://github.com/EJ-365">Ejay Gabriel</a>, Frontend Developer. Handwriting fonts are open-source (SIL OFL / Apache 2.0) via Fontsource.</p>
+    <nav><a href="./studio.html">Studio</a><a href="#limits">Limits</a><a href="#faq">FAQ</a><a href="#formats">Formats</a></nav>
+  </footer>
+</body>
+</html>

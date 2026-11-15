@@ -23,6 +23,7 @@ import { batchStaticChildren } from './render/static-batch.js';
 import { OSM_BUILDING_COVERAGE } from './cities/osm-coverage.js';
 import WORLD_CAT from './world/catalog.json';
 import { createCinematic } from './render/cinematic.js';
+import { createInstanceCuller } from './render/instance-cull.js';
 import {
   buildWeatherZones,
   chunkWeatherZones,
@@ -61,7 +62,7 @@ if (!THREE) throw new Error("[HTS] THREE missing — three-bridge must load firs
    - Live Open-Meteo weather · atmospheric sky · cumulus clouds
    ================================================================ */
 'use strict';
-console.log('%cTraffic Simulator — build v10.81.0. If you do not see this line, an old cached file is running.','color:#7fd6a0;font-weight:bold');
+console.log('%cTraffic Simulator — build '+((document.getElementById('vtag')||{}).textContent||'?')+'. If this does not match the version tag in the panel, an old cached file is running.','color:#7fd6a0;font-weight:bold');
 try{localStorage.removeItem('tt_key');localStorage.removeItem('fa_proxy');localStorage.removeItem('houstonSim.boardCache.v1');}catch(_e){}
 window.HTS_PAID_APIS_DISABLED=true;
 /* Homepage embed: ?peek=1 — chrome-free orbit preview (no tour / geo prompts) */
@@ -1043,10 +1044,13 @@ const _lowGpu=(()=>{try{const t=+localStorage.getItem('hts-lowgpu')||0;return Da
 function htsMakeRenderer(){
   /* reversed-Z depth (where the GPU supports it): the 1 m - 300 km view range no longer z-fights far-off land, roofs and lanes into blinking glitter */
   const base={canvas,stencil:false,depth:true,alpha:false,preserveDrawingBuffer:false};
+  /* three 0.185 reads reversedDepthBuffer (with a d); the old reverseDepthBuffer key was silently ignored, so reversed-Z never ran.
+     Turning it on hid every world city under the ground (v10.123/124), so it stays OFF by default. ?rz=1 to try it. */
+  const _rz=/[?&]rz=1\b/.test(location.search);
   const tries=[
-    {antialias:!_isWin&&!HTS_PEEK&&!_lowGpu,powerPreference:_lowGpu?'default':'high-performance',reverseDepthBuffer:true},
-    {antialias:false,powerPreference:'default',reverseDepthBuffer:true},
-    {antialias:false,powerPreference:'low-power',reverseDepthBuffer:false},
+    {antialias:!_isWin&&!HTS_PEEK&&!_lowGpu,powerPreference:_lowGpu?'default':'high-performance',reversedDepthBuffer:_rz},
+    {antialias:false,powerPreference:'default',reversedDepthBuffer:_rz},
+    {antialias:false,powerPreference:'low-power',reversedDepthBuffer:false},
   ];
   let last=null;
   for(const t of tries){try{return new THREE.WebGLRenderer({...base,...t});}catch(e){last=e;console.warn('[HTS] WebGL attempt failed',t,e&&e.message);}}
@@ -1371,8 +1375,11 @@ if(!HTS_IS_AUS){
 }
 ground.userData.baseColor=new THREE.Color(HTS_IS_AUS?0xb8d090:0xb4c890);
 /* Cinematic: soft shadows + env — skip in homepage peek (iframe FPS) */
-const htsCinematic=HTS_PEEK?null:createCinematic({renderer,scene,camera,sun,ground,isAus:HTS_IS_AUS});
+const htsCinematic=HTS_PEEK?null:createCinematic({renderer,scene,camera,sun,ground,isAus:HTS_IS_AUS,lowGpu:_lowGpu});
 window.HTS_CINEMATIC=htsCinematic;
+/* instance culler: skip trees/houses/tanks/airport lights that are past the fog or under a pixel (biggest FPS win). ?cull=0 turns it off */
+const htsCull=/[?&]cull=0\b/.test(location.search)?null:createInstanceCuller({scene,camera});
+window.HTS_CULL=htsCull;
 
 /* ---------------- water & greenery (distinct nature palettes) ---------------- */
 window.EXCLUDES=[]; /* circles where nothing may be built: water, airfields, stadium bowls */
@@ -7088,6 +7095,7 @@ function mergeNI(gs){let n=0;for(const g of gs)n+=g.attributes.position.count;co
 const glowGeo=mergeNI([-0.36,0.36].map((x)=>{const b=new THREE.BoxGeometry(0.26,1,1).toNonIndexed();b.translate(x,0,0);return b;}));
 const headMat2=new THREE.MeshBasicMaterial({color:0xfff4c8,transparent:true,opacity:0});
 const tailMat=new THREE.MeshBasicMaterial({color:0xff2418,transparent:true,opacity:0.9});
+const _headBase=headMat2.color.clone(),_tailBase=tailMat.color.clone(); /* HDR boost scales from these */
 const heads2=new THREE.InstancedMesh(glowGeo,headMat2,MAX_INST);
 const tails=new THREE.InstancedMesh(glowGeo,tailMat,MAX_INST);
 heads2.instanceMatrix.setUsage(THREE.DynamicDrawUsage);tails.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -13370,6 +13378,9 @@ function moveVehicles(dt,nightF){
   }
   headMat2.opacity=nightLights?clamp(0.55+nightF*0.45,0,1)*lightZoom:0.7*lightZoom;
   tailMat.opacity=nightLights?clamp(0.5+brakeGlow*0.5,0,1)*Math.max(0.4,lightZoom):clamp(brakeGlow*0.35,0,0.35);
+  /* HDR: lamps run hotter than white at night so the bloom gives real headlight / brake-light glow */
+  headMat2.color.copy(_headBase).multiplyScalar(1+1.8*nightF);
+  tailMat.color.copy(_tailBase).multiplyScalar(1+1.4*Math.max(nightF,brakeGlow*0.6));
 }
 
 /* ---------------- environment update ---------------- */
@@ -14753,7 +14764,8 @@ function frame(now){
   /* Congestion tint: softer when zoomed in so asphalt + lane lines stay clear */
   if(!gRoads3D.userData.v2Hidden){
     const stripO=inOSM?0:0.55*clamp((cam.radius-40)/420,0.35,1)*clamp(1-mapT*1.2,0,1);
-    for(const road of roads)for(const dir of road.dirs){if(dir.strip)dir.strip.material.opacity=stripO;}
+    /* skip the all-roads walk when nothing changed (most frames) */
+    if(Math.abs(stripO-(window._stripO??-1))>0.002||window._stripN!==roads.length){window._stripO=stripO;window._stripN=roads.length;for(const road of roads)for(const dir of road.dirs){if(dir.strip)dir.strip.material.opacity=stripO;}}
   }
   /* Freeway decks must stay on when zoomed in — never hide gRoads3D at close range */
   if(!gRoads3D.userData.v2Hidden&&!inOSM&&cam.radius<3500*WS&&!gRoads3D.visible)gRoads3D.visible=true;
@@ -14799,9 +14811,10 @@ function frame(now){
   }
   if(!window.HTS_WORLD_ACTIVE)updateRose(document.getElementById('rose')); /* after tours move the camera */
   /* Always paint the frame first — HUD/API errors must never blank the canvas */
+  if(htsCull){try{htsCull.update(scene.fog?scene.fog.far:42000*WS);}catch(e){if(!window._cullErr){window._cullErr=1;console.warn('[HTS] cull',e);}}}
   if(window.HTS_CINEMATIC&&HTS_CINEMATIC.update){
     try{
-      HTS_CINEMATIC.update(camGoal||cam,nightF,_fpsAvg);
+      HTS_CINEMATIC.update(camGoal||cam,nightF,_fpsAvg,wxBlend);
     }catch(e){}
   }
   if(window.HTS_CINEMATIC&&HTS_CINEMATIC.render){
@@ -14825,6 +14838,8 @@ try{
   console.log('%cStatic batching: roads '+r1.before+'→'+r1.after+' · towers '+r2.before+'→'+r2.after+' objects','color:#7fd6a0');
 }catch(e){console.warn('[HTS] static batch',e);}
 requestAnimationFrame(frame);
+/* warm every shader in parallel (KHR_parallel_shader_compile) so the first sunset, zoom or rain doesn't stutter */
+if(!HTS_PEEK&&renderer.compileAsync)setTimeout(()=>{try{renderer.compileAsync(scene,camera).catch(()=>{});}catch(_e){}},4000);
 if(!HTS_PEEK&&typeof startLiveTrafficPolling==='function')startLiveTrafficPolling();
 if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?1600:1200);
 /* OSM CBD buildings — real footprints + Houston-style window façades */
@@ -14837,7 +14852,9 @@ if(!HTS_PEEK&&typeof initOsmLod==='function')setTimeout(()=>initOsmLod(),_isWin?
       cityId,geoToWorld,parent:gDetail,
       hScale:OSM_H_SCALE,unitsPerMetre:UNITS_PER_MILE/1609.34,
       aniso:Math.min(HTS_PEEK||_isWin?4:8,MAXAN),
-      skipNear:window.HTS_OSM_SKIP||[],
+      /* + the only 2 Houston OSM footprints (of 10,241) that sit on a real street at ground level:
+         Louisiana St and Bailey St (checked against every OSM road; raised skybridges/garages over streets are kept) */
+      skipNear:(window.HTS_OSM_SKIP||[]).concat(cityId==='houston'&&WS!==1?[{x:-149,z:887,r:10},{x:-1135,z:827,r:10}]:[]),
       landmarks:OSM_LANDMARKS,
       blocked:(x,z)=>nearRoadFast(x,z,-24),
     }).then((r)=>{

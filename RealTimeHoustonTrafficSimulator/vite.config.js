@@ -152,6 +152,8 @@ export default defineConfig(({ mode }) => {
         name: "tomtom-proxy",
         configureServer(server) {
           registerApiMiddlewares(server, env);
+          /* dev only: lets the in-page JS Self-Profiling API run (new Profiler(...)) for performance work */
+          server.middlewares.use((req, res, next) => { if (/^\/app\.html/.test(req.url || '')) res.setHeader('Document-Policy', 'js-profiling'); next(); });
         },
         /* `vite preview` gets the same same-origin feeds (was 404 for /api/news, /api/transtar) */
         configurePreviewServer(server) {

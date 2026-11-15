@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Penwright Studio — Text to realistic handwriting</title>
+  <meta name="description" content="Turn typed text, Word, PDF or text files into realistic handwriting. Export PDF, PNG or JPG. Runs entirely in your browser." />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="theme-color" content="#1d3a94" />
+</head>
+<body class="studio">
+  <header class="topbar">
+    <a class="brand" href="./index.html" title="Penwright home"><img src="./favicon.svg" alt="" width="26" height="26" /><span>Penwright</span><em>Studio</em></a>
+    <div class="topbar-mid">
+      <label class="select-pill" title="Start from a preset">
+        <span>Preset</span>
+        <select id="preset"><option value="">Choose…</option></select>
+      </label>
+      <button class="btn ghost" id="reroll" title="Write it again with natural variation (Alt+R)"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg><span>Re-roll</span></button>
+      <button class="btn ghost" id="importBtn" title="Import .docx, .pdf, .txt, .md, .odt, .rtf, .html (Ctrl+O)"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/></svg><span>Import</span></button>
+      <input type="file" id="fileInput" hidden />
+    </div>
+    <div class="topbar-right">
+      <span class="status" id="status" aria-live="polite"></span>
+      <button class="btn ghost install-btn" id="installBtn" hidden title="Install Penwright as a desktop app that works offline"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H4zM9 20h6M12 16v4M12 7v6m0 0-2.5-2.5M12 13l2.5-2.5"/></svg><span>Install app</span></button>
+      <button class="btn primary" id="exportBtn" title="Download PDF / PNG / JPG (Ctrl+E)"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg><span>Download</span></button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="panel" id="panel">
+      <nav class="tabs" role="tablist" id="tabs"></nav>
+      <div class="tab-body" id="tabBody"></div>
+    </aside>
+
+    <main class="stage" id="stage">
+      <div class="stage-bar">
+        <div class="pager"><button class="icon" id="prevPage" title="Previous page">‹</button><span id="pageInfo">Page 1 / 1</span><button class="icon" id="nextPage" title="Next page">›</button></div>
+        <div class="zoom">
+          <button class="icon" id="zoomOut" title="Zoom out">−</button>
+          <span id="zoomVal">100%</span>
+          <button class="icon" id="zoomIn" title="Zoom in">+</button>
+          <button class="chip" id="zoomFit" title="Fit page width">Fit</button>
+        </div>
+        <div class="stage-actions">
+          <button class="chip" id="copyBtn" title="Copy current page as image">Copy image</button>
+          <button class="chip" id="printBtn" title="Print all pages">Print</button>
+        </div>
+      </div>
+      <div class="pages" id="pages"></div>
+      <div class="drop-hint" id="dropHint"><div><strong>Drop your file</strong><span>.docx · .pdf · .txt · .md · .odt · .rtf · .html</span></div></div>
+    </main>
+  </div>
+
+  <dialog id="exportDlg" class="dialog">
+    <form method="dialog">
+      <h2>Download handwriting</h2>
+      <div class="seg" id="fmtSeg">
+        <label><input type="radio" name="fmt" value="pdf" checked /><span><b>PDF</b><small>All pages, print-ready</small></span></label>
+        <label><input type="radio" name="fmt" value="png" /><span><b>PNG</b><small>Lossless images (ZIP if multi-page)</small></span></label>
+        <label><input type="radio" name="fmt" value="jpg" /><span><b>JPG</b><small>Smaller, photo-like</small></span></label>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Resolution</span>
+          <select id="dpi"><option value="150">150 dpi · fast</option><option value="200" selected>200 dpi · sharp</option><option value="300">300 dpi · print shop</option></select></label>
+        <label class="field"><span>Pages</span>
+          <select id="whichPages"><option value="all">All pages</option><option value="current">Current page only</option></select></label>
+      </div>
+      <label class="check"><input type="checkbox" id="lossless" /> Lossless PDF (bigger file, PNG inside)</label>
+      <div class="progress" id="progress" hidden><div class="bar"><i id="progBar"></i></div><span id="progText"></span></div>
+      <div class="dlg-actions">
+        <button value="cancel" class="btn ghost">Cancel</button>
+        <button id="doExport" value="default" class="btn primary">Download</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module" src="./src/studio/main.js"></script>
+</body>
+</html>

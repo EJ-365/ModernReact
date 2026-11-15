@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { loadOsmCity } from '../render/osm-city.js';
 import { subSolar, llToVec } from './globe.js';
+import { buildClouds, tintClouds } from './clouds.js';
 
 const D2R = Math.PI / 180;
 const DRY = new Set(['cairo', 'dubai', 'delhi', 'mexicocity', 'guadalajara', 'losangeles', 'madrid', 'sanantonio', 'austin', 'dallas']);
@@ -189,16 +190,6 @@ function groundMaterial(map, renderer) {
   };
   return m;
 }
-function cloudSpriteTex() {
-  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-  for (let i = 0; i < 14; i++) {
-    const x = 30 + Math.random() * 68, y = 44 + Math.random() * 40, r = 18 + Math.random() * 26;
-    const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
-  }
-  return new THREE.CanvasTexture(c);
-}
-
 /** Simple airliner for the live-traffic layer (≈ 40 m). */
 export function trafficPlaneGeometry() {
   /* ~40 m twin-jet airliner with painted parts (vertex colours): white body, grey wings and engines, blue tail, dark cockpit and window line */
@@ -417,17 +408,14 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
   }
   onProgress && onProgress(0.9);
   /* clouds */
-  const cloudTex = cloudSpriteTex();
+  /* live sky layers: cumulus / altocumulus / cirrus / stratus from Open-Meteo low-mid-high cloud cover (see clouds.js) */
   const cloudGroup = new THREE.Group(); scene.add(cloudGroup);
-  function setClouds(cover) {
-    while (cloudGroup.children.length) { const s = cloudGroup.children.pop(); s.material.dispose(); }
-    const n = Math.round((cover / 100) * (mobile ? 40 : 80));
-    for (let i = 0; i < n; i++) {
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudTex, transparent: true, depthWrite: false, opacity: 0.75, fog: true }));
-      const sc = 900 + Math.random() * 1600; s.scale.set(sc, sc * 0.55, 1);
-      s.position.set((Math.random() - 0.5) * 36000, 1300 + Math.random() * 1200, (Math.random() - 0.5) * 36000);
-      cloudGroup.add(s);
-    }
+  let cloudStorm = 0, cloudKey = '', cloudsDirty = false;
+  function setClouds(w) {
+    const key = w ? [w.code, w.cloud, w.cLow, w.cMid, w.cHigh, w.precip > 0.05].join() : 'none';
+    if (key === cloudKey) return; cloudKey = key;
+    cloudStorm = buildClouds(cloudGroup, w, { mobile }).storm;
+    cloudsDirty = true; /* re-light them on the next frame */
   }
   /* rain */
   const RN = mobile ? 1500 : 4000; const rainPos = new Float32Array(RN * 6);
@@ -449,7 +437,7 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
       return Object.assign({}, f, { x: w.x, z: w.z, t0: now, ox: o ? o.wx - w.x : 0, oz: o ? o.wz - w.z : 0, oy: o ? o.wy : null, hd0: o ? o.hdS : null }); });
   }
   let weather = null;
-  function setWeather(w) { weather = w; setClouds(w ? w.cloud || 0 : 20); }
+  function setWeather(w) { weather = w; setClouds(w); }
   setWeather(null);
   /* sun / sky */
   const up = new THREE.Vector3(), east = new THREE.Vector3(), north = new THREE.Vector3(), sv = new THREE.Vector3();
@@ -480,7 +468,7 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
     houseMat.emissive.setRGB(0.16 * nightK, 0.11 * nightK, 0.05 * nightK); /* porch / window glow */
     for (const m of roadMats) m.emissive.setRGB(0.05 * nightK, 0.042 * nightK, 0.025 * nightK); /* sodium streetlight wash */
     lampMat.color.setRGB(0.54 + 0.46 * nightK, 0.54 + 0.34 * nightK, 0.52 - 0.02 * nightK); /* lamp heads glow warm at night */
-    for (const s of cloudGroup.children) s.material.color.copy(hor).lerp(C(0xffffff), day * 0.6);
+    tintClouds(cloudGroup, Math.max(0.12, day), dusk, cloudStorm);
     return { el, day };
   }
   /* 'live' = real local sun; 'day' / 'night' preview the city at local solar noon / midnight */
@@ -494,6 +482,7 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
   function setLook(m) { look = m === 'day' || m === 'night' ? m : 'live'; skyT = 0; }
   let skyT = 0, sunInfo = sky_(new Date());
   function update(dt, cam) {
+    if (cloudsDirty) { cloudsDirty = false; skyT = 0; }
     skyT -= dt; if (skyT <= 0) { skyT = 5; sunInfo = sky_(lookDate()); }
     sky.position.copy(cam.position);
     if (osm) osm.update(cam);
@@ -535,12 +524,13 @@ export async function createCityScene({ city, renderer, mobile, onProgress, land
   }
   function resize(w, h) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
   function dispose() {
+    scene.remove(cloudGroup); /* shared cloud textures must survive this city */
     scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
       for (const m of ms) { for (const k in m) if (m[k] && m[k].isTexture) m[k].dispose(); if (m.userData.dMap) m.userData.dMap.dispose(); m.dispose(); }
     });
-    cloudTex.dispose();
+    for (const s of cloudGroup.children) s.material.dispose(); /* cloud textures are shared by every city (clouds.js) */
     renderer.renderLists.dispose();
   }
   const apt = P.apt || city.apt;

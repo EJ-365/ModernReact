@@ -1,0 +1,49 @@
+PENWRIGHT  -  text to realistic handwriting
+============================================
+
+What is in this folder
+----------------------
+  Start Penwright (Windows).bat   Opens Penwright on Windows
+  Start Penwright (Mac).command   Opens Penwright on a Mac
+  start-penwright.sh              Opens Penwright on Linux
+  app\                            The finished app (upload this folder to any web host)
+  source\                         The source code (npm install, then npm run dev)
+  changes.patch                   The full code change as a git patch
+
+
+Put Penwright on your desktop (works offline)
+---------------------------------------------
+Windows
+  1. Unzip this folder somewhere permanent, e.g. Documents\Penwright.
+  2. Double-click "Start Penwright (Windows).bat".
+     If Windows SmartScreen asks, click "More info" then "Run anyway".
+     A small black window opens and Penwright opens in your browser.
+  3. In Penwright click "Install app" (top right), then "Install".
+     Use Chrome or Edge for this step.
+  Penwright now has its own window, a Start menu entry and a desktop icon,
+  and it works with no internet. You only need the .bat file again if you
+  uninstall the app.
+
+Mac
+  1. Unzip this folder, e.g. into Documents.
+  2. Right-click "Start Penwright (Mac).command" and choose Open (the first time only).
+     It needs Python 3; macOS offers to install it if it is missing.
+  3. In Chrome or Edge click "Install app". In Safari choose File, then "Add to Dock".
+
+Linux
+  Run ./start-penwright.sh (needs python3), then click "Install app" in Chrome or Edge.
+
+Phone or tablet
+  Open Penwright from a web host (see below), then:
+  iPhone/iPad: Share, then "Add to Home Screen".  Android: menu, then "Install app".
+
+
+Put it online
+-------------
+Upload everything inside app\ to any static host (GitHub Pages, Netlify,
+Cloudflare Pages, Vercel). It works from a sub-folder too. No server code needed.
+
+
+Privacy
+-------
+Your text and files never leave your computer. There is no account and no server.

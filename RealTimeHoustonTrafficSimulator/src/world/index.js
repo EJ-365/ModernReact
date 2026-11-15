@@ -316,11 +316,11 @@ async function fetchJson(urls, ms = 9000) {
 async function loadWeather() {
   if (Date.now() - wxAt < 10 * 60e3) return; wxAt = Date.now();
   const lat = CITIES.map((c) => c.lat).join(','), lng = CITIES.map((c) => c.lng).join(',');
-  const j = await fetchJson([`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,apparent_temperature,relative_humidity_2m,uv_index,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation,is_day&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto&wind_speed_unit=ms`], 12000);
+  const j = await fetchJson([`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,apparent_temperature,relative_humidity_2m,uv_index,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,precipitation,is_day&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto&wind_speed_unit=ms`], 12000);
   const arr = Array.isArray(j) ? j : j ? [j] : [];
   arr.forEach((d, i) => {
     const c = CITIES[i], cu = d && d.current; if (!c || !cu) return;
-    weather[c.id] = { temp: cu.temperature_2m, code: cu.weather_code, cloud: cu.cloud_cover, wind: cu.wind_speed_10m, windDir: cu.wind_direction_10m, precip: cu.precipitation, isDay: cu.is_day, feels: cu.apparent_temperature, hum: cu.relative_humidity_2m, uv: cu.uv_index, elev: d.elevation, rise: d.daily && d.daily.sunrise && d.daily.sunrise[0], set: d.daily && d.daily.sunset && d.daily.sunset[0], hi: d.daily && d.daily.temperature_2m_max && d.daily.temperature_2m_max[0], lo: d.daily && d.daily.temperature_2m_min && d.daily.temperature_2m_min[0] };
+    weather[c.id] = { temp: cu.temperature_2m, code: cu.weather_code, cloud: cu.cloud_cover, cLow: cu.cloud_cover_low, cMid: cu.cloud_cover_mid, cHigh: cu.cloud_cover_high, wind: cu.wind_speed_10m, windDir: cu.wind_direction_10m, precip: cu.precipitation, isDay: cu.is_day, feels: cu.apparent_temperature, hum: cu.relative_humidity_2m, uv: cu.uv_index, elev: d.elevation, rise: d.daily && d.daily.sunrise && d.daily.sunrise[0], set: d.daily && d.daily.sunset && d.daily.sunset[0], hi: d.daily && d.daily.temperature_2m_max && d.daily.temperature_2m_max[0], lo: d.daily && d.daily.temperature_2m_min && d.daily.temperature_2m_min[0] };
   });
   if (!arr.length) wxAt = Date.now() - 9 * 60e3; /* retry in a minute */
   for (const c of CITIES) { const s = labels[c.id] && labels[c.id].querySelector('small'); if (s) s.textContent = tempStr(c, weather[c.id]); }
@@ -642,7 +642,14 @@ function cityCam(dt) {
 function setNear(cam, n) { if (cam.near !== n) { cam.near = n; cam.updateProjectionMatrix(); } }
 let lastW = 0, lastH = 0;
 /* the Houston renderer may run with autoClear off (cinematic pass): always start from a clean frame */
-function draw(scene, cam) { const ac = renderer.autoClear; renderer.setRenderTarget(null); renderer.autoClear = true; renderer.render(scene, cam); renderer.autoClear = ac; }
+/* goes through the shared glow pipeline (HDR bloom + grade) when it is on — globe city lights, atmosphere and world cities glow too */
+function draw(scene, cam, kind) {
+  const ac = renderer.autoClear; renderer.setRenderTarget(null); renderer.autoClear = true;
+  const fx = window.HTS_FX;
+  try { if (fx && fx.renderScene) fx.renderScene(scene, cam, { kind: kind || 'city' }); else renderer.render(scene, cam); }
+  catch (e) { renderer.render(scene, cam); }
+  renderer.autoClear = ac;
+}
 function globeRose(cam) {
   /* north on screen: tangent toward the pole at the point under the camera, projected on the camera's right/up axes */
   if (!(roseEl || (roseEl = document.getElementById('rose')))) return;
@@ -666,7 +673,7 @@ export function frame(now) {
     const f = flight, p = f.cruise.pos;
     globe.update(dt);
     globe.chase(p.lat, p.lng, p.hdg + f.cyaw * 57.3, f.camAlt, f.camAlt * 1.8);
-    draw(globe.scene, globe.camera); globeRose(globe.camera);
+    draw(globe.scene, globe.camera, 'globe'); globeRose(globe.camera);
     /* the aircraft itself, drawn on top at chase distance — no icon */
     const L = f.heroPlane.userData.len || 40, cam = f.heroCam;
     cam.aspect = canvas.clientWidth / canvas.clientHeight; cam.updateProjectionMatrix();
@@ -688,7 +695,7 @@ export function frame(now) {
       all.push({ lat: p.lat, lng: p.lng, altFt: 35000 * Math.min(1, Math.min(k, 1 - k) * 25), hdg: bearing(p, n), sim: true });
     }
     globe.setFlights(all);
-    draw(globe.scene, globe.camera); globeRose(globe.camera);
+    draw(globe.scene, globe.camera, 'globe'); globeRose(globe.camera);
     placeLabels();
   } else if (cs) {
     const cam = cs.camera;

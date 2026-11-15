@@ -56,6 +56,95 @@ class PolyGrid {
   }
 }
 
+/* ---- realistic house skins (no extra geometry): one window bay ≈ 4.2 m × 3 m floor, repeated per house size in the shader ---- */
+function tileTex(draw) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'); draw(x);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t;
+}
+const WIN = [23, 13, 18, 27]; /* x, y, w, h of the window in the 64 px bay (≈1.2 m × 1.3 m) */
+function houseWallMaterial() {
+  const map = tileTex((x) => {
+    /* light lap siding (tinted per house by the instance colour) */
+    x.fillStyle = '#f3f0ea'; x.fillRect(0, 0, 64, 64);
+    for (let y = 2; y < 64; y += 5) { x.fillStyle = 'rgba(70,60,50,0.10)'; x.fillRect(0, y, 64, 1); x.fillStyle = 'rgba(255,255,255,0.35)'; x.fillRect(0, y + 1, 64, 1); }
+    x.fillStyle = 'rgba(60,50,40,0.18)'; x.fillRect(0, 60, 64, 4); /* foundation shadow line */
+    const [wx, wy, ww, wh] = WIN;
+    x.fillStyle = '#fbfbf8'; x.fillRect(wx - 2, wy - 2, ww + 4, wh + 4); /* trim */
+    const g = x.createLinearGradient(0, wy, 0, wy + wh); g.addColorStop(0, '#6f8597'); g.addColorStop(0.45, '#3a4856'); g.addColorStop(1, '#2a333c');
+    x.fillStyle = g; x.fillRect(wx, wy, ww, wh); /* glass with sky reflection */
+    x.fillStyle = '#fbfbf8'; x.fillRect(wx, wy + wh / 2 - 1, ww, 2); x.fillRect(wx + ww / 2 - 1, wy, 2, wh); /* muntins */
+    x.fillStyle = '#d9d4cb'; x.fillRect(wx - 3, wy + wh + 2, ww + 6, 2); /* sill */
+    x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(wx - 3, wy + wh + 4, ww + 6, 1);
+  });
+  const emissiveMap = tileTex((x) => {
+    x.fillStyle = '#000'; x.fillRect(0, 0, 64, 64);
+    const [wx, wy, ww, wh] = WIN;
+    const g = x.createRadialGradient(wx + ww / 2, wy + wh * 0.6, 2, wx + ww / 2, wy + wh * 0.6, ww);
+    g.addColorStop(0, '#ffe2b0'); g.addColorStop(1, '#d9964a');
+    x.fillStyle = g; x.fillRect(wx, wy, ww, wh);
+    x.fillStyle = '#000'; x.fillRect(wx, wy + wh / 2 - 1, ww, 2); x.fillRect(wx + ww / 2 - 1, wy, 2, wh);
+  });
+  const m = new THREE.MeshLambertMaterial({ color: 0xffffff, map, emissive: 0xffc27a, emissiveIntensity: 0, emissiveMap });
+  m.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying float vHSeed;')
+      .replace('#include <uv_vertex>', `#include <uv_vertex>
+#ifdef USE_INSTANCING
+  {
+    float hsX = length(instanceMatrix[0].xyz), hsY = length(instanceMatrix[1].xyz), hsZ = length(instanceMatrix[2].xyz);
+    float faceW = abs(normal.x) > 0.5 ? hsZ : hsX;
+    vec2 rep = vec2(max(1.0, floor(faceW / 4.2 + 0.5)), max(1.0, floor(hsY / 3.0 + 0.5)));
+    #ifdef USE_MAP
+      vMapUv *= rep;
+    #endif
+    #ifdef USE_EMISSIVEMAP
+      vEmissiveMapUv *= rep;
+    #endif
+    vHSeed = fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453);
+  }
+#else
+  vHSeed = 0.5;
+#endif`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vHSeed;')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+#ifdef USE_EMISSIVEMAP
+  { /* each window of each house is on or off on its own, at its own brightness */
+    vec2 cell = floor(vEmissiveMapUv);
+    float h = fract(sin(dot(cell + vHSeed * 37.0, vec2(27.17, 91.73))) * 43758.5453);
+    totalEmissiveRadiance *= step(0.42, h) * (0.55 + 0.9 * fract(h * 7.31));
+  }
+#endif`);
+  };
+  m.customProgramCacheKey = () => 'hts-house-wall-v1';
+  return m;
+}
+function houseRoofMaterial() {
+  const map = tileTex((x) => {
+    /* asphalt shingles: 8 courses per tile, staggered tabs, slight colour variation */
+    let sd = 11; const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    x.fillStyle = '#c9c6c0'; x.fillRect(0, 0, 64, 64);
+    for (let row = 0; row < 8; row++) {
+      const y = row * 8, off = (row % 2) * 6;
+      for (let c = -1; c < 6; c++) { const v = 175 + (r() * 40 | 0); x.fillStyle = `rgb(${v},${v - 2},${v - 6})`; x.fillRect(c * 12 + off, y, 11, 7); }
+      x.fillStyle = 'rgba(0,0,0,0.28)'; x.fillRect(0, y + 7, 64, 1);
+    }
+  });
+  const m = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide, map });
+  m.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('#include <uv_vertex>', `#include <uv_vertex>
+#if defined(USE_INSTANCING) && defined(USE_MAP)
+  {
+    float hsX = length(instanceMatrix[0].xyz), hsY = length(instanceMatrix[1].xyz), hsZ = length(instanceMatrix[2].xyz);
+    float slope = length(vec2(0.55 * hsX, 0.42 * hsY));
+    vMapUv *= vec2(hsZ * 1.1 / 2.0, slope / 2.0); /* one 64 px tile ≈ 2 m of roof */
+  }
+#endif`);
+  };
+  m.customProgramCacheKey = () => 'hts-house-roof-v1';
+  return m;
+}
+
 function makeTreeGeos() {
   /* live-oak style crown: three merged lobes (wide, slightly flat), baked light-top / dark-underside shading */
   const lobes = [[0, 1.6, 0, 1], [0.55, 1.35, 0.25, 0.72], [-0.5, 1.4, -0.2, 0.75]], P = [];
@@ -77,6 +166,15 @@ function makeTreeGeos() {
     -0.55, 0, -0.55, 0, 0.42, -0.55, 0, 0.42, 0.55, -0.55, 0, -0.55, 0, 0.42, 0.55, -0.55, 0, 0.55,
     0.55, 0, -0.55, 0.55, 0, 0.55, 0, 0.42, 0.55, 0.55, 0, -0.55, 0, 0.42, 0.55, 0, 0.42, -0.55], 3));
   roof.computeVertexNormals();
+  { /* shingle UVs: u along the ridge, v from eave (0) to ridge (1); gable ends sample the plain bottom row */
+    const pa = roof.attributes.position, uv = new Float32Array(pa.count * 2);
+    for (let i = 0; i < pa.count; i++) {
+      const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), gable = i < 6;
+      uv[2 * i] = gable ? 0.5 : (z + 0.55) / 1.1; uv[2 * i + 1] = gable ? 0.01 : y / 0.42;
+      void x;
+    }
+    roof.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  }
   return { crown, trunk, body, roof };
 }
 
@@ -89,14 +187,10 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
     water: new THREE.MeshLambertMaterial({ color: LAND.water.c, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 }),
     crown: new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true }),
     trunk: new THREE.MeshLambertMaterial({ color: 0x5a4632 }),
-    body: new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xffc27a, emissiveIntensity: 0, emissiveMap: (() => {
-      /* two warm windows per wall — lit by app night logic (HTS_LAND2.materials.body) */
-      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d');
-      x.fillStyle = '#000'; x.fillRect(0, 0, 64, 64); x.fillStyle = '#ffd9a0';
-      x.fillRect(10, 22, 13, 15); x.fillStyle = '#c99a62'; x.fillRect(40, 22, 13, 15);
-      const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
-    })() }),
-    roof: new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }),
+    body: houseWallMaterial(),
+    /* driveways, fences, pools: same box geometry but no wall texture */
+    flat: new THREE.MeshLambertMaterial({ color: 0xffffff }),
+    roof: houseRoofMaterial(),
     rail: new THREE.MeshLambertMaterial({ color: 0x5d564e }),
   };
   const stats = { tiles: 0, tris: 0, trees: 0, houses: 0 };
@@ -357,7 +451,7 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
       instanced(geos.trunk, mats.trunk, trees.map((o) => ({ x: o.x, z: o.z, sx: o.sx, sy: o.sy * 2.2, sz: o.sx, r: 0 })), false),
       instanced(geos.body, mats.body, houses.concat(garages), true),
       instanced(geos.roof, mats.roof, roofs, true),
-      instanced(geos.body, mats.body, flats, false),
+      instanced(geos.body, mats.flat, flats, false),
     ]) if (im) detail.add(im);
     stats.trees += trees.length + bushes.length; stats.houses += houses.length;
     return detail;
@@ -408,3 +502,5 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
 
   return { root, ready, update, stats, materials: mats, landmarks: () => (index && index.landmarks) || [] };
 }
+/* exported for the shader compile test harness */
+export { houseWallMaterial, houseRoofMaterial, makeTreeGeos as _makeHouseGeos };
