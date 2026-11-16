@@ -141,11 +141,13 @@ export function createInstanceCuller({ scene, camera, minCount = 120, settleMs =
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz) - r;
       if (d > far) continue;
       if (d > 0 && r * k < d) continue; /* below ~1 px on screen */
-      if (n !== i) {
-        const so = i * 16, dn = n * 16;
-        for (let j = 0; j < 16; j++) a[dn + j] = src[so + j];
-        if (c) { ca[n * 3] = c[i * 3]; ca[n * 3 + 1] = c[i * 3 + 1]; ca[n * 3 + 2] = c[i * 3 + 2]; }
-      }
+      /* Always rewrite from the snapshot. A previous cull may have compacted a later
+         instance into this slot; skipping the copy when n === i leaves that duplicate
+         in place and the real instance never comes back. src is a copy, so this is safe
+         even when the write overlaps a slot already filled earlier in this pass. */
+      const so = i * 16, dn = n * 16;
+      a.set(src.subarray(so, so + 16), dn);
+      if (c) ca.set(c.subarray(i * 3, i * 3 + 3), n * 3);
       idx[n] = i;
       n++;
       const X = cx[i], Y = cy[i], Z = cz[i];
@@ -200,7 +202,17 @@ export function createInstanceCuller({ scene, camera, minCount = 120, settleMs =
     const camMoved = cp.distanceTo(lastCam) > moveTol || Math.abs(fogFar - lastFog) > lastFog * 0.08 || H !== lastH;
     if (camMoved) {
       lastCam.copy(cp); lastFog = fogFar; lastH = H;
-      queue = Array.from(regs.values());
+      /* Keep unfinished meshes at the front and append the ones already culled this pass.
+         Rebuilding from scratch on every camera move (the camera moves every flight frame)
+         spent the whole budget redoing mesh 0, so houses, roofs and lights stayed frozen
+         on the last parked view. */
+      const live = [];
+      const seen = new Set();
+      for (const rec of queue) {
+        if (regs.get(rec.o) === rec && !seen.has(rec)) { live.push(rec); seen.add(rec); }
+      }
+      for (const rec of regs.values()) if (!seen.has(rec)) live.push(rec);
+      queue = live;
       stats.drawn = 0;
     }
     /* spread the work over frames so there is never a hitch */
