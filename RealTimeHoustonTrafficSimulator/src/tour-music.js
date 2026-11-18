@@ -1175,6 +1175,23 @@ const TRACKS = [
   { g: 'hiphop', id: 'DW3tI9HCslo', title: 'SAD! (Alt Video)', a: 'XXXTENTACION' },
   { g: 'electronic', id: 'SP6d5zyWdIo', title: 'Walking On A Dream (Lyrics)', a: 'Empire of the Sun' },
   { g: 'electronic', id: 'V1bFr2SWP1I', title: 'We Are The People', a: 'Empire of the Sun' },
+  /* —— Papaoutai / Young Black & Rich / genre pack —— */
+  { g: 'pop', id: 'oiKj0Z_Xnjc', title: 'papaoutai', a: 'Stromae' },
+  { g: 'pop', id: 'GgN17pQ2EPg', title: 'PAPAOUTAI (Official)', a: 'Stromae' },
+  { g: 'hiphop', id: 'F3qWBh7jZZ0', title: 'Young Black & Rich', a: 'Melly Mike' },
+  { g: 'afrobeat', id: 'JRF_sdTXpGw', title: 'Active', a: 'Asake & Travis Scott' },
+  { g: 'afrobeat', id: 'MCMyKcUNR8w', title: 'WHY LOVE', a: 'Asake' },
+  { g: 'pop', id: 'aSugSGCC12I', title: 'Manchild', a: 'Sabrina Carpenter' },
+  { g: 'pop', id: 'o3mP3mJDL2k', title: 'tous les mêmes', a: 'Stromae' },
+  /* —— More rap/pop/afrobeat —— */
+  { g: 'pop', id: 'VHoT4N43jK8', title: 'Alors on danse', a: 'Stromae' },
+  { g: 'hiphop', id: 'UjtOGPJ0URM', title: 'Type Shit', a: 'Future & Metro Boomin' },
+  { g: 'afrobeat', id: 'yEDHimUB4A4', title: 'Active (Alt)', a: 'Asake ft. Rema & Travis Scott' },
+  { g: 'afrobeat', id: 'E6WCzrW_2i4', title: 'Gratitude', a: 'Asake' },
+  { g: 'afrobeat', id: 'rkSCar68rYk', title: 'HALLELUJAH', a: 'Rema' },
+  /* —— Genre continue pack —— */
+  { g: 'pop', id: '51zjlMhdSTE', title: 'Espresso (Official Audio)', a: 'Sabrina Carpenter' },
+  { g: 'hiphop', id: 'T6eK-2OQtew', title: 'Not Like Us (Audio)', a: 'Kendrick Lamar' },
 ];
 
 const ALL = (() => {
