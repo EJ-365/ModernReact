@@ -604,7 +604,7 @@ const TRACKS = [
   { g: 'pop', id: 'lt6PVVr4B04', title: 'So Yesterday', artist: 'Hilary Duff' },
   { g: 'hiphop', id: 'tfSS1e3kYeo', title: 'HIGHEST IN THE ROOM', artist: 'Travis Scott' },
   { g: 'hiphop', id: 'KnZ8h3MRuYg', title: 'Antidote', artist: 'Travis Scott' },
-  { g: 'hiphop', id: '7PBYGu4Az8s', title: 'Body', artist: 'Megan Thee Stallion' },
+
   { g: 'hiphop', id: 'RXL2RQLP-0k', title: 'Like A Boss', artist: 'Slim Thug' },
   { g: 'hiphop', id: '-TdfjZrtAvM', title: 'Get Throwed', artist: 'Bun B' },
   { g: 'hiphop', id: 'WG3qnNkmqvU', title: 'Int\'l Players Anthem', artist: 'UGK' },
@@ -1192,6 +1192,85 @@ const TRACKS = [
   /* —— Genre continue pack —— */
   { g: 'pop', id: '51zjlMhdSTE', title: 'Espresso (Official Audio)', a: 'Sabrina Carpenter' },
   { g: 'hiphop', id: 'T6eK-2OQtew', title: 'Not Like Us (Audio)', a: 'Kendrick Lamar' },
+  /* —— User list Nov 2026 (dupes → similar alts) —— */
+  { g: 'hiphop', id: '0opZqh_TprM', title: 'Lemonade', a: 'Internet Money, Gunna & Don Toliver ft. NAV' },
+  { g: 'hiphop', id: 'S4asq3SicN0', title: 'Goodbyes', a: 'Post Malone ft. Young Thug' },
+  { g: 'electronic', id: 'AtKZKl7Bgu0', title: 'I Need Your Love', a: 'Calvin Harris ft. Ellie Goulding' },
+  { g: 'electronic', id: 'n4RjJKxsamQ', title: 'Save The World', a: 'Swedish House Mafia' },
+  { g: 'hiphop', id: 'Jpp4pu1e0ws', title: 'Pop It', a: 'Gunna' },
+  { g: 'pop', id: 'T3E9Wjbq44E', title: 'Stereo Hearts', a: 'Gym Class Heroes ft. Adam Levine' },
+  { g: 'afrobeat', id: '_aLdw-jBdiw', title: 'Tigini', a: 'Kikimoteleba' },
+  { g: 'hiphop', id: 'Om0rYw6qzb8', title: 'Hotel Lobby', a: 'Quavo & Takeoff' },
+  { g: 'hiphop', id: '9hJ8lLNWrM4', title: 'Pure Water', a: 'Mustard & Migos' },
+  { g: 'pop', id: 'WTJSt4wP2ME', title: 'Wavin\' Flag', a: 'K\'NAAN' },
+  { g: 'classics', id: 'wp43OdtAAkM', title: 'Running Up That Hill', a: 'Kate Bush' },
+  { g: 'hiphop', id: '2a8PgqWrc_4', title: 'STARGAZING', a: 'Travis Scott' },
+  { g: 'hiphop', id: 'Kbj2Zss-5GY', title: 'Praise The Lord (Da Shine)', a: 'A$AP Rocky ft. Skepta' },
+  { g: 'hiphop', id: '_VuJA-VQRcY', title: 'Doja', a: 'Central Cee' },
+  { g: 'classics', id: 'QNJL6nfu__Q', title: 'They Don\'t Care About Us', a: 'Michael Jackson' },
+  { g: 'hiphop', id: 'h4UqMyldS7Q', title: 'It Was a Good Day', a: 'Ice Cube' },
+  { g: 'pop', id: 'UrGS_6_HglU', title: 'Control', a: 'Zoe Wees' },
+  { g: 'pop', id: 'bg1sT4ILG0w', title: 'Am I Wrong', a: 'Nico & Vinz' },
+  { g: 'hiphop', id: 'SQCSxqScSVQ', title: 'Gangsta\'s Paradise', a: 'Coolio ft. L.V.' },
+  { g: 'rock', id: 'VPRjCeoBqrI', title: 'A Sky Full of Stars', a: 'Coldplay' },
+  { g: 'hiphop', id: 'Z4N8lzKNfy4', title: 'All My Life', a: 'Lil Durk ft. J. Cole' },
+  { g: 'hiphop', id: 'vx4kLgnFexo', title: 'Pop Out', a: 'Polo G ft. Lil Tjay' },
+  /* —— User list pass 2 —— */
+  { g: 'soul', id: 'lXYq9ImJIN8', title: 'Break From Toronto', a: 'PARTYNEXTDOOR' },
+  { g: 'hiphop', id: 'V6ZsXKE8QmQ', title: 'fukumean', a: 'Gunna' },
+  /* —— User list pass 3 —— */
+  { g: 'electronic', id: 'S63YRJpD660', title: 'This Is What It Feels Like', a: 'Armin van Buuren ft. Trevor Guthrie' },
+
+  { g: 'classics', id: 't1TcDHrkQYg', title: 'Forever Young', a: 'Alphaville' },
+  /* —— User list pass 4 —— */
+
+  { g: 'pop', id: 'HBxt_v0WF6Y', title: 'Where Have You Been', a: 'Rihanna' },
+  { g: 'electronic', id: 'dLa_ryRjC7M', title: 'If I Lose Myself', a: 'OneRepublic & Alesso' },
+  { g: 'soul', id: 'i2OJUQZuUWI', title: 'Some of Your Love', a: 'PARTYNEXTDOOR' },
+  { g: 'soul', id: 'QHx1-CM1nvk', title: 'Dreamin / Come and See Me', a: 'PARTYNEXTDOOR' },
+  { g: 'hiphop', id: '5i0GKTp8c1Q', title: 'on one tonight', a: 'Gunna' },
+
+  { g: 'electronic', id: 'lAwYodrBr2Q', title: 'Wait', a: 'M83' },
+  { g: 'electronic', id: '1cEy4UyYHI0', title: 'Outro', a: 'M83' },
+  { g: 'pop', id: 'd_HlPboLRL8', title: 'Runaway', a: 'AURORA' },
+  { g: 'afrobeat', id: '2NTrT3D2VBo', title: 'Voodoo', a: 'Chisway ft. JZyNo' },
+  /* —— User list pass 5 —— */
+  { g: 'electronic', id: 'GuAtcpFQpMw', title: 'Reload', a: 'Sebastian Ingrosso, Tommy Trash & John Martin' },
+  { g: 'electronic', id: '9G1I16gJBvU', title: 'Calling (Lose My Mind)', a: 'Sebastian Ingrosso, Alesso & Ryan Tedder' },
+  { g: 'hiphop', id: 'Tqjw-H4QyG0', title: 'prada dem', a: 'Gunna ft. Offset' },
+  { g: 'electronic', id: 'K4DyBUG242c', title: 'On & On', a: 'Cartoon, Jéja ft. Daniel Levi' },
+  { g: 'pop', id: '0GnA8VYOfko', title: 'Gut Genug', a: 'KitschKrieg, Blumengarten & Shirin David' },
+  { g: 'afrobeat', id: '3QWCjiZSdGQ', title: 'Dimension', a: 'JAE5 ft. Skepta & Rema' },
+  { g: 'hiphop', id: 'MQOG5BkY2Bc', title: 'Shutdown', a: 'Skepta' },
+  { g: 'electronic', id: 'jUe8uoKdHao', title: 'Without You', a: 'David Guetta ft. Usher' },
+  { g: 'hiphop', id: 'QW29Ly55Kvs', title: 'Plot Twist', a: 'Drake' },
+  { g: 'hiphop', id: 'bueFTrwHFEs', title: 'Check Yo Self', a: 'Ice Cube' },
+  { g: 'hiphop', id: 'rzRqEWJYwX4', title: 'You Know How We Do It', a: 'Ice Cube' },
+  { g: 'hiphop', id: 'EfHNIPXTxy0', title: 'ZEZE', a: 'Kodak Black ft. Travis Scott & Offset' },
+  { g: 'afrobeat', id: '-a48wndV45g', title: 'Ameyatchi', a: 'Mathey' },
+  { g: 'afrobeat', id: 'oL_g56WroqE', title: 'Burukutu', a: 'Olamide' },
+  { g: 'afrobeat', id: 'SFmZKO35SfQ', title: 'Bobo', a: 'Olamide' },
+  { g: 'afrobeat', id: 'j2u5Gbadn7o', title: 'Wo!', a: 'Olamide' },
+  { g: 'afrobeat', id: 'SiQpc5dWsjg', title: 'Melo Melo', a: 'Olamide' },
+  { g: 'afrobeat', id: 'gvv1jOFMyNg', title: 'If Love Is A Crime', a: '2Baba ft. VIP' },
+  { g: 'hiphop', id: 'PvOYrm_JZc8', title: 'What Happened to Virgil', a: 'Lil Durk ft. Gunna' },
+  { g: 'hiphop', id: 'Ty-CHgmCeKw', title: 'Backdoor', a: 'Lil Durk' },
+  { g: 'hiphop', id: 'C-DfE1GTRx0', title: '3 Headed Goat', a: 'Lil Durk ft. Lil Baby & Polo G' },
+  { g: 'hiphop', id: 'YNyFAro1E5M', title: 'Martin & Gina', a: 'Polo G' },
+  { g: 'hiphop', id: 'w2IhccXakkE', title: 'RAPSTAR', a: 'Polo G' },
+  { g: 'afrobeat', id: 'WQFDWM-6ytA', title: 'My Darling', a: 'Chella' },
+  { g: 'afrobeat', id: 'fLMSd1UM3aA', title: 'Iweriwe Love', a: 'Chella' },
+  /* —— User list pass 6 —— */
+
+
+  /* —— User list pass 7 —— */
+  { g: 'afrobeat', id: '7bO6jpdmC-o', title: 'Loyal', a: 'Chella' },
+
+  /* —— User list pass 8 —— */
+
+  { g: 'afrobeat', id: 'DR5dPcoIjOQ', title: 'Motigbana (Jaiye vibe alt)', a: 'Olamide' },
+  /* —— User list Hong Kong vibe —— */
+  { g: 'pop', id: 'RtXRW5XJys8', title: 'Hong Kong', a: 'The Weeknd' },
 ];
 
 const ALL = (() => {
