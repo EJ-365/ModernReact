@@ -422,6 +422,8 @@ export function createHoustonLand({ parent, k = 1, base = '/data/houston/', offs
               /* also test the live Houston road network (freeways/arterials/ramps streamed by the road renderer) */
               if (!clearLot(x, z, w, dep, ang) || (window.HTS_ROAD_NEAR && window.HTS_ROAD_NEAR(X(x), X(z), X(Math.max(w, dep) * 0.6) - X(0)))) continue;
               houses.push({ x, z, sx: w, sy: h, sz: dep, r: ang, c: HOUSE_COLS[(rnd() * HOUSE_COLS.length) | 0] });
+              /* so tour helis / traffic can avoid landing inside residential footprints */
+              if (typeof window !== 'undefined' && window.registerBldgFoot) window.registerBldgFoot(X(x), X(z), X(w), X(dep));
               roofs.push({ x, z, y: h * k, sx: w * 1.06, sy: 3 + rnd() * 1.5, sz: dep * 1.06, r: ang, c: ROOF_COLS[(rnd() * ROOF_COLS.length) | 0] });
               /* front garage + driveway to the kerb, backyard fence, sometimes a pool (common in Houston) */
               const px = -uz * sd, pz = ux * sd, gs = rnd() < 0.5 ? -1 : 1, ga = gs * (dep / 2 - 3.2);

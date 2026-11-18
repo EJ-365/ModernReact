@@ -2729,12 +2729,13 @@ function icRealLeft(x, z, t) {
   function heliPad(D) {
     hookTiles();
     const R = getRoads && getRoads(), deck = (x, z) => !!(R && R.heightAt && R.heightAt(x, z, 0) != null);
+    const hitsBldg = (x, z) => !!(typeof window !== 'undefined' && window.footHitsBldg && window.footHitsBldg(x, z));
     const segs = [];
     for (const ways of tileWays.values()) for (const w of ways) {
-      const q = w.f && w.f.pts, hw = ((w.r && w.r.w) || 8) / 2 + 12; if (!q) continue;
+      const q = w.f && w.f.pts, hw = ((w.r && w.r.w) || 8) / 2 + 18; if (!q) continue;
       for (let i = 2; i < q.length; i += 2) {
         const ax = q[i - 2], az = q[i - 1], bx = q[i], bz = q[i + 1];
-        if (Math.min(ax, bx) > D.x + 1300 || Math.max(ax, bx) < D.x - 1300 || Math.min(az, bz) > D.z + 1300 || Math.max(az, bz) < D.z - 1300) continue;
+        if (Math.min(ax, bx) > D.x + 1600 || Math.max(ax, bx) < D.x - 1600 || Math.min(az, bz) > D.z + 1600 || Math.max(az, bz) < D.z - 1600) continue;
         segs.push(ax, az, bx, bz, hw);
       }
     }
@@ -2746,12 +2747,26 @@ function icRealLeft(x, z, t) {
       }
       return false;
     };
-    const clear = (x, z) => !nearRoad(x, z, 16) && !deck(x, z) && !deck(x + 20, z) && !deck(x - 20, z) && !deck(x, z + 20) && !deck(x, z - 20) && !street(x, z);
-    for (let r = 45; r <= 1200; r += 30) {
-      const n = Math.max(8, Math.round(r / 12));
-      for (let i = 0; i < n; i++) { const a = (i / n) * 2 * Math.PI, x = D.x + Math.sin(a) * r, z = D.z + Math.cos(a) * r; if (clear(x, z)) return { d: D, x, z, n: tileWays.size }; }
+    /* open ground only: off roads, off elevated decks, and clear of building footprints (no rooftop / living-room landings) */
+    const clear = (x, z) => {
+      if (nearRoad(x, z, 22) || street(x, z) || hitsBldg(x, z)) return false;
+      if (deck(x, z) || deck(x + 24, z) || deck(x - 24, z) || deck(x, z + 24) || deck(x, z - 24)) return false;
+      if (hitsBldg(x + 18, z) || hitsBldg(x - 18, z) || hitsBldg(x, z + 18) || hitsBldg(x, z - 18)) return false;
+      return true;
+    };
+    for (let r = 55; r <= 1800; r += 28) {
+      const n = Math.max(10, Math.round(r / 10));
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * 2 * Math.PI + r * 0.017, x = D.x + Math.sin(a) * r, z = D.z + Math.cos(a) * r;
+        if (clear(x, z)) return { d: D, x, z, n: tileWays.size };
+      }
     }
-    return { d: D, x: D.x + 45, z: D.z, n: tileWays.size };
+    /* last resort: keep circling outward rather than defaulting onto the landmark itself */
+    for (let r = 200; r <= 2400; r += 80) {
+      const x = D.x + r, z = D.z;
+      if (clear(x, z)) return { d: D, x, z, n: tileWays.size };
+    }
+    return { d: D, x: D.x + 220, z: D.z + 220, n: tileWays.size };
   }
   function tourProgress() {
     if (S.mode !== 'tour') return 0;
