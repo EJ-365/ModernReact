@@ -448,6 +448,12 @@ function liveFlightEligible(f){
   if(f.onGround){
     const taxiGs=Math.max(gsNow||0,(f._posMoved&&f._estGs)||0);
     if(taxiGs<25&&(alt==null||alt<400))return false;
+    /* Helicopters "on ground" outside a real runway airport are ADS-B ghosts on streets/roofs — hide them */
+    if(cls==='heli'){
+      const w=flightWorldXZ(f);
+      const atField=!!(w&&window.HTS_AIRPORTS2&&HTS_AIRPORTS2.inAerodrome(w.x,w.z));
+      if(!atField)return false;
+    }
   }
   if(cls==='heli'||cls==='prop')return true;
   const cs=String(f.cs||'').trim();
@@ -491,8 +497,14 @@ function syncLiveFlightVisibility(){
       /* Position is owned by updateLiveFlights (corridor or geo) — only seed if never placed */
       if(!f._placed){
         const w=geoToWorld(f._lat,f._lon);
-        const altFt=flightAltFt(f)||((f._altM||2500)*3.28084);
+        let altFt=flightAltFt(f)||((f._altM||2500)*3.28084);
+        const cls0=(f.m.userData&&f.m.userData.acClass)||classifyAcModel(f.actype,f.category,f.cs);
+        if(cls0==='heli'){
+          const atField=!!(window.HTS_AIRPORTS2&&HTS_AIRPORTS2.inAerodrome(w.x,w.z));
+          if(!atField&&(altFt==null||altFt<600))altFt=600;
+        }
         f.m.position.set(w.x,displayAltY(altFt),w.z);
+        f._y=displayAltY(altFt);
         f._placed=true;
       }
       /* Do NOT set rotation here — updateLiveFlights owns smooth heading (avoids flip glitches) */
@@ -1108,13 +1120,13 @@ function htsSafeReload(why){
   console.warn('[HTS] auto-reload ('+why+')');
   location.reload();
 }
-/* a long blocking step (shader compile, big tile parse on a slow PC) also stops frames; that is not a dead loop.
-   Only count time while this timer itself keeps ticking on schedule, and never in the first minute. */
+/* a long blocking step (shader compile, big tile parse, GC on a long session) also stops frames; that is not a dead loop.
+   Only count time while this timer itself keeps ticking on schedule, and never in the first 3 minutes. */
 {let _wdLast=performance.now(),_wdDead=0;const _wdT0=performance.now();
  setInterval(()=>{const now=performance.now(),gap=now-_wdLast;_wdLast=now;
-  if(gap>8000||document.visibilityState!=='visible'||now-_wdT0<60000||!window._htsLastFrame){_wdDead=0;return;}
-  _wdDead=now-window._htsLastFrame>5000?_wdDead+gap:0;
-  if(_wdDead>20000){console.warn('[HTS] render loop stopped for 20 s, reloading');htsSafeReload('stall');}},5000);}
+  if(gap>12000||document.visibilityState!=='visible'||now-_wdT0<180000||!window._htsLastFrame){_wdDead=0;return;}
+  _wdDead=now-window._htsLastFrame>8000?_wdDead+gap:0;
+  if(_wdDead>45000){console.warn('[HTS] render loop stopped for 45 s, reloading');htsSafeReload('stall');}},5000);}
 /* Cap anisotropy — high values stall texture uploads on Windows GPUs */
 const MAXAN=Math.min(_isWin?4:8,renderer.capabilities.getMaxAnisotropy());
 const scene=new THREE.Scene();
@@ -3161,6 +3173,8 @@ function footHitsBldg(px,pz){
   }
   return null;
 }
+window.footHitsBldg=footHitsBldg;
+window.registerBldgFoot=registerBldgFoot;
 function tower(x,z,w,dep,h,skin,rotY,cyl,opts){
   const n0=gDetail.children.length;
   try{return towerImpl(x,z,w,dep,h,skin,rotY,cyl,opts);}
@@ -5388,8 +5402,14 @@ window.FLIGHTS=[];
           LIVE_FLIGHT_LIST.push(f);
           if(Number.isFinite(x.lat)&&Number.isFinite(x.lon)){
             const w=geoToWorld(x.lat,x.lon);
-            const altFt=f.altFt!=null?f.altFt:((f._tAltM||2500)*3.28084);
+            let altFt=f.altFt!=null?f.altFt:((f._tAltM||2500)*3.28084);
+            const cls0=(f.m.userData&&f.m.userData.acClass)||classifyAcModel(x.actype,x.category,x.cs);
+            if(cls0==='heli'){
+              const atField=!!(window.HTS_AIRPORTS2&&HTS_AIRPORTS2.inAerodrome(w.x,w.z));
+              if(!atField&&(f.onGround||altFt==null||altFt<600))altFt=600;
+            }
             f.m.position.set(w.x,displayAltY(altFt),w.z);
+            f._y=displayAltY(altFt);
             f._yaw=trackToYaw(f._trk||0);
           }
         }
@@ -5482,6 +5502,30 @@ window.FLIGHTS=[];
           f._stale=(f._stale||0)+1;
           f._last=now;
         }
+      }
+      /* Long-session leak fix: dispose meshes that have been off-feed for several polls.
+         Leaving hundreds of hidden plane meshes was exhausting Windows GPU VRAM overnight. */
+      for(let i=LIVE_FLIGHT_LIST.length-1;i>=0;i--){
+        const f=LIVE_FLIGHT_LIST[i];
+        if(!f||(f._stale||0)<8)continue;
+        if(f===window._followPlaneRef||f===followPlane)continue;
+        try{
+          if(f.m){
+            f.m.visible=false;
+            if(f.m.parent)f.m.parent.remove(f.m);
+            f.m.traverse((o)=>{
+              try{if(o.geometry)o.geometry.dispose();}catch(_e){}
+              try{
+                if(o.material){
+                  const mats=Array.isArray(o.material)?o.material:[o.material];
+                  for(const m of mats){if(m&&m.map)m.map.dispose();if(m)m.dispose();}
+                }
+              }catch(_e){}
+            });
+          }
+        }catch(_e){}
+        try{LIVE_FLIGHTS.delete(f.icao24);}catch(_e){}
+        LIVE_FLIGHT_LIST.splice(i,1);
       }
       syncLiveFlightVisibility();
     }catch(e){
@@ -10294,16 +10338,21 @@ function updateLiveFlights(dt){
     }
 
     let altFt=altFtNow!=null?altFtNow:(f._altM*3.28084);
-    /* low helicopters away from an airfield/heliport are hovering or in transit, not parked on a street */
-    if(cls==='heli'&&(altFt==null||altFt<350)&&!(window.HTS_AIRPORTS2&&HTS_AIRPORTS2.inAerodrome(f.m.position.x,f.m.position.z)))altFt=350;
-    const yTarget=displayAltY(altFt);
-    f._y=lerp(f._y!=null?f._y:yTarget,yTarget,clamp(dt*3,0,1));
-
     const corr=classifyLiveCorridor(f);
     if(corr){f._corridorMode=corr.mode;f._corridorApt=corr.apt;}
     else{f._corridorMode=null;f._corridorApt=null;}
 
     const w=geoToWorld(f._lat,f._lon);
+    /* Helis: never sit at street / rooftop height outside a real IATA airport apron.
+       Use fresh world coords (not last-frame mesh pos) and keep a ~600 ft city transit floor. */
+    if(cls==='heli'){
+      const atField=!!(window.HTS_AIRPORTS2&&HTS_AIRPORTS2.inAerodrome(w.x,w.z));
+      if(!atField){
+        if(f.onGround||altFt==null||altFt<600)altFt=600;
+      }
+    }
+    const yTarget=displayAltY(altFt);
+    f._y=lerp(f._y!=null?f._y:yTarget,yTarget,clamp(dt*3,0,1));
     const yaw=smoothFlightYaw(f,trk,dt);
     let pitchT=0.012;
     if(cls==='heli')pitchT=0.02;
